@@ -1,7 +1,7 @@
 // Движок правил: создание партии и применение действий.
 // applyAction не меняет переданное состояние, а возвращает новое.
 import {
-  ADDRESSES, CARDS, GENRE_NAMES, GROUP_ACTIONS, KEEPERS, PASSIONS, PERMANENT_ADDRESSES, RULES, SAFEHOUSES,
+  ADDRESSES, CARDS, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, KEEPERS, PASSIONS, PERMANENT_ADDRESSES, RULES, SAFEHOUSES,
   SPECIALS, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
 } from './content';
 import { finalScoring } from './scoring';
@@ -478,7 +478,7 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
   }
   if (action.type === 'group') {
     check(!mustVisitRedCorner(state, p), 'Последнего Единомышленника нужно отправить в Красный уголок');
-    doGroup(state, p, action.group, { limited: true });
+    doGroup(state, p, action.group, { limited: true, worker: true });
     track(p, `group:${action.group.action}`);
     p.available--;
     return;
@@ -581,8 +581,9 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         (unprinted.length <= 1 && load.length <= 1) || hasPatron(state, p.id, 'zavpunktom'),
         'Сдать можно до 1 Непечатной и до 1 книги Нагрузки',
       );
-      const perBook = 1 + (hasPatron(state, p.id, 'zavkhoz') ? 1 : 0);
+      const extra = hasPatron(state, p.id, 'zavkhoz') ? 1 : 0;
       for (const c of a.recycle) {
+        const perBook = (isFromLoadDeck(state, c) ? RULES.redCornerLoad : RULES.redCornerUnprinted) + extra;
         removeBook(p, c);
         discard(state, c);
         p.talons += perBook;
@@ -677,12 +678,13 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       removeBook(p, a.card);
       p.published.push(a.card);
       const genres = iconsOf(state, a.card);
-      let talons = icons + (hasPatron(state, p.id, 'correspondent') ? icons : 0);
+      const perIcon = a.address === 'samizdat' ? RULES.samizdatTalons : RULES.tamizdatTalons;
+      const talons = icons * perIcon + (hasPatron(state, p.id, 'correspondent') ? icons : 0);
       let pts = 0;
       const add = (n: number, src: Parameters<typeof gain>[2]) => { gain(p, n, src); pts += n; };
       if (a.address === 'tamizdat') {
         p.tamizdat.push(a.card);
-        add(icons, 'tamizdat');
+        add(icons * RULES.tamizdatPoints, 'tamizdat');
         if (isFull(state) && genres.includes('testimony')) add(2, 'testimony'); // «Придать огласке»
       } else {
         if (hasPatron(state, p.id, 'editor')) add(icons, 'editor');
@@ -717,7 +719,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     }
     case 'raspredelitel': {
       check(state.raspredelitel.includes(a.card), 'Этой книги нет в Распределителе');
-      payPrice(state, p, RULES.safehousePrice);
+      payPrice(state, p, RULES.raspredelitelPrice);
       addBook(p, a.card);
       state.raspredelitel = state.raspredelitel.filter((c) => c !== a.card);
       log(state, `${p.name} получает из Распределителя ${title(state, a.card)}.`);
@@ -749,7 +751,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       return;
     case 'spisanie': {
       check(freeSlots(p) > 0, 'На складе нет места');
-      payPrice(state, p, RULES.safehousePrice);
+      payPrice(state, p, RULES.spisaniePrice);
       let got = 0;
       const titles: string[] = [];
       for (let i = 0; i < 3; i++) {
@@ -772,7 +774,8 @@ function isFromLoadDeck(state: GameState, id: string) {
 
 // ---------- Действия Инициативной группы ----------
 
-function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limited: boolean }) {
+// worker — действие делает Единомышленник из Группы (он занимает место на адресе, куда идёт тиражировать).
+function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limited: boolean; worker?: boolean }) {
   const info = GROUP_ACTIONS[g.action];
   check(info, 'Нет такого действия');
   if (opts.limited) check(!p.groupUsed.includes(g.action), `«${info.name}» уже сделано в эту Пятилетку`);
@@ -789,23 +792,48 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       log(state, `${p.name}: Тайник увеличен до ${p.cache}.`);
       break;
     case 'copyText': {
-      check(freeSlots(p) > 0, 'На складе нет места');
-      if (g.card === 'deck') {
-        const c = draw(state);
-        check(c, 'Стопка Непечатных пуста');
+      // «Покупая книгу на адресе, можете поставить Единомышленника на Тиражирование текста и взять с этого адреса
+      // ещё одну книгу бесплатно». Покупатель идёт на адрес (занимает там место), второй Единомышленник — на Тиражирование.
+      // Из бонуса Тиражирование уже есть — по адресу идёт только покупатель.
+      const addr = g.address;
+      const name = ADDRESSES[addr]?.name;
+      check((COPY_TEXT_ADDRESSES as readonly string[]).includes(addr), 'Тиражировать можно на Развале, Толкучке, в Распределителе или на Книгообмене');
+      check(!ADDRESSES[addr].safehouse || state.safehouses.includes(addr), `${name}: этого адреса нет на столе`);
+      check(!g.buy || g.buy.address === addr, 'Покупать нужно на том же адресе');
+      check(g.buy, 'Тиражирование — только вместе с покупкой (на Книгообмене — обменом) на этом адресе');
+      check(g.buy.address !== 'tolkuchka' || g.buy.ops.some((op) => op.op === 'buy'), 'На Толкучке нужно купить хотя бы одну книгу');
+      check(g.card, 'Выберите книгу, которую взять бесплатно');
+      // Сколько Единомышленников уходит: покупатель, а в обычном ходе — ещё и тот, что на Тиражировании.
+      const going = opts.worker ? 2 : 1;
+      check(p.available >= going, opts.worker
+        ? 'Нужны два Единомышленника: один покупает на адресе, другой — на Тиражировании'
+        : 'Нет доступного Единомышленника, чтобы отправить его покупать');
+      check(p.visitedRedCorner || hasPatron(state, p.id, 'doctor') || p.available > going, 'Последнего Единомышленника нужно отправить в Красный уголок');
+      const here = state.occupancy[addr] ?? [];
+      check(here.length < limitFor(addr, state.players.length), `${name}: все места заняты`);
+      if (g.buy) doPlace(state, p, g.buy);
+      const c = g.card;
+      if (c) {
+        const own = g.buy?.address === 'tolkuchka' ? g.buy.ops.some((op) => op.op === 'sell' && op.card === c)
+          : g.buy?.address === 'knigoobmen' ? g.buy.give === c : false;
+        check(!own, 'Только что отданную книгу нельзя забрать обратно');
+        if (addr === 'razval') {
+          check(state.razval.includes(c), 'Бесплатную книгу нужно взять с того же Развала');
+          state.razval = state.razval.map((x) => (x === c ? null : x));
+        } else {
+          const key = addr as 'tolkuchka' | 'raspredelitel' | 'knigoobmen';
+          check(state[key].includes(c), `Бесплатную книгу нужно взять там же: ${name}`);
+          state[key] = state[key].filter((x) => x !== c);
+        }
         addBook(p, c);
-        log(state, `${p.name} тиражирует текст: берёт книгу из стопки.`);
-        log(state, `Вы получили ${title(state, c)}.`, [p.id]);
+        log(state, `${p.name} тиражирует ${title(state, c)} (${name}).`);
       } else {
-        const c = g.card;
-        if (state.raspredelitel.includes(c)) state.raspredelitel = state.raspredelitel.filter((x) => x !== c);
-        else if (state.tolkuchka.includes(c)) state.tolkuchka = state.tolkuchka.filter((x) => x !== c);
-        else if (state.knigoobmen.includes(c)) state.knigoobmen = state.knigoobmen.filter((x) => x !== c);
-        else if (state.razval.includes(c)) state.razval = state.razval.map((x) => (x === c ? null : x));
-        else fail('Эта книга не лежит открыто по адресу');
-        addBook(p, c);
-        log(state, `${p.name} тиражирует ${title(state, c)}.`);
+        log(state, `${p.name} тиражирует: ${name}.`);
       }
+      state.occupancy[addr] = [...here, p.id];
+      // Покупатель; Единомышленника на Тиражировании в обычном ходе спишет doOrder.
+      p.available--;
+      track(p, addr);
       if (hasPatron(state, p.id, 'typist')) {
         p.talons += 1;
         log(state, `${p.name}: Машинистка — +1 Талон.`);
@@ -824,7 +852,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       } else {
         log(state, `${p.name} возвращает смыслы книге ${title(state, g.card)}: +1 значок.`);
       }
-      pay(p, RULES.restoreCost);
+      payPrice(state, p, RULES.restoreCost);
       if (hasPatron(state, p.id, 'postgrad')) {
         gain(p, 2, 'postgrad');
         log(state, `${p.name}: Аспирант — +2 очка Гласности.`);

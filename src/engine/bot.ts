@@ -3,7 +3,7 @@
 // с лёгкими предпочтениями. Он — пресет «Случайный» и запасной вариант для редких решений.
 import { applyAction, activePlayers, mustVisitRedCorner } from './engine';
 import { presetById } from './bot-presets';
-import { smartMove } from './bot-smart';
+import { copyTextOptions, smartMove } from './bot-smart';
 import { PERMANENT_ADDRESSES, SPROUTS } from './content';
 import type { Action, ClubGift, GameState, Genre, GroupAction } from './types';
 import { GENRES } from './types';
@@ -25,7 +25,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
       case 'kvartirnikReply': return [{ type: 'kvartirnikReply', accept: rand() < 0.5 }];
       case 'naslednikiPick': return [{ type: 'naslednikiPick', cards: pend.cards.slice(-2) }, { type: 'naslednikiPick', cards: pend.cards.slice(-1) }];
       case 'posrednichestvoKeep': return [{ type: 'posrednichestvoKeep', keep: pend.cards.slice(0, 2) }, { type: 'posrednichestvoKeep', keep: pend.cards.slice(0, 1) }];
-      case 'posrednichestvoGroup': return [...groupCandidates(state, me), { type: 'pass' }];
+      case 'posrednichestvoGroup': return [...groupCandidates(state, me, rand), { type: 'pass' }];
       case 'kontoraWarning':
         return [{ type: 'kontoraHide', hidden: p.warehouse.filter((s) => s.hidden).map((s) => s.card) }];
       case 'kontoraDecide': {
@@ -45,13 +45,13 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
       case 'lieutenantPick': return [{ type: 'lieutenantPick', card: pend.cards[0] }, { type: 'lieutenantPick', card: null }];
       case 'discardExcess': return [{ type: 'discardExcess', cards: books.slice(-pend.count) }];
       case 'kontoraHandout': return [{ type: 'kontoraHandout', card: pend.cards[0] }];
-      case 'extraGroup': return [...groupCandidates(state, me), { type: 'pass' }];
+      case 'extraGroup': return [...groupCandidates(state, me, rand), { type: 'pass' }];
       case 'freeConnection': return [...clubGifts(state, me).map((gift) => ({ type: 'clubGift' as const, gift })), { type: 'pass' }];
       case 'sproutBonus': {
         const out: Action[] = [];
         for (const b of pend.options) {
           if (b === 'sideJob' || b === 'underCounter') out.push({ type: 'sproutBonus', bonus: b });
-          else for (const g of groupCandidates(state, me)) if (g.type === 'group' && g.group.action === b) out.push({ type: 'sproutBonus', bonus: b, group: g.group });
+          else for (const g of groupCandidates(state, me, rand)) if (g.type === 'group' && g.group.action === b) out.push({ type: 'sproutBonus', bonus: b, group: g.group });
         }
         return [...out, { type: 'pass' }];
       }
@@ -68,9 +68,9 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
       return [{ type: 'hiding', hidden: banned.slice(0, limit) }, { type: 'hiding', hidden: [] }];
     }
     case 'orders': {
-      if (p.available === 0) return [...groupCandidates(state, me), { type: 'pass' }];
+      if (p.available === 0) return [...groupCandidates(state, me, rand), { type: 'pass' }];
       if (mustVisitRedCorner(state, p)) return redCorner(state, me);
-      const out: Action[] = [...groupCandidates(state, me), ...redCorner(state, me)];
+      const out: Action[] = [...groupCandidates(state, me, rand), ...redCorner(state, me)];
       const addrs = [...PERMANENT_ADDRESSES, ...state.safehouses];
       for (const a of addrs) {
         switch (a) {
@@ -161,9 +161,11 @@ function clubGifts(state: GameState, me: string): ClubGift[] {
   return out;
 }
 
-function groupCandidates(state: GameState, me: string): Action[] {
+function groupCandidates(state: GameState, me: string, rand: Rand): Action[] {
   const p = player(state, me);
-  const out: GroupAction[] = [{ action: 'expandWarehouse' }, { action: 'expandCache' }, { action: 'copyText', card: 'deck' }, { action: 'hire' }];
+  const out: GroupAction[] = [{ action: 'expandWarehouse' }, { action: 'expandCache' }, { action: 'hire' }];
+  const copy = pick(copyTextOptions(state, me), rand);
+  if (copy) out.push(copy);
   const r = p.warehouse.find((s) => !state.restored[s.card] && ['genre', 'loadReturnable'].includes(state.cards[s.card].kind));
   if (r) out.push({ action: 'restore', card: r.card });
   const held = state.players.filter((o) => o.held > 0);
