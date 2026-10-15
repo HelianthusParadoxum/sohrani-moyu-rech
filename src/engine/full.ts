@@ -3,7 +3,7 @@ import { CLUB_SIZE, GENRE_NAMES, KONTORA_LOSS, PATRONS, RULES } from './content'
 import type { ClubGift, GameState, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
-  addBook, check, discard, drawLoad, earn, freeSlots, hasBook, hasPatron, iconsOf, isBanned, isGenreBook, log, pay, player,
+  addBook, addSecretBook, check, discard, drawLoad, earn, freeSlots, hasBook, hasPatron, iconsOf, isBanned, isGenreBook, log, pay, player,
   removeBook, shuffle, talonsText, title,
 } from './util';
 
@@ -200,7 +200,7 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
 export function takeFromSpetskhran(state: GameState, p: PlayerState, card: string) {
   check(state.spetskhran.includes(card), 'Этой книги нет в Спецхране');
   state.spetskhran = state.spetskhran.filter((c) => c !== card);
-  addBook(p, card);
+  addSecretBook(state, p, card);
   log(state, `${p.name} получает книгу из Спецхрана (Выдача на руки).`);
   log(state, `Вы получили ${title(state, card)}.`, [p.id]);
 }
@@ -237,7 +237,7 @@ export function afterRaid(state: GameState) {
     if (hasPatron(state, p.id, 'librarian') && state.discard.length) {
       shuffle(state, state.discard);
       let n = 0;
-      while (n < 2 && freeSlots(p) > 0 && state.discard.length) { addBook(p, state.discard.pop()!); n++; }
+      while (n < 2 && freeSlots(p) > 0 && state.discard.length) { addSecretBook(state, p, state.discard.pop()!); n++; }
       if (n) log(state, `${p.name}: Библиотекарь приносит книг из сброса: ${n}.`);
     }
   }

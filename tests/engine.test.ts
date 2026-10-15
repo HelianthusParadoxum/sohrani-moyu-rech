@@ -514,3 +514,25 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     expect(s.players.find((x) => x.id === me)!.pointsBy.komsorg).toBe(2 * RULES.komsorgPoints);
   });
 });
+
+describe('Тайник и закрытые книги', () => {
+  it('книга, взятая вслепую, сразу ложится в Тайник (если есть место), и соперник не видит, что это', () => {
+    let s = createGame({ players: players(2), seed: 8 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    const me = s.order[s.turn];
+    const other = s.players.find((p) => p.id !== me)!.id;
+    const p0 = s.players.find((p) => p.id === me)!;
+    p0.cache = 1;
+    p0.capacity = 10;
+    s = applyAction(s, me, { type: 'place', place: { address: 'gostorg', pairs: 1 } });
+    const p = s.players.find((x) => x.id === me)!;
+    const hidden = p.warehouse.filter((x) => x.hidden);
+    expect(hidden).toHaveLength(1); // Непечатная — в Тайник, Нагрузка — открыто
+    const card = hidden[0].card;
+    const theirs = viewFor(s, other);
+    expect(theirs.players.find((x) => x.id === me)!.warehouse.map((x) => x.card)).not.toContain(card);
+    expect(theirs.log.map((l) => l.text).join('\n')).not.toContain(s.cards[card].title);
+    expect(theirs.log.map((l) => l.text).join('\n')).toContain('кладёт в Тайник');
+    expect(viewFor(s, me).players.find((x) => x.id === me)!.warehouse.map((x) => x.card)).toContain(card);
+  });
+});

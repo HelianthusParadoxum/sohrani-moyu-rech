@@ -14,7 +14,7 @@ import type {
 } from './types';
 import { GENRES } from './types';
 import {
-  addBook, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
+  addBook, addSecretBook, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
   talonsText, title,
 } from './util';
@@ -292,7 +292,7 @@ function endOrders(state: GameState) {
       }
       if (!got) continue;
       if (freeSlots(p) > 0) {
-        addBook(p, got);
+        addSecretBook(state, p, got);
         log(state, `${p.name} получает по Подписке книгу жанра ${GENRE_NAMES[sub.genre]}.`);
         log(state, `По Подписке пришла ${title(state, got)}.`, [p.id]);
       } else {
@@ -553,7 +553,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       const kinds = mix.length ? mix : Array.from({ length: a.pairs }, () => ['load', 'unprinted'] as const).flat();
       for (const k of kinds) {
         const c = k === 'load' ? drawLoad(state) : draw(state);
-        if (c) { addBook(p, c); got.push(c); }
+        if (c) { addSecretBook(state, p, c); got.push(c); }
       }
       log(state, `${p.name} в Госкниготорге: ${got.length} книг(и) за ${talonsText(cost)}.`);
       log(state, `Вы получили: ${got.map((c) => title(state, c)).join(', ')}.`, [p.id]);
@@ -942,8 +942,8 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         // Ветеран платит за все книги действия в сумме на 1 Талон меньше (минимум 1): вторая книга — бесплатно.
         const cost = veteran && bought === 1 ? 0 : bought === 0 ? price(state, p, RULES.baraholkaPrice) : RULES.baraholkaPrice;
         pay(p, cost);
-        addBook(p, card);
         state.baraholka[slot] = null;
+        addSecretBook(state, p, card);
         pend.seen.splice(i, 1);
         pend.bought = bought + 1;
         log(state, `${p.name} покупает книгу на Барахолке.`);
@@ -983,7 +983,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       for (const c of action.cards) {
         check(state.discard.includes(c), 'Этой книги нет в сбросе');
         state.discard = state.discard.filter((x) => x !== c);
-        addBook(p, c);
+        addSecretBook(state, p, c);
       }
       state.deck = shuffle(state, [...state.deck, ...state.discard]);
       state.discard = [];
@@ -998,7 +998,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       check(action.keep.length <= freeSlots(p), 'На складе не хватит места');
       for (const c of action.keep) check(pend.cards.includes(c), 'Эта книга не из вытянутых');
       for (const c of pend.cards) {
-        if (action.keep.includes(c)) addBook(p, c);
+        if (action.keep.includes(c)) addSecretBook(state, p, c);
         else discard(state, c);
       }
       log(state, `${p.name} оставляет себе ${action.keep.length} книг(и).`);
@@ -1013,7 +1013,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       check(action.keep.length <= freeSlots(p), 'На складе не хватит места');
       for (const c of action.keep) check(pend.cards.includes(c), 'Эта книга не из взятых');
       for (const c of pend.cards) {
-        if (action.keep.includes(c)) addBook(p, c);
+        if (action.keep.includes(c)) addSecretBook(state, p, c);
         else discard(state, c);
       }
       log(state, `${p.name} оставляет себе из Библиотечного списания ${action.keep.length} книг(и).`);
@@ -1043,8 +1043,9 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
           else { discard(state, c); given++; }
         }
         if (found && freeSlots(p) > 0) {
-          addBook(p, found);
-          log(state, `${p.name} достаёт из-под полы выдающуюся книгу ${title(state, found)} (в сброс ушло ${given}).`);
+          log(state, `${p.name} достаёт из-под полы выдающуюся книгу (в сброс ушло ${given}).`);
+          log(state, `Из-под полы: ${title(state, found)}.`, [p.id]);
+          addSecretBook(state, p, found);
         } else if (found) {
           discard(state, found);
           log(state, `${p.name}: выдающаяся книга из-под полы ушла в сброс — нет места.`);
