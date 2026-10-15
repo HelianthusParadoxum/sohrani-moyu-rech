@@ -335,7 +335,8 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
     case 'nasledniki':
     case 'posrednichestvo':
     case 'spisanie':
-      body = <><p>{info.hint}</p>{confirmBtn(`Заплатить ${RULES.safehousePrice}т`, me.talons >= RULES.safehousePrice && free > 0 ? { address: id } : null, free > 0 ? undefined : 'Нет места на складе')}</>;
+      body = <><p>{info.hint}</p>{confirmBtn(`Заплатить ${RULES.safehousePrice}т`, me.talons >= RULES.safehousePrice && free > 0 ? { address: id } : null,
+        free <= 0 ? 'Нет места на складе' : me.talons < RULES.safehousePrice ? `Не хватает Талонов: нужно ${RULES.safehousePrice}, у вас ${me.talons}` : undefined)}</>;
       break;
   }
   return <Modal title={info.name} onClose={close} wide>{body}<p className="muted small">Талонов: {me.talons} · Свободных мест: {free}</p></Modal>;
@@ -422,11 +423,42 @@ function SproutFeeder({ view, me, place }: { view: PlayerView; me: VPlayer; plac
 
 // ---------- Инициативная группа ----------
 
+// Почему действие Группы сейчас невозможно (null — возможно).
+function groupBlocker(view: PlayerView, me: VPlayer, id: GroupActionId): string | null {
+  const free = me.capacity - me.warehouse.length;
+  switch (id) {
+    case 'hire':
+      if (me.workers >= RULES.maxWorkers) return `У вас уже максимум Единомышленников (${RULES.maxWorkers}).`;
+      if (me.talons < RULES.hireCost) return `Нужно ${RULES.hireCost} Талонов, у вас ${me.talons} — не хватает ${RULES.hireCost - me.talons}.`;
+      return null;
+    case 'expandWarehouse':
+      return me.capacity >= RULES.maxCapacity ? `Склад уже максимального размера (${RULES.maxCapacity}).` : null;
+    case 'expandCache':
+      return me.cache >= RULES.maxCache ? `Тайник уже максимального размера (${RULES.maxCache}).` : null;
+    case 'copyText':
+      return free <= 0 ? 'На складе нет свободного места.' : null;
+    case 'restore':
+      return me.warehouse.some((s) => s.card && !view.restored[s.card] && ['genre', 'loadReturnable'].includes(view.cards[s.card].kind))
+        ? null : 'На складе нет книги, которой можно вернуть смыслы.';
+    default:
+      return null;
+  }
+}
+
 function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; view: PlayerView; me: VPlayer; close?: () => void; done: (g: GroupAction) => void; title?: string }) {
   const info = GROUP_ACTIONS[id];
   const [sel, setSel] = useState<string>('');
+  const blocker = groupBlocker(view, me, id);
   let body;
-  if (id === 'copyText') {
+  if (blocker) {
+    body = (
+      <>
+        <p>{info.hint}</p>
+        <p className="warn-text">Сейчас нельзя. {blocker}</p>
+        <div className="modal-foot">{close && <button onClick={close}>Понятно</button>}<button className="primary" disabled>Выполнить</button></div>
+      </>
+    );
+  } else if (id === 'copyText') {
     const singles = [...view.tolkuchka, ...view.knigoobmen, ...view.raspredelitel, ...view.razval.filter((c): c is string => !!c)];
     body = (
       <>
@@ -521,7 +553,7 @@ function PendingPrompt({ view, me, act, nameOf }: { view: PlayerView; me: VPlaye
             {options.map((o) => (
               <button key={o} onClick={() => {
                 if (o === 'sideJob' || o === 'underCounter') act({ type: 'sproutBonus', bonus: o });
-                else if (o === 'copyText' || o === 'restore') setGroupFor(o);
+                else if (o === 'copyText' || o === 'restore' || groupBlocker(view, me, o as GroupActionId)) setGroupFor(o);
                 else sendGroup({ action: o } as GroupAction);
               }}>{SPROUT_BONUS_NAMES[o as SproutBonusId]}</button>
             ))}
@@ -634,7 +666,9 @@ function MyPanel({ view, me, color, groupEnabled, onGroup }: { view: PlayerView;
         <div className="muted small">Инициативная группа (каждое действие — раз в Пятилетку):</div>
         <div className="group-actions">
           {(Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => !GROUP_ACTIONS[g].fullOnly || view.mode === 'full').map((g) => (
-            <button key={g} className="small" title={GROUP_ACTIONS[g].hint} disabled={!groupEnabled || me.groupUsed.includes(g)} onClick={() => onGroup(g)}>
+            <button key={g} className={`small ${groupBlocker(view, me, g) ? 'short' : ''}`}
+              title={me.groupUsed.includes(g) ? 'Уже сделано в эту Пятилетку' : groupBlocker(view, me, g) ?? GROUP_ACTIONS[g].hint}
+              disabled={!groupEnabled || me.groupUsed.includes(g)} onClick={() => onGroup(g)}>
               {GROUP_ACTIONS[g].name}
             </button>
           ))}

@@ -184,3 +184,4 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .queue li { padding: 1px 0; }
 .queue li .dot { vertical-align: -1px; }
 .queue li.pending { opacity: 0.55; }
+button.short { border-style: dashed; color: var(--muted); }
