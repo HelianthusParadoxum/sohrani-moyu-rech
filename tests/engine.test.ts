@@ -9,6 +9,13 @@ import type { GameState, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
 import { removePatron } from '../src/engine/full';
 
+// Пропустить раскладку стартовых Тайников: всё остаётся на виду.
+function startOrders(s: GameState): GameState {
+  for (const p of s.players) if (s.phase === 'setupCache') s = applyAction(s, p.id, { type: 'hiding', hidden: [] });
+  return s;
+}
+
+
 const players = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `p${i + 1}`, name: `Игрок ${i + 1}` }));
 
 function seeded(seed: number) {
@@ -57,6 +64,7 @@ describe('подготовка', () => {
   it('не даёт ходить вне очереди', () => {
     let s = createGame({ players: players(2), seed: 3 });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
     expect(s.phase).toBe('orders');
     const notActive = s.order[1];
     expect(() => applyAction(s, notActive, { type: 'place', place: { address: 'zavoz' } })).toThrow(RuleError);
@@ -83,6 +91,7 @@ describe('правила редакции октября', () => {
   function started(seed = 5) {
     let s = createGame({ players: players(2), seed });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
     return s;
   }
 
@@ -202,6 +211,7 @@ describe('полный режим', () => {
   function fullGame(seed = 3) {
     let s = createGame({ players: players(2), seed, mode: 'full' });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
     return s;
   }
 
@@ -284,6 +294,7 @@ describe('Поэзия «Заучить»', () => {
   it('в свой ход, не тратя действия: заученный сборник не занимает место на Складе', () => {
     let s = createGame({ players: players(2), seed: 3, mode: 'full' });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
     const me = s.order[s.turn];
     const poem = s.deck.find((c) => s.cards[c].icons.includes('poetry'))!;
     s.deck = s.deck.filter((c) => c !== poem);
@@ -300,6 +311,7 @@ describe('Завсегдатаи: Ветеран, Лейтенант, Управ
   function started(seed = 21) {
     let s = createGame({ players: players(2), seed, mode: 'full' });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
     return s;
   }
   function connect(s: GameState, id: PatronId, who: string[]) {
@@ -357,6 +369,7 @@ describe('Главлитовец', () => {
   it('переносит опалу с одного жанра на другой; число опальных жанров не меняется', () => {
     let s = createGame({ players: players(2), seed: 8, mode: 'full' });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
     const me = s.order[s.turn];
     const slot = s.patrons[0];
     s.patrons[0] = { ...slot, id: 'glavlit' };
@@ -405,6 +418,7 @@ describe('Тиражирование', () => {
   it('нельзя бесплатно взять Улику или Пропаганду', () => {
     let s = createGame({ players: players(2), seed: 12 });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
     const me = s.order[s.turn];
     const evidence = Object.values(s.cards).find((c) => c.kind === 'evidence')!.id;
     const genre = s.deck.find((c) => s.cards[c].kind === 'genre')!;
@@ -434,6 +448,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
   function started(mode: 'beginner' | 'full' = 'full', seed = 21) {
     let s = createGame({ players: players(2), seed, mode });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
     return s;
   }
   function connect(s: GameState, id: PatronId, who: string[]) {
@@ -573,6 +588,7 @@ describe('Тайник и закрытые книги', () => {
   it('книга, взятая вслепую, сразу ложится в Тайник (если есть место), и соперник не видит, что это', () => {
     let s = createGame({ players: players(2), seed: 8 });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
     const me = s.order[s.turn];
     const other = s.players.find((p) => p.id !== me)!.id;
     const p0 = s.players.find((p) => p.id === me)!;
@@ -595,6 +611,7 @@ describe('Тайник в свой ход', () => {
   it('можно пересобрать Тайник, не тратя действие и не передавая ход; соперник не видит спрятанное', () => {
     let s = createGame({ players: players(2), seed: 8 });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
     const me = s.order[s.turn];
     const other = s.players.find((p) => p.id !== me)!.id;
     const p0 = s.players.find((p) => p.id === me)!;
@@ -646,6 +663,7 @@ describe('Нагрузка-улика', () => {
   it('до Возвращения смыслов — обычная Нагрузка, после — Улика (опальная, +5 очков)', () => {
     let s = createGame({ players: players(2), seed: 6, mode: 'full' });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
     const me = s.order[s.turn];
     const ev = Object.values(s.cards).find((c) => c.kind === 'loadEvidence')!.id;
     s.loadDeck = s.loadDeck.filter((c) => c !== ev);
@@ -659,5 +677,24 @@ describe('Нагрузка-улика', () => {
     expect(isBanned(s, ev)).toBe(true);
     expect(isEvidence(s, ev)).toBe(true);
     expect(isLoad(s, ev)).toBe(false);
+  });
+});
+
+describe('Тайники перед началом', () => {
+  it('после выбора Пристрастий все раскладывают Тайник; до этого чужие стартовые книги не видны', () => {
+    let s = createGame({ players: players(2), seed: 12 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    expect(s.phase).toBe('setupCache');
+    const [a, b] = s.players.map((p) => p.id);
+    // Пока идёт раскладка, у соперника видны только рубашки.
+    expect(viewFor(s, b).players.find((p) => p.id === a)!.warehouse.every((w) => w.card === null)).toBe(true);
+    const secret = s.players[0].warehouse[0].card; // одно место дают 2 стартовые Нагрузки
+    s = applyAction(s, a, { type: 'hiding', hidden: [secret] });
+    expect(s.phase).toBe('setupCache');
+    s = applyAction(s, b, { type: 'hiding', hidden: [] });
+    expect(s.phase).toBe('orders');
+    const seen = viewFor(s, b).players.find((p) => p.id === a)!.warehouse.map((w) => w.card);
+    expect(seen).not.toContain(secret);
+    expect(seen.filter(Boolean)).toHaveLength(s.players[0].warehouse.length - 1);
   });
 });

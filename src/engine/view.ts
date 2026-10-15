@@ -35,10 +35,12 @@ export function viewFor(state: GameState, me: string | null, omniscient = false)
     baraholka: baraholka.map((c) => c !== null),
     players: players.map((p) => {
       const own = p.id === me || ended;
+      // До раскладки Тайников в начале партии чужие стартовые книги не видны совсем.
+      const concealAll = state.phase === 'passion' || state.phase === 'setupCache';
       const { warehouse, passion, passionOptions, ...pub } = p;
       return {
         ...pub,
-        warehouse: warehouse.map((s) => ({ card: own || !s.hidden ? s.card : null, hidden: s.hidden, ...(s.memorized ? { memorized: true } : {}) })),
+        warehouse: warehouse.map((s) => ({ card: own || (!s.hidden && !concealAll) ? s.card : null, hidden: s.hidden, ...(s.memorized ? { memorized: true } : {}) })),
         passion: own ? passion : null,
         passionOptions: p.id === me ? passionOptions : [],
       };

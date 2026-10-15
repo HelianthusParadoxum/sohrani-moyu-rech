@@ -7,11 +7,19 @@ import { viewFor } from '../src/engine/view';
 import { passionPoints } from '../src/engine/scoring';
 import type { Action, GameState } from '../src/engine/types';
 
+// Пропустить раскладку стартовых Тайников: всё остаётся на виду.
+function startOrders(s: GameState): GameState {
+  for (const p of s.players) if (s.phase === 'setupCache') s = applyAction(s, p.id, { type: 'hiding', hidden: [] });
+  return s;
+}
+
+
 const players = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `p${i + 1}`, name: `Игрок ${i + 1}` }));
 
 function started(seed = 1, n = 3): GameState {
   let s = createGame({ players: players(n), seed });
   for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+  s = startOrders(s);
   for (const p of s.players) p.capacity = RULES.maxCapacity; // места хватает на любые покупки
   return s;
 }

@@ -93,7 +93,7 @@ export function createGame(opts: NewGameOptions): GameState {
 export function activePlayers(state: GameState): string[] {
   if (state.pending.length) return [state.pending[0].player];
   if (state.phase === 'orders') return [state.order[state.turn]];
-  if (state.phase === 'passion' || state.phase === 'gathering' || state.phase === 'hiding') {
+  if (state.phase === 'passion' || state.phase === 'setupCache' || state.phase === 'gathering' || state.phase === 'hiding') {
     return state.order.filter((id) => !state.ready.includes(id));
   }
   return [];
@@ -126,7 +126,26 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
         state.ready.push(p.id);
         log(state, `${p.name} выбрал(а) Пристрастие.`);
         log(state, `Ваше Пристрастие: ${PASSIONS[action.passion].name}.`, [p.id]);
-        if (state.ready.length === state.players.length) startRound(state);
+        if (state.ready.length === state.players.length) {
+          startRound(state);
+          // Перед первым действием партии все раскладывают стартовые книги по Тайникам.
+          if (!state.pending.length) {
+            state.phase = 'setupCache';
+            state.ready = [];
+            log(state, 'Все раскладывают стартовые книги: что спрятать в Тайник, что оставить на виду.');
+          }
+        }
+        return done(state);
+      }
+      case 'setupCache': {
+        check(action.type === 'hiding', 'Разложите стартовые книги по Тайнику');
+        setHidden(state, p, action.hidden);
+        state.ready.push(p.id);
+        log(state, `${p.name} готов(а) начать.`);
+        if (state.ready.length === state.players.length) {
+          state.phase = 'orders';
+          state.ready = [];
+        }
         return done(state);
       }
       case 'orders':

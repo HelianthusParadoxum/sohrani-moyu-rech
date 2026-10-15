@@ -6,6 +6,13 @@ import { BOT_GOALS, BOT_PRESETS, CURATOR_STYLES, curatorStyle, curatorStyleNote,
 import { isBanned, isGenreBook } from '../src/engine/util';
 import type { GameState } from '../src/engine/types';
 
+// Пропустить раскладку стартовых Тайников: всё остаётся на виду.
+function startOrders(s: GameState): GameState {
+  for (const p of s.players) if (s.phase === 'setupCache') s = applyAction(s, p.id, { type: 'hiding', hidden: [] });
+  return s;
+}
+
+
 const players = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `p${i + 1}`, name: `Игрок ${i + 1}` }));
 
 function seeded(seed: number) {
@@ -31,6 +38,7 @@ function allCards(s: GameState): string[] {
 function started(seed: number, n = 3): GameState {
   let s = createGame({ players: players(n), seed });
   for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+  s = startOrders(s);
   return s;
 }
 
@@ -137,6 +145,7 @@ describe('думающий бот в полном режиме', () => {
   it('в свой ход прячет опальную книгу в Тайник: от Конторы потом не спрятаться', () => {
     let s = createGame({ players: players(3), seed: 5, mode: 'full' });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions.find((x) => x !== 'curator')! });
+    s = startOrders(s);
     const me = s.players.find((p) => p.id === s.order[s.turn])!;
     me.cache = 1;
     me.capacity = 10;
@@ -188,6 +197,7 @@ describe('думающий бот в полном режиме', () => {
       for (const p of s0.players.slice(1)) p.passionOptions = p.passionOptions.map((x) => (x === 'curator' ? 'erudite' : x));
       let s = s0;
       for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+      s = startOrders(s);
       s = playOut(s, seeded(seed), 8000, 'bookman');
       const cur = s.players[0];
       curators++;

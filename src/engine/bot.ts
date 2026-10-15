@@ -63,6 +63,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
       return p.passionOptions.map((x) => ({ type: 'choosePassion', passion: x }));
     case 'gathering':
       return [{ type: 'gathering', show: books.filter((b) => iconsOf(state, b).length > 0 && isBanned(state, b) && rand() < 0.6) }];
+    case 'setupCache':
     case 'hiding': {
       const limit = cacheLimit(state, { ...p, warehouse: p.warehouse.map((s) => ({ ...s, hidden: false })) });
       const banned = books.filter((b) => isBanned(state, b) && !isLoad(state, b));

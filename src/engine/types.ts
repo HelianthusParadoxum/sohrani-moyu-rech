@@ -136,7 +136,8 @@ export type Pending =
   | { kind: 'discardExcess'; player: string; count: number }
   | { kind: 'glavlitSwap'; player: string; roundStart?: boolean }; // Главлитовец переносит опалу с жанра на жанр // склад уменьшился — игрок выбирает, что отдать
 
-export type Phase = 'passion' | 'orders' | 'gathering' | 'hiding' | 'end';
+// setupCache — перед первым действием партии все раскладывают стартовые книги по Тайникам (чужие стартовые книги до этого не видны).
+export type Phase = 'passion' | 'setupCache' | 'orders' | 'gathering' | 'hiding' | 'end';
 
 export interface LogEntry {
   round: number;

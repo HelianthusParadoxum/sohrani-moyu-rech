@@ -768,6 +768,8 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       });
       return [{ type: 'gathering', show }];
     }
+    case 'setupCache':
+      return [{ type: 'hiding', hidden: hideList(state, me, ctx, keepMap()) }];
     case 'hiding': {
       const keep = keepMap();
       const out: Action[] = [{ type: 'hiding', hidden: hideList(state, me, ctx, keep) }];

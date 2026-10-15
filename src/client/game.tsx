@@ -19,7 +19,7 @@ type VPlayer = PlayerView['players'][number];
 type Panel = { kind: 'address'; id: AddressId } | { kind: 'group'; id: GroupActionId } | { kind: 'cache' } | null;
 
 const PHASE_NAMES: Record<string, string> = {
-  passion: 'Выбор Пристрастий', orders: 'Поручения', gathering: 'Посиделки', hiding: 'Укрытие', end: 'Конец Застоя',
+  passion: 'Выбор Пристрастий', setupCache: 'Тайники перед началом', orders: 'Поручения', gathering: 'Посиделки', hiding: 'Укрытие', end: 'Конец Застоя',
 };
 
 export function Game({ view, room, you, isHost, send }: { view: PlayerView; room: RoomInfo; you: string | null; isHost: boolean; send: Send }) {
@@ -120,6 +120,10 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
       {!myPending && me && view.phase === 'passion' && view.active.includes(me.id) && <PassionPrompt me={me} act={act} />}
       {!myPending && me && view.phase === 'gathering' && view.active.includes(me.id) && <GatheringPrompt view={view} me={me} act={act} />}
       {!myPending && me && view.phase === 'hiding' && view.active.includes(me.id) && <HidingPrompt view={view} me={me} act={act} />}
+      {!myPending && me && view.phase === 'setupCache' && view.active.includes(me.id) && (
+        <CacheModal view={view} me={me} title="Тайник перед началом" note="Соперники пока не видят ваших стартовых книг. Что спрячете сейчас, то они так и не увидят; остальное ляжет на Склад открыто."
+          done={(hidden) => act({ type: 'hiding', hidden })} />
+      )}
       {view.phase === 'end' && view.result && showResult && <Results view={view} seatIndex={seatIndex} close={() => setShowResult(false)} />}
     </div>
   );
@@ -835,19 +839,21 @@ function GatheringPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act
 }
 
 // Пересобрать Тайник в свой ход: свободно, ход не заканчивается.
-function CacheModal({ view, me, close, done }: { view: PlayerView; me: VPlayer; close: () => void; done: (hidden: string[]) => void }) {
+function CacheModal({ view, me, close, done, title, note }: {
+  view: PlayerView; me: VPlayer; close?: () => void; done: (hidden: string[]) => void; title?: string; note?: string;
+}) {
   const cards = me.warehouse.filter((s) => s.card && !s.memorized).map((s) => s.card!);
   const [sel, setSel] = useState<string[]>(() => me.warehouse.filter((s) => s.hidden).map((s) => s.card!));
   const limit = me.cache + loadCover(view, me.warehouse);
   return (
-    <Modal title="Тайник" wide onClose={close}>
+    <Modal title={title ?? 'Тайник'} wide onClose={close}>
       <p>Отметьте книги, которые лежат в Тайнике: их не видят соперники и не трогает облава. Мест: {limit} (из них за Нагрузку: {loadCover(view, me.warehouse)}). Отмечено: {sel.length}.</p>
-      <p className="muted small">Это не тратит действие. Книга, которую уже видели соперники, от того, что её спрятали, не станет для них тайной — но облава её не тронет.</p>
+      <p className="muted small">{note ?? 'Это не тратит действие. Книга, которую уже видели соперники, от того, что её спрятали, не станет для них тайной — но облава её не тронет.'}</p>
       <div className="shelf wrap">
         {cards.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} hidden={sel.includes(c)} onClick={() => setSel(toggle(sel, c))} />)}
       </div>
       <div className="modal-foot">
-        <button onClick={close}>Отмена</button>
+        {close && <button onClick={close}>Отмена</button>}
         <button className="primary" disabled={sel.length > limit} onClick={() => done(sel)}>{sel.length > limit ? `Мест только ${limit}` : 'Сохранить'}</button>
       </div>
     </Modal>
