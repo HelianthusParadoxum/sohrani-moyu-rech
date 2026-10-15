@@ -205,6 +205,24 @@ describe('полный режим', () => {
     return s;
   }
 
+  it('с Завсегдатаем — одна связь за Пятилетку на всех игроков', () => {
+    let s = fullGame();
+    const [a, b] = [s.order[s.turn], s.order[(s.turn + 1) % 2]];
+    const patron = s.patrons[0];
+    const give = (who: string) => {
+      const book = s.deck.find((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.includes(patron.genre))!;
+      s.deck = s.deck.filter((c) => c !== book);
+      s.players.find((x) => x.id === who)!.warehouse.push({ card: book, hidden: false });
+      return { patron: patron.id, card: book };
+    };
+    s.players.forEach((x) => (x.capacity = 10));
+    s = applyAction(s, a, { type: 'clubGift', gift: give(a) });
+    expect(s.patrons[0].since?.[a]).toBe(1);
+    s = applyAction(s, a, { type: 'place', place: { address: 'zavoz' } });
+    expect(s.order[s.turn]).toBe(b);
+    expect(() => applyAction(s, b, { type: 'clubGift', gift: give(b) })).toThrow('связь в эту Пятилетку уже завязана');
+  });
+
   it('в Клубе 8 Завсегдатаев на 8 жанров, связь — за книгу жанра слота', () => {
     let s = fullGame();
     expect(s.patrons).toHaveLength(8);

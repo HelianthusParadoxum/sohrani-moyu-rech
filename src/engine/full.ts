@@ -78,6 +78,7 @@ export function giveToPatron(state: GameState, p: PlayerState, gift: ClubGift) {
   discard(state, gift.card);
   gaveAway(state, p, gift.card);
   patron.connections.push(p.id);
+  patron.since = { ...patron.since, [p.id]: state.round };
   patron.turned = true;
   log(state, `${p.name} заводит связь в Клубе: ${name} (отдана ${title(state, gift.card)}).`);
   onConnect(state, p, patron.id);
