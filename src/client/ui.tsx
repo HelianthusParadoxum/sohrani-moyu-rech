@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { GENRE_NAMES } from '../engine/content';
 import type { Genre } from '../engine/types';
 import type { PlayerView } from '../engine/view';
+import type { ClientMessage, RoomInfo } from '../shared/protocol';
 import { flexGenres, iconsOf, isBanned as isBannedBook } from '../engine/util';
 
 export const GENRE_SHORT: Record<Genre, string> = {
@@ -90,3 +91,17 @@ export function Modal({ title, children, onClose, wide }: { title: string; child
 export function toggle<T>(list: T[], x: T): T[] {
   return list.includes(x) ? list.filter((y) => y !== x) : [...list, x];
 }
+
+export function SpeedSelect({ room, send }: { room: RoomInfo; send: (m: ClientMessage) => void }) {
+  return (
+    <label className="row">Скорость ботов:
+      <select value={room.botDelay} onChange={(e) => send({ t: 'botDelay', ms: Number(e.target.value) })}>
+        <option value={1500}>медленно</option>
+        <option value={700}>обычно</option>
+        <option value={200}>быстро</option>
+        <option value={30}>мгновенно</option>
+      </select>
+    </label>
+  );
+}
+

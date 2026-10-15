@@ -7,6 +7,7 @@ export interface NetState {
   connected: boolean;
   room: RoomInfo | null;
   you: string | null;
+  isHost: boolean;
   view: PlayerView | null;
   error: string | null;
 }
@@ -21,7 +22,7 @@ function writeToken(code: string, token: string) {
 }
 
 export function useServer(code: string | null) {
-  const [state, setState] = useState<NetState>({ connected: false, room: null, you: null, view: null, error: null });
+  const [state, setState] = useState<NetState>({ connected: false, room: null, you: null, isHost: false, view: null, error: null });
   const ws = useRef<WebSocket | null>(null);
   const queue = useRef<ClientMessage[]>([]);
 
@@ -43,7 +44,7 @@ export function useServer(code: string | null) {
           writeToken(msg.code, msg.token);
           if (location.hash !== `#/r/${msg.code}`) location.hash = `#/r/${msg.code}`;
         } else if (msg.t === 'room') {
-          setState((s) => ({ ...s, room: msg.room, you: msg.you, view: msg.view, error: null }));
+          setState((s) => ({ ...s, room: msg.room, you: msg.you, isHost: msg.isHost, view: msg.view, error: null }));
         } else if (msg.t === 'error') {
           setState((s) => ({ ...s, error: msg.message }));
         }

@@ -225,3 +225,5 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 .sprouts-panel .sprout .addr-head b { font-size: 0.82rem; line-height: 1.15; }
 .sprouts-panel .bonus { font-size: 0.68rem; line-height: 1.2; }
 .sprouts-panel .chip { min-width: 18px; font-size: 0.62rem; }
+.host-tools label.row { margin: 0; color: var(--paper); }
+.host-tools select { padding: 1px 4px; }

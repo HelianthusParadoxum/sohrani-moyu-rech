@@ -19,8 +19,9 @@ export interface PlayerView extends Omit<GameState, 'rng' | 'seed' | 'deck' | 'd
   pending: (Pending | { kind: Pending['kind']; player: string; secret: true })[];
 }
 
-export function viewFor(state: GameState, me: string | null): PlayerView {
-  const ended = state.phase === 'end';
+// omniscient — видно всё (хост наблюдает за партией ботов со стороны).
+export function viewFor(state: GameState, me: string | null, omniscient = false): PlayerView {
+  const ended = state.phase === 'end' || omniscient;
   const { rng, seed, deck, discard, loadDeck, loadDiscard, baraholka, players, pending, log, spetskhran, ...rest } = state;
   return {
     ...rest,
@@ -43,6 +44,6 @@ export function viewFor(state: GameState, me: string | null): PlayerView {
       };
     }),
     pending: pending.map((x) => (x.player === me ? x : { kind: x.kind, player: x.player, secret: true as const })),
-    log: log.filter((l) => !l.only || (me !== null && l.only.includes(me))),
+    log: log.filter((l) => omniscient || !l.only || (me !== null && l.only.includes(me))),
   };
 }

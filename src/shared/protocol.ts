@@ -9,6 +9,8 @@ export interface RoomInfo {
   started: boolean;
   seats: { id: string; name: string; bot: boolean; online: boolean }[];
   canUndo: boolean;
+  hostBot: boolean; // за хоста играет бот, хост смотрит со стороны
+  botDelay: number; // пауза между ходами ботов, мс
 }
 
 export type ClientMessage =
@@ -21,9 +23,11 @@ export type ClientMessage =
   | { t: 'start' }
   | { t: 'action'; action: Action }
   | { t: 'undo' }
-  | { t: 'restart' };
+  | { t: 'restart' }
+  | { t: 'hostBot'; on: boolean }
+  | { t: 'botDelay'; ms: number };
 
 export type ServerMessage =
   | { t: 'joined'; code: string; token: string }
-  | { t: 'room'; room: RoomInfo; you: string | null; view: PlayerView | null }
+  | { t: 'room'; room: RoomInfo; you: string | null; isHost: boolean; view: PlayerView | null }
   | { t: 'error'; message: string };

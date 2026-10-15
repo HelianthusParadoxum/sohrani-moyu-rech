@@ -12,7 +12,7 @@ import {
   KontoraWarningPrompt, RescuePanel,
 } from './full-ui';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
-import { Book, GenreChip, Modal, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, toggle } from './ui';
+import { Book, GenreChip, SpeedSelect, Modal, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, toggle } from './ui';
 
 type Send = (m: ClientMessage) => void;
 type VPlayer = PlayerView['players'][number];
@@ -22,7 +22,7 @@ const PHASE_NAMES: Record<string, string> = {
   passion: 'Выбор Пристрастий', orders: 'Поручения', gathering: 'Посиделки', hiding: 'Укрытие', end: 'Конец Застоя',
 };
 
-export function Game({ view, room, you, send }: { view: PlayerView; room: RoomInfo; you: string | null; send: Send }) {
+export function Game({ view, room, you, isHost, send }: { view: PlayerView; room: RoomInfo; you: string | null; isHost: boolean; send: Send }) {
   const me = view.players.find((p) => p.id === you) ?? null;
   const act = (action: Action) => send({ t: 'action', action });
   const [panel, setPanel] = useState<Panel>(null);
@@ -60,8 +60,13 @@ export function Game({ view, room, you, send }: { view: PlayerView; room: RoomIn
         <div>Пятилетка <b>{view.round}</b>/{RULES.rounds} · {PHASE_NAMES[view.phase]}</div>
         <div className="banned">Цензура {view.censorship}: {view.banned.map((g) => <GenreChip key={g} g={g} banned />)}</div>
         <div className="muted small">Непечатные: {view.deckCount} (сброс {view.discardCount}) · Нагрузка: {view.loadDeckCount}</div>
-        {room.host === you && (
+        {isHost && (
           <div className="host-tools">
+            <label className="row small">
+              <input type="checkbox" checked={room.hostBot} onChange={(e) => send({ t: 'hostBot', on: e.target.checked })} />
+              за меня бот
+            </label>
+            <SpeedSelect room={room} send={send} />
             <button className="small" disabled={!room.canUndo} onClick={() => send({ t: 'undo' })} title="Отменить последнее действие (для плейтеста)">↶ Отмена</button>
             <button className="small" onClick={() => confirm('Вернуть комнату в лобби? Текущая партия будет потеряна.') && send({ t: 'restart' })}>В лобби</button>
           </div>
@@ -805,10 +810,18 @@ function OtherPlayer({ view, p, color, active, first }: { view: PlayerView; p: V
 }
 
 function Log({ view }: { view: PlayerView }) {
-  const entries = useMemo(() => [...view.log].reverse().slice(0, 80), [view.log]);
+  const entries = useMemo(() => [...view.log].reverse(), [view.log]);
+  const download = () => {
+    const text = view.log.map((l) => `[Пятилетка ${l.round}] ${l.text}`).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+    a.download = `журнал-партии.txt`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
   return (
     <div className="log">
-      <h3>Журнал</h3>
+      <div className="addr-head"><h3>Журнал</h3><button className="small" onClick={download}>Скачать .txt</button></div>
       {entries.map((l, i) => <div key={i} className={l.only ? 'secret' : ''}>{l.text}</div>)}
     </div>
   );

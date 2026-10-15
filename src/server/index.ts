@@ -19,10 +19,13 @@ const SAVE_DIR = resolve(process.env.SAVE_DIR ?? 'data/games');
 mkdirSync(SAVE_DIR, { recursive: true });
 
 interface Seat { id: string; name: string; token: string; bot: boolean }
-interface Room { code: string; host: string; seats: Seat[]; mode: Mode; state: GameState | null; history: GameState[]; updated: number }
+interface Room {
+  code: string; host: string; seats: Seat[]; mode: Mode; state: GameState | null; history: GameState[]; updated: number;
+  botDelay?: number;
+}
 
 const rooms = new Map<string, Room>();
-const sockets = new Map<WebSocket, { room: string; seat: string | null }>();
+const sockets = new Map<WebSocket, { room: string; seat: string | null; host: boolean }>();
 
 // ---------- Сохранение ----------
 
@@ -61,7 +64,13 @@ function roomInfo(room: Room): RoomInfo {
     code: room.code, host: room.host, mode: room.mode, started: !!room.state,
     seats: room.seats.map((s) => ({ id: s.id, name: s.name, bot: s.bot, online: isOnline(room, s.id) })),
     canUndo: room.history.length > 0,
+    hostBot: hostSeat(room)?.bot ?? false,
+    botDelay: room.botDelay ?? 700,
   };
+}
+
+function hostSeat(room: Room) {
+  return room.seats.find((s) => s.id === room.host);
 }
 
 function isOnline(room: Room, seat: string) {
@@ -77,7 +86,9 @@ function broadcast(room: Room) {
   const info = roomInfo(room);
   for (const [ws, c] of sockets) {
     if (c.room !== room.code) continue;
-    send(ws, { t: 'room', room: info, you: c.seat, view: room.state ? viewFor(room.state, c.seat) : null });
+    // Хост, за которого играет бот, смотрит партию со стороны и видит всё.
+    const omniscient = c.host && !c.seat;
+    send(ws, { t: 'room', room: info, you: c.seat, isHost: c.host, view: room.state ? viewFor(room.state, c.seat, omniscient) : null });
   }
 }
 
@@ -100,7 +111,7 @@ function scheduleBots(room: Room) {
     save(room);
     broadcast(room);
     scheduleBots(room);
-  }, 700));
+  }, room.botDelay ?? 700));
 }
 
 function handle(ws: WebSocket, msg: ClientMessage) {
@@ -111,7 +122,7 @@ function handle(ws: WebSocket, msg: ClientMessage) {
       const seat: Seat = { id: newId(), name: msg.name.trim().slice(0, 24) || 'Игрок', token: newId() + newId(), bot: false };
       const room: Room = { code, host: seat.id, seats: [seat], mode: 'beginner', state: null, history: [], updated: Date.now() };
       rooms.set(code, room);
-      sockets.set(ws, { room: code, seat: seat.id });
+      sockets.set(ws, { room: code, seat: seat.id, host: true });
       send(ws, { t: 'joined', code, token: seat.token });
       save(room);
       broadcast(room);
@@ -120,8 +131,9 @@ function handle(ws: WebSocket, msg: ClientMessage) {
     case 'hello': {
       const room = rooms.get(msg.code);
       if (!room) return send(ws, { t: 'error', message: 'Комната не найдена' });
-      const seat = room.seats.find((s) => s.token === msg.token && !s.bot);
-      sockets.set(ws, { room: room.code, seat: seat?.id ?? null });
+      const seat = room.seats.find((s) => s.token === msg.token);
+      const host = !!seat && seat.id === room.host;
+      sockets.set(ws, { room: room.code, seat: seat && !seat.bot ? seat.id : null, host });
       broadcast(room);
       scheduleBots(room);
       return;
@@ -133,7 +145,7 @@ function handle(ws: WebSocket, msg: ClientMessage) {
       if (room.seats.length >= 4) return send(ws, { t: 'error', message: 'За столом уже 4 игрока' });
       const seat: Seat = { id: newId(), name: msg.name.trim().slice(0, 24) || 'Игрок', token: newId() + newId(), bot: false };
       room.seats.push(seat);
-      sockets.set(ws, { room: room.code, seat: seat.id });
+      sockets.set(ws, { room: room.code, seat: seat.id, host: false });
       send(ws, { t: 'joined', code: room.code, token: seat.token });
       save(room);
       broadcast(room);
@@ -143,7 +155,7 @@ function handle(ws: WebSocket, msg: ClientMessage) {
 
   if (!conn) return send(ws, { t: 'error', message: 'Сначала войдите в комнату' });
   const room = rooms.get(conn.room)!;
-  const isHost = conn.seat === room.host;
+  const isHost = conn.host;
 
   switch (msg.t) {
     case 'addBot': {
@@ -188,6 +200,19 @@ function handle(ws: WebSocket, msg: ClientMessage) {
       // Отмена последнего действия — для плейтестов, доступна хосту.
       if (!isHost || !room.history.length) return;
       room.state = room.history.pop()!;
+      break;
+    }
+    case 'hostBot': {
+      // Хост отдаёт своё место боту (и смотрит со стороны) или забирает его обратно.
+      const seat = hostSeat(room);
+      if (!isHost || !seat) return;
+      seat.bot = msg.on;
+      for (const [, c] of sockets) if (c.room === room.code && c.host) c.seat = msg.on ? null : seat.id;
+      break;
+    }
+    case 'botDelay': {
+      if (!isHost) return;
+      room.botDelay = Math.max(30, Math.min(3000, Math.round(msg.ms)));
       break;
     }
     case 'restart': {

@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useServer } from './net';
 import { Game } from './game';
-import { PLAYER_COLORS } from './ui';
+import { PLAYER_COLORS, SpeedSelect } from './ui';
 import './style.css';
 
 function useHashCode(): string | null {
@@ -39,7 +39,7 @@ function App() {
   } else if (!net.room) {
     body = <p className="center muted">{net.connected ? 'Загрузка комнаты…' : 'Подключение к серверу…'}</p>;
   } else if (net.room.started && net.view) {
-    body = <Game view={net.view} room={net.room} you={net.you} send={net.send} />;
+    body = <Game view={net.view} room={net.room} you={net.you} isHost={net.isHost} send={net.send} />;
   } else {
     body = <Lobby net={net} name={name} setName={setName} onJoin={() => join({ t: 'join', code })} />;
   }
@@ -72,8 +72,8 @@ function Home({ name, setName, onCreate }: { name: string; setName: (s: string) 
 
 function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServer>; name: string; setName: (s: string) => void; onJoin: () => void }) {
   const room = net.room!;
-  const seated = !!net.you;
-  const host = net.you === room.host;
+  const seated = !!net.you || net.isHost;
+  const host = net.isHost;
   const link = location.href;
   return (
     <div className="home lobby">
@@ -105,6 +105,11 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
               <option value="full">Полные правила</option>
             </select>
           </label>
+          <label className="row">
+            <input type="checkbox" checked={room.hostBot} onChange={(e) => net.send({ t: 'hostBot', on: e.target.checked })} />
+            За меня играет бот — я смотрю партию со стороны и вижу всё
+          </label>
+          <SpeedSelect room={room} send={net.send} />
           <div className="row">
             <button disabled={room.seats.length >= 4} onClick={() => net.send({ t: 'addBot' })}>Добавить бота</button>
             <button className="primary" disabled={room.seats.length < 2} onClick={() => net.send({ t: 'start' })}>Начать партию</button>
