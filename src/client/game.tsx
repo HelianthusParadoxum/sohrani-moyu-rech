@@ -823,7 +823,11 @@ const BEGINNER_SOURCES: PointSource[] = ['gathering', 'sprouts', 'firstFeed', 't
 
 function Results({ view, seatIndex, close }: { view: PlayerView; seatIndex: (id: string) => number; close: () => void }) {
   const full = view.mode === 'full';
-  const sources = view.mode === 'full' ? (Object.keys(POINT_SOURCES) as PointSource[]) : BEGINNER_SOURCES;
+  // Очки от Завсегдатаев показываем, только если этот Завсегдатай был в Клубе.
+  const PATRON_SOURCES: Partial<Record<PointSource, string>> = { editor: 'editor', postgrad: 'postgrad' };
+  const sources = view.mode === 'full'
+    ? (Object.keys(POINT_SOURCES) as PointSource[]).filter((k) => !PATRON_SOURCES[k] || view.patrons.some((pt) => pt.id === PATRON_SOURCES[k]))
+    : BEGINNER_SOURCES;
   const r = view.result!;
   const name = (id: string) => view.players.find((p) => p.id === id)!.name;
   return (
