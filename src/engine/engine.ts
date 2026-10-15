@@ -817,6 +817,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
         const own = g.buy?.address === 'tolkuchka' ? g.buy.ops.some((op) => op.op === 'sell' && op.card === c)
           : g.buy?.address === 'knigoobmen' ? g.buy.give === c : false;
         check(!own, 'Только что отданную книгу нельзя забрать обратно');
+        check(isGenreBook(state, c), 'Тиражировать можно только жанровую книгу — не Улику и не Пропаганду');
         if (addr === 'razval') {
           check(state.razval.includes(c), 'Бесплатную книгу нужно взять с того же Развала');
           state.razval = state.razval.map((x) => (x === c ? null : x));

@@ -324,7 +324,8 @@ function sproutCandidates(state: GameState, me: string, keep: Map<string, number
 export function copyTextOptions(state: GameState, me: string): GroupAction[] {
   const out: GroupAction[] = [];
   const p = player(state, me);
-  const others = (list: (string | null)[], taken?: string) => list.filter((c): c is string => !!c && c !== taken);
+  // Бесплатно тиражировать можно только жанровые книги (не Улики и не Пропаганду).
+  const others = (list: (string | null)[], taken?: string) => list.filter((c): c is string => !!c && c !== taken && isGenreBook(state, c));
   state.razval.forEach((c, slot) => {
     if (c) for (const card of others(state.razval, c)) out.push({ action: 'copyText', address: 'razval', buy: { address: 'razval', slot }, card });
   });

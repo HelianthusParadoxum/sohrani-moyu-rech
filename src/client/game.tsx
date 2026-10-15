@@ -594,9 +594,14 @@ function CopyTextPanel({ view, me, done }: { view: PlayerView; me: VPlayer; done
       )}
       <h4>Взять бесплатно</h4>
       <div className="shelf wrap">
-        {shelf.filter((x) => !buy.includes(x.key)).map((x) => (
-          <Book key={x.key} v={view} id={x.card} note="даром" selected={gift === x.card} onClick={() => setGift(gift === x.card ? '' : x.card)} />
-        ))}
+        {shelf.filter((x) => !buy.includes(x.key)).map((x) => {
+          // Тиражировать можно только жанровые книги — Улику и Пропаганду нельзя.
+          const genre = iconsOf(view, x.card).length > 0;
+          return (
+            <Book key={x.key} v={view} id={x.card} note={genre ? 'даром' : 'нельзя: не жанровая'} selected={gift === x.card}
+              onClick={genre ? () => setGift(gift === x.card ? '' : x.card) : undefined} />
+          );
+        })}
       </div>
       <div className="modal-foot">
         <span className={room < 0 || halfSwap ? 'warn-text' : 'muted'}>

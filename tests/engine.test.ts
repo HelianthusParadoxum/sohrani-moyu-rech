@@ -335,3 +335,19 @@ describe('разбивка очков по источникам', () => {
     }
   });
 });
+
+describe('Тиражирование', () => {
+  it('нельзя бесплатно взять Улику или Пропаганду', () => {
+    let s = createGame({ players: players(2), seed: 12 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    const me = s.order[s.turn];
+    const evidence = Object.values(s.cards).find((c) => c.kind === 'evidence')!.id;
+    const genre = s.deck.find((c) => s.cards[c].kind === 'genre')!;
+    s.deck = s.deck.filter((c) => c !== evidence && c !== genre);
+    s.razval = [genre, evidence, s.razval[2], s.razval[3]];
+    const p = s.players.find((x) => x.id === me)!;
+    p.talons = 10;
+    p.capacity = 10;
+    expect(() => applyAction(s, me, { type: 'group', group: { action: 'copyText', address: 'razval', buy: { address: 'razval', slot: 0 }, card: evidence } })).toThrow(RuleError);
+  });
+});
