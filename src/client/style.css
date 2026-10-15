@@ -7,14 +7,14 @@
   --line: #cbbd9f;
   --card: #fffaf0;
   --accent: #1f4e79;
-  --g-prose: #8b5a2b;
-  --g-scifi: #2d6a9f;
-  --g-poetry: #8e44ad;
-  --g-foreign: #138d75;
-  --g-testimony: #5d6d7e;
-  --g-drama: #c0392b;
-  --g-album: #b9770e;
-  --g-irony: #229954;
+  --g-prose: #1c2a20;
+  --g-scifi: #7a62b8;
+  --g-poetry: #c49004;
+  --g-foreign: #2a4ca0;
+  --g-testimony: #3c6640;
+  --g-drama: #de8a3c;
+  --g-album: #4a1a36;
+  --g-irony: #962220;
 }
 
 * { box-sizing: border-box; }
