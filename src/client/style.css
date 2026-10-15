@@ -193,3 +193,6 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 .patrons li.removed { opacity: 0.4; text-decoration: line-through; }
 .patrons li.turned b { color: var(--muted); }
 .targets .book { box-shadow: 0 0 0 2px #e6b35a; }
+
+.patrons { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 800px) { .patrons { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

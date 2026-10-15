@@ -1,7 +1,7 @@
 // Интерфейс полного режима: Клуб книголюбов, Контора.
 import { useState } from 'react';
 import { GENRE_NAMES, PATRONS } from '../engine/content';
-import type { Action, ClubGift, GroupAction, KontoraChoice, PatronId, PlaceAction } from '../engine/types';
+import type { Action, ClubGift, Genre, GroupAction, KontoraChoice, PatronId, PlaceAction } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import { cacheLimit } from '../engine/util';
 import { kontoraTargets } from '../engine/full';
@@ -9,10 +9,14 @@ import { Book, GenreChip, Modal, PLAYER_COLORS, iconsOf, isBanned, toggle } from
 
 type VPlayer = PlayerView['players'][number];
 
+// Порядок жанровых слотов Клуба — как на планшете: верхний ряд, затем нижний.
+const CLUB_ORDER: Genre[] = ['prose', 'irony', 'drama', 'poetry', 'testimony', 'foreign', 'scifi', 'album'];
+const byClubOrder = <T extends { genre: Genre }>(list: T[]) => [...list].sort((a, b) => CLUB_ORDER.indexOf(a.genre) - CLUB_ORDER.indexOf(b.genre));
+
 export function ClubContents({ view, seatIndex }: { view: PlayerView; seatIndex: (id: string) => number }) {
   return (
     <ul className="patrons">
-      {view.patrons.map((pt) => (
+      {byClubOrder(view.patrons).map((pt) => (
         <li key={pt.id} className={`${pt.removed ? 'removed' : ''} ${pt.turned ? 'turned' : ''}`} title={PATRONS[pt.id].hint}>
           <GenreChip g={pt.genre} /> <b>{PATRONS[pt.id].name}</b>
           {pt.connections.map((pid) => <span key={pid} className="dot" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} />)}
@@ -42,7 +46,7 @@ export function GiftPicker({ view, me, single, onDone }: { view: PlayerView; me:
   const [gifts, setGifts] = useState<ClubGift[]>([]);
   const [patron, setPatron] = useState<PatronId | null>(null);
   const used = gifts.map((g) => g.card);
-  const open = view.patrons.filter((pt) => !pt.removed && !pt.turned && !pt.connections.includes(me.id) && !gifts.some((g) => g.patron === pt.id));
+  const open = byClubOrder(view.patrons).filter((pt) => !pt.removed && !pt.turned && !pt.connections.includes(me.id) && !gifts.some((g) => g.patron === pt.id));
   const pt = view.patrons.find((x) => x.id === patron);
   const fits = (c: string) => !!pt && (iconsOf(view, c).includes(pt.genre) || iconsOf(view, c).includes('album'));
   const books = me.warehouse.map((s) => s.card!).filter((c) => c && !used.includes(c));
