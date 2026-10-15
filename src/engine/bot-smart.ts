@@ -5,9 +5,10 @@
 // стопок и Барахолки, поэтому вытянутая при примерке книга — догадка, а не знание.
 import { applyAction, mustVisitRedCorner } from './engine';
 import { BOT_BASE, type BotGoal, type BotPreset } from './bot-presets';
-import { PERMANENT_ADDRESSES, PASSIONS, RULES, SPROUTS, STEP_REWARDS, FIRST_FEED_POINTS, ADDRESSES } from './content';
+import { PERMANENT_ADDRESSES, PASSIONS, RULES, SPROUTS, STEP_REWARDS, FIRST_FEED_POINTS, ADDRESSES, KONTORA_LOSS } from './content';
+import { heldTotal, kontoraTargets } from './full';
 import { passionPoints } from './scoring';
-import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, PlayerState } from './types';
+import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
   cacheLimit, cloneJson, coversStep, freeSlots, hasPatron, iconsOf, isBanned, isEvidence, isGenreBook, isLoad, isPropaganda, player, RuleError,
@@ -22,6 +23,9 @@ interface Ctx {
   w: Record<BotGoal, number>; // множители целей в эту Пятилетку (вес / 5)
   talon: number; // ценность Талона
   glasnost: number; // ценность ступени до порога Гласности
+  full: boolean; // полный режим
+  curator: boolean; // бот — Куратор: побеждает, если Гласность не наступит
+  aggression: number; // готовность вредить соперникам (полный режим)
 }
 
 const SAMPLES = 2; // сколько раз перемешивать закрытые карты при примерке
@@ -34,8 +38,13 @@ function makeCtx(state: GameState, me: string, preset: BotPreset): Ctx {
   // Срочность Гласности: сколько ступеней ещё нужно против того, сколько ходов осталось.
   const need = state.sprouts.reduce((s, sp) => s + Math.max(0, RULES.glasnostStep - sp.progress), 0);
   const roundsLeft = RULES.rounds - r + 1;
-  const urgency = Math.min(2.5, Math.max(0.6, need / Math.max(1, roundsLeft * state.players.length * 0.5)));
-  return { me, preset, round: r, w, talon: BOT_BASE.talon[r - 1] ?? 0.5, glasnost: BOT_BASE.glasnostStep * urgency };
+  // В полном режиме на 3+ игроков среди соперников, возможно, Куратор: кормит Ростки на одного меньше.
+  const feeders = state.players.length - (state.mode === 'full' && state.players.length >= 3 ? 1 : 0);
+  const urgency = Math.min(2.5, Math.max(0.6, need / Math.max(1, roundsLeft * feeders * 0.5)));
+  return {
+    me, preset, round: r, w, talon: BOT_BASE.talon[r - 1] ?? 0.5, glasnost: BOT_BASE.glasnostStep * urgency,
+    full: state.mode === 'full', curator: player(state, me).passion === 'curator', aggression: preset.character.aggression ?? 0,
+  };
 }
 
 // ---------- Оценка положения ----------
@@ -91,24 +100,63 @@ function genreValue(state: GameState, p: PlayerState, g: Genre, ctx: Ctx): numbe
 }
 
 function ownBookValue(state: GameState, p: PlayerState, card: string, ctx: Ctx): number {
-  if (isPropaganda(state, card)) return RULES.propagandaPoints;
+  if (isPropaganda(state, card)) return ctx.curator ? BOT_BASE.curatorPropaganda : RULES.propagandaPoints;
   let v = iconsOf(state, card).length * BOT_BASE.bookLatent * ctx.w.publish;
   if (isEvidence(state, card)) v += RULES.evidencePoints;
   return v;
 }
 
 // Опальные книги, которые не поместятся в Тайник, — их изымет облава. Возвращает самые дешёвые из них.
-function atRisk(state: GameState, p: PlayerState, value: (c: string) => number): string[] {
+// keepPropaganda — Куратор бережёт Пропаганду (остальным её изъятие только на руку).
+function atRisk(state: GameState, p: PlayerState, value: (c: string) => number, keepPropaganda = false): string[] {
   const banned = p.warehouse
-    .filter((s) => !s.memorized && isBanned(state, s.card) && !isPropaganda(state, s.card))
+    .filter((s) => !s.memorized && isBanned(state, s.card) && (keepPropaganda || !isPropaganda(state, s.card)))
     .map((s) => s.card);
   const excess = banned.length - cacheLimit(state, p);
   if (excess <= 0) return [];
   return banned.sort((a, b) => value(a) - value(b)).slice(0, excess);
 }
 
+// Сила соперника на глаз: что видно на столе (для агрессивных ботов в полном режиме).
+function strength(state: GameState, o: PlayerState, left: number): number {
+  const connections = state.patrons.filter((x) => !x.removed && x.connections.includes(o.id)).length;
+  return o.points + connections * 1.5 + (o.workers - o.held) * (left + 1) * BOT_BASE.action * 0.5 + o.warehouse.length * 0.8;
+}
+
+// Ресурсы, которые ценны при любой роли.
+function resources(state: GameState, p: PlayerState, ctx: Ctx): number {
+  const left = RULES.rounds - ctx.round;
+  const w = ctx.w;
+  let v = p.talons * ctx.talon * w.talons;
+  const reserve = ctx.preset.character.reserve;
+  if (p.talons < reserve) v -= (reserve - p.talons) * ctx.talon;
+  v += (p.workers - p.held) * left * BOT_BASE.action * w.network;
+  v += (p.available + p.bonusGroupTurns * 0.7) * BOT_BASE.action;
+  v += (p.capacity * (BOT_BASE.capacity[ctx.round - 1] ?? 0) + p.cache * (BOT_BASE.cache[ctx.round - 1] ?? 0)) * w.storage;
+  v += Math.max(0, freeSlots(p)) * BOT_BASE.freeSlot;
+  return v;
+}
+
+// Куратор: Гласность не должна наступить. Тормозит отстающий Росток, копит Пропаганду, помогает Конторе.
+function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
+  if (state.result) return state.result.winners.includes(p.id) ? BOT_BASE.loss : -BOT_BASE.loss;
+  let v = resources(state, p, ctx);
+  const prog = state.sprouts.map((sp) => Math.min(sp.progress, RULES.glasnostStep));
+  v -= BOT_BASE.curatorStep * prog.reduce((a, b) => a + b, 0) + BOT_BASE.curatorWeakest * Math.min(...prog);
+  v += BOT_BASE.curatorPropaganda * p.warehouse.filter((s) => isPropaganda(state, s.card)).length;
+  v += BOT_BASE.curatorHeld * state.players.filter((o) => o.id !== p.id).reduce((s, o) => s + o.held, 0);
+  if (state.phase !== 'end' && state.phase !== 'passion') {
+    const risky = atRisk(state, p, (c) => ownBookValue(state, p, c, ctx), true);
+    v -= risky.reduce((s, c) => s + Math.max(0, ownBookValue(state, p, c, ctx)), 0) * ctx.preset.character.caution;
+  }
+  return v;
+}
+
 export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   const p = player(state, me);
+  if (ctx.curator) return evaluateCurator(state, p, ctx);
+  // Контора удержала слишком многих — проиграли все (кроме Куратора).
+  if (state.result && !state.result.scores.length) return -BOT_BASE.loss;
   const left = RULES.rounds - ctx.round; // Пятилеток после текущей
   const w = ctx.w;
   const cards = p.warehouse.map((s) => s.card);
@@ -118,15 +166,10 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   v += passionPoints(state, p) * w.passion;
   v += RULES.propagandaPoints * cards.filter((c) => isPropaganda(state, c)).length;
   v += RULES.evidencePoints * [...cards, ...p.tamizdat].filter((c) => isEvidence(state, c)).length;
-  v += BOT_BASE.connection * state.patrons.filter((x) => !x.removed && x.connections.includes(me)).length;
+  const connections = state.patrons.filter((x) => !x.removed && x.connections.includes(me)).length;
+  v += connections * (BOT_BASE.connection + BOT_BASE.patronEffect * w.club * (left + 1));
   // Ресурсы.
-  v += p.talons * ctx.talon * w.talons;
-  const reserve = ctx.preset.character.reserve;
-  if (p.talons < reserve) v -= (reserve - p.talons) * ctx.talon;
-  v += p.workers * left * BOT_BASE.action * w.network;
-  v += (p.available + p.bonusGroupTurns * 0.7) * BOT_BASE.action;
-  v += (p.capacity * (BOT_BASE.capacity[ctx.round - 1] ?? 0) + p.cache * (BOT_BASE.cache[ctx.round - 1] ?? 0)) * w.storage;
-  v += Math.max(0, freeSlots(p)) * BOT_BASE.freeSlot;
+  v += resources(state, p, ctx);
   for (const sub of p.subscriptions) v += sub.rounds * genreValue(state, p, sub.genre, ctx) * 0.8;
   // Книги.
   for (const c of cards) v += iconsOf(state, c).length * BOT_BASE.bookLatent * w.publish;
@@ -144,7 +187,22 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
       const without = { ...p, warehouse: p.warehouse.filter((s) => !risky.includes(s.card)) };
       const lost = (passionPoints(state, p) - passionPoints(state, without)) * w.passion
         + risky.reduce((s, c) => s + ownBookValue(state, p, c, ctx), 0);
-      v -= lost * ctx.preset.character.caution;
+      // В полном режиме за изъятие Контора ещё и удерживает Единомышленника — до конца партии.
+      const worker = ctx.full ? (left + 1) * BOT_BASE.action : 0;
+      v -= (lost + worker) * ctx.preset.character.caution;
+    }
+  }
+  if (ctx.full) {
+    // «Громоотвод»: запасные ступени сверх 3-й на случай срезов Куратора.
+    const spare = state.sprouts.reduce((s, sp) => s + Math.max(0, sp.progress - RULES.glasnostStep), 0);
+    v += BOT_BASE.insurance * Math.min(spare, BOT_BASE.insuranceSteps) * w.sprouts;
+    // Общая угроза: при 7 удержанных проигрывают все.
+    const held = heldTotal(state);
+    v -= BOT_BASE.heldDoom * held * held * (held >= KONTORA_LOSS - 1 ? 3 : 1);
+    // Агрессивному боту на руку слабость соперников.
+    if (ctx.aggression > 0) {
+      const others = state.players.filter((o) => o.id !== me);
+      v -= ctx.aggression * BOT_BASE.opponent * others.reduce((s, o) => s + strength(state, o, left), 0) / Math.max(1, others.length);
     }
   }
   // Очередь хода в следующей Пятилетке.
@@ -185,7 +243,10 @@ function determinize(state: GameState, rand: Rand): GameState {
 }
 
 // Отложенные решения, которые бот при примерке додумывает сам (они следуют сразу за ходом).
-const FOLLOW_UP = new Set(['sproutBonus', 'posrednichestvoKeep', 'posrednichestvoGroup', 'baraholkaLook', 'naslednikiPick', 'extraGroup', 'discardExcess']);
+const FOLLOW_UP = new Set([
+  'sproutBonus', 'posrednichestvoKeep', 'posrednichestvoGroup', 'baraholkaLook', 'naslednikiPick', 'extraGroup', 'discardExcess',
+  'kontoraDecide', 'kontoraHandout', 'glavlitSwap', 'lieutenantPick', 'freeConnection',
+]);
 
 function tryApply(state: GameState, me: string, a: Action): GameState | null {
   try {
@@ -197,7 +258,16 @@ function tryApply(state: GameState, me: string, a: Action): GameState | null {
 }
 
 function score(state: GameState, me: string, a: Action, ctx: Ctx, depth: number): number | null {
-  const next = tryApply(state, me, a);
+  let next = tryApply(state, me, a);
+  if (!next) return null;
+  // Поход в Контору: при примерке считаем, что соперники перепрячут всё, что поместится (самое значкастое — первым).
+  while (next && next.pending[0]?.kind === 'kontoraWarning' && next.pending[0].player !== me) {
+    const o = player(next, next.pending[0].player);
+    const limit = cacheLimit(next, o);
+    const hidden = o.warehouse.filter((x) => !x.memorized && isBanned(next!, x.card)).map((x) => x.card)
+      .sort((x, y) => iconsOf(next!, y).length - iconsOf(next!, x).length).slice(0, limit);
+    next = tryApply(next, o.id, { type: 'kontoraHide', hidden });
+  }
   if (!next) return null;
   const pend = next.pending[0];
   if (depth > 0 && pend && pend.player === me && FOLLOW_UP.has(pend.kind)) {
@@ -214,8 +284,14 @@ function score(state: GameState, me: string, a: Action, ctx: Ctx, depth: number)
 // Лучшие по оценке ходы, от лучшего к худшему.
 export function rankActions(state: GameState, me: string, preset: BotPreset, rand: Rand): { a: Action; v: number }[] {
   const ctx = makeCtx(state, me, preset);
-  const cands = candidates(state, me, ctx);
+  let cands = candidates(state, me, ctx);
   if (!cands.length) return [];
+  // Роль Куратора бот берёт с вероятностью «агрессивность × 2»: по оценке её с другими Пристрастиями не сравнить.
+  if (state.phase === 'passion' && player(state, me).passionOptions.includes('curator')) {
+    const curator = rand() < preset.character.aggression * 2;
+    cands = cands.filter((a) => a.type === 'choosePassion' && (a.passion === 'curator') === curator);
+    if (curator) return [{ a: cands[0], v: 0 }];
+  }
   const samples = Array.from({ length: SAMPLES }, () => determinize(state, rand));
   const rated: { a: Action; v: number }[] = [];
   for (const a of cands) {
@@ -378,7 +454,68 @@ function clubGifts(state: GameState, me: string): ClubGift[] {
   const out: ClubGift[] = [];
   for (const pt of state.patrons) {
     if (pt.removed || pt.turned || pt.connections.includes(me)) continue;
-    for (const s of p.warehouse) if (iconsOf(state, s.card).includes(pt.genre)) out.push({ patron: pt.id, card: s.card });
+    // Завсегдатай берёт книгу своего жанра или Альбом.
+    for (const s of p.warehouse) {
+      const icons = iconsOf(state, s.card);
+      if (icons.includes(pt.genre) || icons.includes('album')) out.push({ patron: pt.id, card: s.card });
+    }
+  }
+  return out;
+}
+
+// Связи в Клубе за одно действие: по одной и жадно все сразу (самые скромные книги — первыми).
+function clubCandidates(state: GameState, me: string, keep: Map<string, number>): Action[] {
+  const gifts = clubGifts(state, me);
+  const out: Action[] = [];
+  const cheapest = new Map<PatronId, ClubGift>();
+  for (const g of gifts) {
+    const cur = cheapest.get(g.patron);
+    if (!cur || (keep.get(g.card) ?? 0) < (keep.get(cur.card) ?? 0)) cheapest.set(g.patron, g);
+  }
+  for (const g of cheapest.values()) out.push({ type: 'place', place: { address: 'club', gifts: [g] } });
+  const used = new Set<string>();
+  const all: ClubGift[] = [];
+  for (const g of [...gifts].sort((a, b) => (keep.get(a.card) ?? 0) - (keep.get(b.card) ?? 0))) {
+    if (used.has(g.card) || all.some((x) => x.patron === g.patron)) continue;
+    used.add(g.card);
+    all.push(g);
+  }
+  if (all.length > 1) out.push({ type: 'place', place: { address: 'club', gifts: all } });
+  return out;
+}
+
+// Варианты решений в Конторе: что выбрать и чью открытую опальную книгу отдать в Спецхран.
+function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string, number>): KontoraChoice[] {
+  const p = player(state, me);
+  const left = RULES.rounds - ctx.round;
+  const targets = kontoraTargets(state);
+  const seizes: { player: string; card: string }[] = [];
+  // У каждого соперника — самую «значкастую» книгу; у себя — самую ненужную.
+  for (const o of state.players) {
+    const mine = targets.filter((t) => t.player === o.id);
+    if (!mine.length) continue;
+    const pick = o.id === me
+      ? [...mine].sort((a, b) => (keep.get(a.card) ?? 0) - (keep.get(b.card) ?? 0))[0]
+      : [...mine].sort((a, b) => iconsOf(state, b.card).length - iconsOf(state, a.card).length)[0];
+    seizes.push(pick);
+  }
+  const items: KontoraChoice[] = [];
+  const held = state.players.filter((o) => o.held > 0).sort((a, b) => (a.id === me ? -1 : b.id === me ? 1 : 0));
+  if (held.length) items.push({ petition: held.slice(0, 2).map((o) => o.id) });
+  if (state.spetskhran.length && freeSlots(p) > 0) items.push({ handout: true });
+  if (ctx.aggression > 0 || ctx.curator) {
+    const rivals = state.players.filter((o) => o.id !== me && o.held < o.workers);
+    const leader = rivals.sort((a, b) => strength(state, b, left) - strength(state, a, left))[0];
+    if (leader) items.push({ signal: leader.id });
+    // Профилактика: Завсегдатай, с которым связаны соперники, а бот — нет.
+    const patrons = state.patrons.filter((x) => !x.removed && !x.connections.includes(me) && x.connections.length > 0)
+      .sort((a, b) => b.connections.length - a.connections.length);
+    if (patrons[0]) items.push({ prophylaxis: patrons[0].id });
+  }
+  const out: KontoraChoice[] = [];
+  for (const set of subsets(items, items.length)) {
+    const choice = Object.assign({}, ...set) as KontoraChoice;
+    for (const seize of seizes) out.push({ ...choice, seize });
   }
   return out;
 }
@@ -400,6 +537,16 @@ function redCornerCandidates(state: GameState, me: string, keep: Map<string, num
     if (r.length) out.push(r);
   }
   return out.map((recycle) => ({ type: 'place', place: { address: 'redCorner', recycle } }));
+}
+
+// Что спрятать в Тайник: самое ценное из опального, сколько поместится. Куратор прячет и Пропаганду.
+function hideList(state: GameState, me: string, ctx: Ctx, keep: Map<string, number>, opts: { exclude?: string; extraLoad?: number } = {}): string[] {
+  const p = player(state, me);
+  const loads = p.warehouse.filter((s) => isLoad(state, s.card)).length + (opts.extraLoad ?? 0);
+  const limit = p.cache + Math.floor(loads / 2);
+  const banned = p.warehouse.filter((s) => s.card !== opts.exclude && !s.memorized && isBanned(state, s.card)
+    && (ctx.curator || !isPropaganda(state, s.card))).map((s) => s.card);
+  return byValue(keep, banned).reverse().slice(0, limit);
 }
 
 export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
@@ -429,6 +576,20 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         return [...out, { type: 'pass' }];
       }
       case 'discardExcess': return [{ type: 'discardExcess', cards: byValue(keepMap(), books).slice(0, pend.count) }];
+      case 'kontoraWarning':
+        // Соперник идёт в Контору: перепрятать самое ценное из опального.
+        return [{ type: 'kontoraHide', hidden: hideList(state, me, ctx, keepMap()) }];
+      case 'kontoraDecide':
+        return [...kontoraChoices(state, me, ctx, keepMap()).map((choice) => ({ type: 'kontoraDecide' as const, go: true, choice })), { type: 'kontoraDecide', go: false }];
+      case 'kontoraHandout': return pend.cards.map((card) => ({ type: 'kontoraHandout', card }));
+      case 'lieutenantPick':
+        return [...pend.cards.filter((c) => state.discard.includes(c)).map((card) => ({ type: 'lieutenantPick' as const, card })), { type: 'lieutenantPick', card: null }];
+      case 'glavlitSwap': {
+        const out: Action[] = [];
+        for (const from of state.banned) for (const to of GENRES) if (!state.banned.includes(to)) out.push({ type: 'glavlitSwap', from, to });
+        return out;
+      }
+      case 'freeConnection': return [...clubGifts(state, me).map((gift) => ({ type: 'clubGift' as const, gift })), { type: 'pass' }];
       default: return []; // остальное решает простой бот
     }
   }
@@ -444,9 +605,16 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       return [{ type: 'gathering', show }];
     }
     case 'hiding': {
-      const limit = cacheLimit(state, { ...p, warehouse: p.warehouse.map((s) => ({ ...s, hidden: false })) });
-      const banned = books.filter((b) => isBanned(state, b) && !isPropaganda(state, b) && !p.warehouse.find((s) => s.card === b)?.memorized);
-      return [{ type: 'hiding', hidden: byValue(keepMap(), banned).reverse().slice(0, limit) }];
+      const keep = keepMap();
+      const out: Action[] = [{ type: 'hiding', hidden: hideList(state, me, ctx, keep) }];
+      if (ctx.full) {
+        // «Заучить» сборник поэзии: он лежит сверх склада и облава его не трогает.
+        const poetry = byValue(keep, books.filter((b) => iconsOf(state, b).includes('poetry') && isBanned(state, b))).reverse().slice(0, 2);
+        for (const m of poetry) out.push({ type: 'hiding', hidden: hideList(state, me, ctx, keep, { exclude: m }), memorize: m });
+        // Парторг: заполнить пустые места Нагрузкой — она прикрывает Тайник.
+        if (hasPatron(state, me, 'partorg') && freeSlots(p) > 0) out.push({ type: 'hiding', hidden: hideList(state, me, ctx, keep, { extraLoad: freeSlots(p) }), fillLoad: true });
+      }
+      return out;
     }
     case 'orders': {
       const groups = () => groupCandidates(state, me, ctx).filter((g) => !p.groupUsed.includes(g.action)).map((group) => ({ type: 'group' as const, group }));
@@ -499,8 +667,15 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
           }
           case 'raspredelitel': for (const c of state.raspredelitel) out.push({ type: 'place', place: { address: 'raspredelitel', card: c } }); break;
           case 'nasledniki': case 'posrednichestvo': case 'spisanie': out.push({ type: 'place', place: { address: a } }); break;
-          case 'club': for (const gift of clubGifts(state, me)) out.push({ type: 'place', place: { address: 'club', gifts: [gift] } }); break;
-          // Квартирник (нужно угадать ответ соседа) и Контора пока не используются.
+          case 'club': out.push(...clubCandidates(state, me, keepMap())); break;
+          case 'kontora': {
+            // Только что передумал идти (соперники перепрятали книги) — второй раз за ход не объявляет.
+            const mine = state.log.filter((l) => l.text.startsWith(p.name + ' ')).pop();
+            const changedMind = mine?.text === `${p.name} передумывает идти в Контору.`;
+            if (!changedMind && kontoraTargets(state).length) out.push({ type: 'place', place: { address: 'kontora' } });
+            break;
+          }
+          // Квартирник (нужно угадать ответ соседа) пока не используется.
         }
       }
       return out;
