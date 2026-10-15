@@ -1,6 +1,6 @@
 // Общие элементы интерфейса: карты книг, окна, жанры.
 import type { ReactNode } from 'react';
-import { GENRE_NAMES } from '../engine/content';
+import { GENRE_NAMES, PASSIONS } from '../engine/content';
 import type { Genre } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
@@ -22,9 +22,16 @@ export function isBanned(v: PlayerView, id: string) {
   return isBannedBook(v, id);
 }
 
-export function GenreChip({ g, banned }: { g: Genre; banned?: boolean }) {
+// Жанры, за которые награждает моё Пристрастие (у Хранителей — два жанра).
+export function favoredGenres(v: PlayerView): Genre[] {
+  const passion = v.players.find((p) => p.id === v.me)?.passion;
+  return (passion && PASSIONS[passion].genres) || [];
+}
+
+export function GenreChip({ g, banned, favored }: { g: Genre; banned?: boolean; favored?: boolean }) {
   return (
-    <span className={`chip g-${g} ${banned ? 'banned' : ''}`} title={GENRE_NAMES[g] + (banned ? ' — в опале' : '')}>
+    <span className={`chip g-${g} ${banned ? 'banned' : ''} ${favored ? 'favored' : ''}`}
+      title={GENRE_NAMES[g] + (banned ? ' — в опале' : '') + (favored ? ' — по вашему Пристрастию' : '')}>
       {GENRE_SHORT[g]}
     </span>
   );
@@ -56,7 +63,7 @@ export function Book({ v, id, selected, onClick, hidden, small, note }: {
       title={`${t} — ${c.author}`}
     >
       <div className="book-icons">
-        {(flex ? icons.slice(0, -1) : icons).map((g, i) => <GenreChip key={i} g={g} banned={v.banned.includes(g)} />)}
+        {(flex ? icons.slice(0, -1) : icons).map((g, i) => <GenreChip key={i} g={g} banned={v.banned.includes(g)} favored={favoredGenres(v).includes(g)} />)}
         {flex && (
           <span className="chip flex" title={`Значок возвращения: ${flex.map((g) => GENRE_NAMES[g]).join(' или ')}`}>
             {flex.map((g) => GENRE_SHORT[g]).join('/')}

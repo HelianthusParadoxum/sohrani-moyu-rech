@@ -786,8 +786,16 @@ function MyPanel({ view, me, color, groupEnabled, onGroup, onMemorize }: {
   const poetry = me.warehouse.map((s) => s.card!).filter((c) => c && c !== memorized && iconsOf(view, c).includes('poetry'));
   return (
     <div className="player me" style={{ borderColor: color }}>
-      <div className="addr-head"><b style={{ color }}><span className="dot" style={{ background: color }} /> {me.name} (вы)</b>{me.passion && <span className="passion-tag" title={PASSIONS[me.passion].hint}>{passionLabel(me.passion)}</span>}</div>
+      <div className="addr-head"><b style={{ color }}><span className="dot" style={{ background: color }} /> {me.name} (вы)</b></div>
       <Stats p={me} view={view} />
+      {me.passion && (
+        <div className="passion-line" title={PASSIONS[me.passion].hint}>
+          <span className="muted small">Пристрастие:</span> <b>{PASSIONS[me.passion].name}</b>
+          {PASSIONS[me.passion].genres
+            ? <> — 2 очка за значок: {PASSIONS[me.passion].genres!.map((g) => <GenreChip key={g} g={g} favored />)}</>
+            : <span className="muted small"> — {PASSIONS[me.passion].hint}</span>}
+        </div>
+      )}
       <div className="shelf wrap">{me.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}</div>
       {onMemorize && (poetry.length > 0 || memorized) && (
         <div className="group-actions">
