@@ -10,7 +10,7 @@ import {
   rescue, setupClub, startKontora, takeFromSpetskhran,
 } from './full';
 import type {
-  Action, AddressId, GameState, Genre, GroupAction, Mode, PassionId, Pending, PlaceAction, PlayerState,
+  Action, AddressId, CopyTextAddress, GameState, Genre, GroupAction, Mode, PassionId, Pending, PlaceAction, PlayerState,
 } from './types';
 import { GENRES } from './types';
 import {
@@ -207,6 +207,7 @@ function startRound(state: GameState) {
   state.occupancy = {};
   state.nextOrder = [];
   delete state.turnDone;
+  delete state.lastBuy;
   delete state.clubGiftBy;
   for (const pt of state.patrons) pt.turned = false;
   for (const p of state.players) {
@@ -287,6 +288,7 @@ function canAct(p: PlayerState) {
 
 function advanceTurn(state: GameState) {
   delete state.turnDone;
+  delete state.lastBuy;
   delete state.clubGiftBy;
   delete state.freeHold;
   const n = state.order.length;
@@ -498,6 +500,14 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
     check(state.turnDone === p.id, 'Сначала сделайте действие (или спасуйте)');
     return;
   }
+  // Тиражирование вдогонку: только что купил на адресе — второй Единомышленник берёт оттуда же книгу даром.
+  if (action.type === 'group' && action.group.action === 'copyText' && !action.group.buy && state.lastBuy?.player === p.id) {
+    doGroup(state, p, action.group, { limited: true, worker: true, followUp: true });
+    track(p, 'group:copyText');
+    p.available--;
+    delete state.lastBuy;
+    return;
+  }
   if (action.type === 'clubGift') {
     // Клуб как свободное действие: одна книга одному Завсегдатаю за ход, ход не завершается.
     check(isFull(state) && RULES.clubFreeGift, 'Связь в Клубе так не завести');
@@ -561,6 +571,12 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
     return;
   }
   doPlace(state, p, a);
+  // Купил на адресе Тиражирования — можно следом (до конца хода) взять оттуда же книгу даром.
+  if ((COPY_TEXT_ADDRESSES as readonly string[]).includes(a.address) && (a.address !== 'tolkuchka' || a.ops.some((op) => op.op === 'buy'))) {
+    const exclude = a.address === 'tolkuchka' ? a.ops.filter((op) => op.op === 'sell').map((op) => op.card)
+      : a.address === 'knigoobmen' ? [a.give] : [];
+    state.lastBuy = { player: p.id, address: a.address as CopyTextAddress, exclude };
+  }
   if (buzoter) { p.buzoterUsed = true; log(state, `${p.name}: Бузотёр пробивается на занятый адрес.`); }
   state.occupancy[a.address] = [...here, p.id];
   track(p, a.address);
@@ -881,8 +897,27 @@ function isFromLoadDeck(state: GameState, id: string) {
 
 // ---------- Действия Инициативной группы ----------
 
+// Тиражирование: взять книгу даром с адреса (Машинистка — +1 Талон; при обычном Тиражировании её Талон начисляется ниже).
+function takeCopy(state: GameState, p: PlayerState, addr: CopyTextAddress, c: string, inAction = false) {
+  const name = ADDRESSES[addr].name;
+  if (addr === 'razval') {
+    check(state.razval.includes(c), 'Бесплатную книгу нужно взять с того же Развала');
+    state.razval = state.razval.map((x) => (x === c ? null : x));
+  } else {
+    const key = addr as 'tolkuchka' | 'raspredelitel' | 'knigoobmen';
+    check(state[key].includes(c), `Бесплатную книгу нужно взять там же: ${name}`);
+    state[key] = state[key].filter((x) => x !== c);
+  }
+  addOpenBook(state, p, c);
+  log(state, `${p.name} тиражирует ${title(state, c)} (${name}).`);
+  if (!inAction && hasPatron(state, p.id, 'typist')) {
+    log(state, `${p.name}: Машинистка — +1 Талон.`);
+    earn(state, p, 1);
+  }
+}
+
 // worker — действие делает Единомышленник из Группы (он занимает место на адресе, куда идёт тиражировать).
-function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limited: boolean; worker?: boolean }) {
+function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limited: boolean; worker?: boolean; followUp?: boolean }) {
   const info = GROUP_ACTIONS[g.action];
   check(info, 'Нет такого действия');
   if (opts.limited) check(!p.groupUsed.includes(g.action), `«${info.name}» уже сделано в эту Пятилетку`);
@@ -905,6 +940,18 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       // Из бонуса Тиражирование уже есть — по адресу идёт только покупатель.
       const addr = g.address;
       const name = ADDRESSES[addr]?.name;
+      if (opts.followUp) {
+        // Покупка уже сделана этим ходом — Единомышленник на Тиражировании берёт книгу оттуда же.
+        const last = state.lastBuy!;
+        check(addr === last.address, `Тиражировать можно только там, где вы только что купили: ${ADDRESSES[last.address].name}`);
+        check(g.card, 'Выберите книгу, которую взять бесплатно');
+        check(p.available >= 1, 'Нет свободного Единомышленника для Тиражирования');
+        check(p.visitedRedCorner || hasPatron(state, p.id, 'doctor') || p.available > 1, 'Последнего Единомышленника нужно отправить в Красный уголок');
+        check(!last.exclude.includes(g.card), 'Только что отданную книгу нельзя забрать обратно');
+        check(isGenreBook(state, g.card), 'Тиражировать можно только жанровую книгу — не Улику и не Пропаганду');
+        takeCopy(state, p, addr, g.card);
+        break;
+      }
       check((COPY_TEXT_ADDRESSES as readonly string[]).includes(addr), 'Тиражировать можно на Развале, Толкучке, в Распределителе или на Книгообмене');
       check(!ADDRESSES[addr].safehouse || state.safehouses.includes(addr), `${name}: этого адреса нет на столе`);
       check(!g.buy || g.buy.address === addr, 'Покупать нужно на том же адресе');
@@ -926,16 +973,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
           : g.buy?.address === 'knigoobmen' ? g.buy.give === c : false;
         check(!own, 'Только что отданную книгу нельзя забрать обратно');
         check(isGenreBook(state, c), 'Тиражировать можно только жанровую книгу — не Улику и не Пропаганду');
-        if (addr === 'razval') {
-          check(state.razval.includes(c), 'Бесплатную книгу нужно взять с того же Развала');
-          state.razval = state.razval.map((x) => (x === c ? null : x));
-        } else {
-          const key = addr as 'tolkuchka' | 'raspredelitel' | 'knigoobmen';
-          check(state[key].includes(c), `Бесплатную книгу нужно взять там же: ${name}`);
-          state[key] = state[key].filter((x) => x !== c);
-        }
-        addOpenBook(state, p, c);
-        log(state, `${p.name} тиражирует ${title(state, c)} (${name}).`);
+        takeCopy(state, p, addr, c, true);
       } else {
         log(state, `${p.name} тиражирует: ${name}.`);
       }

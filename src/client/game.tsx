@@ -35,6 +35,8 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
   // Действие сделано — дальше только свободные действия и «Закончить ход».
   const afterAction = myTurn && view.phase === 'orders' && !myPending && !!me && view.turnDone === me.id;
   const canPlace = myTurn && view.phase === 'orders' && !myPending && !!me && me.available > 0 && !afterAction;
+  // Только что купил на адресе Тиражирования — можно вдогонку взять оттуда же книгу даром.
+  const copyFollow = afterAction && !!me && view.lastBuy?.player === me.id && !me.groupUsed.includes('copyText') && me.available > 0;
   const bonusTurn = myTurn && view.phase === 'orders' && !myPending && !!me && me.available === 0 && me.bonusGroupTurns > 0 && !afterAction;
   const canGift = myTurn && view.mode === 'full' && RULES.clubFreeGift && view.phase === 'orders' && !myPending && !!me && view.clubGiftBy !== me.id;
   const mustRed = !!me && me.available === 1 && !me.visitedRedCorner && !hasPatron(view, me.id, 'doctor');
@@ -46,7 +48,7 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
   else if (head && head.player !== you) status = `${nameOf(head.player)} принимает решение…`;
   else if (myPending) status = 'Примите решение';
   else if (view.phase === 'orders') {
-    if (afterAction) status = 'Действие сделано. Можно пересобрать Тайник' + (view.mode === 'full' ? ', заучить сборник поэзии, отдать книгу в Клуб' : '') + ' — или закончите ход';
+    if (afterAction) status = 'Действие сделано. Можно ' + (copyFollow ? 'тиражировать книгу оттуда же (Инициативная группа), ' : '') + 'пересобрать Тайник' + (view.mode === 'full' ? ', заучить сборник поэзии, отдать книгу в Клуб' : '') + ' — или закончите ход';
     else if (canPlace) status = mustRed ? 'Ваш ход: последнего Единомышленника — в Красный уголок' : 'Ваш ход: отправьте Единомышленника по адресу или в Инициативную группу';
     else if (bonusTurn) status = 'Ваш ход: дополнительное действие Группы с явочного адреса — или откажитесь';
     else status = `Ходит ${view.active.map(nameOf).join(', ')}`;
@@ -97,7 +99,7 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
         <aside className="side">
           {me && (
             <MyPanel view={view} me={me} color={PLAYER_COLORS[seatIndex(me.id)]}
-              groupEnabled={canPlace || bonusTurn} onlyHire={canPlace && mustRed} onGroup={(id) => setPanel({ kind: 'group', id })}
+              groupEnabled={canPlace || bonusTurn || copyFollow} onlyHire={canPlace && mustRed} onlyCopy={copyFollow} onGroup={(id) => setPanel({ kind: 'group', id })}
               onMemorize={view.mode === 'full' && (canPlace || bonusTurn || afterAction) ? (card) => act({ type: 'memorize', card }) : null}
               onCache={canPlace || bonusTurn || afterAction ? () => setPanel({ kind: 'cache' }) : null} />
           )}
@@ -566,6 +568,8 @@ function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; v
     );
   } else if (id === 'rescue') {
     body = <RescuePanel view={view} done={done} />;
+  } else if (id === 'copyText' && view.lastBuy?.player === me.id && view.turnDone === me.id) {
+    body = <CopyFollowPanel view={view} done={done} />;
   } else if (id === 'copyText') {
     body = <CopyTextPanel view={view} me={me} done={done} />;
   } else if (id === 'restore') {
@@ -586,6 +590,26 @@ function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; v
     );
   }
   return <Modal title={title ?? info.name} onClose={close}>{body}</Modal>;
+}
+
+// Тиражирование вдогонку: покупка уже сделана — выбрать книгу оттуда же, даром.
+function CopyFollowPanel({ view, done }: { view: PlayerView; done: (g: GroupAction) => void }) {
+  const last = view.lastBuy!;
+  const [gift, setGift] = useState('');
+  const shelf = (last.address === 'razval' ? view.razval : view[last.address]).filter((c): c is string => !!c && !last.exclude.includes(c));
+  return (
+    <>
+      <p>Вы только что купили: {ADDRESSES[last.address].name}. Второй Единомышленник встаёт на Тиражирование — возьмите оттуда же одну жанровую книгу даром.</p>
+      <div className="shelf wrap">
+        {shelf.length === 0 && <span className="muted">Здесь больше нет книг</span>}
+        {shelf.map((c) => {
+          const genre = iconsOf(view, c).length > 0;
+          return <Book key={c} v={view} id={c} note={genre ? 'даром' : 'нельзя: не жанровая'} selected={gift === c} onClick={genre ? () => setGift(gift === c ? '' : c) : undefined} />;
+        })}
+      </div>
+      <div className="modal-foot"><button className="primary" disabled={!gift} onClick={() => done({ action: 'copyText', address: last.address, card: gift })}>Тиражировать</button></div>
+    </>
+  );
 }
 
 // Тиражирование текста: покупая на адресе, Единомышленник на Тиражировании позволяет взять оттуда же ещё 1 книгу даром.
@@ -958,8 +982,8 @@ function Stats({ p, view }: { p: VPlayer; view: PlayerView }) {
   );
 }
 
-function MyPanel({ view, me, color, groupEnabled, onlyHire, onGroup, onMemorize, onCache }: {
-  view: PlayerView; me: VPlayer; color: string; groupEnabled: boolean; onlyHire?: boolean; onGroup: (id: GroupActionId) => void; onMemorize: ((card: string | null) => void) | null;
+function MyPanel({ view, me, color, groupEnabled, onlyHire, onlyCopy, onGroup, onMemorize, onCache }: {
+  view: PlayerView; me: VPlayer; color: string; groupEnabled: boolean; onlyHire?: boolean; onlyCopy?: boolean; onGroup: (id: GroupActionId) => void; onMemorize: ((card: string | null) => void) | null;
   onCache: (() => void) | null;
 }) {
   const memorized = me.warehouse.find((s) => s.memorized)?.card ?? null;
@@ -997,7 +1021,7 @@ function MyPanel({ view, me, color, groupEnabled, onlyHire, onGroup, onMemorize,
           {(Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => !GROUP_ACTIONS[g].fullOnly || view.mode === 'full').map((g) => (
             <button key={g} className={`small ${groupBlocker(view, me, g) ? 'short' : ''}`}
               title={me.groupUsed.includes(g) ? 'Уже сделано в эту Пятилетку' : groupBlocker(view, me, g) ?? GROUP_ACTIONS[g].hint}
-              disabled={!groupEnabled || me.groupUsed.includes(g) || (onlyHire && g !== 'hire')} onClick={() => onGroup(g)}>
+              disabled={!groupEnabled || me.groupUsed.includes(g) || (onlyHire && g !== 'hire') || (onlyCopy && g !== 'copyText')} onClick={() => onGroup(g)}>
               {GROUP_ACTIONS[g].name}{groupN(me, g) && <span className="dot num inline" style={{ background: color }}>{groupN(me, g)}</span>}
             </button>
           ))}

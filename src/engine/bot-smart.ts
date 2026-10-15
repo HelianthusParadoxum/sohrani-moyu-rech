@@ -784,7 +784,16 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
     }
     case 'orders': {
       // Действие уже сделано (Тайник и Клуб бот перебирает раньше, в rankActions) — закончить ход.
-      if (state.turnDone === me) return [{ type: 'endTurn' }];
+      if (state.turnDone === me) {
+        // Тиражирование вдогонку за только что сделанной покупкой — или закончить ход.
+        const out: Action[] = [{ type: 'endTurn' }];
+        const last = state.lastBuy;
+        if (last?.player === me && !p.groupUsed.includes('copyText') && p.available > 0 && freeSlots(p) > 0) {
+          const shelf = (last.address === 'razval' ? state.razval : state[last.address]).filter((c): c is string => !!c && !last.exclude.includes(c) && isGenreBook(state, c));
+          for (const card of shelf) out.push({ type: 'group', group: { action: 'copyText', address: last.address, card } });
+        }
+        return out;
+      }
       const groups = () => groupCandidates(state, me, ctx).filter((g) => !p.groupUsed.includes(g.action)).map((group) => ({ type: 'group' as const, group }));
       if (p.available === 0) return [...groups(), { type: 'pass' }];
       // Последний Единомышленник — в Красный уголок; исключение — Расширение сети (новый пойдёт вместо него).

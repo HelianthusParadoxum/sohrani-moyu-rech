@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyAction, createGame } from '../src/engine/engine';
 import { playOut } from '../src/engine/bot';
 import { viewFor } from '../src/engine/view';
-import { RuleError, cacheLimit, coversStep, isBanned, isEvidence, isLoad } from '../src/engine/util';
+import { RuleError, cacheLimit, coversStep, iconsOf, isBanned, isEvidence, isLoad } from '../src/engine/util';
 import { finalScoring, passionPoints } from '../src/engine/scoring';
 import { RULES } from '../src/engine/content';
 import type { GameState, PatronId } from '../src/engine/types';
@@ -722,5 +722,32 @@ describe('Последний Единомышленник', () => {
     const q = s.players.find((x) => x.id === me)!;
     expect(q.workers).toBe(p.workers + 1);
     expect(q.available).toBe(1); // новый Единомышленник — всё ещё последний, ему в Красный уголок
+  });
+});
+
+describe('Тиражирование вдогонку', () => {
+  it('купив на Развале, можно до конца хода взять оттуда же книгу даром вторым Единомышленником', () => {
+    let s = createGame({ players: players(2), seed: 14 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    p.capacity = 10;
+    p.talons = 10;
+    const avail = p.available;
+    const slots = s.razval.map((c, i) => (c && iconsOf(s, c).length ? i : -1)).filter((i) => i >= 0);
+    s = applyAction(s, me, { type: 'place', place: { address: 'razval', slot: slots[0] } });
+    expect(s.turnDone).toBe(me);
+    const free = s.razval[slots[1]]!;
+    s = applyAction(s, me, { type: 'group', group: { action: 'copyText', address: 'razval', card: free } });
+    const q = s.players.find((x) => x.id === me)!;
+    expect(q.warehouse.map((w) => w.card)).toContain(free);
+    expect(q.available).toBe(avail - 2);
+    expect(q.groupUsed).toContain('copyText');
+    expect(s.turnDone).toBe(me);
+    // Второй раз вдогонку нельзя, и на другом адресе — тоже.
+    expect(() => applyAction(s, me, { type: 'group', group: { action: 'copyText', address: 'razval', card: s.razval.find(Boolean)! } })).toThrow(RuleError);
+    s = applyAction(s, me, { type: 'endTurn' });
+    expect(s.order[s.turn]).not.toBe(me);
   });
 });
