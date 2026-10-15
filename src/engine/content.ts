@@ -28,7 +28,7 @@ export const RULES = {
   startCensorship: 3,
   censorshipTokens: [3, 4, 5, 6, 7],
   displaySize: 4,
-  raspredelitelSize: 2,
+  raspredelitelSize: 4,
   hireCost: 6,
   restoreCost: 1, // Возвращение смыслов (до правки баланса — бесплатно, см. docs/questions.md)
   tolkuchkaBuy: 2, // за книгу
@@ -39,9 +39,12 @@ export const RULES = {
   baraholkaPrice: 1,
   safehousePrice: 3, // Наследники, Посредничество авторам
   raspredelitelPrice: 2, // книга Распределителя
-  spisaniePrice: 2, // Библиотечное списание
+  spisaniePrice: 1, // Библиотечное списание
   samizdatTalons: 2, // Самиздат: Талонов за значок
-  tamizdatTalons: 1, // Тамиздат: Талонов за значок (и ещё по очку Гласности)
+  tamizdatTalons: 1, // Тамиздат: Талонов за значок
+  tamizdatPoints: 2, // Тамиздат: очков Гласности за значок
+  redCornerUnprinted: 1, // Красный уголок: Талонов за сданную Непечатную книгу
+  redCornerLoad: 2, // Красный уголок: Талонов за сданную книгу Нагрузки
   sideJobIncome: 3,
   propagandaPoints: -5,
   evidencePoints: 5,
@@ -67,14 +70,14 @@ export interface AddressInfo {
 export const ADDRESSES: Record<AddressId, AddressInfo> = {
   gostorg: { id: 'gostorg', name: 'Госкниготорг', limits: [2, 3, 4], hint: '−1т за пару: Нагрузка + Непечатное, любое число пар' },
   tolkuchka: { id: 'tolkuchka', name: 'Толкучка', limits: [2, 3, 4], hint: 'Купить: −2т за книгу. Продать: +2т за книгу опального жанра, +1т за прочие' },
-  redCorner: { id: 'redCorner', name: 'Красный уголок', limits: [INF, INF, INF], perPlayer: true, hint: 'Очередь хода на следующую Пятилетку; сдать до 1 Непечатной и до 1 Нагрузки, +1т за книгу' },
+  redCorner: { id: 'redCorner', name: 'Красный уголок', limits: [INF, INF, INF], perPlayer: true, hint: `Очередь хода на следующую Пятилетку; сдать до 1 Непечатной (+${RULES.redCornerUnprinted}т) и до 1 Нагрузки (+${RULES.redCornerLoad}т)` },
   razval: { id: 'razval', name: 'Развал', limits: [2, 3, 4], hint: 'Купить 1 книгу: −2/−2/−1/−1т по свежести' },
   zavoz: { id: 'zavoz', name: 'Завоз', limits: [1, 1, 2], hint: '+2т, Развал полностью обновляется' },
   baraholka: { id: 'baraholka', name: 'Барахолка', limits: [4, 4, 4], hint: 'Тайно посмотреть 1 из 4 закрытых книг и купить за 1т' },
   podpiska: { id: 'podpiska', name: 'Подписка', limits: [1, 1, 2], hint: 'Заказать жанр: −1т за каждую Пятилетку доставки' },
   sprouts: { id: 'sprouts', name: 'Ростки Гласности', limits: [3, 4, 5], hint: 'Закрыть любое число ступеней Ростков' },
   samizdat: { id: 'samizdat', name: 'Самиздат', limits: [2, 2, 3], hint: `Издать книгу: +${RULES.samizdatTalons}т/значок` },
-  tamizdat: { id: 'tamizdat', name: 'Тамиздат', limits: [1, 1, 2], hint: `Издать книгу: +${RULES.tamizdatTalons}т и +1 очко/значок` },
+  tamizdat: { id: 'tamizdat', name: 'Тамиздат', limits: [1, 1, 2], hint: `Издать книгу: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка/значок` },
   knigoobmen: { id: 'knigoobmen', name: 'Книгообмен', limits: [1, 1, 1], safehouse: true, hint: 'Отдать 1 жанровую книгу — взять 1 с витрины' },
   kvartirnik: { id: 'kvartirnik', name: 'Квартирник', limits: [1, 1, 1], safehouse: true, hint: 'Обмен книгами с другим игроком по согласию' },
   raspredelitel: { id: 'raspredelitel', name: 'Распределитель', limits: [1, 1, 1], safehouse: true, hint: `Купить 1 выдающуюся книгу за ${RULES.raspredelitelPrice}т` },
@@ -86,7 +89,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
 };
 
 // Тиражирование текста: адреса, где книги покупают в открытую.
-export const COPY_TEXT_ADDRESSES = ['razval', 'tolkuchka', 'raspredelitel'] as const;
+export const COPY_TEXT_ADDRESSES = ['razval', 'tolkuchka', 'raspredelitel', 'knigoobmen'] as const;
 
 // Цена явочного адреса с платным входом.
 export function safehouseCost(id: AddressId): number {
@@ -111,7 +114,7 @@ export function limitFor(address: AddressId, playerCount: number): number {
 export const GROUP_ACTIONS: Record<GroupActionId, { name: string; hint: string; fullOnly?: boolean }> = {
   expandWarehouse: { name: 'Увеличение склада', hint: '+1 место на складе (до 10)' },
   expandCache: { name: 'Закладка Тайника', hint: '1 место склада становится потайным (до 5)' },
-  copyText: { name: 'Тиражирование текста', hint: 'Сразу купить книги на Развале, Толкучке или в Распределителе — и ещё 1 открытую книгу оттуда же взять бесплатно' },
+  copyText: { name: 'Тиражирование текста', hint: 'Сразу отправить Единомышленника на Развал, Толкучку, в Распределитель или на Книгообмен: можно купить (обменять) книги, и 1 открытую книгу оттуда же — бесплатно' },
   rescue: { name: 'Вызволение из бед', hint: 'Вернуть Единомышленников из Конторы', fullOnly: true },
   restore: { name: 'Возвращение смыслов', hint: `${RULES.restoreCost ? `${RULES.restoreCost}т: ` : ''}+1 значок жанровой книге или 3 значка возвращаемой Нагрузке` },
   hire: { name: 'Расширение сети', hint: '6т: +1 Единомышленник, сразу доступен (до 7)' },

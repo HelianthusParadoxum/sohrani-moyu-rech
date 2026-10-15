@@ -581,8 +581,9 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         (unprinted.length <= 1 && load.length <= 1) || hasPatron(state, p.id, 'zavpunktom'),
         'Сдать можно до 1 Непечатной и до 1 книги Нагрузки',
       );
-      const perBook = 1 + (hasPatron(state, p.id, 'zavkhoz') ? 1 : 0);
+      const extra = hasPatron(state, p.id, 'zavkhoz') ? 1 : 0;
       for (const c of a.recycle) {
+        const perBook = (isFromLoadDeck(state, c) ? RULES.redCornerLoad : RULES.redCornerUnprinted) + extra;
         removeBook(p, c);
         discard(state, c);
         p.talons += perBook;
@@ -683,7 +684,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       const add = (n: number, src: Parameters<typeof gain>[2]) => { gain(p, n, src); pts += n; };
       if (a.address === 'tamizdat') {
         p.tamizdat.push(a.card);
-        add(icons, 'tamizdat');
+        add(icons * RULES.tamizdatPoints, 'tamizdat');
         if (isFull(state) && genres.includes('testimony')) add(2, 'testimony'); // «Придать огласке»
       } else {
         if (hasPatron(state, p.id, 'editor')) add(icons, 'editor');
@@ -791,29 +792,45 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       log(state, `${p.name}: Тайник увеличен до ${p.cache}.`);
       break;
     case 'copyText': {
-      // Единомышленник сразу идёт покупать на адрес с открытыми книгами и берёт оттуда ещё одну книгу бесплатно.
-      const a = g.buy;
-      check((COPY_TEXT_ADDRESSES as readonly string[]).includes(a?.address), 'Тиражировать можно на Развале, Толкучке или в Распределителе');
-      check(a.address !== 'raspredelitel' || state.safehouses.includes('raspredelitel'), 'Распределителя нет на столе');
-      if (a.address === 'tolkuchka') check(a.ops.some((op) => op.op === 'buy'), 'На Толкучке нужно купить хотя бы одну книгу');
-      const here = state.occupancy[a.address] ?? [];
-      if (opts.worker) check(here.length < limitFor(a.address, state.players.length), `${ADDRESSES[a.address].name}: все места заняты`);
-      doPlace(state, p, a);
-      const c = g.card;
-      if (a.address === 'razval') {
-        check(state.razval.includes(c), 'Бесплатную книгу нужно взять с того же Развала');
-        state.razval = state.razval.map((x) => (x === c ? null : x));
-      } else if (a.address === 'tolkuchka') {
-        check(state.tolkuchka.includes(c), 'Бесплатную книгу нужно взять с той же Толкучки');
-        check(!a.ops.some((op) => op.op === 'sell' && op.card === c), 'Только что проданную книгу нельзя забрать обратно');
-        state.tolkuchka = state.tolkuchka.filter((x) => x !== c);
-      } else {
-        check(state.raspredelitel.includes(c), 'Бесплатную книгу нужно взять из того же Распределителя');
-        state.raspredelitel = state.raspredelitel.filter((x) => x !== c);
+      // Единомышленник сразу идёт на адрес с открытыми книгами: может купить (на Книгообмене — обменять)
+      // и одну открытую книгу оттуда же берёт бесплатно.
+      const addr = g.address;
+      const name = ADDRESSES[addr]?.name;
+      check((COPY_TEXT_ADDRESSES as readonly string[]).includes(addr), 'Тиражировать можно на Развале, Толкучке, в Распределителе или на Книгообмене');
+      check(!ADDRESSES[addr].safehouse || state.safehouses.includes(addr), `${name}: этого адреса нет на столе`);
+      check(!g.buy || g.buy.address === addr, 'Покупать нужно на том же адресе');
+      check(g.buy || g.card, 'Купите книгу или возьмите бесплатную');
+      if (!opts.worker) {
+        // Тиражирование из бонуса отправляет по адресу ещё одного доступного Единомышленника.
+        check(p.available > 0, 'Нет доступного Единомышленника, чтобы отправить его по адресу');
+        check(!mustVisitRedCorner(state, p), 'Последнего Единомышленника нужно отправить в Красный уголок');
       }
-      addBook(p, c);
-      if (opts.worker) state.occupancy[a.address] = [...here, p.id];
-      log(state, `${p.name} тиражирует ${title(state, c)} (${ADDRESSES[a.address].name}).`);
+      const here = state.occupancy[addr] ?? [];
+      check(here.length < limitFor(addr, state.players.length), `${name}: все места заняты`);
+      if (g.buy) doPlace(state, p, g.buy);
+      const c = g.card;
+      if (c) {
+        const own = g.buy?.address === 'tolkuchka' ? g.buy.ops.some((op) => op.op === 'sell' && op.card === c)
+          : g.buy?.address === 'knigoobmen' ? g.buy.give === c : false;
+        check(!own, 'Только что отданную книгу нельзя забрать обратно');
+        if (addr === 'razval') {
+          check(state.razval.includes(c), 'Бесплатную книгу нужно взять с того же Развала');
+          state.razval = state.razval.map((x) => (x === c ? null : x));
+        } else {
+          const key = addr as 'tolkuchka' | 'raspredelitel' | 'knigoobmen';
+          check(state[key].includes(c), `Бесплатную книгу нужно взять там же: ${name}`);
+          state[key] = state[key].filter((x) => x !== c);
+        }
+        addBook(p, c);
+        log(state, `${p.name} тиражирует ${title(state, c)} (${name}).`);
+      } else {
+        log(state, `${p.name} тиражирует: ${name}.`);
+      }
+      state.occupancy[addr] = [...here, p.id];
+      if (!opts.worker) {
+        p.available--;
+        track(p, 'group:copyText');
+      }
       if (hasPatron(state, p.id, 'typist')) {
         p.talons += 1;
         log(state, `${p.name}: Машинистка — +1 Талон.`);
