@@ -8,6 +8,7 @@ import { randomBytes } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
 import { applyAction, createGame, activePlayers, migrate } from '../engine/engine';
 import { botMove } from '../engine/bot';
+import { BOT_PRESETS, DEFAULT_PRESET } from '../engine/bot-presets';
 import { viewFor } from '../engine/view';
 import { RuleError } from '../engine/util';
 import type { Action, GameState, Mode } from '../engine/types';
@@ -18,7 +19,7 @@ const DIST = resolve('dist');
 const SAVE_DIR = resolve(process.env.SAVE_DIR ?? 'data/games');
 mkdirSync(SAVE_DIR, { recursive: true });
 
-interface Seat { id: string; name: string; token: string; bot: boolean }
+interface Seat { id: string; name: string; token: string; bot: boolean; preset?: string }
 interface Room {
   code: string; host: string; seats: Seat[]; mode: Mode; state: GameState | null; history: GameState[]; updated: number;
   botDelay?: number;
@@ -62,7 +63,7 @@ const newId = () => randomBytes(6).toString('hex');
 function roomInfo(room: Room): RoomInfo {
   return {
     code: room.code, host: room.host, mode: room.mode, started: !!room.state,
-    seats: room.seats.map((s) => ({ id: s.id, name: s.name, bot: s.bot, online: isOnline(room, s.id) })),
+    seats: room.seats.map((s) => ({ id: s.id, name: s.name, bot: s.bot, online: isOnline(room, s.id), preset: s.preset ?? DEFAULT_PRESET })),
     canUndo: room.history.length > 0,
     hostBot: hostSeat(room)?.bot ?? false,
     botDelay: room.botDelay ?? 700,
@@ -103,7 +104,7 @@ function scheduleBots(room: Room) {
     botTimers.delete(room.code);
     if (!room.state) return;
     try {
-      room.state = botMove(room.state, who);
+      room.state = botMove(room.state, who, Math.random, room.seats.find((s) => s.id === who)?.preset);
     } catch (e) {
       console.error('Ошибка бота', e);
       return;
@@ -213,6 +214,13 @@ function handle(ws: WebSocket, msg: ClientMessage) {
     case 'botDelay': {
       if (!isHost) return;
       room.botDelay = Math.max(30, Math.min(3000, Math.round(msg.ms)));
+      break;
+    }
+    case 'botPreset': {
+      // Пресет бота можно менять и до, и во время партии.
+      const seat = room.seats.find((s) => s.id === msg.seat);
+      if (!isHost || !seat || !BOT_PRESETS.some((p) => p.id === msg.preset)) return;
+      seat.preset = msg.preset;
       break;
     }
     case 'restart': {

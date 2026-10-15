@@ -7,7 +7,7 @@ export interface RoomInfo {
   host: string;
   mode: Mode;
   started: boolean;
-  seats: { id: string; name: string; bot: boolean; online: boolean }[];
+  seats: { id: string; name: string; bot: boolean; online: boolean; preset: string }[]; // preset — пресет бота
   canUndo: boolean;
   hostBot: boolean; // за хоста играет бот, хост смотрит со стороны
   botDelay: number; // пауза между ходами ботов, мс
@@ -25,7 +25,8 @@ export type ClientMessage =
   | { t: 'undo' }
   | { t: 'restart' }
   | { t: 'hostBot'; on: boolean }
-  | { t: 'botDelay'; ms: number };
+  | { t: 'botDelay'; ms: number }
+  | { t: 'botPreset'; seat: string; preset: string };
 
 export type ServerMessage =
   | { t: 'joined'; code: string; token: string }

@@ -28,6 +28,19 @@ export function shuffle<T>(state: GameState, arr: T[]): T[] {
   return arr;
 }
 
+// Глубокая копия простого JSON-объекта (состояние партии). Заметно быстрее structuredClone.
+export function cloneJson<T>(x: T): T {
+  if (x === null || typeof x !== 'object') return x;
+  if (Array.isArray(x)) {
+    const out = new Array(x.length);
+    for (let i = 0; i < x.length; i++) out[i] = cloneJson(x[i]);
+    return out as T;
+  }
+  const out: Record<string, unknown> = {};
+  for (const k in x) out[k] = cloneJson((x as Record<string, unknown>)[k]);
+  return out as T;
+}
+
 export function log(state: GameState, text: string, only?: string[]) {
   state.log.push(only ? { round: state.round, text, only } : { round: state.round, text });
 }

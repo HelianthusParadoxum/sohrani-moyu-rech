@@ -14,7 +14,7 @@ import type {
 } from './types';
 import { GENRES } from './types';
 import {
-  addBook, cacheLimit, check, coversStep, discard, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
+  addBook, cacheLimit, check, cloneJson, coversStep, discard, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isSingle, log, pay, player, pointsText, random, removeBook, shuffle,
   talonsText, title,
 } from './util';
@@ -103,7 +103,9 @@ export function mustVisitRedCorner(state: GameState, p: PlayerState): boolean {
 // ---------- Применение действия ----------
 
 export function applyAction(prev: GameState, playerId: string, action: Action): GameState {
-  const state = structuredClone(prev);
+  // Справочник карт по ходу партии не меняется — его не копируем (так намного быстрее, особенно для ботов).
+  const { cards, ...rest } = prev;
+  const state: GameState = { ...cloneJson(rest), cards };
   check(state.phase !== 'end', 'Партия окончена');
   check(activePlayers(state).includes(playerId), 'Сейчас не ваш ход');
   const p = player(state, playerId);

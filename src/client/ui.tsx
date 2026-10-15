@@ -1,6 +1,7 @@
 // Общие элементы интерфейса: карты книг, окна, жанры.
 import type { ReactNode } from 'react';
 import { GENRE_NAMES, PASSIONS } from '../engine/content';
+import { BOT_PRESETS, presetById } from '../engine/bot-presets';
 import type { Genre } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
@@ -117,3 +118,14 @@ export function SpeedSelect({ room, send }: { room: RoomInfo; send: (m: ClientMe
   );
 }
 
+
+// Пресет бота: хост выбирает, остальные видят название.
+export function PresetSelect({ seat, host, send }: { seat: RoomInfo['seats'][number]; host: boolean; send: (m: ClientMessage) => void }) {
+  const current = presetById(seat.preset);
+  if (!host) return <span className="muted small" title={current.description}> {current.name}</span>;
+  return (
+    <select className="small" value={current.id} title={current.description} onChange={(e) => send({ t: 'botPreset', seat: seat.id, preset: e.target.value })}>
+      {BOT_PRESETS.map((p) => <option key={p.id} value={p.id} title={p.description}>{p.name}</option>)}
+    </select>
+  );
+}
