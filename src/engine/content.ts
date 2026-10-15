@@ -216,3 +216,15 @@ export const POINT_SOURCES: Record<PointSource, string> = {
   postgrad: 'Аспирант',
   prose: 'Проза «Вдохновиться»',
 };
+
+// Название Пристрастия с жанрами, за которые оно награждает: «Золотая полка (Проза, Поэзия)».
+export function passionLabel(id: PassionId): string {
+  const p = PASSIONS[id];
+  if (p.genres) return `${p.name} (${p.genres.map((g) => GENRE_NAMES[g]).join(', ')})`;
+  const extra: Partial<Record<PassionId, string>> = {
+    erudite: 'любые жанры, по 1 книге на жанр',
+    monogamist: 'один жанр на выбор',
+    innovator: 'двужанровые книги',
+  };
+  return extra[id] ? `${p.name} (${extra[id]})` : p.name;
+}

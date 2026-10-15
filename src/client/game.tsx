@@ -1,7 +1,7 @@
 // Игровой стол.
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import {
-  ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, PASSIONS, POINT_SOURCES, PERMANENT_ADDRESSES, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, limitFor,
+  ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, PASSIONS, POINT_SOURCES, passionLabel, PERMANENT_ADDRESSES, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, limitFor,
 } from '../engine/content';
 import type { Action, AddressId, Genre, GroupAction, GroupActionId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
@@ -112,7 +112,7 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
       {!myPending && me && view.phase === 'passion' && view.active.includes(me.id) && <PassionPrompt me={me} act={act} />}
       {!myPending && me && view.phase === 'gathering' && view.active.includes(me.id) && <GatheringPrompt view={view} me={me} act={act} />}
       {!myPending && me && view.phase === 'hiding' && view.active.includes(me.id) && <HidingPrompt view={view} me={me} act={act} />}
-      {view.phase === 'end' && view.result && showResult && <Results view={view} close={() => setShowResult(false)} />}
+      {view.phase === 'end' && view.result && showResult && <Results view={view} seatIndex={seatIndex} close={() => setShowResult(false)} />}
     </div>
   );
 }
@@ -659,7 +659,7 @@ function PassionPrompt({ me, act }: { me: VPlayer; act: (a: Action) => void }) {
       <div className="passions">
         {me.passionOptions.map((id) => (
           <button key={id} className="passion" onClick={() => act({ type: 'choosePassion', passion: id })}>
-            <b>{PASSIONS[id].name}</b><span>{PASSIONS[id].hint}</span>
+            <b>{passionLabel(id)}</b><span>{PASSIONS[id].hint}</span>
           </button>
         ))}
       </div>
@@ -726,7 +726,8 @@ function HidingPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (
 // Источники очков «по ходу», возможные в этом режиме.
 const BEGINNER_SOURCES: PointSource[] = ['gathering', 'sprouts', 'firstFeed', 'tamizdat'];
 
-function Results({ view, close }: { view: PlayerView; close: () => void }) {
+function Results({ view, seatIndex, close }: { view: PlayerView; seatIndex: (id: string) => number; close: () => void }) {
+  const full = view.mode === 'full';
   const sources = view.mode === 'full' ? (Object.keys(POINT_SOURCES) as PointSource[]) : BEGINNER_SOURCES;
   const r = view.result!;
   const name = (id: string) => view.players.find((p) => p.id === id)!.name;
@@ -734,7 +735,7 @@ function Results({ view, close }: { view: PlayerView; close: () => void }) {
     <Modal title="Конец Застоя" onClose={close} wide>
       <p><b>{r.note}</b></p>
       <div className="scores-wrap"><table className="scores">
-        <thead><tr><th>Игрок</th><th>Пристрастие</th><th>По ходу</th><th>За Пристрастие</th><th>Ростки</th><th>Пропаганда</th><th>Улики</th><th>Связи</th><th>Итого</th></tr></thead>
+        <thead><tr><th>Игрок</th><th>Пристрастие</th><th>По ходу</th><th>За Пристрастие</th><th>Ростки</th><th>Пропаганда</th><th>Улики</th>{full && <th>Связи</th>}<th>Итого</th></tr></thead>
         <tbody>
           {r.scores.map((s) => {
             const p = view.players.find((x) => x.id === s.player)!;
@@ -742,12 +743,12 @@ function Results({ view, close }: { view: PlayerView; close: () => void }) {
             return (
               <Fragment key={s.player}>
                 <tr className={r.winners.includes(s.player) ? 'winner' : ''}>
-                  <td>{name(s.player)}</td><td>{p.passion ? PASSIONS[p.passion].name : '—'}</td>
-                  <td>{s.during}</td><td>{s.passion}</td><td>{s.sprouts}</td><td>{s.propaganda}</td><td>{s.evidence}</td><td>{s.connections ?? 0}</td><td><b>{s.total}</b></td>
+                  <td><span className="dot" style={{ background: PLAYER_COLORS[seatIndex(s.player)] }} /> {name(s.player)}</td><td>{p.passion ? passionLabel(p.passion) : '—'}</td>
+                  <td>{s.during}</td><td>{s.passion}</td><td>{s.sprouts}</td><td>{s.propaganda}</td><td>{s.evidence}</td>{full && <td>{s.connections ?? 0}</td>}<td><b>{s.total}</b></td>
                 </tr>
                 {by.length > 0 && (
                   <tr className="score-detail">
-                    <td colSpan={9}>
+                    <td colSpan={full ? 9 : 8}>
                       По ходу игры: {by.map(([k, n]) => <span key={k} className="src">{POINT_SOURCES[k]} <b>{n}</b></span>)}
                     </td>
                   </tr>
@@ -785,7 +786,7 @@ function MyPanel({ view, me, color, groupEnabled, onGroup, onMemorize }: {
   const poetry = me.warehouse.map((s) => s.card!).filter((c) => c && c !== memorized && iconsOf(view, c).includes('poetry'));
   return (
     <div className="player me" style={{ borderColor: color }}>
-      <div className="addr-head"><b style={{ color }}>{me.name} (вы)</b>{me.passion && <span className="passion-tag" title={PASSIONS[me.passion].hint}>{PASSIONS[me.passion].name}</span>}</div>
+      <div className="addr-head"><b style={{ color }}><span className="dot" style={{ background: color }} /> {me.name} (вы)</b>{me.passion && <span className="passion-tag" title={PASSIONS[me.passion].hint}>{passionLabel(me.passion)}</span>}</div>
       <Stats p={me} view={view} />
       <div className="shelf wrap">{me.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}</div>
       {onMemorize && (poetry.length > 0 || memorized) && (
@@ -816,7 +817,7 @@ function MyPanel({ view, me, color, groupEnabled, onGroup, onMemorize }: {
 function OtherPlayer({ view, p, color, active, first }: { view: PlayerView; p: VPlayer; color: string; active: boolean; first: boolean }) {
   return (
     <div className={`player ${active ? 'active' : ''}`} style={{ borderColor: color }}>
-      <div className="addr-head"><b style={{ color }}>{p.name}</b>{first && <span className="muted small">ходит первым</span>}</div>
+      <div className="addr-head"><b style={{ color }}><span className="dot" style={{ background: color }} /> {p.name}</b>{first && <span className="muted small">ходит первым</span>}</div>
       <Stats p={p} view={view} />
       <div className="shelf wrap">{p.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}</div>
       <Published view={view} p={p} />
