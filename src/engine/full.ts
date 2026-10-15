@@ -89,7 +89,7 @@ export function giveToPatron(state: GameState, p: PlayerState, gift: ClubGift) {
   }
 }
 
-function onConnect(state: GameState, p: PlayerState, id: PatronId) {
+export function onConnect(state: GameState, p: PlayerState, id: PatronId) {
   switch (id) {
     case 'glavlit':
       state.pending.push({ kind: 'glavlitSwap', player: p.id });
