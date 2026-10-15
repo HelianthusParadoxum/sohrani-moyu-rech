@@ -72,3 +72,35 @@ describe('партия ботами', () => {
     });
   }
 });
+
+describe('правила редакции октября', () => {
+  function started(seed = 5) {
+    let s = createGame({ players: players(2), seed });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    return s;
+  }
+
+  it('Толкучка: покупка — 2 Талона за книгу независимо от значков', () => {
+    const s = started();
+    const me = s.order[s.turn];
+    const card = s.tolkuchka[0];
+    const before = s.players.find((p) => p.id === me)!.talons;
+    const next = applyAction(s, me, { type: 'place', place: { address: 'tolkuchka', ops: [{ op: 'buy', card }] } });
+    expect(next.players.find((p) => p.id === me)!.talons).toBe(before - 2);
+  });
+
+  it('пасовать можно только после Красного уголка, и пас — до конца Пятилетки', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    expect(() => applyAction(s, me, { type: 'pass' })).toThrow(RuleError);
+    s = applyAction(s, me, { type: 'place', place: { address: 'redCorner', recycle: [] } });
+    while (s.order[s.turn] !== me) {
+      const other = s.order[s.turn];
+      s = applyAction(s, other, { type: 'place', place: { address: 'zavoz' } });
+    }
+    s = applyAction(s, me, { type: 'pass' });
+    const p = s.players.find((x) => x.id === me)!;
+    expect(p.available).toBe(0);
+    expect(s.order[s.turn]).not.toBe(me);
+  });
+});

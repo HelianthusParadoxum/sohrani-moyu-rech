@@ -139,7 +139,7 @@ function weight(a: Action): number {
     if (a.place.address === 'tamizdat') return 3;
     if (a.place.address === 'redCorner') return 0.5;
   }
-  if (a.type === 'pass') return 0.3;
+  if (a.type === 'pass') return 0.1;
   return 1;
 }
 

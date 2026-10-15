@@ -63,7 +63,7 @@ export function Game({ view, room, you, send }: { view: PlayerView; room: RoomIn
       <div className={`status ${myTurn ? 'mine' : ''}`}>
         {status}
         {bonusTurn && <button className="small" onClick={() => act({ type: 'pass' })}>Отказаться</button>}
-        {canPlace && !mustRed && <button className="small" onClick={() => confirm('Единомышленник пропустит ход. Точно?') && act({ type: 'pass' })}>Пропустить</button>}
+        {canPlace && me.visitedRedCorner && <button className="small" onClick={() => confirm('Спасовать до конца Пятилетки? Оставшиеся Единомышленники не будут действовать.') && act({ type: 'pass' })}>Спасовать</button>}
       </div>
 
       <main className="layout">
@@ -132,7 +132,7 @@ function AddressCard({ id, view, seatIndex, me, enabled, onOpen }: {
 function AddressContents({ id, view }: { id: AddressId; view: PlayerView }) {
   switch (id) {
     case 'tolkuchka':
-      return <div className="shelf wrap">{view.tolkuchka.map((c) => <Book key={c} v={view} id={c} small note={`${2 * iconsOf(view, c).length}т`} />)}</div>;
+      return <div className="shelf wrap">{view.tolkuchka.map((c) => <Book key={c} v={view} id={c} small note={`${RULES.tolkuchkaBuy}т`} />)}</div>;
     case 'razval':
       return <div className="shelf wrap">{view.razval.map((c, i) => c ? <Book key={i} v={view} id={c} small note={`${RULES.razvalPrices[i]}т`} /> : <div key={i} className="book empty small" />)}</div>;
     case 'baraholka':
@@ -189,16 +189,17 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
       break;
     }
     case 'tolkuchka': {
-      const sellable = mine.filter((c) => iconsOf(view, c).length > 0 && !['evidence', 'loadEvidence'].includes(view.cards[c].kind));
-      const gain = sel2.reduce((s, c) => s + iconsOf(view, c).reduce((a, g) => a + (view.banned.includes(g) ? 2 : 1), 0), 0);
-      const cost = sel.reduce((s, c) => s + 2 * iconsOf(view, c).length, 0);
+      const sellable = mine.filter((c) => iconsOf(view, c).length > 0 && !['evidence', 'loadEvidence', 'propaganda'].includes(view.cards[c].kind));
+      const price = (c: string) => (iconsOf(view, c).some((g) => view.banned.includes(g)) ? RULES.tolkuchkaSellBanned : RULES.tolkuchkaSellFree);
+      const gain = sel2.reduce((s, c) => s + price(c), 0);
+      const cost = sel.length * RULES.tolkuchkaBuy;
       const ops = [...sel2.map((card) => ({ op: 'sell' as const, card })), ...sel.map((card) => ({ op: 'buy' as const, card }))];
       body = (
         <>
-          <h4>Купить (−2т за значок)</h4>
-          {pickList(view.tolkuchka, sel, setSel, { note: (c) => `${2 * iconsOf(view, c).length}т` })}
-          <h4>Продать (+2т за значок опального жанра, +1т за прочие)</h4>
-          {pickList(sellable, sel2, setSel2, { note: (c) => `+${iconsOf(view, c).reduce((a, g) => a + (view.banned.includes(g) ? 2 : 1), 0)}т` })}
+          <h4>Купить (−{RULES.tolkuchkaBuy}т за книгу)</h4>
+          {pickList(view.tolkuchka, sel, setSel, { note: () => `${RULES.tolkuchkaBuy}т` })}
+          <h4>Продать (+{RULES.tolkuchkaSellBanned}т за книгу опального жанра, +{RULES.tolkuchkaSellFree}т за прочие)</h4>
+          {pickList(sellable, sel2, setSel2, { note: (c) => `+${price(c)}т` })}
           {confirmBtn('Совершить сделки', ops.length ? { address: 'tolkuchka', ops } : null, `Итого: ${gain - cost >= 0 ? '+' : ''}${gain - cost}т (у вас ${me.talons}т)`)}
         </>
       );
@@ -406,11 +407,10 @@ function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; v
   const [genre, setGenre] = useState<Genre | ''>('');
   let body;
   if (id === 'copyText') {
-    const singles = [...view.tolkuchka, ...view.knigoobmen, ...view.razval.filter((c): c is string => !!c)]
-      .filter((c) => view.cards[c].kind === 'genre' && iconsOf(view, c).length === 1);
+    const singles = [...view.tolkuchka, ...view.knigoobmen, ...view.raspredelitel, ...view.razval.filter((c): c is string => !!c)];
     body = (
       <>
-        <p>Возьмите открытую одиночную книгу с любого адреса или верхнюю книгу стопки Непечатных.</p>
+        <p>Возьмите любую открытую книгу с адреса или верхнюю книгу стопки Непечатных.</p>
         <div className="shelf wrap">
           <button className={`book back clickable ${sel === 'deck' ? 'selected' : ''}`} onClick={() => setSel('deck')}><span>Из стопки</span></button>
           {singles.map((c) => <Book key={c} v={view} id={c} selected={sel === c} onClick={() => setSel(c)} />)}

@@ -355,10 +355,11 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
     return;
   }
   if (action.type === 'pass') {
-    // Не предусмотрено правилами явно: Единомышленник «бездельничает», чтобы игра не застревала.
-    check(!mustVisitRedCorner(p), 'Последнего Единомышленника нужно отправить в Красный уголок');
-    p.available--;
-    log(state, `${p.name}: Единомышленник бездельничает.`);
+    // Добровольный пас — только после Красного уголка; до конца Пятилетки игрок больше не ходит.
+    check(p.visitedRedCorner, 'Спасовать можно только после того, как Единомышленник побывал в Красном уголке');
+    p.available = 0;
+    p.bonusGroupTurns = 0;
+    log(state, `${p.name} пасует до конца Пятилетки.`);
     return;
   }
   if (action.type === 'group') {
@@ -403,7 +404,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       for (const op of a.ops) {
         if (op.op === 'buy') {
           check(state.tolkuchka.includes(op.card), 'Этой книги нет на Толкучке');
-          const cost = RULES.tolkuchkaBuyPerIcon * iconsOf(state, op.card).length;
+          const cost = RULES.tolkuchkaBuy;
           pay(p, cost);
           state.tolkuchka = state.tolkuchka.filter((c) => c !== op.card);
           addBook(p, op.card);
@@ -411,9 +412,10 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         } else {
           check(hasBook(p, op.card), 'Продавать можно только книги со своего склада');
           check(!isEvidence(state, op.card), 'Улики нельзя продать — у них ноль подпольного спроса');
+          check(!isPropaganda(state, op.card), 'Пропаганду можно сбыть только в Красном уголке');
           const icons = iconsOf(state, op.card);
-          check(icons.length > 0, 'Книгу без значков не продать');
-          const gain = icons.reduce((s, g) => s + (state.banned.includes(g) ? RULES.tolkuchkaSellBanned : RULES.tolkuchkaSellFree), 0);
+          check(icons.length > 0, 'Книгу без жанра не продать');
+          const gain = icons.some((g) => state.banned.includes(g)) ? RULES.tolkuchkaSellBanned : RULES.tolkuchkaSellFree;
           removeBook(p, op.card);
           p.talons += gain;
           sold.push(op.card);
@@ -626,8 +628,8 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
         log(state, `Вы получили ${title(state, c)}.`, [p.id]);
       } else {
         const c = g.card;
-        check(isSingle(state, c), 'Тиражировать можно только одиночную книгу (1 значок)');
-        if (state.tolkuchka.includes(c)) state.tolkuchka = state.tolkuchka.filter((x) => x !== c);
+        if (state.raspredelitel.includes(c)) state.raspredelitel = state.raspredelitel.filter((x) => x !== c);
+        else if (state.tolkuchka.includes(c)) state.tolkuchka = state.tolkuchka.filter((x) => x !== c);
         else if (state.knigoobmen.includes(c)) state.knigoobmen = state.knigoobmen.filter((x) => x !== c);
         else if (state.razval.includes(c)) state.razval = state.razval.map((x) => (x === c ? null : x));
         else fail('Эта книга не лежит открыто по адресу');

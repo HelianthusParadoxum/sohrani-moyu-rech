@@ -31,9 +31,9 @@ export const RULES = {
   raspredelitelSize: 2,
   hireCost: 6,
   restoreCost: 0, // в таблице действий Группы — «бесплатно» (см. docs/questions.md)
-  tolkuchkaBuyPerIcon: 2,
-  tolkuchkaSellBanned: 2,
-  tolkuchkaSellFree: 1,
+  tolkuchkaBuy: 2, // за книгу
+  tolkuchkaSellBanned: 2, // книга с опальным жанром
+  tolkuchkaSellFree: 1, // книга без опального жанра
   razvalPrices: [2, 2, 1, 1],
   zavozIncome: 2,
   baraholkaPrice: 1,
@@ -59,7 +59,7 @@ export interface AddressInfo {
 
 export const ADDRESSES: Record<AddressId, AddressInfo> = {
   gostorg: { id: 'gostorg', name: 'Госкниготорг', limits: [INF, INF, INF], hint: '−1т за пару: Нагрузка + Непечатное, любое число пар' },
-  tolkuchka: { id: 'tolkuchka', name: 'Толкучка', limits: [2, 3, 4], hint: 'Купить: −2т/значок. Продать: +2т/значок опального жанра, +1т/значок прочих' },
+  tolkuchka: { id: 'tolkuchka', name: 'Толкучка', limits: [2, 3, 4], hint: 'Купить: −2т за книгу. Продать: +2т за книгу опального жанра, +1т за прочие' },
   redCorner: { id: 'redCorner', name: 'Красный уголок', limits: [INF, INF, INF], hint: 'Очередь хода на следующую Пятилетку; сдать до 1 Непечатной и до 1 Нагрузки, +1т за книгу' },
   razval: { id: 'razval', name: 'Развал', limits: [2, 3, 4], hint: 'Купить 1 книгу: −2/−2/−1/−1т по свежести' },
   zavoz: { id: 'zavoz', name: 'Завоз', limits: [1, 1, 2], hint: '+2т, Развал полностью обновляется' },
@@ -91,7 +91,7 @@ export function limitFor(address: AddressId, playerCount: number): number {
 export const GROUP_ACTIONS: Record<GroupActionId, { name: string; hint: string; fullOnly?: boolean }> = {
   expandWarehouse: { name: 'Увеличение склада', hint: '+1 место на складе (до 10)' },
   expandCache: { name: 'Закладка Тайника', hint: '1 место склада становится потайным (до 5)' },
-  copyText: { name: 'Тиражирование текста', hint: 'Взять открытую одиночную книгу с адреса или верхнюю из стопки Непечатных' },
+  copyText: { name: 'Тиражирование текста', hint: 'Взять любую открытую книгу с адреса или верхнюю из стопки Непечатных' },
   rescue: { name: 'Вызволение из бед', hint: 'Вернуть Единомышленников из Конторы', fullOnly: true },
   restore: { name: 'Возвращение смыслов', hint: '+1 значок жанровой книге или 3 значка возвращаемой Нагрузке' },
   hire: { name: 'Расширение сети', hint: '6т: +1 Единомышленник, сразу доступен (до 7)' },
