@@ -6,7 +6,7 @@ import {
 } from './content';
 import { finalScoring } from './scoring';
 import {
-  afterRaid, doKontora, gaveAway, giveToPatron, holdWorker, isFull, kontoraLost, partorgFill, payPrice, price, proseBonus,
+  afterRaid, doKontora, gaveAway, giveToPatron, holdWorker, isFull, kontoraLost, partorgFill, payPrice, price, proseBonus, purchases,
   rescue, setupClub, startKontora, takeFromSpetskhran,
 } from './full';
 import type {
@@ -556,7 +556,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         check(mix.length === a.pairs * 2, 'Укажите состав всех книг');
       }
       // Завмаг ещё и не платит.
-      const cost = hasPatron(state, p.id, 'zavmag') ? 0 : payPrice(state, p, a.pairs);
+      const cost = hasPatron(state, p.id, 'zavmag') ? 0 : purchases(state, p)(a.pairs);
       const got: string[] = [];
       const kinds = mix.length ? mix : Array.from({ length: a.pairs }, () => ['load', 'unprinted'] as const).flat();
       for (const k of kinds) {
@@ -572,12 +572,11 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       const sold: string[] = [];
       const parts: string[] = [];
       let income = 0;
+      const buy = purchases(state, p);
       for (const op of a.ops) {
         if (op.op === 'buy') {
           check(state.tolkuchka.includes(op.card), 'Этой книги нет на Толкучке');
-          // Скупщик удешевляет действие один раз: скидка — на первую покупку.
-          const cost = parts.some((x) => x.startsWith('купил')) ? RULES.tolkuchkaBuy : price(state, p, RULES.tolkuchkaBuy);
-          pay(p, cost);
+          const cost = buy(RULES.tolkuchkaBuy);
           state.tolkuchka = state.tolkuchka.filter((c) => c !== op.card);
           addOpenBook(state, p, op.card);
           parts.push(`купил(а) ${title(state, op.card)} за ${talonsText(cost)}`);
@@ -634,12 +633,17 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       return;
     }
     case 'razval': {
-      const c = state.razval[a.slot];
-      check(c, 'Эта ячейка Развала пуста');
-      const cost = payPrice(state, p, RULES.razvalPrices[a.slot]);
-      addOpenBook(state, p, c);
-      state.razval[a.slot] = null;
-      log(state, `${p.name} покупает на Развале ${title(state, c)} за ${talonsText(cost)}.`);
+      const slots = [...new Set(a.slots?.length ? a.slots : [a.slot])];
+      check(slots.length === 1 || hasPatron(state, p.id, 'veteran'), 'Несколько книг за одно действие — только со связью с Ветераном');
+      const buy = purchases(state, p);
+      for (const slot of slots) {
+        const c = state.razval[slot];
+        check(c, 'Эта ячейка Развала пуста');
+        const cost = buy(RULES.razvalPrices[slot]);
+        addOpenBook(state, p, c);
+        state.razval[slot] = null;
+        log(state, `${p.name} покупает на Развале ${title(state, c)} за ${talonsText(cost)}.`);
+      }
       return;
     }
     case 'zavoz': {
@@ -726,7 +730,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       p.published.push(a.card);
       const genres = iconsOf(state, a.card);
       const perIcon = a.address === 'samizdat' ? RULES.samizdatTalons : RULES.tamizdatTalons;
-      const talons = icons * perIcon + (hasPatron(state, p.id, 'correspondent') ? icons : 0);
+      const talons = icons * perIcon + (hasPatron(state, p.id, 'correspondent') ? RULES.correspondentTalons : 0);
       let pts = 0;
       const add = (n: number, src: Parameters<typeof gain>[2]) => { gain(p, n, src); pts += n; };
       if (a.address === 'tamizdat') {
@@ -742,23 +746,31 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       return;
     }
     case 'glavlit': {
-      check(hasBook(p, a.card), 'Отдать можно только книгу со своего склада');
-      const icons = iconsOf(state, a.card);
-      check(icons.length > 0, 'В Главлит можно отдать только книгу с жанровым значком');
-      check(!icons.some((g) => state.banned.includes(g)), 'В Главлит нельзя отдать книгу, жанр которой под цензурой');
-      removeBook(p, a.card);
-      // Главред: отданная в Главлит книга считается изданной и приносит очки.
+      // Сдать любое число подцензурных книг (жанр под цензурой) и взять столько же из стопок Непечатных и Нагрузки.
+      const cards = [...new Set(a.cards)];
+      check(cards.length > 0 && cards.length === a.cards.length, 'Выберите книги для Главлита');
+      check(a.draws.length === cards.length, 'Для каждой отданной книги выберите стопку, из которой взять замену');
       const editor = hasPatron(state, p.id, 'editor');
-      if (editor) {
-        p.published.push(a.card);
-        gain(p, icons.length, 'editor');
-      } else {
-        discard(state, a.card);
+      let pts = 0;
+      for (const c of cards) {
+        check(hasBook(p, c), 'Отдать можно только книги со своего склада');
+        check(isGenreBook(state, c) && iconsOf(state, c).some((g) => state.banned.includes(g)), `${title(state, c)} — не подцензурная книга`);
+        if (editor) pts += iconsOf(state, c).length;
+        removeBook(p, c);
+        discard(state, c);
+        gaveAway(state, p, c);
       }
-      gaveAway(state, p, a.card);
-      const talons = icons.length * RULES.glavlitTalons;
-      log(state, `${p.name} сдаёт в Главлит ${title(state, a.card)}: +${talonsText(talons)}${editor ? `; Главред — книга издана, +${pointsText(icons.length)}` : ''}.`);
-      earn(state, p, talons);
+      log(state, `${p.name} сдаёт в Главлит книг: ${cards.length} (${cards.map((c) => title(state, c)).join(', ')}).`);
+      for (const k of a.draws) {
+        const c = k === 'load' ? drawLoad(state) : draw(state);
+        if (c) addSecretBook(state, p, c);
+      }
+      log(state, `${p.name} берёт взамен: ${a.draws.filter((k) => k === 'unprinted').length} Непечатных, ${a.draws.filter((k) => k === 'load').length} Нагрузки.`);
+      if (pts) {
+        gain(p, pts, 'editor');
+        log(state, `${p.name}: Главред — +${pointsText(pts)}.`);
+      }
+      earn(state, p, cards.length * RULES.glavlitTalons);
       return;
     }
     case 'knigoobmen': {
@@ -784,11 +796,16 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       return;
     }
     case 'raspredelitel': {
-      check(state.raspredelitel.includes(a.card), 'Этой книги нет в Распределителе');
-      payPrice(state, p, RULES.raspredelitelPrice);
-      addOpenBook(state, p, a.card);
-      state.raspredelitel = state.raspredelitel.filter((c) => c !== a.card);
-      log(state, `${p.name} получает из Распределителя ${title(state, a.card)}.`);
+      const cards = [...new Set(a.cards?.length ? a.cards : [a.card])];
+      check(cards.length === 1 || hasPatron(state, p.id, 'veteran'), 'Несколько книг за одно действие — только со связью с Ветераном');
+      const buy = purchases(state, p);
+      for (const card of cards) {
+        check(state.raspredelitel.includes(card), 'Этой книги нет в Распределителе');
+        buy(RULES.raspredelitelPrice);
+        addOpenBook(state, p, card);
+        state.raspredelitel = state.raspredelitel.filter((c) => c !== card);
+        log(state, `${p.name} получает из Распределителя ${title(state, card)}.`);
+      }
       return;
     }
     case 'nasledniki': {
@@ -849,7 +866,8 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       break;
     case 'expandCache':
       check(p.cache < RULES.maxCache, 'Тайник уже максимального размера');
-      p.cache++;
+      // Столяр: Тайник растёт сразу на несколько мест.
+      p.cache = Math.min(RULES.maxCache, p.cache + (hasPatron(state, p.id, 'carpenter') ? RULES.carpenterCache : 1));
       log(state, `${p.name}: Тайник увеличен до ${p.cache}.`);
       break;
     case 'copyText': {
@@ -928,9 +946,12 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       p.available++;
       log(state, `${p.name} расширяет сеть: +1 Единомышленник.`);
       break;
-    case 'rescue':
-      rescue(state, p, g.returns);
+    case 'rescue': {
+      const n = rescue(state, p, g.returns);
+      gain(p, n * RULES.rescuePoints, 'rescue');
+      log(state, `${p.name}: за помощь товарищам +${pointsText(n * RULES.rescuePoints)}.`);
       break;
+    }
   }
   if (opts.limited) p.groupUsed.push(g.action);
 }
@@ -1134,7 +1155,9 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
     case 'extraGroup': {
       if (action.type === 'pass') break;
       check(action.type === 'group', 'Выберите действие Группы или откажитесь');
-      doGroup(state, p, action.group, { limited: true });
+      // Подмастерье повторяет одно из действий Группы, уже сделанных в эту Пятилетку.
+      check(p.groupUsed.includes(action.group.action), 'Подмастерье повторяет только действие Группы, уже сделанное в эту Пятилетку');
+      doGroup(state, p, action.group, { limited: false });
       log(state, `${p.name}: Подмастерье выполняет действие Группы.`);
       break;
     }

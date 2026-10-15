@@ -203,6 +203,7 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
   const info = ADDRESSES[id];
   const mine = me.warehouse.map((s) => s.card!).filter(Boolean);
   const free = me.capacity - me.warehouse.filter((s) => !s.memorized).length;
+  const veteran = hasPatron(view, me.id, 'veteran');
   const [sel, setSel] = useState<string[]>([]);
   const [sel2, setSel2] = useState<string[]>([]);
   const [num, setNum] = useState(1);
@@ -284,13 +285,15 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
     case 'razval':
       body = (
         <>
-          <p>Купите 1 книгу. Цена зависит от свежести.</p>
+          <p>{veteran ? 'Ветеран: купите сколько угодно книг, в сумме на 1 Талон дешевле (минимум 1).' : 'Купите 1 книгу.'} Цена зависит от свежести.</p>
           <div className="shelf wrap">
             {view.razval.map((c, i) => c && (
-              <Book key={i} v={view} id={c} note={`${RULES.razvalPrices[i]}т`} selected={sel[0] === String(i)} onClick={() => setSel([String(i)])} />
+              <Book key={i} v={view} id={c} note={`${RULES.razvalPrices[i]}т`} selected={sel.includes(String(i))}
+                onClick={() => setSel(veteran ? toggle(sel, String(i)) : [String(i)])} />
             ))}
           </div>
-          {confirmBtn('Купить', sel.length && free > 0 ? { address: 'razval', slot: Number(sel[0]) } : null, free > 0 ? undefined : 'Нет места на складе')}
+          {confirmBtn('Купить', sel.length && free >= sel.length ? { address: 'razval', slot: Number(sel[0]), ...(sel.length > 1 ? { slots: sel.map(Number) } : {}) } : null,
+            free >= Math.max(1, sel.length) ? undefined : 'Нет места на складе')}
         </>
       );
       break;
@@ -343,17 +346,25 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
       break;
     }
     case 'glavlit': {
-      // Книга с жанровым значком, ни один жанр которой не под цензурой.
-      const ok = (c: string) => iconsOf(view, c).length > 0 && !iconsOf(view, c).some((g) => view.banned.includes(g));
-      const n = sel[0] ? iconsOf(view, sel[0]).length : 0;
+      // Подцензурные книги: жанровые, хотя бы один жанр которых сейчас под цензурой.
+      const ok = (c: string) => view.cards[c].kind === 'genre' && iconsOf(view, c).some((g) => view.banned.includes(g));
       const editor = hasPatron(view, me.id, 'editor');
+      const pts = sel.reduce((s, c) => s + iconsOf(view, c).length, 0);
+      const loads = Math.min(loadN, sel.length);
+      const draws = sel.map((_, i) => (i < loads ? 'load' as const : 'unprinted' as const));
       body = (
         <>
-          <p>Отдайте книгу с жанровым значком, ни один жанр которой не под цензурой: +{RULES.glavlitTalons}т за значок.
-            {editor ? ' Главред: книга будет считаться изданной вами и принесёт ещё +1 очко за значок.' : ' Книга уйдёт в сброс.'}</p>
-          {mine.filter(ok).length === 0 && <p className="warn-text">Подходящих книг нет: нужна книга с жанром, который сейчас не под цензурой.</p>}
-          {pickList(mine.filter(ok), sel, setSel, { max: 1 })}
-          {confirmBtn('Отдать в Главлит', sel.length ? { address: 'glavlit', card: sel[0] } : null, sel.length ? `+${n * RULES.glavlitTalons}т${editor ? `, +${n} оч.` : ''}` : undefined)}
+          <p>Сдайте любое число подцензурных книг (+{RULES.glavlitTalons}т за каждую) и возьмите столько же книг вслепую — из Непечатных или Нагрузки, как решите.
+            {editor ? ' Главред: +1 очко Гласности за каждый значок сданных книг.' : ''}</p>
+          {mine.filter(ok).length === 0 && <p className="warn-text">Подцензурных книг у вас нет: нужна жанровая книга, жанр которой сейчас под цензурой.</p>}
+          {pickList(mine.filter(ok), sel, setSel)}
+          {sel.length > 0 && (
+            <div className="row">Взамен взять — Нагрузки:
+              <input type="number" style={{ width: 64 }} min={0} max={sel.length} value={loads} onChange={(e) => setLoadN(Number(e.target.value))} />
+              Непечатных: <b>{sel.length - loads}</b></div>
+          )}
+          {confirmBtn('Сдать в Главлит', sel.length ? { address: 'glavlit', cards: sel, draws } : null,
+            sel.length ? `+${sel.length * RULES.glavlitTalons}т${editor && pts ? `, +${pts} оч.` : ''}` : undefined)}
         </>
       );
       break;
@@ -389,8 +400,10 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
     case 'raspredelitel':
       body = (
         <>
-          {pickList(view.raspredelitel, sel, setSel, { max: 1 })}
-          {confirmBtn(`Купить за ${RULES.raspredelitelPrice}т`, sel.length && free > 0 ? { address: 'raspredelitel', card: sel[0] } : null)}
+          {veteran && <p className="muted small">Ветеран: купите сколько угодно книг, в сумме на 1 Талон дешевле (минимум 1).</p>}
+          {pickList(view.raspredelitel, sel, setSel, veteran ? {} : { max: 1 })}
+          {confirmBtn(veteran && sel.length > 1 ? 'Купить' : `Купить за ${RULES.raspredelitelPrice}т`, sel.length && free >= sel.length
+            ? { address: 'raspredelitel', card: sel[0], ...(sel.length > 1 ? { cards: sel } : {}) } : null)}
         </>
       );
       break;
@@ -759,14 +772,15 @@ function PendingPrompt({ view, me, act, nameOf }: { view: PlayerView; me: VPlaye
         ? p.options
         : (Object.keys(GROUP_ACTIONS) as GroupActionId[])
           .filter((g) => !GROUP_ACTIONS[g].fullOnly || view.mode === 'full')
-          .filter((g) => p.kind !== 'extraGroup' || !me.groupUsed.includes(g));
+          .filter((g) => p.kind !== 'extraGroup' || me.groupUsed.includes(g)); // Подмастерье повторяет уже сделанное
       const sendGroup = (g: GroupAction) => act(p.kind === 'sproutBonus' ? { type: 'sproutBonus', bonus: g.action, group: g } : { type: 'group', group: g });
       if (groupFor && groupFor !== 'posred' && groupFor in GROUP_ACTIONS) {
         return <GroupPanel id={groupFor as GroupActionId} view={view} me={me} close={() => setGroupFor(null)} done={sendGroup} />;
       }
       return (
         <Modal title={p.kind === 'sproutBonus' ? `Бонус Ростка «${SPROUTS.find((s) => s.id === p.sprout)!.name}»` : p.kind === 'extraGroup' ? 'Подмастерье: действие Группы' : 'Действие Инициативной группы'}>
-          <p>{p.kind === 'sproutBonus' ? 'Выберите одно действие. Оно не требует Единомышленника; собственную цену действия платите как обычно.' : 'Выполните одно действие Группы.'}</p>
+          <p>{p.kind === 'sproutBonus' ? 'Выберите одно действие. Оно не требует Единомышленника; собственную цену действия платите как обычно.'
+            : p.kind === 'extraGroup' ? 'Повторите одно из действий Группы, уже сделанных в эту Пятилетку.' : 'Выполните одно действие Группы.'}</p>
           <div className="genres">
             {options.map((o) => (
               <button key={o} onClick={() => {

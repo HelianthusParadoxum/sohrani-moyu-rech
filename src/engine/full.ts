@@ -100,12 +100,6 @@ export function onConnect(state: GameState, p: PlayerState, id: PatronId) {
       p.patronBonus.capacity += add;
       break;
     }
-    case 'carpenter': {
-      const add = Math.min(2, RULES.maxCache - p.cache);
-      p.cache += add;
-      p.patronBonus.cache += add;
-      break;
-    }
   }
 }
 
@@ -204,6 +198,7 @@ export function rescue(state: GameState, p: PlayerState, returns: Record<string,
   }
   check(total > 0, 'Выберите, кого вызволить');
   log(state, `${p.name} вызволяет из Конторы Единомышленников: ${total}.`);
+  return total;
 }
 
 export function kontoraLost(state: GameState): boolean {
@@ -243,6 +238,22 @@ export function partorgFill(state: GameState, p: PlayerState) {
     n++;
   }
   if (n) log(state, `${p.name}: Парторг заполняет склад Нагрузкой (${n}).`);
+}
+
+// Покупки за одно действие. Скупщик: первая — на 1 дешевле (минимум 1). Ветеран: в сумме на 1 Талон дешевле (минимум 1) —
+// скидка достаётся первой покупке, после которой сумма всё ещё не меньше 1 Талона.
+export function purchases(state: GameState, p: PlayerState) {
+  let spent = 0;
+  let count = 0;
+  let veteran = hasPatron(state, p.id, 'veteran');
+  return (cost: number): number => {
+    let c = count === 0 ? price(state, p, cost) : cost;
+    if (veteran && c > 0 && spent + c - 1 >= 1) { c--; veteran = false; }
+    pay(p, c);
+    spent += c;
+    count++;
+    return c;
+  };
 }
 
 export function payPrice(state: GameState, p: PlayerState, cost: number) {

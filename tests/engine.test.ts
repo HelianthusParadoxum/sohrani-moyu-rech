@@ -449,29 +449,83 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     return card;
   }
 
-  it('Главлит: только книга без цензурированных жанров, +2т за значок, книга — в сброс', () => {
+  it('Главлит: сдать подцензурные книги (+1т за каждую) и взять столько же вслепую из выбранных стопок', () => {
     let s = started('beginner');
     const me = s.order[s.turn];
-    const banned = give(s, me, (icons) => icons.some((g) => s.banned.includes(g as never)));
-    const free = give(s, me, (icons) => icons.length === 2 && !icons.some((g) => s.banned.includes(g as never)));
-    expect(() => applyAction(s, me, { type: 'place', place: { address: 'glavlit', card: banned } })).toThrow(RuleError);
-    const talons = s.players.find((x) => x.id === me)!.talons;
-    s = applyAction(s, me, { type: 'place', place: { address: 'glavlit', card: free } });
+    const free = give(s, me, (icons) => !icons.some((g) => s.banned.includes(g as never)));
+    const b1 = give(s, me, (icons) => icons.some((g) => s.banned.includes(g as never)) && !icons.includes('irony'));
+    const b2 = give(s, me, (icons) => icons.some((g) => s.banned.includes(g as never)) && !icons.includes('irony'));
+    expect(() => applyAction(s, me, { type: 'place', place: { address: 'glavlit', cards: [free], draws: ['load'] } })).toThrow(RuleError);
+    const p0 = s.players.find((x) => x.id === me)!;
+    const [talons, size, loads] = [p0.talons, p0.warehouse.length, s.loadDeck.length];
+    s = applyAction(s, me, { type: 'place', place: { address: 'glavlit', cards: [b1, b2], draws: ['load', 'unprinted'] } });
     const p = s.players.find((x) => x.id === me)!;
     expect(p.talons).toBe(talons + 2 * RULES.glavlitTalons);
-    expect(p.published).not.toContain(free);
-    expect(s.discard).toContain(free);
+    expect(p.warehouse.length).toBe(size);
+    expect(s.loadDeck.length).toBe(loads - 1);
+    expect(s.discard).toEqual(expect.arrayContaining([b1, b2]));
   });
 
-  it('Главред: отданная в Главлит книга считается изданной и даёт +1 очко за значок', () => {
+  it('Главред: за каждую сданную в Главлит книгу — очко за значок', () => {
     let s = started();
     const me = s.order[s.turn];
     connect(s, 'editor', [me]);
-    const card = give(s, me, (icons) => icons.length === 1 && !icons.some((g) => s.banned.includes(g as never)) && icons[0] !== 'irony' && icons[0] !== 'prose');
-    s = applyAction(s, me, { type: 'place', place: { address: 'glavlit', card } });
+    const card = give(s, me, (icons) => icons.length === 2 && icons.some((g) => s.banned.includes(g as never)) && !icons.includes('irony') && !icons.includes('prose'));
+    s = applyAction(s, me, { type: 'place', place: { address: 'glavlit', cards: [card], draws: ['unprinted'] } });
+    expect(s.players.find((x) => x.id === me)!.pointsBy.editor).toBe(2);
+  });
+
+  it('Ветеран: на Развале несколько книг за одно действие, в сумме на 1 Талон дешевле', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    connect(s, 'veteran', [me]);
+    const p0 = s.players.find((x) => x.id === me)!;
+    p0.capacity = 10;
+    p0.talons = 10;
+    const slots = [0, 1].filter((i) => s.razval[i]);
+    const cost = slots.reduce((a, i) => a + RULES.razvalPrices[i], 0);
+    s = applyAction(s, me, { type: 'place', place: { address: 'razval', slot: slots[0], slots } });
+    expect(s.players.find((x) => x.id === me)!.talons).toBe(10 - (cost - 1));
+    for (const i of slots) expect(s.razval[i]).toBeNull();
+  });
+
+  it('Корреспондент: +3 Талона за издание; Столяр: Закладка Тайника — +2 места', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    connect(s, 'correspondent', [me]);
+    const card = give(s, me, (icons) => icons.length === 1 && !icons.includes('irony'));
+    const t = s.players.find((x) => x.id === me)!.talons;
+    s = applyAction(s, me, { type: 'place', place: { address: 'samizdat', card } });
+    expect(s.players.find((x) => x.id === me)!.talons).toBe(t + RULES.samizdatTalons + RULES.correspondentTalons);
+
+    let s2 = started();
+    const me2 = s2.order[s2.turn];
+    connect(s2, 'carpenter', [me2]);
+    const cache = s2.players.find((x) => x.id === me2)!.cache;
+    s2 = applyAction(s2, me2, { type: 'group', group: { action: 'expandCache' } });
+    expect(s2.players.find((x) => x.id === me2)!.cache).toBe(cache + RULES.carpenterCache);
+  });
+
+  it('Подмастерье повторяет только уже сделанное действие Группы', () => {
+    const s = started();
+    const me = s.order[s.turn];
+    connect(s, 'apprentice', [me]);
     const p = s.players.find((x) => x.id === me)!;
-    expect(p.published).toContain(card);
-    expect(p.pointsBy.editor).toBe(1);
+    p.groupUsed = ['expandWarehouse'];
+    s.pending = [{ kind: 'extraGroup', player: me }];
+    expect(() => applyAction(s, me, { type: 'group', group: { action: 'expandCache' } })).toThrow(RuleError);
+    const next = applyAction(s, me, { type: 'group', group: { action: 'expandWarehouse' } });
+    expect(next.players.find((x) => x.id === me)!.capacity).toBe(p.capacity + 1);
+  });
+
+  it('Вызволение из бед: +2 очка за каждого вызволенного', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    const other = s.players.find((x) => x.id !== me)!;
+    other.held = 2;
+    other.available = Math.max(0, other.available - 2);
+    s = applyAction(s, me, { type: 'group', group: { action: 'rescue', returns: { [other.id]: 2 } } });
+    expect(s.players.find((x) => x.id === me)!.pointsBy.rescue).toBe(2 * RULES.rescuePoints);
   });
 
   it('Завмаг: Госкниготорг бесплатно, состав свободный', () => {

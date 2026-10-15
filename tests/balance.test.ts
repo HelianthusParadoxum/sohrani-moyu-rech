@@ -127,6 +127,7 @@ describe('Тиражирование текста', () => {
     const p = me(s);
     p.talons = 10;
     s.pending = [{ kind: 'extraGroup', player: p.id }];
+    p.groupUsed = ['copyText']; // Подмастерье повторяет уже сделанное
     const avail = p.available;
     const after = applyAction(s, p.id, copy('razval', { address: 'razval', slot: 1 }, s.razval[0]!));
     expect(byId(after, p.id).available).toBe(avail - 1);
@@ -135,6 +136,7 @@ describe('Тиражирование текста', () => {
     const q = me(none);
     q.available = 0;
     none.pending = [{ kind: 'extraGroup', player: q.id }];
+    q.groupUsed = ['copyText'];
     q.talons = 10;
     expect(() => applyAction(none, q.id, copy('razval', { address: 'razval', slot: 1 }, none.razval[0]!))).toThrow(/доступного Единомышленника/);
   });

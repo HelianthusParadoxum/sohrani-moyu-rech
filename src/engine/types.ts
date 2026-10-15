@@ -70,7 +70,7 @@ export interface PatronState {
 }
 
 export type PointSource =
-  | 'gathering' | 'drama' | 'sprouts' | 'firstFeed' | 'tamizdat' | 'testimony' | 'foreign' | 'editor' | 'postgrad' | 'prose' | 'komsorg';
+  | 'gathering' | 'drama' | 'sprouts' | 'firstFeed' | 'tamizdat' | 'testimony' | 'foreign' | 'editor' | 'postgrad' | 'prose' | 'komsorg' | 'rescue';
 
 export type SproutBonusId = GroupActionId | 'sideJob' | 'underCounter';
 
@@ -213,17 +213,17 @@ export type PlaceAction =
   | { address: 'gostorg'; pairs: number; mix?: ('load' | 'unprinted')[] } // mix — Завмаг
   | { address: 'tolkuchka'; ops: TolkuchkaOp[] }
   | { address: 'redCorner'; recycle: string[] }
-  | { address: 'razval'; slot: number }
+  | { address: 'razval'; slot: number; slots?: number[] } // slots — Ветеран покупает несколько
   | { address: 'zavoz' }
   | { address: 'baraholka'; slots: number[] } // какие закрытые книги посмотреть
   | { address: 'podpiska'; genre: Genre; talons: number }
   | { address: 'sprouts'; feeds: { sprout: string; books: string[] }[] }
   | { address: 'samizdat'; card: string }
   | { address: 'tamizdat'; card: string }
-  | { address: 'glavlit'; card: string }
+  | { address: 'glavlit'; cards: string[]; draws: ('unprinted' | 'load')[] } // draws — из какой стопки брать взамен каждой
   | { address: 'knigoobmen'; give: string; take: string }
   | { address: 'kvartirnik'; to: string; give: string; want: string }
-  | { address: 'raspredelitel'; card: string }
+  | { address: 'raspredelitel'; card: string; cards?: string[] } // cards — Ветеран покупает несколько
   | { address: 'nasledniki' }
   | { address: 'posrednichestvo' }
   | { address: 'spisanie' }

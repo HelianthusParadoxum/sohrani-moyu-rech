@@ -683,7 +683,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       }
       case 'posrednichestvoGroup':
       case 'extraGroup':
-        return [...groupCandidates(state, me, ctx).map((group) => ({ type: 'group' as const, group })), { type: 'pass' }];
+        return [...groupCandidates(state, me, ctx).filter((g) => p.groupUsed.includes(g.action)).map((group) => ({ type: 'group' as const, group })), { type: 'pass' }];
       case 'sproutBonus': {
         const out: Action[] = [];
         for (const b of pend.options) {
@@ -779,8 +779,16 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
             for (const b of books) if (isGenreBook(state, b) || isEvidence(state, b)) out.push({ type: 'place', place: { address: a, card: b } });
             break;
           case 'glavlit':
-            for (const b of genreBooks) if (!iconsOf(state, b).some((g) => state.banned.includes(g))) out.push({ type: 'place', place: { address: 'glavlit', card: b } });
+          {
+            // Сдать самые ненужные подцензурные книги (1, 2, все) и взять взамен Непечатные — или Нагрузку (прикрывает Тайник).
+            const banned = byValue(keepMap(), genreBooks.filter((b) => iconsOf(state, b).some((g) => state.banned.includes(g))));
+            for (const n of new Set([1, 2, banned.length])) {
+              if (n < 1 || n > banned.length) continue;
+              const cards = banned.slice(0, n);
+              for (const k of ['unprinted', 'load'] as const) out.push({ type: 'place', place: { address: 'glavlit', cards, draws: cards.map(() => k) } });
+            }
             break;
+          }
           case 'knigoobmen': {
             const give = byValue(keepMap(), genreBooks).slice(0, 2);
             for (const g of give) for (const take of state.knigoobmen) out.push({ type: 'place', place: { address: 'knigoobmen', give: g, take } });

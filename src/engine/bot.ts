@@ -46,7 +46,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
       case 'lieutenantPick': return [{ type: 'lieutenantPick', card: pend.cards[0] }, { type: 'lieutenantPick', card: null }];
       case 'discardExcess': return [{ type: 'discardExcess', cards: books.slice(-pend.count) }];
       case 'kontoraHandout': return [{ type: 'kontoraHandout', card: pend.cards[0] }];
-      case 'extraGroup': return [...groupCandidates(state, me, rand), { type: 'pass' }];
+      case 'extraGroup': return [...groupCandidates(state, me, rand).filter((g) => g.type === 'group' && p.groupUsed.includes(g.group.action)), { type: 'pass' }];
       case 'freeConnection': return [...clubGifts(state, me).map((gift) => ({ type: 'clubGift' as const, gift })), { type: 'pass' }];
       case 'sproutBonus': {
         const out: Action[] = [];
@@ -102,7 +102,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
             for (const b of books) if (iconsOf(state, b).length > 0) out.push({ type: 'place', place: { address: a, card: b } });
             break;
           case 'glavlit':
-            for (const b of books) if (iconsOf(state, b).length > 0 && !iconsOf(state, b).some((g) => state.banned.includes(g))) out.push({ type: 'place', place: { address: 'glavlit', card: b } });
+            for (const b of books) if (state.cards[b].kind === 'genre' && iconsOf(state, b).some((g) => state.banned.includes(g))) out.push({ type: 'place', place: { address: 'glavlit', cards: [b], draws: ['unprinted'] } });
             break;
           case 'knigoobmen': {
             const give = pick(books.filter((b) => iconsOf(state, b).length > 0), rand);
