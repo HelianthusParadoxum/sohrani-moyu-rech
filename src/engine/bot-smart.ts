@@ -26,6 +26,8 @@ interface Ctx {
   full: boolean; // полный режим
   curator: boolean; // бот — Куратор: побеждает, если Гласность не наступит
   aggression: number; // готовность вредить соперникам (полный режим)
+  suspect: Record<string, number>; // насколько каждый соперник похож на Куратора, 0..1 (только по открытой информации)
+  coop: number; // 0..1: насколько партия стала «все против Куратора» — тогда бот не вредит остальным и тянет Гласность
 }
 
 const SAMPLES = 2; // сколько раз перемешивать закрытые карты при примерке
@@ -41,10 +43,34 @@ function makeCtx(state: GameState, me: string, preset: BotPreset): Ctx {
   // В полном режиме на 3+ игроков среди соперников, возможно, Куратор: кормит Ростки на одного меньше.
   const feeders = state.players.length - (state.mode === 'full' && state.players.length >= 3 ? 1 : 0);
   const urgency = Math.min(2.5, Math.max(0.6, need / Math.max(1, roundsLeft * feeders * 0.5)));
+  const curator = player(state, me).passion === 'curator';
+  const suspect = curator ? {} : curatorSuspicion(state, me);
+  const coop = Math.max(0, ...Object.values(suspect));
   return {
-    me, preset, round: r, w, talon: BOT_BASE.talon[r - 1] ?? 0.5, glasnost: BOT_BASE.glasnostStep * urgency,
-    full: state.mode === 'full', curator: player(state, me).passion === 'curator', aggression: preset.character.aggression ?? 0,
+    me, preset, round: r, w, talon: BOT_BASE.talon[r - 1] ?? 0.5,
+    // Против общего врага Гласность важнее: без неё проигрывают все Единомышленники.
+    glasnost: BOT_BASE.glasnostStep * urgency * (1 + BOT_BASE.coopGlasnost * coop),
+    full: state.mode === 'full', curator, aggression: (preset.character.aggression ?? 0) * (1 - coop),
+    suspect, coop,
   };
+}
+
+// Подозрение, что соперник — Куратор. Только то, что видели все: Пропаганда, открыто взятая со стола или лежащая
+// у него на виду (обычному игроку она стоит −5 очков), сданная в Красный уголок Пропаганда (Куратор её бережёт),
+// и Ростки, которые он так и не кормит.
+export function curatorSuspicion(state: GameState, me: string): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (state.mode !== 'full' || !state.curatorPossible) return out;
+  for (const o of state.players) {
+    if (o.id === me) continue;
+    const open = o.warehouse.filter((s) => !s.hidden && isPropaganda(state, s.card)).length;
+    let v = BOT_BASE.suspectTaken * (o.propagandaTaken ?? 0) + BOT_BASE.suspectHolds * open
+      - BOT_BASE.suspectDumped * (o.propagandaDumped ?? 0);
+    if (!o.sproutsFed.length) v += BOT_BASE.suspectNoFeed * Math.max(0, state.round - 2);
+    else v -= BOT_BASE.suspectFeeds * o.sproutsFed.length;
+    out[o.id] = Math.min(1, Math.max(0, v));
+  }
+  return out;
 }
 
 // ---------- Оценка положения ----------
@@ -199,10 +225,11 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
     // Общая угроза: при 7 удержанных проигрывают все.
     const held = heldTotal(state);
     v -= BOT_BASE.heldDoom * held * held * (held >= KONTORA_LOSS - 1 ? 3 : 1);
-    // Агрессивному боту на руку слабость соперников.
-    if (ctx.aggression > 0) {
-      const others = state.players.filter((o) => o.id !== me);
-      v -= ctx.aggression * BOT_BASE.opponent * others.reduce((s, o) => s + strength(state, o, left), 0) / Math.max(1, others.length);
+    // Агрессивному боту на руку слабость соперников; против подозреваемого Куратора — всем на руку.
+    const others = state.players.filter((o) => o.id !== me);
+    const foe = (o: PlayerState) => ctx.aggression * (1 - (ctx.suspect[o.id] ?? 0)) + BOT_BASE.curatorFoe * (ctx.suspect[o.id] ?? 0);
+    if (others.some((o) => foe(o) > 0)) {
+      v -= BOT_BASE.opponent * others.reduce((s, o) => s + foe(o) * strength(state, o, left), 0) / Math.max(1, others.length);
     }
   }
   // Очередь хода в следующей Пятилетке.
@@ -525,11 +552,22 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
       : [...mine].sort((a, b) => iconsOf(state, b.card).length - iconsOf(state, a.card).length)[0];
     seizes.push(pick);
   }
+  // Против подозреваемого Куратора своих не сдают: платят его книгой или своей.
+  const enemy = Object.entries(ctx.suspect).sort((a, b) => b[1] - a[1])[0];
+  const united = !!enemy && enemy[1] >= BOT_BASE.suspectAct;
+  if (united) for (let i = seizes.length - 1; i >= 0; i--) if (seizes[i].player !== me && seizes[i].player !== enemy[0]) seizes.splice(i, 1);
   const items: KontoraChoice[] = [];
   const held = state.players.filter((o) => o.held > 0).sort((a, b) => (a.id === me ? -1 : b.id === me ? 1 : 0));
-  if (held.length) items.push({ petition: held.slice(0, 2).map((o) => o.id) });
+  const free = united ? held.filter((o) => o.id !== enemy[0]) : held; // Куратора из Конторы не вызволяют
+  if (free.length) items.push({ petition: free.slice(0, 2).map((o) => o.id) });
   if (state.spetskhran.length && freeSlots(p) > 0) items.push({ handout: true });
-  if (ctx.aggression > 0 || ctx.curator) {
+  // Подозреваемый Куратор: Сигнал — ему, Профилактика — только Завсегдатаю, с которым связан лишь он.
+  if (united) {
+    const o = player(state, enemy[0]);
+    if (o.held < o.workers) items.push({ signal: o.id });
+    const only = state.patrons.find((x) => !x.removed && x.connections.length > 0 && x.connections.every((id) => id === o.id));
+    if (only) items.push({ prophylaxis: only.id });
+  } else if (ctx.aggression > 0 || ctx.curator) {
     const rivals = state.players.filter((o) => o.id !== me && o.held < o.workers);
     const leader = rivals.sort((a, b) => strength(state, b, left) - strength(state, a, left))[0];
     if (leader) items.push({ signal: leader.id });

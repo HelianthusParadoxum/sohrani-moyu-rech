@@ -14,7 +14,7 @@ import type {
 } from './types';
 import { GENRES } from './types';
 import {
-  addBook, addSecretBook, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
+  addBook, addOpenBook, addSecretBook, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
   talonsText, title,
 } from './util';
@@ -56,6 +56,7 @@ export function createGame(opts: NewGameOptions): GameState {
     if (n === 3) keepers = keepers.slice(3);
     const curator = mode === 'full' && opts.curator !== false;
     passions = [...SPECIALS.filter((p) => curator || p !== 'curator'), ...keepers];
+    state.curatorPossible = SPECIALS.includes('curator') && curator;
   } else {
     passions = [...KEEPERS];
   }
@@ -578,7 +579,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
           const cost = parts.some((x) => x.startsWith('купил')) ? RULES.tolkuchkaBuy : price(state, p, RULES.tolkuchkaBuy);
           pay(p, cost);
           state.tolkuchka = state.tolkuchka.filter((c) => c !== op.card);
-          addBook(p, op.card);
+          addOpenBook(state, p, op.card);
           parts.push(`купил(а) ${title(state, op.card)} за ${talonsText(cost)}`);
         } else {
           check(hasBook(p, op.card), 'Продавать можно только книги со своего склада');
@@ -613,6 +614,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       );
       const extra = hasPatron(state, p.id, 'zavkhoz') ? 1 : 0;
       let income = 0;
+      p.propagandaDumped = (p.propagandaDumped ?? 0) + a.recycle.filter((c) => isPropaganda(state, c)).length;
       for (const c of a.recycle) {
         const perBook = (isFromLoadDeck(state, c) ? RULES.redCornerLoad : RULES.redCornerUnprinted) + extra;
         removeBook(p, c);
@@ -635,7 +637,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       const c = state.razval[a.slot];
       check(c, 'Эта ячейка Развала пуста');
       const cost = payPrice(state, p, RULES.razvalPrices[a.slot]);
-      addBook(p, c);
+      addOpenBook(state, p, c);
       state.razval[a.slot] = null;
       log(state, `${p.name} покупает на Развале ${title(state, c)} за ${talonsText(cost)}.`);
       return;
@@ -763,7 +765,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       check(hasBook(p, a.give) && isGenreBook(state, a.give), 'Отдать нужно жанровую книгу со своего склада');
       check(state.knigoobmen.includes(a.take), 'Этой книги нет на витрине Книгообмена');
       removeBook(p, a.give);
-      addBook(p, a.take);
+      addOpenBook(state, p, a.take);
       state.knigoobmen = state.knigoobmen.map((c) => (c === a.take ? a.give : c));
       gaveAway(state, p, a.give);
       p.bonusGroupTurns++;
@@ -784,7 +786,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     case 'raspredelitel': {
       check(state.raspredelitel.includes(a.card), 'Этой книги нет в Распределителе');
       payPrice(state, p, RULES.raspredelitelPrice);
-      addBook(p, a.card);
+      addOpenBook(state, p, a.card);
       state.raspredelitel = state.raspredelitel.filter((c) => c !== a.card);
       log(state, `${p.name} получает из Распределителя ${title(state, a.card)}.`);
       return;
@@ -885,7 +887,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
           check(state[key].includes(c), `Бесплатную книгу нужно взять там же: ${name}`);
           state[key] = state[key].filter((x) => x !== c);
         }
-        addBook(p, c);
+        addOpenBook(state, p, c);
         log(state, `${p.name} тиражирует ${title(state, c)} (${name}).`);
       } else {
         log(state, `${p.name} тиражирует: ${name}.`);

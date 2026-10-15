@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction, createGame } from '../src/engine/engine';
 import { botMove, playOut } from '../src/engine/bot';
-import { rankActions } from '../src/engine/bot-smart';
+import { curatorSuspicion, rankActions } from '../src/engine/bot-smart';
 import { BOT_GOALS, BOT_PRESETS, presetById } from '../src/engine/bot-presets';
 import { isBanned, isGenreBook } from '../src/engine/util';
 import type { GameState } from '../src/engine/types';
@@ -146,6 +146,24 @@ describe('думающий бот в полном режиме', () => {
     me.warehouse.push({ card: book, hidden: false });
     s = botMove(s, me.id, seeded(1));
     expect(s.players.find((p) => p.id === me.id)!.warehouse.find((w) => w.card === book)!.hidden).toBe(true);
+  });
+
+  it('подозревает в Кураторе того, кто открыто берёт Пропаганду, — и только по открытой информации', () => {
+    const s = createGame({ players: players(3), seed: 5, mode: 'full' });
+    const [me, x, y] = s.players;
+    x.propagandaTaken = 1;
+    const prop = s.deck.find((c) => s.cards[c].kind === 'propaganda')!;
+    x.warehouse.push({ card: prop, hidden: false });
+    y.sproutsFed = ['ksp'];
+    const sus = curatorSuspicion(s, me.id);
+    expect(sus[x.id]).toBeGreaterThanOrEqual(0.5);
+    expect(sus[y.id]).toBe(0);
+    // Спрятанная Пропаганда не видна — и не выдаёт.
+    x.propagandaTaken = 0;
+    x.warehouse[x.warehouse.length - 1].hidden = true;
+    expect(curatorSuspicion(s, me.id)[x.id]).toBe(0);
+    // Без Куратора в колоде подозревать некого.
+    expect(curatorSuspicion(createGame({ players: players(3), seed: 5, mode: 'full', curator: false }), me.id)).toEqual({});
   });
 
   it('Куратор не кормит Ростки и бережёт Пропаганду', () => {

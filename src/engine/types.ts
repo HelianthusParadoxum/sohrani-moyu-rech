@@ -109,6 +109,9 @@ export interface PlayerState {
   actions: { target: string; n: number }[]; // действия Единомышленников в эту Пятилетку: адрес или «group:…», порядковый номер
   pointsBy: Partial<Record<PointSource, number>>; // откуда взялись очки, набранные по ходу игры
   patronBonus: { capacity: number; cache: number }; // прибавки от Управдома и Столяра
+  // Что все видели (для подозрений ботов): сколько Пропаганды игрок открыто взял со стола и сколько сдал в Красный уголок.
+  propagandaTaken?: number;
+  propagandaDumped?: number;
 }
 
 export interface Sprout {
@@ -173,6 +176,7 @@ export interface GameState {
   sprouts: Sprout[];
   patrons: PatronState[];
   spetskhran: string[]; // Спецхран Конторы — общий, лежит взакрытую
+  curatorPossible?: boolean; // Куратор есть в колоде Пристрастий (это знают все)
   holdTurn?: boolean; // действие не завершило ход (отказ от Конторы)
   clubGiftBy?: string; // кто уже отдал книгу в Клуб в этот ход (Клуб как свободное действие)
   freeHold?: boolean; // идёт свободное действие: когда его решения закончатся, ход не передаётся

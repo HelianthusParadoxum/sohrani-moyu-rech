@@ -202,6 +202,12 @@ export function addSecretBook(state: GameState, p: PlayerState, id: string) {
   }
 }
 
+// Книга, открыто взятая со стола: все видят, что это. Пропаганду запоминаем — так ведёт себя Куратор.
+export function addOpenBook(state: GameState, p: PlayerState, id: string) {
+  addBook(p, id);
+  if (isPropaganda(state, id)) p.propagandaTaken = (p.propagandaTaken ?? 0) + 1;
+}
+
 export function hasBook(p: PlayerState, id: string): boolean {
   return p.warehouse.some((s) => s.card === id);
 }
