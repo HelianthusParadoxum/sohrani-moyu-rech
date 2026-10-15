@@ -121,3 +121,54 @@ describe('думающий бот', () => {
     expect(s.players.find((p) => p.id === me)!.points).toBe(points + banned);
   }, 60_000);
 });
+
+describe('думающий бот в полном режиме', () => {
+  it('все пресеты доигрывают полный режим на 3 и 4 игроков', () => {
+    for (const n of [3, 4]) {
+      for (let seed = 1; seed <= 2; seed++) {
+        const ids = players(n).map((p) => p.id);
+        const presets = Object.fromEntries(ids.map((id, i) => [id, BOT_PRESETS.filter((x) => !x.random)[(i + seed) % 5].id]));
+        const s = playOut(createGame({ players: players(n), seed, mode: 'full' }), seeded(seed), 8000, presets);
+        expect(s.phase, `${n} игроков, партия ${seed}`).toBe('end');
+      }
+    }
+  }, 120_000);
+
+  it('перепрятывает опальные книги, когда соперник идёт в Контору', () => {
+    let s = createGame({ players: players(3), seed: 5, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions.find((x) => x !== 'curator')! });
+    const me = s.players.find((p) => p.id !== s.order[s.turn])!;
+    me.cache = 1;
+    me.capacity = 10;
+    const book = s.deck.find((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.some((g) => s.banned.includes(g)))!;
+    s.deck = s.deck.filter((c) => c !== book);
+    me.warehouse.push({ card: book, hidden: false });
+    s.pending = [{ kind: 'kontoraWarning', player: me.id, from: s.order[s.turn] }];
+    s = botMove(s, me.id, seeded(1));
+    expect(s.players.find((p) => p.id === me.id)!.warehouse.find((w) => w.card === book)!.hidden).toBe(true);
+  });
+
+  it('Куратор не кормит Ростки и бережёт Пропаганду', () => {
+    let feeds = 0;
+    let curators = 0;
+    let recycled = 0;
+    for (let seed = 1; seed <= 4; seed++) {
+      const s0 = createGame({ players: players(3), seed, mode: 'full' });
+      // Куратор — первому игроку.
+      s0.players[0].passionOptions = ['curator', s0.players[0].passionOptions.find((x) => x !== 'curator')!];
+      for (const p of s0.players.slice(1)) p.passionOptions = p.passionOptions.map((x) => (x === 'curator' ? 'erudite' : x));
+      let s = s0;
+      for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+      s = playOut(s, seeded(seed), 8000, 'bookman');
+      const cur = s.players[0];
+      curators++;
+      feeds += s.log.filter((l) => l.text.startsWith(`${cur.name} питает Росток`)).length;
+      // Пропаганда в конце срезает Ростки — Куратор её в макулатуру не сдаёт.
+      const propaganda = Object.values(s.cards).filter((c) => c.kind === 'propaganda').map((c) => `«${c.title}»`);
+      recycled += s.log.filter((l) => l.text.startsWith(`${cur.name} в Красном уголке`) && propaganda.some((t) => l.text.includes(t))).length;
+    }
+    expect(curators).toBe(4);
+    expect(feeds / curators).toBeLessThan(1);
+    expect(recycled).toBe(0);
+  }, 120_000);
+});

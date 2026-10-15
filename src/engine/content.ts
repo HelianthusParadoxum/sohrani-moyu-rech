@@ -40,12 +40,23 @@ export const RULES = {
   safehousePrice: 3, // Наследники, Посредничество авторам
   raspredelitelPrice: 2, // книга Распределителя
   spisaniePrice: 1, // Библиотечное списание
+  spisanieDraw: 4, // Библиотечное списание: сколько книг тайно взять сверху стопки (оставить — сколько угодно)
+  posrednichestvoDraw: 2, // Посредничество авторам: сколько книг тайно вытянуть
+  posrednichestvoKeep: 1, // ...и сколько из них оставить (остальные — в сброс)
   samizdatTalons: 2, // Самиздат: Талонов за значок
   tamizdatTalons: 1, // Тамиздат: Талонов за значок
   tamizdatPoints: 2, // Тамиздат: очков Гласности за значок
   redCornerUnprinted: 1, // Красный уголок: Талонов за сданную Непечатную книгу
   redCornerLoad: 2, // Красный уголок: Талонов за сданную книгу Нагрузки
   sideJobIncome: 3,
+  passionKeeper: 2, // Хранитель: очков за значок своих двух жанров
+  passionErudite: 1, // Эрудит: очков за значок (по 1 книге на жанр); было 2 без бонуса за жанры
+  eruditePerGenre: 1, // Эрудит: ещё очков за каждый жанр, в котором засчитана книга
+  eruditeMaxGenres: 8, // Эрудит: сколько жанров засчитывается (8 — все)
+  passionMonogamist: 2, // Однолюб: очков за значок лучшего жанра
+  monogamistSecond: 1, // Однолюб: очков за значок второго по силе жанра
+  passionInnovator: 2, // Новатор: очков за значок на двужанровых книгах
+  innovatorSingle: -1, // Новатор: очков за каждую книгу с одним жанром (на складе и в изданном)
   propagandaPoints: -5,
   evidencePoints: 5,
   extraSprouts: { beginner: 0, full: 1 }, // Ростков на партию: число игроков + это число
@@ -82,8 +93,8 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   kvartirnik: { id: 'kvartirnik', name: 'Квартирник', limits: [1, 1, 1], safehouse: true, hint: 'Обмен книгами с другим игроком по согласию' },
   raspredelitel: { id: 'raspredelitel', name: 'Распределитель', limits: [1, 1, 1], safehouse: true, hint: `Купить 1 выдающуюся книгу за ${RULES.raspredelitelPrice}т` },
   nasledniki: { id: 'nasledniki', name: 'Наследники', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.safehousePrice}т: тайно взять 2 книги из сброса Непечатных` },
-  posrednichestvo: { id: 'posrednichestvo', name: 'Посредничество авторам', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.safehousePrice}т: тайно вытянуть 3, оставить 1–2, затем 1 действие Группы` },
-  spisanie: { id: 'spisanie', name: 'Библиотечное списание', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.spisaniePrice}т: взять 3 книги сверху стопки Непечатных` },
+  posrednichestvo: { id: 'posrednichestvo', name: 'Посредничество авторам', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.safehousePrice}т: тайно вытянуть ${RULES.posrednichestvoDraw}, оставить ${RULES.posrednichestvoKeep}, затем 1 любое действие Группы (даже уже сделанное)` },
+  spisanie: { id: 'spisanie', name: 'Библиотечное списание', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.spisaniePrice}т: тайно взять ${RULES.spisanieDraw} книги сверху стопки Непечатных, оставить сколько угодно, остальные — в сброс` },
   club: { id: 'club', name: 'Клуб книголюбов', limits: [2, 3, 4], fullOnly: true, hint: 'Отдайте Завсегдатаям книги их жанров — завяжите связи' },
   kontora: { id: 'kontora', name: 'Контора', limits: [INF, INF, INF], fullOnly: true, perPlayer: true, hint: 'Ходатайство, Выдача на руки, Сигнал, Профилактика; доход — чужая опальная книга в Спецхран' },
 };
@@ -158,17 +169,17 @@ export const FIRST_FEED_POINTS = 2;
 export interface PassionInfo { id: PassionId; name: string; hint: string; genres?: [Genre, Genre]; special?: boolean }
 
 export const PASSIONS: Record<PassionId, PassionInfo> = {
-  keeper_golden: { id: 'keeper_golden', name: 'Золотая полка', genres: ['prose', 'poetry'], hint: '2 очка за значок Прозы и Поэзии' },
-  keeper_silver: { id: 'keeper_silver', name: 'Серебряный век', genres: ['poetry', 'album'], hint: '2 очка за значок Поэзии и Альбома' },
-  keeper_antiquary: { id: 'keeper_antiquary', name: 'Антиквар', genres: ['album', 'testimony'], hint: '2 очка за значок Альбома и Свидетельств' },
-  keeper_memoirist: { id: 'keeper_memoirist', name: 'Мемуарист', genres: ['testimony', 'foreign'], hint: '2 очка за значок Свидетельств и Иностранной' },
-  keeper_polyglot: { id: 'keeper_polyglot', name: 'Полиглот', genres: ['foreign', 'scifi'], hint: '2 очка за значок Иностранной и Фантастики' },
-  keeper_dreamer: { id: 'keeper_dreamer', name: 'Мечтатель', genres: ['scifi', 'irony'], hint: '2 очка за значок Фантастики и Иронии' },
-  keeper_skit: { id: 'keeper_skit', name: 'Капустник', genres: ['irony', 'drama'], hint: '2 очка за значок Иронии и Драматургии' },
-  keeper_theatre: { id: 'keeper_theatre', name: 'Театрал', genres: ['drama', 'prose'], hint: '2 очка за значок Драматургии и Прозы' },
-  erudite: { id: 'erudite', name: 'Эрудит', special: true, hint: '2 очка за значок, но в каждом жанре максимум 1 книга' },
-  monogamist: { id: 'monogamist', name: 'Однолюб', special: true, hint: '2 очка за значок одного жанра (лучшего на момент подсчёта)' },
-  innovator: { id: 'innovator', name: 'Новатор', special: true, hint: '2 очка за значок на двужанровых книгах' },
+  keeper_golden: { id: 'keeper_golden', name: 'Золотая полка', genres: ['prose', 'poetry'], hint: `${RULES.passionKeeper} очка за значок Прозы и Поэзии` },
+  keeper_silver: { id: 'keeper_silver', name: 'Серебряный век', genres: ['poetry', 'album'], hint: `${RULES.passionKeeper} очка за значок Поэзии и Альбома` },
+  keeper_antiquary: { id: 'keeper_antiquary', name: 'Антиквар', genres: ['album', 'testimony'], hint: `${RULES.passionKeeper} очка за значок Альбома и Свидетельств` },
+  keeper_memoirist: { id: 'keeper_memoirist', name: 'Мемуарист', genres: ['testimony', 'foreign'], hint: `${RULES.passionKeeper} очка за значок Свидетельств и Иностранной` },
+  keeper_polyglot: { id: 'keeper_polyglot', name: 'Полиглот', genres: ['foreign', 'scifi'], hint: `${RULES.passionKeeper} очка за значок Иностранной и Фантастики` },
+  keeper_dreamer: { id: 'keeper_dreamer', name: 'Мечтатель', genres: ['scifi', 'irony'], hint: `${RULES.passionKeeper} очка за значок Фантастики и Иронии` },
+  keeper_skit: { id: 'keeper_skit', name: 'Капустник', genres: ['irony', 'drama'], hint: `${RULES.passionKeeper} очка за значок Иронии и Драматургии` },
+  keeper_theatre: { id: 'keeper_theatre', name: 'Театрал', genres: ['drama', 'prose'], hint: `${RULES.passionKeeper} очка за значок Драматургии и Прозы` },
+  erudite: { id: 'erudite', name: 'Эрудит', special: true, hint: `${RULES.passionErudite} очко за значок и ${RULES.eruditePerGenre} за каждый жанр; в каждом жанре засчитывается 1 книга${RULES.eruditeMaxGenres < 8 ? `, не больше ${RULES.eruditeMaxGenres} жанров` : ''}` },
+  monogamist: { id: 'monogamist', name: 'Однолюб', special: true, hint: `${RULES.passionMonogamist} очка за значок лучшего жанра${RULES.monogamistSecond ? ` и ${RULES.monogamistSecond} за значок второго по силе` : ''} (на момент подсчёта)` },
+  innovator: { id: 'innovator', name: 'Новатор', special: true, hint: `${RULES.passionInnovator} очка за значок на двужанровых книгах${RULES.innovatorSingle ? `, ${RULES.innovatorSingle} очко за каждую книгу с одним жанром` : ''}` },
   curator: { id: 'curator', name: 'Куратор', special: true, hint: 'Агент госбезопасности: побеждает, если Гласность не наступит' },
 };
 

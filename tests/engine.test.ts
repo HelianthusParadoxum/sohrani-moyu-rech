@@ -4,6 +4,7 @@ import { playOut } from '../src/engine/bot';
 import { viewFor } from '../src/engine/view';
 import { RuleError, cacheLimit, coversStep, isBanned } from '../src/engine/util';
 import { passionPoints } from '../src/engine/scoring';
+import { RULES } from '../src/engine/content';
 import type { GameState, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
 import { removePatron } from '../src/engine/full';
@@ -24,7 +25,7 @@ function allCards(s: GameState): string[] {
   return [
     ...s.deck, ...s.discard, ...s.loadDeck, ...s.loadDiscard, ...s.tolkuchka, ...s.knigoobmen, ...s.raspredelitel,
     ...s.razval.filter((c): c is string => !!c), ...s.baraholka.filter((c): c is string => !!c),
-    ...s.pending.flatMap((p) => (p.kind === 'posrednichestvoKeep' ? p.cards : [])),
+    ...s.pending.flatMap((p) => (p.kind === 'posrednichestvoKeep' || p.kind === 'spisanieKeep' ? p.cards : [])),
     ...s.players.flatMap((p) => [...p.warehouse.map((w) => w.card), ...p.published]),
     ...s.spetskhran,
   ];
@@ -129,9 +130,16 @@ describe('значок возвращения у двужанровой книг
     expect(passionPoints(s, p)).toBe(6);
   });
 
-  it('Однолюб выбирает жанр значка в свою пользу', () => {
+  it('Однолюб выбирает жанр значка в свою пользу и не засчитывает его дважды', () => {
     const { s, p } = withBook('monogamist');
-    expect(passionPoints(s, p)).toBe(4);
+    // Лучший жанр — 2 значка (со значком возвращения), второй — 1.
+    expect(passionPoints(s, p)).toBe(2 * RULES.passionMonogamist + 1 * RULES.monogamistSecond);
+  });
+
+  it('Эрудит засчитывает книгу в одном жанре: значки и бонус за жанр', () => {
+    const { s, p } = withBook('erudite');
+    // Одна книга — один жанр: 2 значка (со значком возвращения) и 1 жанр.
+    expect(passionPoints(s, p)).toBe(2 * RULES.passionErudite + 1 * RULES.eruditePerGenre);
   });
 
   it('закрывает ступень Ростка значком любого из двух жанров', () => {

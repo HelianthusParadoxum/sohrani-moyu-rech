@@ -5,7 +5,7 @@
 // для каждой из пяти Пятилеток: 5 — обычная ценность, 10 — вдвое ценнее, 0 — бот не ценит цель вовсе.
 // Очки Гласности, уже набранные по ходу игры, бот ценит всегда одинаково — это мерило для всего остального.
 
-export type BotGoal = 'network' | 'sprouts' | 'sproutBooks' | 'publish' | 'talons' | 'passion' | 'storage';
+export type BotGoal = 'network' | 'sprouts' | 'sproutBooks' | 'publish' | 'talons' | 'passion' | 'storage' | 'club';
 
 export const BOT_GOALS: Record<BotGoal, { name: string; hint: string }> = {
   network: { name: 'Расширение сети', hint: 'Ценность Единомышленников на будущие Пятилетки. 0 — бот совсем не нанимает.' },
@@ -15,12 +15,16 @@ export const BOT_GOALS: Record<BotGoal, { name: string; hint: string }> = {
   talons: { name: 'Талоны', hint: 'Ценность Талонов.' },
   passion: { name: 'Пристрастие', hint: 'Собирать книги под своё тайное Пристрастие.' },
   storage: { name: 'Склад и Тайник', hint: 'Расширять склад и Тайник.' },
+  club: { name: 'Связи в Клубе', hint: 'Полный режим: заводить связи с Завсегдатаями ради их свойств (очко за связь бот ценит всегда).' },
 };
 
 export interface BotCharacter {
   reserve: number; // сколько Талонов бот старается держать про запас
   caution: number; // 0..1: насколько бот боится облавы (1 — считает изъятие неизбежным)
   randomness: number; // 0..1: доля случайности в выборе хода (0 — всегда лучший по оценке)
+  // Полный режим, 0..1: насколько бот готов вредить соперникам через Контору (Сигнал, Профилактика, донос на чужую книгу).
+  // Ещё это шанс взять роль Куратора, если её карта пришла на выбор: агрессивность × 2.
+  aggression: number;
 }
 
 export interface BotPreset {
@@ -45,8 +49,9 @@ export const BOT_PRESETS: BotPreset[] = [
       talons: [5, 5, 5, 5, 5],
       passion: [4, 4, 5, 6, 7],
       storage: [5, 5, 4, 3, 0],
+      club: [6, 6, 5, 4, 3],
     },
-    character: { reserve: 0, caution: 0.9, randomness: 0.1 },
+    character: { reserve: 0, caution: 0.9, randomness: 0.1, aggression: 0.3 },
   },
   {
     id: 'networker',
@@ -60,8 +65,9 @@ export const BOT_PRESETS: BotPreset[] = [
       talons: [7, 6, 5, 5, 5],
       passion: [3, 3, 4, 6, 7],
       storage: [3, 3, 3, 2, 0],
+      club: [5, 5, 4, 3, 2],
     },
-    character: { reserve: 0, caution: 0.9, randomness: 0.1 },
+    character: { reserve: 0, caution: 0.9, randomness: 0.1, aggression: 0.4 },
   },
   {
     id: 'gardener',
@@ -75,8 +81,9 @@ export const BOT_PRESETS: BotPreset[] = [
       talons: [5, 5, 5, 5, 5],
       passion: [3, 3, 3, 4, 5],
       storage: [5, 5, 4, 2, 0],
+      club: [4, 4, 4, 3, 2],
     },
-    character: { reserve: 0, caution: 0.9, randomness: 0.1 },
+    character: { reserve: 0, caution: 0.9, randomness: 0.1, aggression: 0.1 },
   },
   {
     id: 'collector',
@@ -90,8 +97,9 @@ export const BOT_PRESETS: BotPreset[] = [
       talons: [5, 5, 5, 5, 5],
       passion: [7, 7, 8, 9, 10],
       storage: [7, 7, 6, 3, 0],
+      club: [7, 7, 6, 4, 3],
     },
-    character: { reserve: 0, caution: 1, randomness: 0.1 },
+    character: { reserve: 0, caution: 1, randomness: 0.1, aggression: 0.2 },
   },
   {
     id: 'publisher',
@@ -105,8 +113,9 @@ export const BOT_PRESETS: BotPreset[] = [
       talons: [6, 6, 5, 5, 5],
       passion: [3, 3, 4, 5, 6],
       storage: [4, 4, 3, 2, 0],
+      club: [5, 5, 5, 4, 3],
     },
-    character: { reserve: 0, caution: 0.8, randomness: 0.1 },
+    character: { reserve: 0, caution: 0.8, randomness: 0.1, aggression: 0.3 },
   },
   {
     id: 'random',
@@ -116,8 +125,9 @@ export const BOT_PRESETS: BotPreset[] = [
     goals: {
       network: [5, 5, 5, 5, 5], sprouts: [5, 5, 5, 5, 5], sproutBooks: [5, 5, 5, 5, 5], publish: [5, 5, 5, 5, 5],
       talons: [5, 5, 5, 5, 5], passion: [5, 5, 5, 5, 5], storage: [5, 5, 5, 5, 5],
+      club: [5, 5, 5, 5, 5],
     },
-    character: { reserve: 0, caution: 0, randomness: 1 },
+    character: { reserve: 0, caution: 0, randomness: 1, aggression: 0 },
   },
 ];
 
@@ -142,5 +152,17 @@ export const BOT_BASE = {
   cache: [1.2, 1.0, 0.7, 0.4, 0], // место Тайника на будущие Пятилетки
   freeSlot: 0.3, // свободное место на складе прямо сейчас
   turnOrder: 0.4, // ранний Красный уголок (первым ходить в следующей Пятилетке)
-  connection: 2, // связь с Завсегдатаем (полный режим)
+  // Полный режим.
+  connection: 1, // связь с Завсегдатаем: очко в финальном подсчёте
+  patronEffect: 1, // польза свойства Завсегдатая за каждую оставшуюся Пятилетку (× цель «Связи в Клубе»)
+  heldDoom: 0.4, // общая угроза: Контора удерживает Единомышленников (за каждого, в квадрате; при 7 проигрывают все)
+  loss: 100, // проигрыш (Контора удержала 7 Единомышленников или победил Куратор)
+  opponent: 0.5, // насколько бот рад потерям соперников (× агрессивность)
+  // Куратор: побеждает в одиночку, если Гласность не наступит.
+  curatorStep: 4, // каждая ступень Ростка до порога — во вред Куратору
+  curatorWeakest: 8, // ...особенно у самого отстающего Ростка
+  curatorPropaganda: 4, // Пропаганда на складе Куратора: в конце срезает ступень у Ростка
+  curatorHeld: 3, // каждый удержанный Конторой Единомышленник соперников
+  insurance: 3, // «Громоотвод»: ступень сверх 3-й у любого Ростка страхует от срезов Куратора (засчитывается до 3 ступеней)
+  insuranceSteps: 3,
 };

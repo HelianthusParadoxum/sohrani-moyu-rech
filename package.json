@@ -13,7 +13,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "simulate": "tsx tools/simulate.ts",
-    "data": "python3 -I tools/build_cards.py"
+    "data": "python3 -I tools/build_cards.py",
+    "addresses": "tsx tools/addresses.ts"
   },
   "dependencies": {
     "react": "^19.3.1",

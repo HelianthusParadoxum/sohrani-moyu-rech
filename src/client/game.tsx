@@ -692,16 +692,26 @@ function PendingPrompt({ view, me, act, nameOf }: { view: PlayerView; me: VPlaye
         </Modal>
       );
     case 'naslednikiPick':
-    case 'posrednichestvoKeep': {
+    case 'posrednichestvoKeep':
+    case 'spisanieKeep': {
       const free = me.capacity - me.warehouse.filter((s) => !s.memorized).length;
-      const isN = p.kind === 'naslednikiPick';
+      const posredNeed = Math.min(RULES.posrednichestvoKeep, p.cards.length);
+      const title = p.kind === 'naslednikiPick' ? 'Наследники: сброс Непечатных' : p.kind === 'posrednichestvoKeep' ? 'Посредничество авторам' : 'Библиотечное списание';
+      const text = p.kind === 'naslednikiPick' ? 'Тайно возьмите 1–2 книги из сброса.'
+        : p.kind === 'posrednichestvoKeep' ? `Оставьте себе книг: ${posredNeed}, остальные уйдут в сброс.`
+          : 'Оставьте себе сколько захотите, остальные уйдут в сброс.';
+      const ok = p.kind === 'naslednikiPick' ? sel.length >= 1 && sel.length <= 2
+        : p.kind === 'posrednichestvoKeep' ? sel.length === posredNeed : true;
+      const action: Action = p.kind === 'naslednikiPick' ? { type: 'naslednikiPick', cards: sel }
+        : p.kind === 'posrednichestvoKeep' ? { type: 'posrednichestvoKeep', keep: sel } : { type: 'spisanieKeep', keep: sel };
       return (
-        <Modal title={isN ? 'Наследники: сброс Непечатных' : 'Посредничество авторам'} wide>
-          <p>{isN ? 'Тайно возьмите 1–2 книги из сброса.' : 'Оставьте себе 1–2 книги, остальные уйдут в сброс.'} Свободных мест: {free}.</p>
+        <Modal title={title} wide>
+          <p>{text} Свободных мест: {free}.</p>
           <div className="shelf wrap">{p.cards.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} onClick={() => setSel(toggle(sel, c))} />)}</div>
           <div className="modal-foot">
-            <button className="primary" disabled={sel.length < 1 || sel.length > 2 || sel.length > free}
-              onClick={() => act(isN ? { type: 'naslednikiPick', cards: sel } : { type: 'posrednichestvoKeep', keep: sel })}>Взять ({sel.length})</button>
+            <button className="primary" disabled={!ok || sel.length > free} onClick={() => act(action)}>
+              {sel.length ? `Взять (${sel.length})` : 'Ничего не брать'}
+            </button>
           </div>
         </Modal>
       );

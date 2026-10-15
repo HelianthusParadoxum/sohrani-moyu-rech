@@ -736,7 +736,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     case 'posrednichestvo': {
       check(freeSlots(p) > 0, 'На складе нет места');
       payPrice(state, p, RULES.safehousePrice);
-      const cards = [draw(state), draw(state), draw(state)].filter((c): c is string => !!c);
+      const cards = Array.from({ length: RULES.posrednichestvoDraw }, () => draw(state)).filter((c): c is string => !!c);
       check(cards.length > 0, 'Стопка Непечатных пуста');
       state.pending.push({ kind: 'posrednichestvoKeep', player: p.id, cards });
       log(state, `${p.name} занимается Посредничеством авторам.`);
@@ -752,16 +752,10 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     case 'spisanie': {
       check(freeSlots(p) > 0, 'На складе нет места');
       payPrice(state, p, RULES.spisaniePrice);
-      let got = 0;
-      const titles: string[] = [];
-      for (let i = 0; i < 3; i++) {
-        const c = draw(state);
-        if (!c) break;
-        if (freeSlots(p) > 0) { addBook(p, c); got++; titles.push(title(state, c)); }
-        else discard(state, c);
-      }
-      log(state, `${p.name} забирает из Библиотечного списания ${got} книг(и).`);
-      log(state, `Вы получили: ${titles.join(', ')}.`, [p.id]);
+      const cards = Array.from({ length: RULES.spisanieDraw }, () => draw(state)).filter((c): c is string => !!c);
+      check(cards.length > 0, 'Стопка Непечатных пуста');
+      state.pending.push({ kind: 'spisanieKeep', player: p.id, cards });
+      log(state, `${p.name} разбирает Библиотечное списание.`);
       return;
     }
   }
@@ -938,7 +932,8 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
     }
     case 'posrednichestvoKeep': {
       check(action.type === 'posrednichestvoKeep', 'Выберите, что оставить');
-      check(action.keep.length >= 1 && action.keep.length <= 2, 'Оставьте 1 или 2 книги');
+      const need = Math.min(RULES.posrednichestvoKeep, pend.cards.length);
+      check(action.keep.length === need && new Set(action.keep).size === need, `Оставьте книг: ${need}`);
       check(action.keep.length <= freeSlots(p), 'На складе не хватит места');
       for (const c of action.keep) check(pend.cards.includes(c), 'Эта книга не из вытянутых');
       for (const c of pend.cards) {
@@ -950,6 +945,19 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       state.pending.shift();
       state.pending.unshift({ kind: 'posrednichestvoGroup', player: p.id });
       return;
+    }
+    case 'spisanieKeep': {
+      check(action.type === 'spisanieKeep', 'Выберите, что оставить из Библиотечного списания');
+      check(new Set(action.keep).size === action.keep.length, 'Книга указана дважды');
+      check(action.keep.length <= freeSlots(p), 'На складе не хватит места');
+      for (const c of action.keep) check(pend.cards.includes(c), 'Эта книга не из взятых');
+      for (const c of pend.cards) {
+        if (action.keep.includes(c)) addBook(p, c);
+        else discard(state, c);
+      }
+      log(state, `${p.name} оставляет себе из Библиотечного списания ${action.keep.length} книг(и).`);
+      if (action.keep.length) log(state, `Вы оставили: ${action.keep.map((c) => title(state, c)).join(', ')}.`, [p.id]);
+      break;
     }
     case 'posrednichestvoGroup': {
       if (action.type === 'pass') break;

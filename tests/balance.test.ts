@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { applyAction, createGame } from '../src/engine/engine';
 import { RULES } from '../src/engine/content';
 import { RuleError, iconsOf } from '../src/engine/util';
+import { viewFor } from '../src/engine/view';
+import { passionPoints } from '../src/engine/scoring';
 import type { Action, GameState } from '../src/engine/types';
 
 const players = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `p${i + 1}`, name: `Игрок ${i + 1}` }));
@@ -195,5 +197,62 @@ describe('Красный уголок и Тамиздат', () => {
     s = applyAction(s, p.id, { type: 'place', place: { address: 'tamizdat', card: c } });
     expect(byId(s, p.id).talons).toBe(t + 2 * RULES.tamizdatTalons);
     expect(byId(s, p.id).points).toBe(2 * RULES.tamizdatPoints);
+  });
+});
+
+describe('Посредничество авторам и Библиотечное списание', () => {
+  it(`Посредничество: ${RULES.posrednichestvoDraw} книги, оставить ${RULES.posrednichestvoKeep}, затем любое действие Группы, даже уже сделанное`, () => {
+    let s = started();
+    const p = me(s);
+    p.talons = 10;
+    p.groupUsed = ['expandCache'];
+    s.safehouses = ['posrednichestvo'];
+    s = applyAction(s, p.id, { type: 'place', place: { address: 'posrednichestvo' } });
+    const pend = s.pending[0];
+    expect(pend.kind).toBe('posrednichestvoKeep');
+    if (pend.kind !== 'posrednichestvoKeep') return;
+    expect(pend.cards).toHaveLength(RULES.posrednichestvoDraw);
+    expect(() => applyAction(s, p.id, { type: 'posrednichestvoKeep', keep: pend.cards })).toThrow(RuleError);
+    s = applyAction(s, p.id, { type: 'posrednichestvoKeep', keep: [pend.cards[0]] });
+    expect(s.discard).toContain(pend.cards[1]);
+    expect(s.pending[0].kind).toBe('posrednichestvoGroup');
+    const cache = byId(s, p.id).cache;
+    s = applyAction(s, p.id, { type: 'group', group: { action: 'expandCache' } });
+    expect(byId(s, p.id).cache).toBe(cache + 1);
+  });
+
+  it(`Списание: ${RULES.spisanieDraw} книги за ${RULES.spisaniePrice}т, оставить сколько угодно, остальные — в сброс`, () => {
+    let s = started();
+    const p = me(s);
+    p.talons = 5;
+    s.safehouses = ['spisanie'];
+    s = applyAction(s, p.id, { type: 'place', place: { address: 'spisanie' } });
+    expect(byId(s, p.id).talons).toBe(5 - RULES.spisaniePrice);
+    const pend = s.pending[0];
+    expect(pend.kind).toBe('spisanieKeep');
+    if (pend.kind !== 'spisanieKeep') return;
+    expect(pend.cards).toHaveLength(RULES.spisanieDraw);
+    // Чужим не видно, что взято.
+    expect(viewFor(s, s.players.find((x) => x.id !== p.id)!.id).pending[0]).toMatchObject({ kind: 'spisanieKeep', secret: true });
+    const keep = pend.cards.slice(0, 3);
+    s = applyAction(s, p.id, { type: 'spisanieKeep', keep });
+    expect(byId(s, p.id).warehouse.map((w) => w.card)).toEqual(expect.arrayContaining(keep));
+    expect(s.discard).toContain(pend.cards[3]);
+  });
+});
+
+describe('Новатор', () => {
+  it(`${RULES.passionInnovator} очка за значок двужанровой книги, ${RULES.innovatorSingle} за книгу с одним жанром`, () => {
+    const s = started();
+    const p = me(s);
+    p.passion = 'innovator';
+    p.warehouse = [];
+    const dual = Object.values(s.cards).find((c) => c.kind === 'genre' && new Set(c.icons).size === 2)!;
+    const single = Object.values(s.cards).find((c) => c.kind === 'genre' && c.icons.length === 1)!;
+    const masterpiece = Object.values(s.cards).find((c) => c.kind === 'genre' && c.icons.length === 2 && c.icons[0] === c.icons[1])!;
+    const load = Object.values(s.cards).find((c) => c.kind === 'load')!;
+    p.warehouse = [dual, single, masterpiece, load].map((c) => ({ card: c.id, hidden: false }));
+    // Нагрузка без жанра не штрафуется; шедевр — книга одного жанра.
+    expect(passionPoints(s, p)).toBe(2 * RULES.passionInnovator + 2 * RULES.innovatorSingle);
   });
 });

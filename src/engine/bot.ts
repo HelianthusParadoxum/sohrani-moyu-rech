@@ -4,10 +4,10 @@
 import { applyAction, activePlayers, mustVisitRedCorner } from './engine';
 import { presetById } from './bot-presets';
 import { copyTextOptions, smartMove } from './bot-smart';
-import { PERMANENT_ADDRESSES, SPROUTS } from './content';
+import { PERMANENT_ADDRESSES, RULES, SPROUTS } from './content';
 import type { Action, ClubGift, GameState, Genre, GroupAction } from './types';
 import { GENRES } from './types';
-import { cacheLimit, iconsOf, isBanned, isLoad, isPropaganda, player, RuleError } from './util';
+import { cacheLimit, freeSlots, iconsOf, isBanned, isLoad, isPropaganda, player, RuleError } from './util';
 
 type Rand = () => number;
 
@@ -24,7 +24,8 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
       case 'baraholkaLook': return [{ type: 'baraholkaBuy', buy: true }, { type: 'baraholkaBuy', buy: false }];
       case 'kvartirnikReply': return [{ type: 'kvartirnikReply', accept: rand() < 0.5 }];
       case 'naslednikiPick': return [{ type: 'naslednikiPick', cards: pend.cards.slice(-2) }, { type: 'naslednikiPick', cards: pend.cards.slice(-1) }];
-      case 'posrednichestvoKeep': return [{ type: 'posrednichestvoKeep', keep: pend.cards.slice(0, 2) }, { type: 'posrednichestvoKeep', keep: pend.cards.slice(0, 1) }];
+      case 'posrednichestvoKeep': return [{ type: 'posrednichestvoKeep', keep: pend.cards.slice(0, RULES.posrednichestvoKeep) }];
+      case 'spisanieKeep': return [{ type: 'spisanieKeep', keep: pend.cards.slice(0, Math.max(0, freeSlots(p))) }];
       case 'posrednichestvoGroup': return [...groupCandidates(state, me, rand), { type: 'pass' }];
       case 'kontoraWarning':
         return [{ type: 'kontoraHide', hidden: p.warehouse.filter((s) => s.hidden).map((s) => s.card) }];
