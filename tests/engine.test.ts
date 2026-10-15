@@ -629,3 +629,15 @@ describe('Срезы Куратора', () => {
     expect(text).toContain('ступень IV → III');
   });
 });
+
+describe('Ничья', () => {
+  it('при равенстве очков в итоге расписано: значки → связи → Талоны', () => {
+    const s = createGame({ players: players(2), seed: 4, mode: 'full', curator: false });
+    for (const sp of s.sprouts) sp.progress = 3;
+    for (const p of s.players) { p.warehouse = []; p.points = 10; p.talons = 3; }
+    s.players[1].talons = 5;
+    const r = finalScoring(s);
+    expect(r.winners).toEqual([s.players[1].id]);
+    expect(r.note).toContain('Ничья по очкам (10) → ничья по значкам (0) → ничья по связям (0) → победа по Талонам');
+  });
+});

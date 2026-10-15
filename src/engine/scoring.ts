@@ -142,6 +142,29 @@ export function finalScoring(state: GameState): GameResult {
   const winners = ranked
     .filter((r) => r.s.total === top.s.total && r.s.icons === top.s.icons && r.s.connections === top.s.connections && r.talons === top.talons)
     .map((r) => r.s.player);
-  const names = winners.map((id) => state.players.find((p) => p.id === id)!.name).join(', ');
-  return { glasnost: true, scores, winners, note: `Гласность наступила! Победа: ${names} (${top.s.total} очков).` };
+  const name = (id: string) => state.players.find((p) => p.id === id)!.name;
+  const names = winners.map(name).join(', ');
+  // При ничьей по очкам — по очереди: значки → связи (полный режим) → Талоны.
+  const crit: { by: string; get: (r: (typeof ranked)[number]) => number }[] = [
+    { by: 'значкам', get: (r) => r.s.icons },
+    ...(state.mode === 'full' ? [{ by: 'связям', get: (r: (typeof ranked)[number]) => r.s.connections }] : []),
+    { by: 'Талонам', get: (r) => r.talons },
+  ];
+  let contenders = ranked.filter((r) => r.s.total === top.s.total);
+  const steps: string[] = [];
+  if (contenders.length > 1) {
+    steps.push(`ничья по очкам (${top.s.total})`);
+    for (const c of crit) {
+      if (contenders.length < 2) break;
+      const best = Math.max(...contenders.map(c.get));
+      const next = contenders.filter((r) => c.get(r) === best);
+      steps.push(next.length === contenders.length
+        ? `ничья по ${c.by} (${best})`
+        : `победа по ${c.by}: ${contenders.map((r) => `${name(r.s.player)} — ${c.get(r)}`).join(', ')}`);
+      contenders = next;
+    }
+    if (contenders.length > 1) steps.push('полная ничья — победа делится');
+  }
+  const tie = steps.length ? ` ${steps.join(' → ').replace(/^./, (ch) => ch.toUpperCase())}.` : '';
+  return { glasnost: true, scores, winners, note: `Гласность наступила! Победа: ${names} (${top.s.total} очков).${tie}` };
 }
