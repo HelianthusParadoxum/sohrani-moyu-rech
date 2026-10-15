@@ -58,22 +58,22 @@ export interface AddressInfo {
 }
 
 export const ADDRESSES: Record<AddressId, AddressInfo> = {
-  gostorg: { id: 'gostorg', name: 'Госкниготорг', limits: [INF, INF, INF], hint: '−1т за пару: Нагрузка + Непечатное, любое число пар' },
+  gostorg: { id: 'gostorg', name: 'Госкниготорг', limits: [2, 3, 4], hint: '−1т за пару: Нагрузка + Непечатное, любое число пар' },
   tolkuchka: { id: 'tolkuchka', name: 'Толкучка', limits: [2, 3, 4], hint: 'Купить: −2т за книгу. Продать: +2т за книгу опального жанра, +1т за прочие' },
   redCorner: { id: 'redCorner', name: 'Красный уголок', limits: [INF, INF, INF], hint: 'Очередь хода на следующую Пятилетку; сдать до 1 Непечатной и до 1 Нагрузки, +1т за книгу' },
   razval: { id: 'razval', name: 'Развал', limits: [2, 3, 4], hint: 'Купить 1 книгу: −2/−2/−1/−1т по свежести' },
   zavoz: { id: 'zavoz', name: 'Завоз', limits: [1, 1, 2], hint: '+2т, Развал полностью обновляется' },
-  baraholka: { id: 'baraholka', name: 'Барахолка', limits: [INF, INF, INF], hint: 'Тайно посмотреть 1 из 4 закрытых книг и купить за 1т' },
+  baraholka: { id: 'baraholka', name: 'Барахолка', limits: [4, 4, 4], hint: 'Тайно посмотреть 1 из 4 закрытых книг и купить за 1т' },
   podpiska: { id: 'podpiska', name: 'Подписка', limits: [1, 1, 2], hint: 'Заказать жанр: −1т за каждую Пятилетку доставки' },
-  sprouts: { id: 'sprouts', name: 'Ростки Гласности', limits: [INF, INF, INF], hint: 'Закрыть любое число ступеней Ростков' },
+  sprouts: { id: 'sprouts', name: 'Ростки Гласности', limits: [3, 4, 5], hint: 'Закрыть любое число ступеней Ростков' },
   samizdat: { id: 'samizdat', name: 'Самиздат', limits: [2, 2, 3], hint: 'Издать книгу: +1т/значок' },
   tamizdat: { id: 'tamizdat', name: 'Тамиздат', limits: [1, 1, 2], hint: 'Издать книгу: +1т и +1 очко/значок' },
-  knigoobmen: { id: 'knigoobmen', name: 'Книгообмен', limits: [1, 1, 2], safehouse: true, hint: 'Отдать 1 жанровую книгу — взять 1 с витрины' },
-  kvartirnik: { id: 'kvartirnik', name: 'Квартирник', limits: [1, 1, 2], safehouse: true, hint: 'Обмен книгами с другим игроком по согласию' },
-  raspredelitel: { id: 'raspredelitel', name: 'Распределитель', limits: [1, 1, 2], safehouse: true, hint: 'Купить 1 выдающуюся книгу за 3т' },
-  nasledniki: { id: 'nasledniki', name: 'Наследники', limits: [1, 1, 2], safehouse: true, hint: '−3т: тайно взять 2 книги из сброса Непечатных' },
-  posrednichestvo: { id: 'posrednichestvo', name: 'Посредничество авторам', limits: [1, 1, 2], safehouse: true, hint: '−3т: тайно вытянуть 3, оставить 1–2, затем 1 действие Группы' },
-  spisanie: { id: 'spisanie', name: 'Библиотечное списание', limits: [1, 1, 2], safehouse: true, hint: '−3т: взять 3 книги сверху стопки Непечатных' },
+  knigoobmen: { id: 'knigoobmen', name: 'Книгообмен', limits: [1, 1, 1], safehouse: true, hint: 'Отдать 1 жанровую книгу — взять 1 с витрины' },
+  kvartirnik: { id: 'kvartirnik', name: 'Квартирник', limits: [1, 1, 1], safehouse: true, hint: 'Обмен книгами с другим игроком по согласию' },
+  raspredelitel: { id: 'raspredelitel', name: 'Распределитель', limits: [1, 1, 1], safehouse: true, hint: 'Купить 1 выдающуюся книгу за 3т' },
+  nasledniki: { id: 'nasledniki', name: 'Наследники', limits: [1, 1, 1], safehouse: true, hint: '−3т: тайно взять 2 книги из сброса Непечатных' },
+  posrednichestvo: { id: 'posrednichestvo', name: 'Посредничество авторам', limits: [1, 1, 1], safehouse: true, hint: '−3т: тайно вытянуть 3, оставить 1–2, затем 1 действие Группы' },
+  spisanie: { id: 'spisanie', name: 'Библиотечное списание', limits: [1, 1, 1], safehouse: true, hint: '−3т: взять 3 книги сверху стопки Непечатных' },
 };
 
 export const PERMANENT_ADDRESSES: AddressId[] = [
