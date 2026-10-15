@@ -39,7 +39,7 @@ export function GenreChip({ g, banned, favored }: { g: Genre; banned?: boolean; 
 }
 
 const KIND_LABEL: Record<string, string> = {
-  propaganda: 'Пропаганда', evidence: 'Улика', load: 'Нагрузка', loadReturnable: 'Нагрузка', loadEvidence: 'Улика',
+  propaganda: 'Пропаганда', evidence: 'Улика', load: 'Нагрузка', loadReturnable: 'Нагрузка', loadEvidence: 'Нагрузка',
 };
 
 export function Book({ v, id, selected, onClick, hidden, small, note }: {
@@ -53,12 +53,12 @@ export function Book({ v, id, selected, onClick, hidden, small, note }: {
   const banned = isBanned(v, id);
   const restored = !!v.restored[id];
   const flex = flexGenres(v, id);
-  const label = c.kind === 'loadReturnable' && restored ? null : KIND_LABEL[c.kind];
+  const label = c.kind === 'loadReturnable' && restored ? null : c.kind === 'loadEvidence' && restored ? 'Улика' : KIND_LABEL[c.kind];
   const t = c.kind === 'loadReturnable' && restored ? c.returned! : c.title;
   return (
     <button
       type="button"
-      className={`book k-${c.kind} ${banned ? 'is-banned' : ''} ${selected ? 'selected' : ''} ${hidden ? 'in-cache' : ''} ${small ? 'small' : ''} ${onClick ? 'clickable' : ''}`}
+      className={`book k-${c.kind === 'loadEvidence' && !restored ? 'load' : c.kind} ${banned ? 'is-banned' : ''} ${selected ? 'selected' : ''} ${hidden ? 'in-cache' : ''} ${small ? 'small' : ''} ${onClick ? 'clickable' : ''}`}
       onClick={onClick}
       disabled={!onClick}
       title={`${t} — ${c.author}`}
@@ -69,6 +69,9 @@ export function Book({ v, id, selected, onClick, hidden, small, note }: {
           <span className="chip flex" title={`Значок возвращения: ${flex.map((g) => GENRE_NAMES[g]).join(' или ')}`}>
             {flex.map((g) => GENRE_SHORT[g]).join('/')}
           </span>
+        )}
+        {c.kind === 'loadEvidence' && !restored && (
+          <span className="ghost" title="После Возвращения смыслов станет Уликой: опальная, +5 очков в конце">→ улика</span>
         )}
         {c.kind === 'loadReturnable' && !restored && c.genre && (
           <span className="ghost" title={`После Возвращения смыслов: «${c.returned}», 3 значка ${GENRE_NAMES[c.genre]}`}>

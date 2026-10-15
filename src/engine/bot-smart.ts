@@ -563,7 +563,7 @@ function groupCandidates(state: GameState, me: string, ctx: Ctx): GroupAction[] 
   if (ctx.w.network > 0) out.push({ action: 'hire' });
   out.push(...copyTextOptions(state, me));
   for (const s of p.warehouse) {
-    if (!state.restored[s.card] && ['genre', 'loadReturnable'].includes(state.cards[s.card].kind)) out.push({ action: 'restore', card: s.card });
+    if (!state.restored[s.card] && ['genre', 'loadReturnable', 'loadEvidence'].includes(state.cards[s.card].kind)) out.push({ action: 'restore', card: s.card });
   }
   const held = state.players.filter((o) => o.held > 0);
   if (held.length) out.push({ action: 'rescue', returns: Object.fromEntries(held.map((o) => [o.id, Math.min(o.held, 2)])) });
@@ -671,7 +671,7 @@ function redCornerCandidates(state: GameState, me: string, keep: Map<string, num
   // Куратор Пропаганду не сдаёт: в конце она срезает Ростки.
   const cards = p.warehouse.map((s) => s.card).filter((c) => p.passion !== 'curator' || !isPropaganda(state, c));
   const prop = cards.find((c) => isPropaganda(state, c));
-  const unprinted = byValue(keep, cards.filter((c) => !isLoad(state, c) && state.cards[c].kind !== 'loadEvidence' && state.cards[c].kind !== 'loadReturnable'));
+  const unprinted = byValue(keep, cards.filter((c) => !isLoad(state, c) && !isEvidence(state, c) && state.cards[c].kind !== 'loadEvidence' && state.cards[c].kind !== 'loadReturnable'));
   const loads = cards.filter((c) => isLoad(state, c) && !isEvidence(state, c));
   const ups = prop ? [prop] : unprinted.slice(0, 1);
   const out: string[][] = [[]];

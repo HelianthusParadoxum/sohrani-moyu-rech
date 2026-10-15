@@ -66,6 +66,7 @@ export function iconVariants(state: CardsInfo, id: string): Genre[][] {
   const c = state.cards[id];
   const restored = !!state.restored[id];
   if (c.kind === 'loadReturnable') return [restored ? [c.genre!, c.genre!, c.genre!] : []];
+  if (c.kind === 'loadEvidence') return [[]]; // Нагрузка-улика значков не получает
   if (!restored) return [c.icons];
   return [...new Set(c.icons)].map((g) => [...c.icons, g]);
 }
@@ -116,8 +117,9 @@ export function hasPatron(state: Partial<Pick<GameState, 'patrons' | 'mode'>>, p
 
 export function isLoad(state: CardsInfo, id: string): boolean {
   const c = state.cards[id];
-  if (c.kind === 'loadReturnable') return !state.restored[id];
-  return c.kind === 'load' || c.kind === 'loadEvidence';
+  // Возвращаемая Нагрузка и Нагрузка-улика перестают быть Нагрузкой, когда им вернули смыслы.
+  if (c.kind === 'loadReturnable' || c.kind === 'loadEvidence') return !state.restored[id];
+  return c.kind === 'load';
 }
 
 export function isFromLoadDeck(state: CardsInfo, id: string): boolean {
@@ -127,7 +129,8 @@ export function isFromLoadDeck(state: CardsInfo, id: string): boolean {
 
 export function isEvidence(state: CardsInfo, id: string): boolean {
   const k = state.cards[id].kind;
-  return k === 'evidence' || k === 'loadEvidence';
+  // Нагрузка-улика становится Уликой (опальной, +5 очков) только после Возвращения смыслов.
+  return k === 'evidence' || (k === 'loadEvidence' && !!state.restored[id]);
 }
 
 export function isPropaganda(state: CardsInfo, id: string): boolean {

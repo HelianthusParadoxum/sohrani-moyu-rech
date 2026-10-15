@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyAction, createGame } from '../src/engine/engine';
 import { playOut } from '../src/engine/bot';
 import { viewFor } from '../src/engine/view';
-import { RuleError, cacheLimit, coversStep, isBanned } from '../src/engine/util';
+import { RuleError, cacheLimit, coversStep, isBanned, isEvidence, isLoad } from '../src/engine/util';
 import { finalScoring, passionPoints } from '../src/engine/scoring';
 import { RULES } from '../src/engine/content';
 import type { GameState, PatronId } from '../src/engine/types';
@@ -639,5 +639,25 @@ describe('Ничья', () => {
     const r = finalScoring(s);
     expect(r.winners).toEqual([s.players[1].id]);
     expect(r.note).toContain('Ничья по очкам (10) → ничья по значкам (0) → ничья по связям (0) → победа по Талонам');
+  });
+});
+
+describe('Нагрузка-улика', () => {
+  it('до Возвращения смыслов — обычная Нагрузка, после — Улика (опальная, +5 очков)', () => {
+    let s = createGame({ players: players(2), seed: 6, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    const me = s.order[s.turn];
+    const ev = Object.values(s.cards).find((c) => c.kind === 'loadEvidence')!.id;
+    s.loadDeck = s.loadDeck.filter((c) => c !== ev);
+    const p = s.players.find((x) => x.id === me)!;
+    p.capacity = 10;
+    p.warehouse.push({ card: ev, hidden: false });
+    expect(isBanned(s, ev)).toBe(false);
+    expect(isEvidence(s, ev)).toBe(false);
+    expect(isLoad(s, ev)).toBe(true);
+    s = applyAction(s, me, { type: 'group', group: { action: 'restore', card: ev } });
+    expect(isBanned(s, ev)).toBe(true);
+    expect(isEvidence(s, ev)).toBe(true);
+    expect(isLoad(s, ev)).toBe(false);
   });
 });

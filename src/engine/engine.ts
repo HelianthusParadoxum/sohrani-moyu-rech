@@ -925,9 +925,12 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       check(slot, 'Возвращать смыслы можно книге со своего склада');
       const c = state.cards[g.card];
       check(!state.restored[g.card], 'Этой книге смыслы уже возвращены');
-      check(c.kind === 'genre' || c.kind === 'loadReturnable', 'Смыслы можно вернуть только жанровой книге или возвращаемой Нагрузке');
+      check(c.kind === 'genre' || c.kind === 'loadReturnable' || c.kind === 'loadEvidence',
+        'Смыслы можно вернуть только жанровой книге, возвращаемой Нагрузке или Нагрузке-улике');
       state.restored[g.card] = true;
-      if (c.kind === 'loadReturnable') {
+      if (c.kind === 'loadEvidence') {
+        log(state, `${p.name} возвращает смыслы: ${title(state, g.card)} становится Уликой.`);
+      } else if (c.kind === 'loadReturnable') {
         log(state, `${p.name} возвращает смыслы: ${title(state, g.card)} становится «${c.returned}» (3 значка).`);
       } else {
         log(state, `${p.name} возвращает смыслы книге ${title(state, g.card)}: +1 значок.`);

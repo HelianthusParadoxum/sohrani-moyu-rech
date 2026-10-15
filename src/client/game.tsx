@@ -6,7 +6,7 @@ import {
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
-import { coversStep, hasPatron, loadCover, roman } from '../engine/util';
+import { coversStep, hasPatron, isEvidence, loadCover, roman } from '../engine/util';
 import {
   ClubContents, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
   KontoraWarningPrompt, RescuePanel,
@@ -334,7 +334,7 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
       break;
     case 'samizdat':
     case 'tamizdat': {
-      const ok = (c: string) => view.cards[c].kind !== 'propaganda' && (iconsOf(view, c).length > 0 && !['evidence', 'loadEvidence'].includes(view.cards[c].kind) || (id === 'tamizdat' && ['evidence', 'loadEvidence'].includes(view.cards[c].kind)));
+      const ok = (c: string) => view.cards[c].kind !== 'propaganda' && (iconsOf(view, c).length > 0 && !isEvidence(view, c) || (id === 'tamizdat' && isEvidence(view, c)));
       const n = sel[0] ? iconsOf(view, sel[0]).length : 0;
       body = (
         <>
@@ -536,7 +536,7 @@ function groupBlocker(view: PlayerView, me: VPlayer, id: GroupActionId): string 
       return view.players.some((p) => p.held > 0) ? null : 'Контора никого не удерживает.';
     case 'restore':
       if (me.talons < RULES.restoreCost) return `Нужно ${RULES.restoreCost}т, у вас ${me.talons}.`;
-      return me.warehouse.some((s) => s.card && !view.restored[s.card] && ['genre', 'loadReturnable'].includes(view.cards[s.card].kind))
+      return me.warehouse.some((s) => s.card && !view.restored[s.card] && ['genre', 'loadReturnable', 'loadEvidence'].includes(view.cards[s.card].kind))
         ? null : 'На складе нет книги, которой можно вернуть смыслы.';
     default:
       return null;
@@ -561,7 +561,7 @@ function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; v
   } else if (id === 'copyText') {
     body = <CopyTextPanel view={view} me={me} done={done} />;
   } else if (id === 'restore') {
-    const cands = me.warehouse.map((s) => s.card!).filter((c) => c && !view.restored[c] && ['genre', 'loadReturnable'].includes(view.cards[c].kind));
+    const cands = me.warehouse.map((s) => s.card!).filter((c) => c && !view.restored[c] && ['genre', 'loadReturnable', 'loadEvidence'].includes(view.cards[c].kind));
     body = (
       <>
         <p>Жанровая книга получает +1 значок своего жанра; у двужанровой книги жанр этого значка выбирается всякий раз, когда это важно. Нагрузка проглоченного автора становится возвращённым произведением с 3 значками.</p>
@@ -1065,7 +1065,7 @@ function Published({ view, p }: { view: PlayerView; p: VPlayer }) {
         const icons = iconsOf(view, c);
         return (
           <span key={c} className="pub-book" title={view.cards[c].title}>
-            {icons.length ? icons.map((g, i) => <GenreChip key={i} g={g} />) : <span className="kind">{view.cards[c].kind === 'evidence' || view.cards[c].kind === 'loadEvidence' ? 'Улика' : '—'}</span>}
+            {icons.length ? icons.map((g, i) => <GenreChip key={i} g={g} />) : <span className="kind">{isEvidence(view, c) ? 'Улика' : '—'}</span>}
           </span>
         );
       })}

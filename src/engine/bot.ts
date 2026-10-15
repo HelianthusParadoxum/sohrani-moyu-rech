@@ -173,7 +173,7 @@ function groupCandidates(state: GameState, me: string, rand: Rand): Action[] {
   const out: GroupAction[] = [{ action: 'expandWarehouse' }, { action: 'expandCache' }, { action: 'hire' }];
   const copy = pick(copyTextOptions(state, me), rand);
   if (copy) out.push(copy);
-  const r = p.warehouse.find((s) => !state.restored[s.card] && ['genre', 'loadReturnable'].includes(state.cards[s.card].kind));
+  const r = p.warehouse.find((s) => !state.restored[s.card] && ['genre', 'loadReturnable', 'loadEvidence'].includes(state.cards[s.card].kind));
   if (r) out.push({ action: 'restore', card: r.card });
   const held = state.players.filter((o) => o.held > 0);
   if (held.length) out.push({ action: 'rescue', returns: Object.fromEntries(held.map((o) => [o.id, o.held])) });
