@@ -46,6 +46,10 @@ export const RULES = {
   redCornerUnprinted: 1, // Красный уголок: Талонов за сданную Непечатную книгу
   redCornerLoad: 2, // Красный уголок: Талонов за сданную книгу Нагрузки
   sideJobIncome: 3,
+  passionKeeper: 2, // Хранитель: очков за значок своих двух жанров
+  passionErudite: 1, // Эрудит: очков за значок (по 1 книге на жанр); было 2
+  passionMonogamist: 3, // Однолюб: очков за значок лучшего жанра; было 2
+  passionInnovator: 2, // Новатор: очков за значок на двужанровых книгах
   propagandaPoints: -5,
   evidencePoints: 5,
   extraSprouts: { beginner: 0, full: 1 }, // Ростков на партию: число игроков + это число
@@ -158,17 +162,17 @@ export const FIRST_FEED_POINTS = 2;
 export interface PassionInfo { id: PassionId; name: string; hint: string; genres?: [Genre, Genre]; special?: boolean }
 
 export const PASSIONS: Record<PassionId, PassionInfo> = {
-  keeper_golden: { id: 'keeper_golden', name: 'Золотая полка', genres: ['prose', 'poetry'], hint: '2 очка за значок Прозы и Поэзии' },
-  keeper_silver: { id: 'keeper_silver', name: 'Серебряный век', genres: ['poetry', 'album'], hint: '2 очка за значок Поэзии и Альбома' },
-  keeper_antiquary: { id: 'keeper_antiquary', name: 'Антиквар', genres: ['album', 'testimony'], hint: '2 очка за значок Альбома и Свидетельств' },
-  keeper_memoirist: { id: 'keeper_memoirist', name: 'Мемуарист', genres: ['testimony', 'foreign'], hint: '2 очка за значок Свидетельств и Иностранной' },
-  keeper_polyglot: { id: 'keeper_polyglot', name: 'Полиглот', genres: ['foreign', 'scifi'], hint: '2 очка за значок Иностранной и Фантастики' },
-  keeper_dreamer: { id: 'keeper_dreamer', name: 'Мечтатель', genres: ['scifi', 'irony'], hint: '2 очка за значок Фантастики и Иронии' },
-  keeper_skit: { id: 'keeper_skit', name: 'Капустник', genres: ['irony', 'drama'], hint: '2 очка за значок Иронии и Драматургии' },
-  keeper_theatre: { id: 'keeper_theatre', name: 'Театрал', genres: ['drama', 'prose'], hint: '2 очка за значок Драматургии и Прозы' },
-  erudite: { id: 'erudite', name: 'Эрудит', special: true, hint: '2 очка за значок, но в каждом жанре максимум 1 книга' },
-  monogamist: { id: 'monogamist', name: 'Однолюб', special: true, hint: '2 очка за значок одного жанра (лучшего на момент подсчёта)' },
-  innovator: { id: 'innovator', name: 'Новатор', special: true, hint: '2 очка за значок на двужанровых книгах' },
+  keeper_golden: { id: 'keeper_golden', name: 'Золотая полка', genres: ['prose', 'poetry'], hint: `${RULES.passionKeeper} очка за значок Прозы и Поэзии` },
+  keeper_silver: { id: 'keeper_silver', name: 'Серебряный век', genres: ['poetry', 'album'], hint: `${RULES.passionKeeper} очка за значок Поэзии и Альбома` },
+  keeper_antiquary: { id: 'keeper_antiquary', name: 'Антиквар', genres: ['album', 'testimony'], hint: `${RULES.passionKeeper} очка за значок Альбома и Свидетельств` },
+  keeper_memoirist: { id: 'keeper_memoirist', name: 'Мемуарист', genres: ['testimony', 'foreign'], hint: `${RULES.passionKeeper} очка за значок Свидетельств и Иностранной` },
+  keeper_polyglot: { id: 'keeper_polyglot', name: 'Полиглот', genres: ['foreign', 'scifi'], hint: `${RULES.passionKeeper} очка за значок Иностранной и Фантастики` },
+  keeper_dreamer: { id: 'keeper_dreamer', name: 'Мечтатель', genres: ['scifi', 'irony'], hint: `${RULES.passionKeeper} очка за значок Фантастики и Иронии` },
+  keeper_skit: { id: 'keeper_skit', name: 'Капустник', genres: ['irony', 'drama'], hint: `${RULES.passionKeeper} очка за значок Иронии и Драматургии` },
+  keeper_theatre: { id: 'keeper_theatre', name: 'Театрал', genres: ['drama', 'prose'], hint: `${RULES.passionKeeper} очка за значок Драматургии и Прозы` },
+  erudite: { id: 'erudite', name: 'Эрудит', special: true, hint: `${RULES.passionErudite} очко за значок, но в каждом жанре максимум 1 книга` },
+  monogamist: { id: 'monogamist', name: 'Однолюб', special: true, hint: `${RULES.passionMonogamist} очка за значок одного жанра (лучшего на момент подсчёта)` },
+  innovator: { id: 'innovator', name: 'Новатор', special: true, hint: `${RULES.passionInnovator} очка за значок на двужанровых книгах` },
   curator: { id: 'curator', name: 'Куратор', special: true, hint: 'Агент госбезопасности: побеждает, если Гласность не наступит' },
 };
 

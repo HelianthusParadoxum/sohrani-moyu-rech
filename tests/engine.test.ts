@@ -4,6 +4,7 @@ import { playOut } from '../src/engine/bot';
 import { viewFor } from '../src/engine/view';
 import { RuleError, cacheLimit, coversStep, isBanned } from '../src/engine/util';
 import { passionPoints } from '../src/engine/scoring';
+import { RULES } from '../src/engine/content';
 import type { GameState, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
 import { removePatron } from '../src/engine/full';
@@ -131,7 +132,7 @@ describe('значок возвращения у двужанровой книг
 
   it('Однолюб выбирает жанр значка в свою пользу', () => {
     const { s, p } = withBook('monogamist');
-    expect(passionPoints(s, p)).toBe(4);
+    expect(passionPoints(s, p)).toBe(2 * RULES.passionMonogamist); // 2 значка лучшего жанра
   });
 
   it('закрывает ступень Ростка значком любого из двух жанров', () => {

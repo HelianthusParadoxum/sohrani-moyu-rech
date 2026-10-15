@@ -19,15 +19,15 @@ export function passionPoints(state: GameState, p: PlayerState): number {
   const info = PASSIONS[p.passion];
   if (info.genres) {
     const [a, b] = info.genres;
-    return 2 * best((icons) => icons.filter((x) => x === a || x === b).length);
+    return RULES.passionKeeper * best((icons) => icons.filter((x) => x === a || x === b).length);
   }
   switch (p.passion) {
     case 'monogamist':
-      return 2 * Math.max(...GENRES.map(count));
+      return RULES.passionMonogamist * Math.max(...GENRES.map(count));
     case 'innovator':
-      return 2 * books.filter((icons) => new Set(icons).size >= 2).reduce((s, icons) => s + icons.length, 0);
+      return RULES.passionInnovator * books.filter((icons) => new Set(icons).size >= 2).reduce((s, icons) => s + icons.length, 0);
     case 'erudite':
-      return 2 * eruditeBest(variants);
+      return RULES.passionErudite * eruditeBest(variants);
     default:
       return 0;
   }
