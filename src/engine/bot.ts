@@ -1,6 +1,9 @@
-// Простой бот: перебирает варианты действий и выбирает случайный допустимый,
-// с лёгкими предпочтениями. Нужен для симуляций, тестов и пустых мест за столом.
+// Боты. Думающий бот — в bot-smart.ts, его пресеты — в bot-presets.ts.
+// Здесь же простой бот: перебирает варианты действий и выбирает случайный допустимый,
+// с лёгкими предпочтениями. Он — пресет «Случайный» и запасной вариант для редких решений.
 import { applyAction, activePlayers, mustVisitRedCorner } from './engine';
+import { presetById } from './bot-presets';
+import { smartMove } from './bot-smart';
 import { PERMANENT_ADDRESSES, SPROUTS } from './content';
 import type { Action, ClubGift, GameState, Genre, GroupAction } from './types';
 import { GENRES } from './types';
@@ -180,7 +183,17 @@ function weight(a: Action): number {
   return 1;
 }
 
-export function botMove(state: GameState, me: string, rand: Rand = Math.random): GameState {
+// Ход бота с пресетом (id из BOT_PRESETS; не задан — пресет по умолчанию).
+export function botMove(state: GameState, me: string, rand: Rand = Math.random, presetId?: string | null): GameState {
+  const preset = presetById(presetId);
+  if (!preset.random) {
+    const next = smartMove(state, me, preset, rand);
+    if (next) return next;
+  }
+  return randomMove(state, me, rand);
+}
+
+function randomMove(state: GameState, me: string, rand: Rand): GameState {
   const cands = candidateActions(state, me, rand);
   const pool = [...cands];
   while (pool.length) {
@@ -202,11 +215,12 @@ export function botMove(state: GameState, me: string, rand: Rand = Math.random):
   throw new Error(`Бот ${me} не нашёл допустимого хода (фаза ${state.phase})`);
 }
 
-export function playOut(state: GameState, rand: Rand = Math.random, maxSteps = 5000): GameState {
+// Доиграть партию ботами. presets — пресет для всех или для каждого игрока (id игрока → id пресета).
+export function playOut(state: GameState, rand: Rand = Math.random, maxSteps = 5000, presets: Record<string, string> | string = {}): GameState {
   let s = state;
   for (let i = 0; i < maxSteps && s.phase !== 'end'; i++) {
     const who = activePlayers(s)[0];
-    s = botMove(s, who, rand);
+    s = botMove(s, who, rand, typeof presets === 'string' ? presets : presets[who]);
   }
   return s;
 }

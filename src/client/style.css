@@ -55,7 +55,9 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .subtitle { margin-top: 0; font-family: 'PT Mono', monospace; color: var(--red); }
 .or { margin: 20px 0 6px; color: var(--muted); }
 .seats { list-style: none; padding: 0; }
-.seats li { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+.seats .preset-desc { flex-basis: 100%; padding-left: 18px; order: 1; }
+.seats select { width: auto; margin: 0; }
+.seats li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--line); }
 .online { color: #1e8449; font-size: 0.85em; }
 .offline { color: var(--muted); font-size: 0.85em; }
 .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(0,0,0,.3); }

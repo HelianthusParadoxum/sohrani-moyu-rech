@@ -66,7 +66,7 @@ describe('партия ботами', () => {
   for (const n of [2, 3, 4]) {
     it(`${n} игрока доигрывают до конца, карты не теряются`, () => {
       for (let seed = 1; seed <= 15; seed++) {
-        const s = playOut(createGame({ players: players(n), seed }), seeded(seed));
+        const s = playOut(createGame({ players: players(n), seed }), seeded(seed), 5000, 'random');
         expect(s.phase).toBe('end');
         expect(s.result).toBeDefined();
         expect(s.round).toBe(5);
@@ -158,7 +158,7 @@ describe('полный режим', () => {
   for (const n of [2, 3, 4]) {
     it(`${n} игрока доигрывают полную партию ботами, карты не теряются`, () => {
       for (let seed = 1; seed <= 12; seed++) {
-        const s = playOut(createGame({ players: players(n), seed, mode: 'full' }), seeded(seed));
+        const s = playOut(createGame({ players: players(n), seed, mode: 'full' }), seeded(seed), 5000, 'random');
         expect(s.phase).toBe('end');
         const cards = allCards(s);
         expect(new Set(cards).size).toBe(cards.length);
@@ -263,7 +263,7 @@ describe('Завсегдатаи: Ветеран, Лейтенант, Управ
     for (let seed = 1; seed <= 10 && !found; seed++) {
       const s0 = createGame({ players: players(2), seed, mode: 'full' });
       connect(s0, 'lieutenant', ['p1', 'p2']);
-      const s = playOut(s0, seeded(seed));
+      const s = playOut(s0, seeded(seed), 5000, 'random');
       expect(s.phase).toBe('end');
       found = s.log.some((l) => l.text.includes('Лейтенант приносит'));
     }
@@ -315,7 +315,7 @@ describe('Главлитовец', () => {
     for (let seed = 1; seed <= 5; seed++) {
       const s0 = createGame({ players: players(3), seed, mode: 'full' });
       s0.patrons[0] = { ...s0.patrons[0], id: 'glavlit', connections: ['p1', 'p2'] };
-      const s = playOut(s0, seeded(seed));
+      const s = playOut(s0, seeded(seed), 5000, 'random');
       expect(s.phase).toBe('end');
       expect(s.log.some((l) => l.text.includes('(Главлитовец)'))).toBe(true);
     }
@@ -326,7 +326,7 @@ describe('разбивка очков по источникам', () => {
   it('сумма по источникам равна очкам, набранным по ходу игры', () => {
     for (const mode of ['beginner', 'full'] as const) {
       for (let seed = 1; seed <= 8; seed++) {
-        const s = playOut(createGame({ players: players(3), seed, mode }), seeded(seed));
+        const s = playOut(createGame({ players: players(3), seed, mode }), seeded(seed), 5000, 'random');
         for (const p of s.players) {
           const sum = Object.values(p.pointsBy).reduce((a, n) => a + (n ?? 0), 0);
           expect(sum).toBe(p.points);

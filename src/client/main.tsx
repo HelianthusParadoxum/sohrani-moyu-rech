@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useServer } from './net';
 import { Game } from './game';
-import { PLAYER_COLORS, SpeedSelect } from './ui';
+import { PLAYER_COLORS, PresetSelect, SpeedSelect } from './ui';
 import './style.css';
 
 function useHashCode(): string | null {
@@ -87,6 +87,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
             <span className="dot" style={{ background: PLAYER_COLORS[i] }} />
             {s.name}{s.id === room.host && ' (хост)'}{s.bot && ' 🤖'}
             {!s.bot && <span className={s.online ? 'online' : 'offline'}>{s.online ? ' в сети' : ' не в сети'}</span>}
+            {s.bot && <PresetSelect seat={s} host={host} send={net.send} />}
             {host && s.id !== room.host && <button className="small" onClick={() => net.send({ t: 'removeSeat', seat: s.id })}>убрать</button>}
           </li>
         ))}
