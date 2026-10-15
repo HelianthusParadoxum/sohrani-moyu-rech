@@ -532,7 +532,8 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
     return;
   }
   if (action.type === 'group') {
-    check(!mustVisitRedCorner(state, p), 'Последнего Единомышленника нужно отправить в Красный уголок');
+    // Исключение: Расширение сети можно и последним Единомышленником — новый тут же займёт его место (и пойдёт в Красный уголок).
+    check(!mustVisitRedCorner(state, p) || action.group.action === 'hire', 'Последнего Единомышленника нужно отправить в Красный уголок');
     doGroup(state, p, action.group, { limited: true, worker: true });
     track(p, `group:${action.group.action}`);
     p.available--;

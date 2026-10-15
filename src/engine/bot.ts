@@ -72,7 +72,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
     case 'orders': {
       if (state.turnDone === me) return [{ type: 'endTurn' }];
       if (p.available === 0) return [...groupCandidates(state, me, rand), { type: 'pass' }];
-      if (mustVisitRedCorner(state, p)) return redCorner(state, me);
+      if (mustVisitRedCorner(state, p)) return [...redCorner(state, me), ...(p.groupUsed.includes('hire') ? [] : [{ type: 'group' as const, group: { action: 'hire' as const } }])];
       const out: Action[] = [...groupCandidates(state, me, rand), ...redCorner(state, me)];
       const addrs = [...PERMANENT_ADDRESSES, ...state.safehouses];
       for (const a of addrs) {

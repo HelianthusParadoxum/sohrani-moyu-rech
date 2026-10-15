@@ -707,3 +707,20 @@ describe('Тайники перед началом', () => {
     expect(seen.filter(Boolean)).toHaveLength(s.players[0].warehouse.length - 1);
   });
 });
+
+describe('Последний Единомышленник', () => {
+  it('может сделать Расширение сети, а другое действие — нет', () => {
+    let s = createGame({ players: players(2), seed: 9 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    p.available = 1;
+    p.talons = 10;
+    expect(() => applyAction(s, me, { type: 'group', group: { action: 'expandWarehouse' } })).toThrow(RuleError);
+    s = applyAction(s, me, { type: 'group', group: { action: 'hire' } });
+    const q = s.players.find((x) => x.id === me)!;
+    expect(q.workers).toBe(p.workers + 1);
+    expect(q.available).toBe(1); // новый Единомышленник — всё ещё последний, ему в Красный уголок
+  });
+});

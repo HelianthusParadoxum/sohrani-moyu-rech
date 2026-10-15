@@ -97,7 +97,7 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
         <aside className="side">
           {me && (
             <MyPanel view={view} me={me} color={PLAYER_COLORS[seatIndex(me.id)]}
-              groupEnabled={(canPlace && !mustRed) || bonusTurn} onGroup={(id) => setPanel({ kind: 'group', id })}
+              groupEnabled={canPlace || bonusTurn} onlyHire={canPlace && mustRed} onGroup={(id) => setPanel({ kind: 'group', id })}
               onMemorize={view.mode === 'full' && (canPlace || bonusTurn || afterAction) ? (card) => act({ type: 'memorize', card }) : null}
               onCache={canPlace || bonusTurn || afterAction ? () => setPanel({ kind: 'cache' }) : null} />
           )}
@@ -958,8 +958,8 @@ function Stats({ p, view }: { p: VPlayer; view: PlayerView }) {
   );
 }
 
-function MyPanel({ view, me, color, groupEnabled, onGroup, onMemorize, onCache }: {
-  view: PlayerView; me: VPlayer; color: string; groupEnabled: boolean; onGroup: (id: GroupActionId) => void; onMemorize: ((card: string | null) => void) | null;
+function MyPanel({ view, me, color, groupEnabled, onlyHire, onGroup, onMemorize, onCache }: {
+  view: PlayerView; me: VPlayer; color: string; groupEnabled: boolean; onlyHire?: boolean; onGroup: (id: GroupActionId) => void; onMemorize: ((card: string | null) => void) | null;
   onCache: (() => void) | null;
 }) {
   const memorized = me.warehouse.find((s) => s.memorized)?.card ?? null;
@@ -997,7 +997,7 @@ function MyPanel({ view, me, color, groupEnabled, onGroup, onMemorize, onCache }
           {(Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => !GROUP_ACTIONS[g].fullOnly || view.mode === 'full').map((g) => (
             <button key={g} className={`small ${groupBlocker(view, me, g) ? 'short' : ''}`}
               title={me.groupUsed.includes(g) ? 'Уже сделано в эту Пятилетку' : groupBlocker(view, me, g) ?? GROUP_ACTIONS[g].hint}
-              disabled={!groupEnabled || me.groupUsed.includes(g)} onClick={() => onGroup(g)}>
+              disabled={!groupEnabled || me.groupUsed.includes(g) || (onlyHire && g !== 'hire')} onClick={() => onGroup(g)}>
               {GROUP_ACTIONS[g].name}{groupN(me, g) && <span className="dot num inline" style={{ background: color }}>{groupN(me, g)}</span>}
             </button>
           ))}

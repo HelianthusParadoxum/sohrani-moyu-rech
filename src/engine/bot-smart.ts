@@ -787,7 +787,11 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       if (state.turnDone === me) return [{ type: 'endTurn' }];
       const groups = () => groupCandidates(state, me, ctx).filter((g) => !p.groupUsed.includes(g.action)).map((group) => ({ type: 'group' as const, group }));
       if (p.available === 0) return [...groups(), { type: 'pass' }];
-      if (mustVisitRedCorner(state, p)) return redCornerCandidates(state, me, keepMap());
+      // Последний Единомышленник — в Красный уголок; исключение — Расширение сети (новый пойдёт вместо него).
+      if (mustVisitRedCorner(state, p)) {
+        const hire: Action[] = p.groupUsed.includes('hire') ? [] : [{ type: 'group', group: { action: 'hire' } }];
+        return [...redCornerCandidates(state, me, keepMap()), ...hire];
+      }
       const out: Action[] = [...groups()];
       if (!p.visitedRedCorner) out.push(...redCornerCandidates(state, me, keepMap()));
       else out.push({ type: 'pass' });
