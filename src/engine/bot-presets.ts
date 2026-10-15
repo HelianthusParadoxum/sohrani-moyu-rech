@@ -1,3 +1,4 @@
+import type { PatronId } from './types';
 // Пресеты ботов: чего бот хочет и какой у него характер. Меняйте числа здесь — код читать не нужно.
 //
 // Как бот думает: на каждом ходу он примеряет все допустимые ходы на копии партии и оценивает,
@@ -133,6 +134,14 @@ export const BOT_PRESETS: BotPreset[] = [
 
 export const DEFAULT_PRESET = 'bookman';
 
+// Сила Завсегдатаев (0..1) по замеру `npm run patrons`: сколько очков приносит связь. Куратор блокирует сильных.
+export const PATRON_POWER: Partial<Record<PatronId, number>> = {
+  apprentice: 1, doctor: 0.8, carpenter: 0.8, librarian: 0.75, lieutenant: 0.65, buyer: 0.6, postgrad: 0.6, housekeeper: 0.6,
+  chairman: 0.55, tsekhovik: 0.55, geologist: 0.5, buzoter: 0.5, professor: 0.45, komsorg: 0.45, labtech: 0.7, zavmag: 0.35,
+  zavkhoz: 0.3, editor: 0.3, partorg: 0.3, broker: 0.3, veteran: 0.25, typist: 0.25, psychiatrist: 0.25, fartsovshchik: 0.2,
+  correspondent: 0.2, glavlit: 0.15, nesun: 0.15,
+};
+
 // ---------- Характеры Куратора-бота ----------
 // Куратору-боту характер достаётся случайно (по номеру партии и месту — одинаково при повторе партии).
 // Числа по Пятилеткам 1..5:
@@ -222,6 +231,9 @@ export const BOT_BASE = {
   curatorBannedBook: 0.7, // ...ещё сверху за подцензурную (её можно сдать в Главлит или заплатить ею за Контору)
   curatorDenyFeed: 1.5, // каждая открытая книга на столе, которая годится честным для ближайшей ступени Ростка
   curatorConceal: 1, // × conceal характера: цена подозрения на себя (0..1)
+  curatorFeedChance: 0.03, // как часто Куратор вообще рассматривает кормление Ростков (иначе — никогда)
+  curatorPatronBlock: 6, // связь в эту Пятилетку с сильным Завсегдатаем (× его сила): остальным он до следующей недоступен
+  curatorTurnOrder: 4, // ранний Красный уголок для Куратора (× нападение характера)
   insurance: 3, // «Громоотвод»: ступень сверх 3-й у любого Ростка страхует от срезов Куратора (засчитывается до 3 ступеней)
   insuranceSteps: 3,
   coopInsurance: 2, // при полной кооперации «Громоотвод» втрое ценнее

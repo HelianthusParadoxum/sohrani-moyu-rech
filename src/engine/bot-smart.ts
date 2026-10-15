@@ -4,7 +4,7 @@
 // Честность: бот не подглядывает в закрытые карты. Перед примеркой он перемешивает свою копию
 // стопок и Барахолки, поэтому вытянутая при примерке книга — догадка, а не знание.
 import { applyAction, mustVisitRedCorner } from './engine';
-import { BOT_BASE, CURATOR_STYLES, curatorStyle, type BotGoal, type BotPreset, type CuratorStyle } from './bot-presets';
+import { BOT_BASE, CURATOR_STYLES, PATRON_POWER, curatorStyle, type BotGoal, type BotPreset, type CuratorStyle } from './bot-presets';
 import { PERMANENT_ADDRESSES, PASSIONS, RULES, SPROUTS, STEP_REWARDS, FIRST_FEED_POINTS, ADDRESSES, KONTORA_LOSS, limitFor } from './content';
 import { heldTotal, kontoraTargets } from './full';
 import { passionPoints } from './scoring';
@@ -213,6 +213,7 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   const revealed = style.untilRevealed && exposed >= BOT_BASE.suspectAct;
   const attack = revealed ? style.attack[4] : style.attack[r];
   const conceal = revealed ? 0 : style.conceal[r];
+  const others = state.players.filter((o) => o.id !== p.id);
   let v = resources(state, p, ctx);
   const prog = state.sprouts.map((sp) => Math.min(sp.progress, RULES.glasnostStep));
   v -= BOT_BASE.curatorStep * prog.reduce((a, b) => a + b, 0) + BOT_BASE.curatorWeakest * Math.min(...prog);
@@ -225,9 +226,17 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   }
   // Книги на столе, которыми честные закроют ближайшие ступени, — лучше забрать себе.
   v -= BOT_BASE.curatorDenyFeed * feedBooksOnTable(state);
+  // Связь с сильным Завсегдатаем в эту Пятилетку закрывает его для остальных до следующей.
+  for (const pt of state.patrons) {
+    if (pt.removed || !pt.connections.includes(p.id) || pt.since?.[p.id] !== state.round) continue;
+    const blocked = others.filter((o) => !pt.connections.includes(o.id)).length / Math.max(1, others.length);
+    v += BOT_BASE.curatorPatronBlock * (PATRON_POWER[pt.id] ?? 0.3) * blocked;
+  }
+  // Ранний Красный уголок: первым ходить в новой Пятилетке, когда цензура только сменилась, — сразу ударить.
+  const pos = state.nextOrder.indexOf(p.id);
+  if (pos >= 0 && ctx.round < RULES.rounds) v += BOT_BASE.curatorTurnOrder * attack * (state.players.length - pos) / state.players.length;
   // Маскировка и «отжим» Талонов.
   v -= conceal * BOT_BASE.curatorConceal * exposed;
-  const others = state.players.filter((o) => o.id !== p.id);
   v -= style.squeeze[r] * ctx.talon * others.reduce((s, o) => s + o.talons, 0) / Math.max(1, others.length);
   if (state.phase !== 'end' && state.phase !== 'passion') {
     const risky = atRisk(state, p, (c) => ownBookValue(state, p, c, ctx), true);
@@ -382,6 +391,11 @@ export function rankActions(state: GameState, me: string, preset: BotPreset, ran
     const curator = rand() < preset.character.aggression * 2;
     cands = cands.filter((a) => a.type === 'choosePassion' && (a.passion === 'curator') === curator);
     if (curator) return [{ a: cands[0], v: 0 }];
+  }
+  // Куратор почти никогда не кормит Ростки: это слишком дорого даже ради маскировки (но изредка — чтобы не читался железно).
+  if (ctx.curator && rand() >= BOT_BASE.curatorFeedChance) {
+    cands = cands.filter((a) => !(a.type === 'place' && a.place.address === 'sprouts'));
+    if (!cands.length) return [];
   }
   const samples = Array.from({ length: SAMPLES }, () => determinize(state, rand));
   // В свой ход — сначала спрятать в Тайник самое ценное из опального: потом (Контора, облава) будет поздно.
@@ -654,7 +668,8 @@ function byValue(keep: Map<string, number>, cards: string[]): string[] {
 
 function redCornerCandidates(state: GameState, me: string, keep: Map<string, number>): Action[] {
   const p = player(state, me);
-  const cards = p.warehouse.map((s) => s.card);
+  // Куратор Пропаганду не сдаёт: в конце она срезает Ростки.
+  const cards = p.warehouse.map((s) => s.card).filter((c) => p.passion !== 'curator' || !isPropaganda(state, c));
   const prop = cards.find((c) => isPropaganda(state, c));
   const unprinted = byValue(keep, cards.filter((c) => !isLoad(state, c) && state.cards[c].kind !== 'loadEvidence' && state.cards[c].kind !== 'loadReturnable'));
   const loads = cards.filter((c) => isLoad(state, c) && !isEvidence(state, c));
