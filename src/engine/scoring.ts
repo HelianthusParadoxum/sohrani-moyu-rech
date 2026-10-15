@@ -22,20 +22,45 @@ export function passionPoints(state: GameState, p: PlayerState): number {
     return RULES.passionKeeper * best((icons) => icons.filter((x) => x === a || x === b).length);
   }
   switch (p.passion) {
-    case 'monogamist':
-      return RULES.passionMonogamist * Math.max(...GENRES.map(count));
+    case 'monogamist': {
+      // Лучший жанр и второй по силе. Перебираем пары жанров: так гибкий значок возвращения
+      // у каждой книги засчитывается ровно в одном жанре — там, где выгоднее.
+      if (!RULES.monogamistSecond) return RULES.passionMonogamist * Math.max(...GENRES.map(count));
+      let top = 0;
+      for (const g1 of GENRES) for (const g2 of GENRES) {
+        if (g1 === g2) continue;
+        top = Math.max(top, best((icons) => RULES.passionMonogamist * icons.filter((x) => x === g1).length
+          + RULES.monogamistSecond * icons.filter((x) => x === g2).length));
+      }
+      return top;
+    }
     case 'innovator':
       return RULES.passionInnovator * books.filter((icons) => new Set(icons).size >= 2).reduce((s, icons) => s + icons.length, 0);
-    case 'erudite':
-      return RULES.passionErudite * eruditeBest(variants);
+    case 'erudite': {
+      // Очки за значки и (если включено) за каждый засчитанный жанр, не больше eruditeMaxGenres жанров.
+      const best = eruditeBest(variants);
+      let top = 0;
+      best.forEach((icons, mask) => {
+        const genres = popcount(mask);
+        if (icons === -Infinity || genres > RULES.eruditeMaxGenres) return;
+        top = Math.max(top, RULES.passionErudite * icons + RULES.eruditePerGenre * genres);
+      });
+      return top;
+    }
     default:
       return 0;
   }
 }
 
+function popcount(x: number): number {
+  let n = 0;
+  for (; x; x &= x - 1) n++;
+  return n;
+}
+
 // Эрудит: в каждом жанре засчитывается максимум одна книга; книга идёт в зачёт одного жанра.
-// Перебор по маске жанров (8 жанров → 256 состояний).
-function eruditeBest(books: Genre[][][]): number {
+// Перебор по маске жанров (8 жанров → 256 состояний): для каждого набора жанров — лучшая сумма значков.
+function eruditeBest(books: Genre[][][]): number[] {
   let best = new Array(1 << GENRES.length).fill(-Infinity);
   best[0] = 0;
   for (const icons of books) {
@@ -52,7 +77,7 @@ function eruditeBest(books: Genre[][][]): number {
     }
     best = next;
   }
-  return Math.max(...best);
+  return best;
 }
 
 export function glasnostReached(state: GameState, progress = state.sprouts.map((s) => s.progress)): boolean {

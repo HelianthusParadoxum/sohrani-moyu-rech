@@ -29,6 +29,7 @@
 - `npm run build && npm start` — продакшен-сборка и запуск.
 - `npm run simulate -- 200 3` — 200 партий ботами на 3 игроков.
 - `npm run simulate -- 100 4 beginner networker,gardener,collector,bookman` — турнир пресетов (места сдвигаются по кругу).
+- `npm run addresses -- 100 3 bookman` — посещаемость адресов за Пятилетку на столе и заполненность мест (честно для явочных адресов).
 
 ## Состояние
 

@@ -88,8 +88,8 @@ function genreValue(state: GameState, p: PlayerState, g: Genre, ctx: Ctx): numbe
   const info = p.passion ? PASSIONS[p.passion] : null;
   let passion = 0;
   if (info?.genres) passion = info.genres.includes(g) ? RULES.passionKeeper : 0;
-  else if (p.passion === 'erudite') passion = RULES.passionErudite * 0.75; // засчитается, только если жанра ещё нет
-  else if (p.passion === 'monogamist') passion = RULES.passionMonogamist * 0.5; // засчитается, только если жанр станет лучшим
+  else if (p.passion === 'erudite') passion = (RULES.passionErudite + RULES.eruditePerGenre) * 0.75; // засчитается, только если жанра ещё нет
+  else if (p.passion === 'monogamist') passion = RULES.passionMonogamist * 0.5 + RULES.monogamistSecond * 0.3; // если жанр станет лучшим или вторым
   let v = passion * ctx.w.passion + BOT_BASE.bookLatent * ctx.w.publish;
   const demand = state.sprouts.filter((sp) => {
     const s = SPROUTS.find((x) => x.id === sp.id)!;

@@ -130,9 +130,16 @@ describe('значок возвращения у двужанровой книг
     expect(passionPoints(s, p)).toBe(6);
   });
 
-  it('Однолюб выбирает жанр значка в свою пользу', () => {
+  it('Однолюб выбирает жанр значка в свою пользу и не засчитывает его дважды', () => {
     const { s, p } = withBook('monogamist');
-    expect(passionPoints(s, p)).toBe(2 * RULES.passionMonogamist); // 2 значка лучшего жанра
+    // Лучший жанр — 2 значка (со значком возвращения), второй — 1.
+    expect(passionPoints(s, p)).toBe(2 * RULES.passionMonogamist + 1 * RULES.monogamistSecond);
+  });
+
+  it('Эрудит засчитывает книгу в одном жанре: значки и бонус за жанр', () => {
+    const { s, p } = withBook('erudite');
+    // Одна книга — один жанр: 2 значка (со значком возвращения) и 1 жанр.
+    expect(passionPoints(s, p)).toBe(2 * RULES.passionErudite + 1 * RULES.eruditePerGenre);
   });
 
   it('закрывает ступень Ростка значком любого из двух жанров', () => {

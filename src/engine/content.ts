@@ -47,8 +47,11 @@ export const RULES = {
   redCornerLoad: 2, // Красный уголок: Талонов за сданную книгу Нагрузки
   sideJobIncome: 3,
   passionKeeper: 2, // Хранитель: очков за значок своих двух жанров
-  passionErudite: 1, // Эрудит: очков за значок (по 1 книге на жанр); было 2
-  passionMonogamist: 3, // Однолюб: очков за значок лучшего жанра; было 2
+  passionErudite: 1, // Эрудит: очков за значок (по 1 книге на жанр); было 2 без бонуса за жанры
+  eruditePerGenre: 1, // Эрудит: ещё очков за каждый жанр, в котором засчитана книга
+  eruditeMaxGenres: 8, // Эрудит: сколько жанров засчитывается (8 — все)
+  passionMonogamist: 2, // Однолюб: очков за значок лучшего жанра
+  monogamistSecond: 1, // Однолюб: очков за значок второго по силе жанра
   passionInnovator: 2, // Новатор: очков за значок на двужанровых книгах
   propagandaPoints: -5,
   evidencePoints: 5,
@@ -170,8 +173,8 @@ export const PASSIONS: Record<PassionId, PassionInfo> = {
   keeper_dreamer: { id: 'keeper_dreamer', name: 'Мечтатель', genres: ['scifi', 'irony'], hint: `${RULES.passionKeeper} очка за значок Фантастики и Иронии` },
   keeper_skit: { id: 'keeper_skit', name: 'Капустник', genres: ['irony', 'drama'], hint: `${RULES.passionKeeper} очка за значок Иронии и Драматургии` },
   keeper_theatre: { id: 'keeper_theatre', name: 'Театрал', genres: ['drama', 'prose'], hint: `${RULES.passionKeeper} очка за значок Драматургии и Прозы` },
-  erudite: { id: 'erudite', name: 'Эрудит', special: true, hint: `${RULES.passionErudite} очко за значок, но в каждом жанре максимум 1 книга` },
-  monogamist: { id: 'monogamist', name: 'Однолюб', special: true, hint: `${RULES.passionMonogamist} очка за значок одного жанра (лучшего на момент подсчёта)` },
+  erudite: { id: 'erudite', name: 'Эрудит', special: true, hint: `${RULES.passionErudite} очко за значок и ${RULES.eruditePerGenre} за каждый жанр; в каждом жанре засчитывается 1 книга${RULES.eruditeMaxGenres < 8 ? `, не больше ${RULES.eruditeMaxGenres} жанров` : ''}` },
+  monogamist: { id: 'monogamist', name: 'Однолюб', special: true, hint: `${RULES.passionMonogamist} очка за значок лучшего жанра${RULES.monogamistSecond ? ` и ${RULES.monogamistSecond} за значок второго по силе` : ''} (на момент подсчёта)` },
   innovator: { id: 'innovator', name: 'Новатор', special: true, hint: `${RULES.passionInnovator} очка за значок на двужанровых книгах` },
   curator: { id: 'curator', name: 'Куратор', special: true, hint: 'Агент госбезопасности: побеждает, если Гласность не наступит' },
 };
