@@ -69,7 +69,7 @@ export function createGame(opts: NewGameOptions): GameState {
       published: [], tamizdat: [],
       passion: null, passionOptions: [passions.pop()!, passions.pop()!],
       groupUsed: [], visitedRedCorner: false, sproutsFed: [], subscriptions: [],
-      held: 0, buzoterUsed: false, pointsBy: {}, patronBonus: { capacity: 0, cache: 0 },
+      held: 0, buzoterUsed: false, pointsBy: {}, actions: [], patronBonus: { capacity: 0, cache: 0 },
     };
     for (let i = 0; i < 2; i++) addBook(p, draw(state)!);
     for (let i = 0; i < 2; i++) addBook(p, drawLoad(state)!);
@@ -183,6 +183,7 @@ function startRound(state: GameState) {
     p.buzoterUsed = false;
     p.bonusGroupTurns = 0;
     p.groupUsed = [];
+    p.actions = [];
     p.visitedRedCorner = false;
   }
   // Обстановка: опала и обновление каналов.
@@ -461,6 +462,7 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
     }
     check(action.type === 'group', 'Сейчас можно только действие Инициативной группы');
     doGroup(state, p, action.group, { limited: true });
+    track(p, `group:${action.group.action}`);
     p.bonusGroupTurns--;
     return;
   }
@@ -475,6 +477,7 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
   if (action.type === 'group') {
     check(!mustVisitRedCorner(state, p), 'Последнего Единомышленника нужно отправить в Красный уголок');
     doGroup(state, p, action.group, { limited: true });
+    track(p, `group:${action.group.action}`);
     p.available--;
     return;
   }
@@ -502,7 +505,13 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
   doPlace(state, p, a);
   if (buzoter) { p.buzoterUsed = true; log(state, `${p.name}: Бузотёр пробивается на занятый адрес.`); }
   state.occupancy[a.address] = [...here, p.id];
+  track(p, a.address);
   p.available--;
+}
+
+// Запомнить, каким по счёту в Пятилетке было действие игрока (номер на жетоне).
+function track(p: PlayerState, target: string) {
+  p.actions.push({ target, n: p.actions.length + 1 });
 }
 
 function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
@@ -1000,6 +1009,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       check(action.choice, 'Выберите пункты');
       check(!mustVisitRedCorner(state, p), 'Последнего Единомышленника нужно отправить в Красный уголок');
       state.occupancy.kontora = [...(state.occupancy.kontora ?? []), p.id];
+      track(p, 'kontora');
       p.available--;
       log(state, `${p.name} идёт в Контору.`);
       doKontora(state, p, action.choice);
@@ -1038,6 +1048,7 @@ export function migrate(state: GameState): GameState {
     p.held ??= 0;
     p.buzoterUsed ??= false;
     p.pointsBy ??= {};
+    p.actions ??= [];
     p.patronBonus ??= { capacity: 0, cache: 0 };
   }
   return state;

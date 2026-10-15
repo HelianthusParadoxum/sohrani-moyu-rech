@@ -86,7 +86,7 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
               <AddressCard key={id} id={id} view={view} seatIndex={seatIndex} me={me}
                 enabled={canPlace && (!mustRed || id === 'redCorner')} onOpen={() => setPanel({ kind: 'address', id })} />
             ))}
-            <Sprouts view={view} beside={full} />
+            <Sprouts view={view} beside={full} seatIndex={seatIndex} />
           </div>
         </section>
         <aside className="side">
@@ -131,7 +131,12 @@ function AddressCard({ id, view, seatIndex, me, enabled, onOpen }: {
       <div className="addr-head">
         <b>{info.name}</b>
         <span className="workers">
-          {here.map((pid, i) => <span key={i} className="dot" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} />)}
+          {here.map((pid, i) => {
+            // Номер на жетоне — каким по счёту в Пятилетке было это действие игрока.
+            const k = here.slice(0, i).filter((x) => x === pid).length;
+            const n = view.players.find((x) => x.id === pid)?.actions?.filter((a) => a.target === id)[k]?.n;
+            return <span key={i} className="dot num" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} title={n ? `${n}-е действие игрока` : undefined}>{n ?? ''}</span>;
+          })}
           <span className="muted small">{limit === Infinity ? '∞' : `${here.length}/${limit}`}</span>
           {enabled && <button className="go small" disabled={full} onClick={onOpen} title={full ? 'Мест нет' : 'Отправить Единомышленника сюда'}>{full ? 'занято' : 'сюда →'}</button>}
         </span>
@@ -382,7 +387,7 @@ function stepText(main: Genre, step: { main: number; support?: Genre }) {
   );
 }
 
-function Sprouts({ view, beside }: { view: PlayerView; beside: boolean }) {
+function Sprouts({ view, beside, seatIndex }: { view: PlayerView; beside: boolean; seatIndex: (id: string) => number }) {
   return (
     <div className={`sprouts-panel ${beside ? 'beside' : ''}`}>
       <div className="addr-head">
@@ -395,6 +400,14 @@ function Sprouts({ view, beside }: { view: PlayerView; beside: boolean }) {
         return (
           <div key={sp.id} className={`sprout ${sp.progress >= RULES.glasnostStep ? 'grown' : ''}`}>
             <div className="addr-head"><b>{info.name}</b><span>{sp.progress}/4</span></div>
+            {/* Жетоны игроков, которые хоть раз питали этот Росток (+2 очка за первое питание) */}
+            {view.players.some((p) => p.sproutsFed.includes(sp.id)) && (
+              <div className="workers" title="Питали этот Росток (получили +2 очка за первое питание)">
+                {view.players.filter((p) => p.sproutsFed.includes(sp.id)).map((p) => (
+                  <span key={p.id} className="dot" style={{ background: PLAYER_COLORS[seatIndex(p.id)] }} title={p.name} />
+                ))}
+              </div>
+            )}
             <ol className="steps">
               {info.steps.map((st, i) => (
                 <li key={i} className={i < sp.progress ? 'done' : i === sp.progress ? 'next' : ''}>
@@ -813,7 +826,7 @@ function MyPanel({ view, me, color, groupEnabled, onGroup, onMemorize }: {
             <button key={g} className={`small ${groupBlocker(view, me, g) ? 'short' : ''}`}
               title={me.groupUsed.includes(g) ? 'Уже сделано в эту Пятилетку' : groupBlocker(view, me, g) ?? GROUP_ACTIONS[g].hint}
               disabled={!groupEnabled || me.groupUsed.includes(g)} onClick={() => onGroup(g)}>
-              {GROUP_ACTIONS[g].name}
+              {GROUP_ACTIONS[g].name}{groupN(me, g) && <span className="dot num inline" style={{ background: color }}>{groupN(me, g)}</span>}
             </button>
           ))}
         </div>
@@ -829,8 +842,20 @@ function OtherPlayer({ view, p, color, active, first }: { view: PlayerView; p: V
       <Stats p={p} view={view} />
       <div className="shelf wrap">{p.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}</div>
       <Published view={view} p={p} />
+      <div className="group-actions readonly" title="Действия Инициативной группы в эту Пятилетку">
+        {(Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => !GROUP_ACTIONS[g].fullOnly || view.mode === 'full').map((g) => (
+          <span key={g} className={`gact ${p.groupUsed.includes(g) ? 'used' : ''}`} title={GROUP_ACTIONS[g].hint}>
+            {GROUP_ACTIONS[g].name}{groupN(p, g) && <span className="dot num inline" style={{ background: color }}>{groupN(p, g)}</span>}
+          </span>
+        ))}
+      </div>
     </div>
   );
+}
+
+// Номер действия Группы в эту Пятилетку (если делалось Единомышленником).
+function groupN(p: VPlayer, g: GroupActionId): number | undefined {
+  return p.actions?.find((a) => a.target === `group:${g}`)?.n;
 }
 
 function Log({ view }: { view: PlayerView }) {

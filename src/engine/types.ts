@@ -104,6 +104,7 @@ export interface PlayerState {
   subscriptions: { genre: Genre; rounds: number }[];
   held: number; // Единомышленников удерживает Контора
   buzoterUsed: boolean;
+  actions: { target: string; n: number }[]; // действия Единомышленников в эту Пятилетку: адрес или «group:…», порядковый номер
   pointsBy: Partial<Record<PointSource, number>>; // откуда взялись очки, набранные по ходу игры
   patronBonus: { capacity: number; cache: number }; // прибавки от Управдома и Столяра
 }
