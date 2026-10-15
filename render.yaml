@@ -1,0 +1,13 @@
+# Конфигурация для Render.com (Blueprint): New → Blueprint → выбрать этот репозиторий.
+services:
+  - type: web
+    name: sohrani-moyu-rech
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22
