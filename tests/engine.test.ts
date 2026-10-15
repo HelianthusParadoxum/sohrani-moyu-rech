@@ -86,6 +86,30 @@ describe('правила редакции октября', () => {
     return s;
   }
 
+  it('Барахолка: тайно смотрим 2 книги и покупаем одну из них', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    const other = s.players.find((p) => p.id !== me)!.id;
+    const [a, b] = [s.baraholka[1]!, s.baraholka[3]!];
+    expect(() => applyAction(s, me, { type: 'place', place: { address: 'baraholka', slots: [1] } })).toThrow(RuleError);
+    s = applyAction(s, me, { type: 'place', place: { address: 'baraholka', slots: [1, 3] } });
+    // Соперник не видит, какие книги смотрят.
+    const theirs = JSON.stringify(viewFor(s, other).pending);
+    expect(theirs).not.toContain(a);
+    expect(theirs).not.toContain(b);
+    expect(JSON.stringify(viewFor(s, me).pending)).toContain(b);
+    expect(() => applyAction(s, me, { type: 'baraholkaBuy', slot: 0 })).toThrow(RuleError);
+    expect(() => applyAction(s, me, { type: 'baraholkaBuy', next: 0 })).toThrow(RuleError);
+    const talons = s.players.find((p) => p.id === me)!.talons;
+    s = applyAction(s, me, { type: 'baraholkaBuy', slot: 3 });
+    const p = s.players.find((x) => x.id === me)!;
+    expect(p.warehouse.map((x) => x.card)).toContain(b);
+    expect(p.talons).toBe(talons - RULES.baraholkaPrice);
+    expect(s.baraholka[3]).toBeNull();
+    expect(s.baraholka[1]).toBe(a); // вторая просмотренная книга остаётся на Барахолке
+    expect(s.pending).toHaveLength(0);
+  });
+
   it('Толкучка: покупка — 2 Талона за книгу независимо от значков', () => {
     const s = started();
     const me = s.order[s.turn];
@@ -257,9 +281,11 @@ describe('Завсегдатаи: Ветеран, Лейтенант, Управ
     connect(s, 'veteran', [me]);
     s.players.find((x) => x.id === me)!.capacity = 10;
     const talons = s.players.find((x) => x.id === me)!.talons;
-    s = applyAction(s, me, { type: 'place', place: { address: 'baraholka', slot: 0 } });
-    s = applyAction(s, me, { type: 'baraholkaBuy', buy: true, next: 1 });
-    s = applyAction(s, me, { type: 'baraholkaBuy', buy: true });
+    s = applyAction(s, me, { type: 'place', place: { address: 'baraholka', slots: [0, 1] } });
+    s = applyAction(s, me, { type: 'baraholkaBuy', slot: 0 });
+    s = applyAction(s, me, { type: 'baraholkaBuy', slot: 1 });
+    s = applyAction(s, me, { type: 'baraholkaBuy' });
+    expect(s.pending).toHaveLength(0);
     const p = s.players.find((x) => x.id === me)!;
     expect(p.talons).toBe(talons - 1);
     expect(s.baraholka[0]).toBeNull();

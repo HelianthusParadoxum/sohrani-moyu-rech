@@ -37,6 +37,7 @@ export const RULES = {
   razvalPrices: [2, 2, 1, 1],
   zavozIncome: 2,
   baraholkaPrice: 1,
+  baraholkaLook: 2, // Барахолка: сколько книг тайно посмотреть (купить можно одну из них)
   safehousePrice: 3, // Наследники, Посредничество авторам
   raspredelitelPrice: 2, // книга Распределителя
   spisaniePrice: 1, // Библиотечное списание
@@ -86,7 +87,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   redCorner: { id: 'redCorner', name: 'Красный уголок', limits: [INF, INF, INF], perPlayer: true, hint: `Очередь хода на следующую Пятилетку; сдать до 1 Непечатной (+${RULES.redCornerUnprinted}т) и до 1 Нагрузки (+${RULES.redCornerLoad}т)` },
   razval: { id: 'razval', name: 'Развал', limits: [2, 3, 4], hint: 'Купить 1 книгу: −2/−2/−1/−1т по свежести' },
   zavoz: { id: 'zavoz', name: 'Завоз', limits: [1, 1, 2], hint: '+2т, Развал полностью обновляется' },
-  baraholka: { id: 'baraholka', name: 'Барахолка', limits: [4, 4, 4], hint: 'Тайно посмотреть 1 из 4 закрытых книг и купить за 1т' },
+  baraholka: { id: 'baraholka', name: 'Барахолка', limits: [4, 4, 4], hint: 'Тайно посмотреть 2 из 4 закрытых книг и купить одну из них за 1т' },
   podpiska: { id: 'podpiska', name: 'Подписка', limits: [1, 1, 2], hint: 'Заказать жанр: −1т за каждую Пятилетку доставки' },
   sprouts: { id: 'sprouts', name: 'Ростки Гласности', limits: [3, 4, 5], hint: 'Закрыть любое число ступеней Ростков' },
   samizdat: { id: 'samizdat', name: 'Самиздат', limits: [2, 2, 3], hint: `Издать книгу: +${RULES.samizdatTalons}т/значок` },

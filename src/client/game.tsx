@@ -283,19 +283,23 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
     case 'zavoz':
       body = <><p>Получите {RULES.zavozIncome} Талона. Всё, что лежит на Развале, уйдёт в сброс, и Развал заполнится новыми книгами.</p>{confirmBtn('Подработать', { address: 'zavoz' })}</>;
       break;
-    case 'baraholka':
+    case 'baraholka': {
+      const need = Math.min(RULES.baraholkaLook, view.baraholka.filter(Boolean).length);
+      // Выбор по кругу: новая книга вытесняет самую раннюю из выбранных.
+      const pick = (i: string) => setSel(sel.includes(i) ? sel.filter((x) => x !== i) : [...sel, i].slice(-need));
       body = (
         <>
-          <p>Выберите закрытую книгу. Вы тайно посмотрите её и решите, покупать ли за {RULES.baraholkaPrice}т.</p>
+          <p>Выберите {need === 1 ? 'закрытую книгу' : `${need} закрытые книги`}. Вы тайно посмотрите их и сможете купить одну за {RULES.baraholkaPrice}т.</p>
           <div className="shelf">
             {view.baraholka.map((has, i) => has && (
-              <button key={i} className={`book back ${sel[0] === String(i) ? 'selected' : ''} clickable`} onClick={() => setSel([String(i)])}><span>{i + 1}</span></button>
+              <button key={i} className={`book back ${sel.includes(String(i)) ? 'selected' : ''} clickable`} onClick={() => pick(String(i))}><span>{i + 1}</span></button>
             ))}
           </div>
-          {confirmBtn('Посмотреть', sel.length ? { address: 'baraholka', slot: Number(sel[0]) } : null)}
+          {confirmBtn('Посмотреть', sel.length === need ? { address: 'baraholka', slots: sel.map(Number) } : null)}
         </>
       );
       break;
+    }
     case 'podpiska': {
       const maxRounds = RULES.rounds - view.round + 1;
       body = (
@@ -631,27 +635,29 @@ function PendingPrompt({ view, me, act, nameOf }: { view: PlayerView; me: VPlaye
       return <FreeConnectionPrompt view={view} me={me} act={act} />;
     case 'baraholkaLook': {
       const veteran = hasPatron(view, me.id, 'veteran');
-      const looked = [...(p.looked ?? []), p.slot];
-      const more = veteran ? view.baraholka.map((has, i) => (has && !looked.includes(i) ? i : -1)).filter((i) => i >= 0) : [];
+      const more = veteran ? view.baraholka.map((has, i) => (has && !p.seen.some((x) => x.slot === i) ? i : -1)).filter((i) => i >= 0) : [];
       const bought = p.bought ?? 0;
       const cost = veteran && bought === 1 ? 0 : RULES.baraholkaPrice;
       return (
         <Modal title="Барахолка">
-          <p>Вы тайно смотрите книгу:</p>
-          <div className="shelf"><Book v={view} id={p.card} /></div>
+          <p>Вы тайно смотрите {p.seen.length === 1 ? 'книгу' : 'книги'}{veteran ? '' : ' и можете купить одну из них'}:</p>
+          <div className="shelf">
+            {p.seen.map((x) => (
+              <div key={x.slot} className="col">
+                <Book v={view} id={x.card} />
+                <button className="primary small" disabled={me.talons < cost} onClick={() => act({ type: 'baraholkaBuy', slot: x.slot })}>Купить за {cost}т</button>
+              </div>
+            ))}
+          </div>
           {veteran && <p className="muted small">Ветеран: можно смотреть и покупать сколько угодно книг; в сумме на 1 Талон дешевле (вторая книга бесплатно). Куплено: {bought}.</p>}
           <div className="modal-foot">
-            <button onClick={() => act({ type: 'baraholkaBuy', buy: false })}>{bought ? 'Закончить' : 'Не брать'}</button>
-            <button className="primary" disabled={me.talons < cost} onClick={() => act({ type: 'baraholkaBuy', buy: true })}>Купить за {cost}т</button>
+            <button onClick={() => act({ type: 'baraholkaBuy' })}>{bought ? 'Закончить' : 'Ничего не брать'}</button>
           </div>
           {more.length > 0 && (
             <div className="modal-foot">
               <span className="muted small">Посмотреть ещё:</span>
               {more.map((i) => (
-                <span key={i} className="row">
-                  <button className="small" onClick={() => act({ type: 'baraholkaBuy', buy: false, next: i })}>№{i + 1} (эту не брать)</button>
-                  <button className="small" disabled={me.talons < cost} onClick={() => act({ type: 'baraholkaBuy', buy: true, next: i })}>№{i + 1} (эту купить)</button>
-                </span>
+                <button key={i} className="small" onClick={() => act({ type: 'baraholkaBuy', next: i })}>№{i + 1}</button>
               ))}
             </div>
           )}

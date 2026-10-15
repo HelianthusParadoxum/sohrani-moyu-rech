@@ -115,7 +115,7 @@ export interface Sprout {
 }
 
 export type Pending =
-  | { kind: 'baraholkaLook'; player: string; slot: number; card: string; looked?: number[]; bought?: number }
+  | { kind: 'baraholkaLook'; player: string; seen: { slot: number; card: string }[]; bought?: number } // seen — просмотренные и ещё не купленные
   | { kind: 'kvartirnikReply'; player: string; from: string; give: string; want: string }
   | { kind: 'naslednikiPick'; player: string; cards: string[] }
   | { kind: 'posrednichestvoKeep'; player: string; cards: string[] }
@@ -207,7 +207,7 @@ export type PlaceAction =
   | { address: 'redCorner'; recycle: string[] }
   | { address: 'razval'; slot: number }
   | { address: 'zavoz' }
-  | { address: 'baraholka'; slot: number }
+  | { address: 'baraholka'; slots: number[] } // какие закрытые книги посмотреть
   | { address: 'podpiska'; genre: Genre; talons: number }
   | { address: 'sprouts'; feeds: { sprout: string; books: string[] }[] }
   | { address: 'samizdat'; card: string }
@@ -248,7 +248,7 @@ export type Action =
   | { type: 'place'; place: PlaceAction }
   | { type: 'group'; group: GroupAction }
   | { type: 'pass' } // отказаться от бонусного действия Группы
-  | { type: 'baraholkaBuy'; buy: boolean; next?: number } // next — Ветеран смотрит следующую книгу
+  | { type: 'baraholkaBuy'; slot?: number; next?: number } // slot — какую из просмотренных купить (нет — не покупать); next — Ветеран смотрит ещё книгу
   | { type: 'kvartirnikReply'; accept: boolean }
   | { type: 'naslednikiPick'; cards: string[] }
   | { type: 'posrednichestvoKeep'; keep: string[] }

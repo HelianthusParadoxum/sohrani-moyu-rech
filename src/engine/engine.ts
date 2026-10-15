@@ -10,7 +10,7 @@ import {
   rescue, setupClub, startKontora, takeFromSpetskhran,
 } from './full';
 import type {
-  Action, AddressId, GameState, Genre, GroupAction, Mode, PassionId, PlaceAction, PlayerState,
+  Action, AddressId, GameState, Genre, GroupAction, Mode, PassionId, Pending, PlaceAction, PlayerState,
 } from './types';
 import { GENRES } from './types';
 import {
@@ -614,9 +614,17 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       return;
     }
     case 'baraholka': {
-      const c = state.baraholka[a.slot];
-      check(c, 'Эта ячейка Барахолки пуста');
-      state.pending.push({ kind: 'baraholkaLook', player: p.id, slot: a.slot, card: c });
+      const filled = state.baraholka.filter((c) => c).length;
+      const need = Math.min(RULES.baraholkaLook, filled);
+      check(need > 0, 'На Барахолке не осталось книг');
+      const slots = [...new Set(a.slots)];
+      check(slots.length === need, `Выберите на Барахолке книг: ${need}`);
+      const seen = slots.map((slot) => {
+        const card = state.baraholka[slot];
+        check(card, 'Эта ячейка Барахолки пуста');
+        return { slot, card };
+      });
+      state.pending.push({ kind: 'baraholkaLook', player: p.id, seen });
       log(state, `${p.name} роется на Барахолке.`);
       return;
     }
@@ -878,27 +886,30 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
     case 'baraholkaLook': {
       check(action.type === 'baraholkaBuy', 'Решите, покупать ли книгу с Барахолки');
       const bought = pend.bought ?? 0;
-      const looked = [...(pend.looked ?? []), pend.slot];
       const veteran = hasPatron(state, p.id, 'veteran');
-      if (action.buy) {
+      if (action.slot !== undefined) {
+        const i = pend.seen.findIndex((x) => x.slot === action.slot);
+        check(i >= 0, 'Купить можно только одну из просмотренных книг');
+        const { slot, card } = pend.seen[i];
         // Ветеран платит за все книги действия в сумме на 1 Талон меньше (минимум 1): вторая книга — бесплатно.
         const cost = veteran && bought === 1 ? 0 : bought === 0 ? price(state, p, RULES.baraholkaPrice) : RULES.baraholkaPrice;
         pay(p, cost);
-        addBook(p, pend.card);
-        state.baraholka[pend.slot] = null;
+        addBook(p, card);
+        state.baraholka[slot] = null;
+        pend.seen.splice(i, 1);
+        pend.bought = bought + 1;
         log(state, `${p.name} покупает книгу на Барахолке.`);
-        log(state, `Вы купили ${title(state, pend.card)}.`, [p.id]);
-      } else if (!action.next) {
-        log(state, `${p.name} больше ничего не берёт на Барахолке.`);
+        log(state, `Вы купили ${title(state, card)}.`, [p.id]);
       }
       if (action.next !== undefined) {
         check(veteran, 'Смотреть ещё книги может только игрок со связью с Ветераном');
         const card = state.baraholka[action.next];
-        check(card && !looked.includes(action.next), 'Эту книгу нельзя посмотреть');
-        state.pending.shift();
-        state.pending.unshift({ kind: 'baraholkaLook', player: p.id, slot: action.next, card, looked, bought: bought + (action.buy ? 1 : 0) });
-        return;
+        check(card && !pend.seen.some((x) => x.slot === action.next), 'Эту книгу нельзя посмотреть');
+        pend.seen.push({ slot: action.next, card });
       }
+      // Ветеран покупает сколько угодно книг: решение закрывается, только когда он заканчивает.
+      if (veteran && (action.slot !== undefined || action.next !== undefined)) return;
+      if (action.slot === undefined) log(state, `${p.name} ${bought ? 'больше ничего не берёт' : 'ничего не берёт'} на Барахолке.`);
       break;
     }
     case 'kvartirnikReply': {
@@ -1091,6 +1102,10 @@ export function migrate(state: GameState): GameState {
     p.pointsBy ??= {};
     p.actions ??= [];
     p.patronBonus ??= { capacity: 0, cache: 0 };
+  }
+  // Барахолка: раньше смотрели одну книгу.
+  for (const x of state.pending as (Pending & { slot?: number; card?: string })[]) {
+    if (x.kind === 'baraholkaLook' && !x.seen) x.seen = [{ slot: x.slot!, card: x.card! }];
   }
   return state;
 }

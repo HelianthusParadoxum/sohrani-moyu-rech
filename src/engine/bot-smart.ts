@@ -558,7 +558,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
   const pend = state.pending[0];
   if (pend && pend.player === me) {
     switch (pend.kind) {
-      case 'baraholkaLook': return [{ type: 'baraholkaBuy', buy: true }, { type: 'baraholkaBuy', buy: false }];
+      case 'baraholkaLook': return [...pend.seen.map((x) => ({ type: 'baraholkaBuy' as const, slot: x.slot })), { type: 'baraholkaBuy' }];
       case 'kvartirnikReply': return [{ type: 'kvartirnikReply', accept: true }, { type: 'kvartirnikReply', accept: false }];
       case 'naslednikiPick': {
         const singles = pend.cards.map((c) => [c]);
@@ -652,8 +652,9 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
           case 'razval': state.razval.forEach((c, slot) => c && out.push({ type: 'place', place: { address: 'razval', slot } })); break;
           case 'zavoz': out.push({ type: 'place', place: { address: 'zavoz' } }); break;
           case 'baraholka': {
-            const slot = state.baraholka.findIndex((c) => c);
-            if (slot >= 0) out.push({ type: 'place', place: { address: 'baraholka', slot } });
+            // Закрытые книги для бота одинаковы: смотрит первые попавшиеся.
+            const slots = state.baraholka.map((c, i) => (c ? i : -1)).filter((i) => i >= 0).slice(0, RULES.baraholkaLook);
+            if (slots.length) out.push({ type: 'place', place: { address: 'baraholka', slots } });
             break;
           }
           case 'podpiska':

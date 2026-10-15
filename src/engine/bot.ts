@@ -21,7 +21,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
   const pend = state.pending[0];
   if (pend && pend.player === me) {
     switch (pend.kind) {
-      case 'baraholkaLook': return [{ type: 'baraholkaBuy', buy: true }, { type: 'baraholkaBuy', buy: false }];
+      case 'baraholkaLook': return [...pend.seen.map((x) => ({ type: 'baraholkaBuy' as const, slot: x.slot })), { type: 'baraholkaBuy' }];
       case 'kvartirnikReply': return [{ type: 'kvartirnikReply', accept: rand() < 0.5 }];
       case 'naslednikiPick': return [{ type: 'naslednikiPick', cards: pend.cards.slice(-2) }, { type: 'naslednikiPick', cards: pend.cards.slice(-1) }];
       case 'posrednichestvoKeep': return [{ type: 'posrednichestvoKeep', keep: pend.cards.slice(0, RULES.posrednichestvoKeep) }];
@@ -85,7 +85,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
           }
           case 'razval': state.razval.forEach((c, slot) => c && out.push({ type: 'place', place: { address: 'razval', slot } })); break;
           case 'zavoz': out.push({ type: 'place', place: { address: 'zavoz' } }); break;
-          case 'baraholka': out.push({ type: 'place', place: { address: 'baraholka', slot: state.baraholka.findIndex((c) => c) } }); break;
+          case 'baraholka': out.push({ type: 'place', place: { address: 'baraholka', slots: state.baraholka.map((c, i) => (c ? i : -1)).filter((i) => i >= 0).slice(0, RULES.baraholkaLook) } }); break;
           case 'podpiska': out.push({ type: 'place', place: { address: 'podpiska', genre: pick([...GENRES], rand)!, talons: 1 } }); break;
           case 'sprouts': {
             for (const sp of state.sprouts) {
@@ -212,7 +212,7 @@ function randomMove(state: GameState, me: string, rand: Rand): GameState {
     }
   }
   // Ничего не подошло: в фазе поручений — Красный уголок без сдачи или пас.
-  for (const a of [{ type: 'place', place: { address: 'redCorner', recycle: [] } }, { type: 'pass' }, { type: 'gathering', show: [] }, { type: 'hiding', hidden: [] }, { type: 'baraholkaBuy', buy: false }, { type: 'kvartirnikReply', accept: false }, { type: 'kontoraDecide', go: false }, { type: 'kontoraHide', hidden: [] }] as Action[]) {
+  for (const a of [{ type: 'place', place: { address: 'redCorner', recycle: [] } }, { type: 'pass' }, { type: 'gathering', show: [] }, { type: 'hiding', hidden: [] }, { type: 'baraholkaBuy' }, { type: 'kvartirnikReply', accept: false }, { type: 'kontoraDecide', go: false }, { type: 'kontoraHide', hidden: [] }] as Action[]) {
     try { return applyAction(state, me, a); } catch (e) { if (!(e instanceof RuleError)) throw e; }
   }
   throw new Error(`Бот ${me} не нашёл допустимого хода (фаза ${state.phase})`);
