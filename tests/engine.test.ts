@@ -429,3 +429,88 @@ describe('настройка «без Куратора»', () => {
     expect(dealt).toBe(true);
   });
 });
+
+describe('Главлит и обновлённые Завсегдатаи', () => {
+  function started(mode: 'beginner' | 'full' = 'full', seed = 21) {
+    let s = createGame({ players: players(2), seed, mode });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    return s;
+  }
+  function connect(s: GameState, id: PatronId, who: string[]) {
+    s.patrons[0] = { id, genre: s.patrons[0].genre, connections: who, turned: false, removed: false };
+  }
+  // Положить на склад книгу из стопки, подходящую под условие.
+  function give(s: GameState, who: string, ok: (icons: string[]) => boolean) {
+    const card = s.deck.find((c) => s.cards[c].kind === 'genre' && ok(s.cards[c].icons))!;
+    s.deck = s.deck.filter((c) => c !== card);
+    const p = s.players.find((x) => x.id === who)!;
+    p.capacity = 10;
+    p.warehouse.push({ card, hidden: false });
+    return card;
+  }
+
+  it('Главлит: только книга без цензурированных жанров, +2т за значок, книга — в сброс', () => {
+    let s = started('beginner');
+    const me = s.order[s.turn];
+    const banned = give(s, me, (icons) => icons.some((g) => s.banned.includes(g as never)));
+    const free = give(s, me, (icons) => icons.length === 2 && !icons.some((g) => s.banned.includes(g as never)));
+    expect(() => applyAction(s, me, { type: 'place', place: { address: 'glavlit', card: banned } })).toThrow(RuleError);
+    const talons = s.players.find((x) => x.id === me)!.talons;
+    s = applyAction(s, me, { type: 'place', place: { address: 'glavlit', card: free } });
+    const p = s.players.find((x) => x.id === me)!;
+    expect(p.talons).toBe(talons + 2 * RULES.glavlitTalons);
+    expect(p.published).not.toContain(free);
+    expect(s.discard).toContain(free);
+  });
+
+  it('Главред: отданная в Главлит книга считается изданной и даёт +1 очко за значок', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    connect(s, 'editor', [me]);
+    const card = give(s, me, (icons) => icons.length === 1 && !icons.some((g) => s.banned.includes(g as never)) && icons[0] !== 'irony' && icons[0] !== 'prose');
+    s = applyAction(s, me, { type: 'place', place: { address: 'glavlit', card } });
+    const p = s.players.find((x) => x.id === me)!;
+    expect(p.published).toContain(card);
+    expect(p.pointsBy.editor).toBe(1);
+  });
+
+  it('Завмаг: Госкниготорг бесплатно, состав свободный', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    connect(s, 'zavmag', [me]);
+    const p0 = s.players.find((x) => x.id === me)!;
+    p0.capacity = 10;
+    p0.talons = 0;
+    s = applyAction(s, me, { type: 'place', place: { address: 'gostorg', pairs: 1, mix: ['unprinted', 'unprinted'] } });
+    const p = s.players.find((x) => x.id === me)!;
+    expect(p.talons).toBe(0);
+    expect(p.warehouse.length).toBe(p0.warehouse.length + 2);
+  });
+
+  it('Цеховик: каждое получение Талонов — на 1 больше; Маклер: +2 Талона за связь', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    connect(s, 'tsekhovik', [me]);
+    const t = s.players.find((x) => x.id === me)!.talons;
+    s = applyAction(s, me, { type: 'place', place: { address: 'zavoz' } });
+    expect(s.players.find((x) => x.id === me)!.talons).toBe(t + RULES.zavozIncome + RULES.tsekhovikBonus);
+
+    let s2 = started();
+    const me2 = s2.order[s2.turn];
+    connect(s2, 'broker', [me2]);
+    const other = s2.patrons[1];
+    const card = give(s2, me2, (icons) => icons.includes(other.genre) && !icons.includes('irony'));
+    const t2 = s2.players.find((x) => x.id === me2)!.talons;
+    s2 = applyAction(s2, me2, { type: 'clubGift', gift: { patron: other.id, card } });
+    expect(s2.players.find((x) => x.id === me2)!.talons).toBe(t2 + RULES.brokerTalons);
+  });
+
+  it('Комсорг: в Красном уголке сколько угодно книг и +1 очко за каждую', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    connect(s, 'komsorg', [me]);
+    const books = [give(s, me, (i) => !i.includes('irony')), give(s, me, (i) => !i.includes('irony'))];
+    s = applyAction(s, me, { type: 'place', place: { address: 'redCorner', recycle: books } });
+    expect(s.players.find((x) => x.id === me)!.pointsBy.komsorg).toBe(2 * RULES.komsorgPoints);
+  });
+});

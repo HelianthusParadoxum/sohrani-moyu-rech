@@ -227,6 +227,21 @@ export const pointsText = (n: number) => plural(n, 'очко', 'очка', 'оч
 export { RULES };
 
 // Начислить очки Гласности по ходу игры, запомнив источник.
+// Римская цифра для ступеней Ростков (1–10).
+export function roman(n: number): string {
+  return ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n] ?? String(n);
+}
+
+// Получить Талоны. Цеховик: каждое получение Талонов — на RULES.tsekhovikBonus больше (отдельной строкой в журнале).
+export function earn(state: GameState, p: PlayerState, n: number) {
+  if (n <= 0) return;
+  p.talons += n;
+  if (hasPatron(state, p.id, 'tsekhovik')) {
+    p.talons += RULES.tsekhovikBonus;
+    log(state, `${p.name}: Цеховик — ещё +${RULES.tsekhovikBonus} Талон.`);
+  }
+}
+
 export function gain(p: PlayerState, n: number, source: PointSource) {
   if (!n) return;
   p.points += n;

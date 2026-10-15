@@ -21,8 +21,8 @@ export function ClubContents({ view, seatIndex }: { view: PlayerView; seatIndex:
           <GenreChip g={pt.genre} /> <b>{PATRONS[pt.id].name}</b>
           {pt.connections.map((pid) => (
             // Число на жетоне — Пятилетка, в которую завязана связь.
-            <span key={pid} className="dot num" style={{ background: PLAYER_COLORS[seatIndex(pid)] }}
-              title={pt.since?.[pid] ? `Связь с ${pt.since[pid]}-й Пятилетки` : undefined}>{pt.since?.[pid] ?? ''}</span>
+            <span key={pid} className="dot num wide" style={{ background: PLAYER_COLORS[seatIndex(pid)] }}
+              title={pt.since?.[pid] ? `Связь с ${pt.since[pid]}-й Пятилетки` : undefined}>{pt.since?.[pid] ? `П${pt.since[pid]}` : ''}</span>
           ))}
           {pt.removed && <span className="muted small"> — профилактика</span>}
           {!pt.removed && pt.turned && <span className="muted small"> — связь уже завязана в эту Пятилетку</span>}

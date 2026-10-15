@@ -6,7 +6,7 @@ import {
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
-import { coversStep, hasPatron, loadCover } from '../engine/util';
+import { coversStep, hasPatron, loadCover, roman } from '../engine/util';
 import {
   ClubContents, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
   KontoraWarningPrompt, RescuePanel,
@@ -228,8 +228,8 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
   let body;
   switch (id) {
     case 'gostorg': {
-      const max = Math.min(Math.floor(free / 2), me.talons);
       const zavmag = hasPatron(view, me.id, 'zavmag');
+      const max = Math.min(Math.floor(free / 2), zavmag ? Infinity : me.talons);
       body = (
         <>
           <p>Каждая пара — 1 Нагрузка и 1 Непечатная книга вслепую, за 1 Талон. Свободных мест: {free}.</p>
@@ -237,7 +237,7 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
           {zavmag && (
             <label>Завмаг: из {num * 2} книг Нагрузки — <input type="number" min={0} max={num * 2} value={Math.min(loadN, num * 2)} onChange={(e) => setLoadN(Number(e.target.value))} />, остальные — Непечатные</label>
           )}
-          {confirmBtn(`Купить за ${num}т`, max >= 1 && num >= 1 && num <= max
+          {confirmBtn(zavmag ? 'Взять бесплатно (Завмаг)' : `Купить за ${num}т`, max >= 1 && num >= 1 && num <= max
             ? { address: 'gostorg', pairs: num, ...(zavmag ? { mix: Array.from({ length: num * 2 }, (_, i) => (i < Math.min(loadN, num * 2) ? 'load' as const : 'unprinted' as const)) } : {}) }
             : null, max < 1 ? 'Нужно 2 свободных места и 1 Талон' : undefined)}
         </>
@@ -262,13 +262,17 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
       break;
     }
     case 'redCorner': {
+      const komsorg = hasPatron(view, me.id, 'komsorg');
       const unprinted = sel.filter((c) => !fromLoadDeck(view, c)).length;
       const load = sel.filter((c) => fromLoadDeck(view, c)).length;
       body = (
         <>
           <p>Вы встанете в очередь хода следующей Пятилетки. Можно сдать в макулатуру до 1 Непечатной книги (+{RULES.redCornerUnprinted}т) и до 1 книги Нагрузки (+{RULES.redCornerLoad}т). Пропаганду можно сбыть только здесь.</p>
+          {komsorg && <p className="muted small">Комсорг: можно сдать любое число книг, за каждую — +{RULES.komsorgPoints} очко Гласности.</p>}
           {pickList(mine, sel, setSel)}
-          {confirmBtn('Пойти в Красный уголок', (unprinted <= 1 && load <= 1) || hasPatron(view, me.id, 'zavpunktom') ? { address: 'redCorner', recycle: sel } : null, unprinted > 1 || load > 1 ? 'Слишком много книг' : `+${unprinted * RULES.redCornerUnprinted + load * RULES.redCornerLoad}т`)}
+          {confirmBtn('Пойти в Красный уголок', (unprinted <= 1 && load <= 1) || komsorg ? { address: 'redCorner', recycle: sel } : null,
+            !komsorg && (unprinted > 1 || load > 1) ? 'Слишком много книг'
+              : `+${unprinted * RULES.redCornerUnprinted + load * RULES.redCornerLoad}т${komsorg && sel.length ? `, +${sel.length * RULES.komsorgPoints} оч.` : ''}`)}
         </>
       );
       break;
@@ -330,6 +334,22 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
           <p>Издайте одну книгу: она навсегда спасена, место на складе освобождается, а в подсчёте по Пристрастию книга участвует. {id === 'tamizdat' ? `+${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка за значок.` : `+${RULES.samizdatTalons}т за значок.`}</p>
           {pickList(mine.filter(ok), sel, setSel, { max: 1 })}
           {confirmBtn('Издать', sel.length ? { address: id, card: sel[0] } : null, sel.length ? `+${n * (id === 'tamizdat' ? RULES.tamizdatTalons : RULES.samizdatTalons)}т${id === 'tamizdat' ? `, +${n * RULES.tamizdatPoints} оч.` : ''}` : undefined)}
+        </>
+      );
+      break;
+    }
+    case 'glavlit': {
+      // Книга с жанровым значком, ни один жанр которой не под цензурой.
+      const ok = (c: string) => iconsOf(view, c).length > 0 && !iconsOf(view, c).some((g) => view.banned.includes(g));
+      const n = sel[0] ? iconsOf(view, sel[0]).length : 0;
+      const editor = hasPatron(view, me.id, 'editor');
+      body = (
+        <>
+          <p>Отдайте книгу с жанровым значком, ни один жанр которой не под цензурой: +{RULES.glavlitTalons}т за значок.
+            {editor ? ' Главред: книга будет считаться изданной вами и принесёт ещё +1 очко за значок.' : ' Книга уйдёт в сброс.'}</p>
+          {mine.filter(ok).length === 0 && <p className="warn-text">Подходящих книг нет: нужна книга с жанром, который сейчас не под цензурой.</p>}
+          {pickList(mine.filter(ok), sel, setSel, { max: 1 })}
+          {confirmBtn('Отдать в Главлит', sel.length ? { address: 'glavlit', card: sel[0] } : null, sel.length ? `+${n * RULES.glavlitTalons}т${editor ? `, +${n} оч.` : ''}` : undefined)}
         </>
       );
       break;
@@ -402,14 +422,14 @@ function Sprouts({ view, beside, seatIndex }: { view: PlayerView; beside: boolea
     <div className={`sprouts-panel ${beside ? 'beside' : ''}`}>
       <div className="addr-head">
         <b>Ростки Гласности</b>
-        <span className="muted small">Гласность: {RULES.glasnostAllSprouts ? 'все Ростки' : 'хотя бы один Росток'} до {RULES.glasnostStep}-й ступени</span>
+        <span className="muted small">Гласность: {RULES.glasnostAllSprouts ? 'все Ростки' : 'хотя бы один Росток'} до ступени {roman(RULES.glasnostStep)}</span>
       </div>
       <div className="sprouts">
       {view.sprouts.map((sp) => {
         const info = SPROUTS.find((s) => s.id === sp.id)!;
         return (
           <div key={sp.id} className={`sprout ${sp.progress >= RULES.glasnostStep ? 'grown' : ''}`}>
-            <div className="addr-head"><b>{info.name}</b><span>{sp.progress}/4</span></div>
+            <div className="addr-head"><b>{info.name}</b><span title="Закрыто ступеней" className="nowrap">{sp.progress ? roman(sp.progress) : '0'} / {roman(info.steps.length)}</span></div>
             {/* Жетоны игроков, которые хоть раз питали этот Росток (+2 очка за первое питание) */}
             {view.players.some((p) => p.sproutsFed.includes(sp.id)) && (
               <div className="workers" title="Питали этот Росток (получили +2 очка за первое питание)">
@@ -454,14 +474,14 @@ function SproutFeeder({ view, me, place }: { view: PlayerView; me: VPlayer; plac
           const pr = progressOf(sp.id);
           return (
             <button key={sp.id} disabled={pr >= 4} className={sprout === sp.id ? 'selected' : ''} onClick={() => { setSprout(sp.id); setBooks([]); }}>
-              {inf.name} · ступень {pr + 1}: {pr < 4 ? stepText(inf.main, inf.steps[pr]) : '—'}
+              {inf.name} · ступень {roman(pr + 1)}: {pr < 4 ? stepText(inf.main, inf.steps[pr]) : '—'}
             </button>
           );
         })}
       </div>
       {info && step && (
         <>
-          <h4>Книги для ступени {progressOf(sprout) + 1}</h4>
+          <h4>Книги для ступени {roman(progressOf(sprout) + 1)}</h4>
           <div className="shelf wrap">
             {mine.map((c) => <Book key={c} v={view} id={c} selected={books.includes(c)} onClick={() => setBooks(toggle(books, c))} />)}
           </div>
@@ -836,7 +856,7 @@ const BEGINNER_SOURCES: PointSource[] = ['gathering', 'sprouts', 'firstFeed', 't
 function Results({ view, seatIndex, close }: { view: PlayerView; seatIndex: (id: string) => number; close: () => void }) {
   const full = view.mode === 'full';
   // Очки от Завсегдатаев показываем, только если этот Завсегдатай был в Клубе.
-  const PATRON_SOURCES: Partial<Record<PointSource, string>> = { editor: 'editor', postgrad: 'postgrad' };
+  const PATRON_SOURCES: Partial<Record<PointSource, string>> = { editor: 'editor', postgrad: 'postgrad', komsorg: 'komsorg' };
   const sources = view.mode === 'full'
     ? (Object.keys(POINT_SOURCES) as PointSource[]).filter((k) => !PATRON_SOURCES[k] || view.patrons.some((pt) => pt.id === PATRON_SOURCES[k]))
     : BEGINNER_SOURCES;

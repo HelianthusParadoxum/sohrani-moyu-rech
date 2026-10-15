@@ -101,6 +101,9 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
           case 'tamizdat':
             for (const b of books) if (iconsOf(state, b).length > 0) out.push({ type: 'place', place: { address: a, card: b } });
             break;
+          case 'glavlit':
+            for (const b of books) if (iconsOf(state, b).length > 0 && !iconsOf(state, b).some((g) => state.banned.includes(g))) out.push({ type: 'place', place: { address: 'glavlit', card: b } });
+            break;
           case 'knigoobmen': {
             const give = pick(books.filter((b) => iconsOf(state, b).length > 0), rand);
             const take = pick(state.knigoobmen, rand);

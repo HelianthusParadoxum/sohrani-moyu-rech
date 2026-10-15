@@ -138,7 +138,7 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 /* ---------- Ростки ---------- */
 .sprouts { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
 .sprout.grown { border-color: #1e8449; box-shadow: 0 0 0 1px #1e8449; }
-.steps { margin: 0; padding-left: 22px; }
+.steps { margin: 0; padding-left: 26px; list-style-type: upper-roman; }
 .steps li { padding: 1px 0; }
 .steps li.done { opacity: 0.45; text-decoration: line-through; }
 .steps li.next { font-weight: 700; }
@@ -204,7 +204,7 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 .sprouts-panel.beside { grid-column: 2 / -1; }
 .sprouts-panel .sprouts { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
 .sprouts-panel .sprout { padding: 6px 8px; gap: 3px; font-size: 0.85rem; }
-.sprouts-panel .steps { padding-left: 18px; }
+.sprouts-panel .steps { padding-left: 24px; }
 .sprouts-panel .steps li { padding: 0; }
 
 /* Компактный стол: всё поле — на один экран */
@@ -254,3 +254,5 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 .gact { font-size: 0.72rem; padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); }
 .gact.used { color: var(--ink); background: var(--paper-2); border-color: var(--ink); }
 .group-actions.readonly { margin-top: 2px; }
+.nowrap { white-space: nowrap; }
+.dot.num.wide { width: auto; min-width: 16px; padding: 0 4px; border-radius: 8px; margin-left: 2px; }

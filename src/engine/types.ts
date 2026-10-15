@@ -34,6 +34,7 @@ export type AddressId =
   | 'sprouts' // Ростки Гласности
   | 'samizdat' // Самиздат
   | 'tamizdat' // Тамиздат
+  | 'glavlit' // Главлит
   // Явочные адреса
   | 'knigoobmen'
   | 'kvartirnik'
@@ -57,7 +58,7 @@ export type PatronId =
   | 'binder' | 'carpenter' | 'correspondent' | 'postgrad' | 'professor' | 'housekeeper' | 'spotter' | 'veteran'
   | 'buyer' | 'fartsovshchik' | 'librarian' | 'tsekhovik' | 'partorg' | 'zavmag' | 'apprentice' | 'druzhinnik'
   | 'chairman' | 'zavkhoz' | 'buzoter' | 'broker' | 'blatnoy' | 'glavlit' | 'lieutenant' | 'cataloguer'
-  | 'doctor' | 'zavpunktom' | 'typist' | 'editor' | 'labtech' | 'psychiatrist' | 'nesun' | 'geologist';
+  | 'doctor' | 'komsorg' | 'typist' | 'editor' | 'labtech' | 'psychiatrist' | 'nesun' | 'geologist';
 
 export interface PatronState {
   id: PatronId;
@@ -69,7 +70,7 @@ export interface PatronState {
 }
 
 export type PointSource =
-  | 'gathering' | 'drama' | 'sprouts' | 'firstFeed' | 'tamizdat' | 'testimony' | 'foreign' | 'editor' | 'postgrad' | 'prose';
+  | 'gathering' | 'drama' | 'sprouts' | 'firstFeed' | 'tamizdat' | 'testimony' | 'foreign' | 'editor' | 'postgrad' | 'prose' | 'komsorg';
 
 export type SproutBonusId = GroupActionId | 'sideJob' | 'underCounter';
 
@@ -215,6 +216,7 @@ export type PlaceAction =
   | { address: 'sprouts'; feeds: { sprout: string; books: string[] }[] }
   | { address: 'samizdat'; card: string }
   | { address: 'tamizdat'; card: string }
+  | { address: 'glavlit'; card: string }
   | { address: 'knigoobmen'; give: string; take: string }
   | { address: 'kvartirnik'; to: string; give: string; want: string }
   | { address: 'raspredelitel'; card: string }

@@ -658,7 +658,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       for (const a of addrs) {
         switch (a) {
           case 'gostorg':
-            for (let n = 1; n <= Math.min(3, Math.floor(freeSlots(p) / 2), p.talons); n++) out.push({ type: 'place', place: { address: 'gostorg', pairs: n } });
+            for (let n = 1; n <= Math.min(3, Math.floor(freeSlots(p) / 2), hasPatron(state, me, 'zavmag') ? 3 : p.talons); n++) out.push({ type: 'place', place: { address: 'gostorg', pairs: n } });
             break;
           case 'tolkuchka': {
             const sellable = genreBooks.filter((b) => !isEvidence(state, b));
@@ -690,6 +690,9 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
             break;
           case 'tamizdat':
             for (const b of books) if (isGenreBook(state, b) || isEvidence(state, b)) out.push({ type: 'place', place: { address: a, card: b } });
+            break;
+          case 'glavlit':
+            for (const b of genreBooks) if (!iconsOf(state, b).some((g) => state.banned.includes(g))) out.push({ type: 'place', place: { address: 'glavlit', card: b } });
             break;
           case 'knigoobmen': {
             const give = byValue(keepMap(), genreBooks).slice(0, 2);
