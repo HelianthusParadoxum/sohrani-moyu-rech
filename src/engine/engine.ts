@@ -23,6 +23,7 @@ export interface NewGameOptions {
   players: { id: string; name: string }[];
   seed?: number;
   mode?: Mode;
+  curator?: boolean; // полный режим: Куратор в колоде Пристрастий (по умолчанию — да)
 }
 
 export function createGame(opts: NewGameOptions): GameState {
@@ -53,7 +54,8 @@ export function createGame(opts: NewGameOptions): GameState {
   if (n >= 3) {
     let keepers = shuffle(state, [...KEEPERS]);
     if (n === 3) keepers = keepers.slice(3);
-    passions = [...SPECIALS.filter((p) => mode === 'full' || p !== 'curator'), ...keepers];
+    const curator = mode === 'full' && opts.curator !== false;
+    passions = [...SPECIALS.filter((p) => curator || p !== 'curator'), ...keepers];
   } else {
     passions = [...KEEPERS];
   }

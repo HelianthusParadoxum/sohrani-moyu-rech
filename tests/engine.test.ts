@@ -359,3 +359,16 @@ describe('Тиражирование', () => {
     expect(() => applyAction(s, me, { type: 'group', group: { action: 'copyText', address: 'razval', buy: { address: 'razval', slot: 0 }, card: evidence } })).toThrow(RuleError);
   });
 });
+
+describe('настройка «без Куратора»', () => {
+  it('Куратор не выпадает никому, если его отключили', () => {
+    for (let seed = 1; seed <= 30; seed++) {
+      const s = createGame({ players: players(4), seed, mode: 'full', curator: false });
+      expect(s.players.flatMap((p) => p.passionOptions)).not.toContain('curator');
+    }
+    // По умолчанию Куратор в колоде есть: хоть в одной из раздач он попадается.
+    const dealt = Array.from({ length: 30 }, (_, i) => createGame({ players: players(4), seed: i + 1, mode: 'full' }))
+      .some((s) => s.players.some((p) => p.passionOptions.includes('curator')));
+    expect(dealt).toBe(true);
+  });
+});

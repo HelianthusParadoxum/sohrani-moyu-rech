@@ -23,6 +23,7 @@ interface Seat { id: string; name: string; token: string; bot: boolean; preset?:
 interface Room {
   code: string; host: string; seats: Seat[]; mode: Mode; state: GameState | null; history: GameState[]; updated: number;
   botDelay?: number;
+  noCurator?: boolean; // настройка: без Куратора в колоде Пристрастий
 }
 
 const rooms = new Map<string, Room>();
@@ -67,6 +68,7 @@ function roomInfo(room: Room): RoomInfo {
     canUndo: room.history.length > 0,
     hostBot: hostSeat(room)?.bot ?? false,
     botDelay: room.botDelay ?? 700,
+    curator: !room.noCurator,
   };
 }
 
@@ -187,6 +189,11 @@ function handle(ws: WebSocket, msg: ClientMessage) {
       room.seats = room.seats.filter((s) => s.id !== msg.seat);
       break;
     }
+    case 'setCurator': {
+      if (!isHost || room.state) return;
+      room.noCurator = !msg.on;
+      break;
+    }
     case 'setMode': {
       if (!isHost || room.state) return;
       room.mode = msg.mode;
@@ -195,7 +202,7 @@ function handle(ws: WebSocket, msg: ClientMessage) {
     case 'start': {
       if (!isHost || room.state) return;
       if (room.seats.length < 2) return send(ws, { t: 'error', message: 'Нужно хотя бы 2 игрока (можно добавить бота)' });
-      room.state = createGame({ players: room.seats.map((s) => ({ id: s.id, name: s.name })), mode: room.mode });
+      room.state = createGame({ players: room.seats.map((s) => ({ id: s.id, name: s.name })), mode: room.mode, curator: !room.noCurator });
       room.history = [];
       break;
     }

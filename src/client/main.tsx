@@ -106,6 +106,12 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
               <option value="full">Полные правила</option>
             </select>
           </label>
+          {room.mode === 'full' && (
+            <label className="row">
+              <input type="checkbox" checked={room.curator} onChange={(e) => net.send({ t: 'setCurator', on: e.target.checked })} />
+              Куратор в игре (агент госбезопасности среди Пристрастий)
+            </label>
+          )}
           <label className="row">
             <input type="checkbox" checked={room.hostBot} onChange={(e) => net.send({ t: 'hostBot', on: e.target.checked })} />
             За меня играет бот — я смотрю партию со стороны и вижу всё

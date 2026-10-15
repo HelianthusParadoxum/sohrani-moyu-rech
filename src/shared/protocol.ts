@@ -11,6 +11,7 @@ export interface RoomInfo {
   canUndo: boolean;
   hostBot: boolean; // за хоста играет бот, хост смотрит со стороны
   botDelay: number; // пауза между ходами ботов, мс
+  curator: boolean; // Куратор в колоде Пристрастий (полный режим)
 }
 
 export type ClientMessage =
@@ -20,6 +21,7 @@ export type ClientMessage =
   | { t: 'addBot' }
   | { t: 'removeSeat'; seat: string }
   | { t: 'setMode'; mode: Mode }
+  | { t: 'setCurator'; on: boolean }
   | { t: 'start' }
   | { t: 'action'; action: Action }
   | { t: 'undo' }
