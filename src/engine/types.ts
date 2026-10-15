@@ -181,7 +181,6 @@ export interface ScoreLine {
   player: string;
   during: number;
   passion: number;
-  sprouts: number;
   propaganda: number;
   evidence: number;
   connections: number;

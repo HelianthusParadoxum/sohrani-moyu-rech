@@ -63,15 +63,14 @@ export function glasnostReached(state: GameState, progress = state.sprouts.map((
 
 export function scoreLine(state: GameState, p: PlayerState): ScoreLine {
   const passion = passionPoints(state, p);
-  const sprouts = p.sproutsFed.length;
   const stash = p.warehouse.map((s) => s.card);
   const propaganda = RULES.propagandaPoints * stash.filter((id) => isPropaganda(state, id)).length;
   const evidence = RULES.evidencePoints * [...stash, ...p.tamizdat].filter((id) => isEvidence(state, id)).length;
   const icons = collection(state, p).reduce((s, id) => s + iconsOf(state, id).length, 0);
   const connections = state.patrons.filter((x) => !x.removed && x.connections.includes(p.id)).length;
   return {
-    player: p.id, during: p.points, duringBy: { ...p.pointsBy }, passion, sprouts, propaganda, evidence, connections,
-    total: p.points + passion + sprouts + propaganda + evidence + connections, icons,
+    player: p.id, during: p.points, duringBy: { ...p.pointsBy }, passion, propaganda, evidence, connections,
+    total: p.points + passion + propaganda + evidence + connections, icons,
   };
 }
 

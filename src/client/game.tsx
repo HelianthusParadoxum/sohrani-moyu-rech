@@ -748,7 +748,7 @@ function Results({ view, seatIndex, close }: { view: PlayerView; seatIndex: (id:
     <Modal title="Конец Застоя" onClose={close} wide>
       <p><b>{r.note}</b></p>
       <div className="scores-wrap"><table className="scores">
-        <thead><tr><th>Игрок</th><th>Пристрастие</th><th>По ходу</th><th>За Пристрастие</th><th>Ростки</th><th>Пропаганда</th><th>Улики</th>{full && <th>Связи</th>}<th>Итого</th></tr></thead>
+        <thead><tr><th>Игрок</th><th>Пристрастие</th><th>По ходу</th><th>За Пристрастие</th><th>Пропаганда</th><th>Улики</th>{full && <th>Связи</th>}<th>Итого</th></tr></thead>
         <tbody>
           {r.scores.map((s) => {
             const p = view.players.find((x) => x.id === s.player)!;
@@ -757,11 +757,11 @@ function Results({ view, seatIndex, close }: { view: PlayerView; seatIndex: (id:
               <Fragment key={s.player}>
                 <tr className={r.winners.includes(s.player) ? 'winner' : ''}>
                   <td><span className="dot" style={{ background: PLAYER_COLORS[seatIndex(s.player)] }} /> {name(s.player)}</td><td>{p.passion ? passionLabel(p.passion) : '—'}</td>
-                  <td>{s.during}</td><td>{s.passion}</td><td>{s.sprouts}</td><td>{s.propaganda}</td><td>{s.evidence}</td>{full && <td>{s.connections ?? 0}</td>}<td><b>{s.total}</b></td>
+                  <td>{s.during}</td><td>{s.passion}</td><td>{s.propaganda}</td><td>{s.evidence}</td>{full && <td>{s.connections ?? 0}</td>}<td><b>{s.total}</b></td>
                 </tr>
                 {by.length > 0 && (
                   <tr className="score-detail">
-                    <td colSpan={full ? 9 : 8}>
+                    <td colSpan={full ? 8 : 7}>
                       По ходу игры: {by.map(([k, n]) => <span key={k} className="src">{POINT_SOURCES[k]} <b>{n}</b></span>)}
                     </td>
                   </tr>

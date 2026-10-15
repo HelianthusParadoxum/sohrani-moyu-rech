@@ -43,7 +43,7 @@ function makeCtx(state: GameState, me: string, preset: BotPreset): Ctx {
 function stepReward(state: GameState, p: PlayerState, progress: number, sproutId: string, ctx: Ctx): number {
   const r = STEP_REWARDS[progress];
   let v = r.points + r.talons * ctx.talon * ctx.w.talons;
-  if (!p.sproutsFed.includes(sproutId)) v += FIRST_FEED_POINTS + 1; // +1 — очко за Росток в финальном подсчёте
+  if (!p.sproutsFed.includes(sproutId)) v += FIRST_FEED_POINTS;
   v += progress < RULES.glasnostStep ? ctx.glasnost * ctx.w.sprouts * (BOT_BASE.glasnostLag[progress] ?? 1) : BOT_BASE.lateStep;
   return v;
 }
@@ -116,7 +116,6 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   let v = p.points;
   // Финальный подсчёт.
   v += passionPoints(state, p) * w.passion;
-  v += p.sproutsFed.length;
   v += RULES.propagandaPoints * cards.filter((c) => isPropaganda(state, c)).length;
   v += RULES.evidencePoints * [...cards, ...p.tamizdat].filter((c) => isEvidence(state, c)).length;
   v += BOT_BASE.connection * state.patrons.filter((x) => !x.removed && x.connections.includes(me)).length;
