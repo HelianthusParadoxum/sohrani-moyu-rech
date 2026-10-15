@@ -178,3 +178,4 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
   .passions { grid-template-columns: 1fr; }
   .book { width: 112px; }
 }
+.chip.flex { background: linear-gradient(90deg, #555, #888); }

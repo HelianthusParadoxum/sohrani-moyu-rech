@@ -112,7 +112,7 @@ export interface GameState {
   rng: number;
   mode: Mode;
   cards: Record<string, Card>;
-  restored: Record<string, Genre[]>; // карта → добавленные Возвращением смыслов значки
+  restored: Record<string, true>; // карты с накладкой Возвращения смыслов
   round: number; // 1..5
   phase: Phase;
   censorship: number; // сколько жанров в опале
@@ -186,7 +186,7 @@ export type GroupAction =
   | { action: 'expandCache' }
   | { action: 'copyText'; card: string | 'deck' }
   | { action: 'rescue' }
-  | { action: 'restore'; card: string; genre?: Genre }
+  | { action: 'restore'; card: string }
   | { action: 'hire' };
 
 export type Action =

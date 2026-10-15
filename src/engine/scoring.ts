@@ -2,7 +2,7 @@
 import { PASSIONS, RULES, SPROUTS } from './content';
 import type { GameResult, GameState, Genre, PlayerState, ScoreLine } from './types';
 import { GENRES } from './types';
-import { iconsOf, isEvidence, isPropaganda } from './util';
+import { iconVariants, iconsOf, isEvidence, isPropaganda } from './util';
 
 // Коллекция для Пристрастия: склад (включая Тайник) + изданное.
 export function collection(state: GameState, p: PlayerState): string[] {
@@ -11,17 +11,23 @@ export function collection(state: GameState, p: PlayerState): string[] {
 
 export function passionPoints(state: GameState, p: PlayerState): number {
   if (!p.passion) return 0;
-  const books = collection(state, p).map((id) => iconsOf(state, id));
-  const count = (g: Genre) => books.reduce((s, icons) => s + icons.filter((x) => x === g).length, 0);
+  // У каждой книги берём лучший для подсчёта вариант гибкого значка.
+  const variants = collection(state, p).map((id) => iconVariants(state, id));
+  const best = (f: (icons: Genre[]) => number) => variants.reduce((s, vs) => s + Math.max(...vs.map(f)), 0);
+  const count = (g: Genre) => best((icons) => icons.filter((x) => x === g).length);
+  const books = variants.map((vs) => vs[0]);
   const info = PASSIONS[p.passion];
-  if (info.genres) return 2 * (count(info.genres[0]) + count(info.genres[1]));
+  if (info.genres) {
+    const [a, b] = info.genres;
+    return 2 * best((icons) => icons.filter((x) => x === a || x === b).length);
+  }
   switch (p.passion) {
     case 'monogamist':
       return 2 * Math.max(...GENRES.map(count));
     case 'innovator':
       return 2 * books.filter((icons) => new Set(icons).size >= 2).reduce((s, icons) => s + icons.length, 0);
     case 'erudite':
-      return 2 * eruditeBest(books);
+      return 2 * eruditeBest(variants);
     default:
       return 0;
   }
@@ -29,7 +35,7 @@ export function passionPoints(state: GameState, p: PlayerState): number {
 
 // Эрудит: в каждом жанре засчитывается максимум одна книга; книга идёт в зачёт одного жанра.
 // Перебор по маске жанров (8 жанров → 256 состояний).
-function eruditeBest(books: Genre[][]): number {
+function eruditeBest(books: Genre[][][]): number {
   let best = new Array(1 << GENRES.length).fill(-Infinity);
   best[0] = 0;
   for (const icons of books) {
@@ -38,7 +44,7 @@ function eruditeBest(books: Genre[][]): number {
       if (best[mask] === -Infinity) continue;
       GENRES.forEach((g, i) => {
         if (mask & (1 << i)) return;
-        const v = icons.filter((x) => x === g).length;
+        const v = Math.max(...icons.map((vs) => vs.filter((x) => x === g).length));
         if (!v) return;
         const m2 = mask | (1 << i);
         next[m2] = Math.max(next[m2], best[mask] + v);

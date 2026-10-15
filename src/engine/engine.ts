@@ -10,7 +10,7 @@ import type {
 } from './types';
 import { GENRES } from './types';
 import {
-  addBook, cacheLimit, check, discard, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
+  addBook, cacheLimit, check, coversStep, discard, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isSingle, log, pay, player, pointsText, random, removeBook, shuffle,
   talonsText, title,
 } from './util';
@@ -248,7 +248,7 @@ function endOrders(state: GameState) {
   }
   state.phase = 'gathering';
   state.ready = [];
-  log(state, 'Посиделки: можно показать опальные книги со склада — по 1 очку за значок опального жанра.');
+  log(state, 'Посиделки: можно показать опальные книги со склада — по 1 очку за каждую книгу опального жанра.');
 }
 
 function doGathering(state: GameState, p: PlayerState, show: string[]) {
@@ -257,7 +257,7 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
   for (const id of show) {
     check(hasBook(p, id), 'Показывать можно только книги со своего склада');
     check(isGenreBook(state, id) && isBanned(state, id), `${title(state, id)} — не опальная жанровая книга`);
-    pts += iconsOf(state, id).filter((g) => state.banned.includes(g)).length;
+    pts += 1;
   }
   p.points += pts;
   state.ready.push(p.id);
@@ -489,10 +489,10 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
           check(hasBook(p, b), 'Отдавать можно только книги со своего склада');
           used.add(b);
         }
-        const icons = f.books.flatMap((b) => iconsOf(state, b));
-        const main = icons.filter((g) => g === info.main).length;
-        check(main >= step.main, `${info.name}: нужно значков «${GENRE_NAMES[info.main]}»: ${step.main}`);
-        if (step.support) check(icons.includes(step.support), `${info.name}: нужен значок поддержки «${GENRE_NAMES[step.support]}»`);
+        check(
+          coversStep(state, f.books, info.main, step.main, step.support),
+          `${info.name}: нужно значков «${GENRE_NAMES[info.main]}»: ${step.main}` + (step.support ? ` и значок поддержки «${GENRE_NAMES[step.support]}»` : ''),
+        );
         for (const b of f.books) { removeBook(p, b); discard(state, b); }
         const reward = STEP_REWARDS[sp.progress];
         sp.progress++;
@@ -643,15 +643,12 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       check(slot, 'Возвращать смыслы можно книге со своего склада');
       const c = state.cards[g.card];
       check(!state.restored[g.card], 'Этой книге смыслы уже возвращены');
+      check(c.kind === 'genre' || c.kind === 'loadReturnable', 'Смыслы можно вернуть только жанровой книге или возвращаемой Нагрузке');
+      state.restored[g.card] = true;
       if (c.kind === 'loadReturnable') {
-        state.restored[g.card] = [c.genre!, c.genre!, c.genre!];
         log(state, `${p.name} возвращает смыслы: ${title(state, g.card)} становится «${c.returned}» (3 значка).`);
       } else {
-        check(c.kind === 'genre', 'Смыслы можно вернуть только жанровой книге или возвращаемой Нагрузке');
-        const genre = g.genre ?? c.icons[0];
-        check(c.icons.includes(genre), 'Значок должен быть жанра этой книги');
-        state.restored[g.card] = [genre];
-        log(state, `${p.name} возвращает смыслы книге ${title(state, g.card)}: +1 значок «${GENRE_NAMES[genre]}».`);
+        log(state, `${p.name} возвращает смыслы книге ${title(state, g.card)}: +1 значок.`);
       }
       pay(p, RULES.restoreCost);
       break;

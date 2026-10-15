@@ -6,6 +6,7 @@ import {
 import type { Action, AddressId, Genre, GroupAction, GroupActionId, PlaceAction, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
+import { coversStep } from '../engine/util';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
 import { Book, GenreChip, Modal, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, isLoad, toggle } from './ui';
 
@@ -364,8 +365,7 @@ function SproutFeeder({ view, me, place }: { view: PlayerView; me: VPlayer; plac
   const progressOf = (id: string) => view.sprouts.find((s) => s.id === id)!.progress + feeds.filter((f) => f.sprout === id).length;
   const info = SPROUTS.find((s) => s.id === sprout);
   const step = info && info.steps[progressOf(sprout)];
-  const icons = books.flatMap((b) => iconsOf(view, b));
-  const ok = !!info && !!step && icons.filter((g) => g === info.main).length >= step.main && (!step.support || icons.includes(step.support));
+  const ok = !!info && !!step && coversStep(view, books, info.main, step.main, step.support);
   return (
     <>
       <p>Закройте ступени: одним действием отдайте книги, на которых есть все значки ступени. Можно закрыть несколько ступеней у разных Ростков.</p>
@@ -404,7 +404,6 @@ function SproutFeeder({ view, me, place }: { view: PlayerView; me: VPlayer; plac
 function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; view: PlayerView; me: VPlayer; close?: () => void; done: (g: GroupAction) => void; title?: string }) {
   const info = GROUP_ACTIONS[id];
   const [sel, setSel] = useState<string>('');
-  const [genre, setGenre] = useState<Genre | ''>('');
   let body;
   if (id === 'copyText') {
     const singles = [...view.tolkuchka, ...view.knigoobmen, ...view.raspredelitel, ...view.razval.filter((c): c is string => !!c)];
@@ -420,14 +419,11 @@ function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; v
     );
   } else if (id === 'restore') {
     const cands = me.warehouse.map((s) => s.card!).filter((c) => c && !view.restored[c] && ['genre', 'loadReturnable'].includes(view.cards[c].kind));
-    const card = sel ? view.cards[sel] : null;
-    const dual = card && card.kind === 'genre' && new Set(card.icons).size > 1;
     body = (
       <>
-        <p>Жанровая книга получает +1 значок своего жанра. Нагрузка проглоченного автора становится возвращённым произведением с 3 значками.</p>
-        <div className="shelf wrap">{cands.map((c) => <Book key={c} v={view} id={c} selected={sel === c} onClick={() => { setSel(c); setGenre(''); }} />)}</div>
-        {dual && <div className="genres">Значок какого жанра: {[...new Set(card!.icons)].map((g) => <button key={g} className={genre === g ? 'selected' : ''} onClick={() => setGenre(g)}><GenreChip g={g} /> {GENRE_NAMES[g]}</button>)}</div>}
-        <div className="modal-foot"><button className="primary" disabled={!sel || (!!dual && !genre)} onClick={() => done({ action: 'restore', card: sel, ...(genre ? { genre } : {}) })}>Вернуть смыслы</button></div>
+        <p>Жанровая книга получает +1 значок своего жанра; у двужанровой книги жанр этого значка выбирается всякий раз, когда это важно. Нагрузка проглоченного автора становится возвращённым произведением с 3 значками.</p>
+        <div className="shelf wrap">{cands.map((c) => <Book key={c} v={view} id={c} selected={sel === c} onClick={() => setSel(c)} />)}</div>
+        <div className="modal-foot"><button className="primary" disabled={!sel} onClick={() => done({ action: 'restore', card: sel })}>Вернуть смыслы</button></div>
       </>
     );
   } else {
@@ -534,10 +530,10 @@ function PassionPrompt({ me, act }: { me: VPlayer; act: (a: Action) => void }) {
 function GatheringPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
   const [sel, setSel] = useState<string[]>([]);
   const cands = me.warehouse.map((s) => s.card!).filter((c) => c && iconsOf(view, c).length > 0 && isBanned(view, c));
-  const pts = sel.reduce((s, c) => s + iconsOf(view, c).filter((g) => view.banned.includes(g)).length, 0);
+  const pts = sel.length;
   return (
     <Modal title="Посиделки" wide>
-      <p>Покажите опальные жанровые книги: +1 очко за каждый значок опального жанра. Показанные книги остаются на складе — не забудьте укрыть их перед облавой.</p>
+      <p>Покажите опальные жанровые книги: +1 очко за каждую книгу опального жанра. Показанные книги остаются на складе — не забудьте укрыть их перед облавой.</p>
       <div className="shelf wrap">
         {cands.length === 0 && <span className="muted">Опальных жанровых книг нет</span>}
         {cands.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} onClick={() => setSel(toggle(sel, c))} />)}

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { GENRE_NAMES } from '../engine/content';
 import type { Genre } from '../engine/types';
 import type { PlayerView } from '../engine/view';
+import { flexGenres, iconsOf, isBanned as isBannedBook } from '../engine/util';
 
 export const GENRE_SHORT: Record<Genre, string> = {
   prose: 'ПР', scifi: 'ФА', poetry: 'ПО', foreign: 'ИН', testimony: 'СВ', drama: 'ДР', album: 'АЛ', irony: 'ИР',
@@ -10,26 +11,14 @@ export const GENRE_SHORT: Record<Genre, string> = {
 
 export const PLAYER_COLORS = ['#b03a2e', '#1f618d', '#1e8449', '#7d3c98'];
 
-export function iconsOf(v: PlayerView, id: string): Genre[] {
-  const c = v.cards[id];
-  const extra = v.restored[id] ?? [];
-  return c.kind === 'loadReturnable' ? extra : [...c.icons, ...extra];
-}
-
-export function isLoad(v: PlayerView, id: string) {
-  const c = v.cards[id];
-  if (c.kind === 'loadReturnable') return !v.restored[id];
-  return c.kind === 'load' || c.kind === 'loadEvidence';
-}
+export { iconsOf, isLoad } from '../engine/util';
 
 export function fromLoadDeck(v: PlayerView, id: string) {
   return ['load', 'loadReturnable', 'loadEvidence'].includes(v.cards[id].kind);
 }
 
 export function isBanned(v: PlayerView, id: string) {
-  const k = v.cards[id].kind;
-  if (k === 'propaganda' || k === 'evidence' || k === 'loadEvidence') return true;
-  return iconsOf(v, id).some((g) => v.banned.includes(g));
+  return isBannedBook(v, id);
 }
 
 export function GenreChip({ g, banned }: { g: Genre; banned?: boolean }) {
@@ -54,6 +43,7 @@ export function Book({ v, id, selected, onClick, hidden, small, note }: {
   const icons = iconsOf(v, id);
   const banned = isBanned(v, id);
   const restored = !!v.restored[id];
+  const flex = flexGenres(v, id);
   const label = c.kind === 'loadReturnable' && restored ? null : KIND_LABEL[c.kind];
   const t = c.kind === 'loadReturnable' && restored ? c.returned! : c.title;
   return (
@@ -65,7 +55,12 @@ export function Book({ v, id, selected, onClick, hidden, small, note }: {
       title={`${t} — ${c.author}`}
     >
       <div className="book-icons">
-        {icons.map((g, i) => <GenreChip key={i} g={g} banned={v.banned.includes(g)} />)}
+        {(flex ? icons.slice(0, -1) : icons).map((g, i) => <GenreChip key={i} g={g} banned={v.banned.includes(g)} />)}
+        {flex && (
+          <span className="chip flex" title={`Значок возвращения: ${flex.map((g) => GENRE_NAMES[g]).join(' или ')}`}>
+            {flex.map((g) => GENRE_SHORT[g]).join('/')}
+          </span>
+        )}
         {label && <span className="kind">{label}</span>}
         {restored && <span className="restored" title="Смыслы возвращены">↺</span>}
       </div>

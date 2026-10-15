@@ -44,45 +44,74 @@ export function title(state: GameState, id: string): string {
 
 // ---------- Свойства карт ----------
 
-export function iconsOf(state: GameState, id: string): Genre[] {
+type CardsInfo = Pick<GameState, 'cards' | 'restored'>;
+
+// Варианты значков книги. У двужанровой книги с возвращёнными смыслами значок возвращения —
+// ровно один значок, жанр которого (любой из двух) выбирается всякий раз, когда это важно:
+// поэтому вариантов два. У прочих книг вариант один.
+export function iconVariants(state: CardsInfo, id: string): Genre[][] {
   const c = state.cards[id];
-  const extra = state.restored[id] ?? [];
-  if (c.kind === 'loadReturnable') return extra;
-  return [...c.icons, ...extra];
+  const restored = !!state.restored[id];
+  if (c.kind === 'loadReturnable') return [restored ? [c.genre!, c.genre!, c.genre!] : []];
+  if (!restored) return [c.icons];
+  return [...new Set(c.icons)].map((g) => [...c.icons, g]);
 }
 
-export function isLoad(state: GameState, id: string): boolean {
+// Значки книги (первый вариант). Число значков и набор жанров у всех вариантов одинаковы.
+export function iconsOf(state: CardsInfo, id: string): Genre[] {
+  return iconVariants(state, id)[0];
+}
+
+// Жанры гибкого значка возвращения (если он есть).
+export function flexGenres(state: CardsInfo, id: string): Genre[] | null {
+  const v = iconVariants(state, id);
+  return v.length > 1 ? v.map((icons) => icons[icons.length - 1]) : null;
+}
+
+// Закрывают ли книги ступень Ростка: перебираем выбор жанра гибких значков.
+export function coversStep(state: CardsInfo, books: string[], main: Genre, need: number, support?: Genre): boolean {
+  const options = books.map((b) => iconVariants(state, b));
+  const go = (i: number, icons: Genre[]): boolean => {
+    if (i === options.length) {
+      return icons.filter((g) => g === main).length >= need && (!support || icons.includes(support));
+    }
+    return options[i].some((v) => go(i + 1, [...icons, ...v]));
+  };
+  return go(0, []);
+}
+
+export function isLoad(state: CardsInfo, id: string): boolean {
   const c = state.cards[id];
   if (c.kind === 'loadReturnable') return !state.restored[id];
   return c.kind === 'load' || c.kind === 'loadEvidence';
 }
 
-export function isFromLoadDeck(state: GameState, id: string): boolean {
+export function isFromLoadDeck(state: CardsInfo, id: string): boolean {
   const k = state.cards[id].kind;
   return k === 'load' || k === 'loadReturnable' || k === 'loadEvidence';
 }
 
-export function isEvidence(state: GameState, id: string): boolean {
+export function isEvidence(state: CardsInfo, id: string): boolean {
   const k = state.cards[id].kind;
   return k === 'evidence' || k === 'loadEvidence';
 }
 
-export function isPropaganda(state: GameState, id: string): boolean {
+export function isPropaganda(state: CardsInfo, id: string): boolean {
   return state.cards[id].kind === 'propaganda';
 }
 
 // Опальная книга: Пропаганда, Улики и книги со значком опального жанра.
-export function isBanned(state: GameState, id: string): boolean {
+export function isBanned(state: CardsInfo & Pick<GameState, 'banned'>, id: string): boolean {
   if (isPropaganda(state, id) || isEvidence(state, id)) return true;
   return iconsOf(state, id).some((g) => state.banned.includes(g));
 }
 
-export function isGenreBook(state: GameState, id: string): boolean {
+export function isGenreBook(state: CardsInfo, id: string): boolean {
   return iconsOf(state, id).length > 0;
 }
 
 // «Одиночная» книга — ровно 1 значок.
-export function isSingle(state: GameState, id: string): boolean {
+export function isSingle(state: CardsInfo, id: string): boolean {
   return state.cards[id].kind === 'genre' && iconsOf(state, id).length === 1;
 }
 
