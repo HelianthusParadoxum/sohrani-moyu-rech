@@ -40,6 +40,9 @@ export const RULES = {
   safehousePrice: 3, // Наследники, Посредничество авторам
   raspredelitelPrice: 2, // книга Распределителя
   spisaniePrice: 1, // Библиотечное списание
+  spisanieDraw: 4, // Библиотечное списание: сколько книг тайно взять сверху стопки (оставить — сколько угодно)
+  posrednichestvoDraw: 2, // Посредничество авторам: сколько книг тайно вытянуть
+  posrednichestvoKeep: 1, // ...и сколько из них оставить (остальные — в сброс)
   samizdatTalons: 2, // Самиздат: Талонов за значок
   tamizdatTalons: 1, // Тамиздат: Талонов за значок
   tamizdatPoints: 2, // Тамиздат: очков Гласности за значок
@@ -53,6 +56,7 @@ export const RULES = {
   passionMonogamist: 2, // Однолюб: очков за значок лучшего жанра
   monogamistSecond: 1, // Однолюб: очков за значок второго по силе жанра
   passionInnovator: 2, // Новатор: очков за значок на двужанровых книгах
+  innovatorSingle: -1, // Новатор: очков за каждую книгу с одним жанром (на складе и в изданном)
   propagandaPoints: -5,
   evidencePoints: 5,
   extraSprouts: { beginner: 0, full: 1 }, // Ростков на партию: число игроков + это число
@@ -89,8 +93,8 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   kvartirnik: { id: 'kvartirnik', name: 'Квартирник', limits: [1, 1, 1], safehouse: true, hint: 'Обмен книгами с другим игроком по согласию' },
   raspredelitel: { id: 'raspredelitel', name: 'Распределитель', limits: [1, 1, 1], safehouse: true, hint: `Купить 1 выдающуюся книгу за ${RULES.raspredelitelPrice}т` },
   nasledniki: { id: 'nasledniki', name: 'Наследники', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.safehousePrice}т: тайно взять 2 книги из сброса Непечатных` },
-  posrednichestvo: { id: 'posrednichestvo', name: 'Посредничество авторам', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.safehousePrice}т: тайно вытянуть 3, оставить 1–2, затем 1 действие Группы` },
-  spisanie: { id: 'spisanie', name: 'Библиотечное списание', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.spisaniePrice}т: взять 3 книги сверху стопки Непечатных` },
+  posrednichestvo: { id: 'posrednichestvo', name: 'Посредничество авторам', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.safehousePrice}т: тайно вытянуть ${RULES.posrednichestvoDraw}, оставить ${RULES.posrednichestvoKeep}, затем 1 любое действие Группы (даже уже сделанное)` },
+  spisanie: { id: 'spisanie', name: 'Библиотечное списание', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.spisaniePrice}т: тайно взять ${RULES.spisanieDraw} книги сверху стопки Непечатных, оставить сколько угодно, остальные — в сброс` },
   club: { id: 'club', name: 'Клуб книголюбов', limits: [2, 3, 4], fullOnly: true, hint: 'Отдайте Завсегдатаям книги их жанров — завяжите связи' },
   kontora: { id: 'kontora', name: 'Контора', limits: [INF, INF, INF], fullOnly: true, perPlayer: true, hint: 'Ходатайство, Выдача на руки, Сигнал, Профилактика; доход — чужая опальная книга в Спецхран' },
 };
@@ -175,7 +179,7 @@ export const PASSIONS: Record<PassionId, PassionInfo> = {
   keeper_theatre: { id: 'keeper_theatre', name: 'Театрал', genres: ['drama', 'prose'], hint: `${RULES.passionKeeper} очка за значок Драматургии и Прозы` },
   erudite: { id: 'erudite', name: 'Эрудит', special: true, hint: `${RULES.passionErudite} очко за значок и ${RULES.eruditePerGenre} за каждый жанр; в каждом жанре засчитывается 1 книга${RULES.eruditeMaxGenres < 8 ? `, не больше ${RULES.eruditeMaxGenres} жанров` : ''}` },
   monogamist: { id: 'monogamist', name: 'Однолюб', special: true, hint: `${RULES.passionMonogamist} очка за значок лучшего жанра${RULES.monogamistSecond ? ` и ${RULES.monogamistSecond} за значок второго по силе` : ''} (на момент подсчёта)` },
-  innovator: { id: 'innovator', name: 'Новатор', special: true, hint: `${RULES.passionInnovator} очка за значок на двужанровых книгах` },
+  innovator: { id: 'innovator', name: 'Новатор', special: true, hint: `${RULES.passionInnovator} очка за значок на двужанровых книгах${RULES.innovatorSingle ? `, ${RULES.innovatorSingle} очко за каждую книгу с одним жанром` : ''}` },
   curator: { id: 'curator', name: 'Куратор', special: true, hint: 'Агент госбезопасности: побеждает, если Гласность не наступит' },
 };
 

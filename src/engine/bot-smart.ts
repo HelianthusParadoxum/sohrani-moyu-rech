@@ -244,7 +244,7 @@ function determinize(state: GameState, rand: Rand): GameState {
 
 // Отложенные решения, которые бот при примерке додумывает сам (они следуют сразу за ходом).
 const FOLLOW_UP = new Set([
-  'sproutBonus', 'posrednichestvoKeep', 'posrednichestvoGroup', 'baraholkaLook', 'naslednikiPick', 'extraGroup', 'discardExcess',
+  'sproutBonus', 'posrednichestvoKeep', 'spisanieKeep', 'posrednichestvoGroup', 'baraholkaLook', 'naslednikiPick', 'extraGroup', 'discardExcess',
   'kontoraDecide', 'kontoraHandout', 'glavlitSwap', 'lieutenantPick', 'freeConnection',
 ]);
 
@@ -563,7 +563,14 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         const singles = pend.cards.map((c) => [c]);
         return [...singles, ...subsets(pend.cards.slice(-8), 2).filter((x) => x.length === 2)].map((cards) => ({ type: 'naslednikiPick', cards }));
       }
-      case 'posrednichestvoKeep': return subsets(pend.cards, 2).map((keep) => ({ type: 'posrednichestvoKeep', keep }));
+      case 'posrednichestvoKeep': {
+        const need = Math.min(RULES.posrednichestvoKeep, pend.cards.length);
+        return subsets(pend.cards, need).filter((x) => x.length === need).map((keep) => ({ type: 'posrednichestvoKeep', keep }));
+      }
+      case 'spisanieKeep': {
+        const room = Math.max(0, freeSlots(p));
+        return [[], ...subsets(pend.cards, room)].map((keep) => ({ type: 'spisanieKeep', keep }));
+      }
       case 'posrednichestvoGroup':
       case 'extraGroup':
         return [...groupCandidates(state, me, ctx).map((group) => ({ type: 'group' as const, group })), { type: 'pass' }];

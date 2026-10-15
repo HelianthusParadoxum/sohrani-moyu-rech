@@ -34,8 +34,11 @@ export function passionPoints(state: GameState, p: PlayerState): number {
       }
       return top;
     }
-    case 'innovator':
-      return RULES.passionInnovator * books.filter((icons) => new Set(icons).size >= 2).reduce((s, icons) => s + icons.length, 0);
+    case 'innovator': {
+      const dual = books.filter((icons) => new Set(icons).size >= 2).reduce((s, icons) => s + icons.length, 0);
+      const single = books.filter((icons) => new Set(icons).size === 1).length; // книги одного жанра (и шедевры)
+      return RULES.passionInnovator * dual + RULES.innovatorSingle * single;
+    }
     case 'erudite': {
       // Очки за значки и (если включено) за каждый засчитанный жанр, не больше eruditeMaxGenres жанров.
       const best = eruditeBest(variants);

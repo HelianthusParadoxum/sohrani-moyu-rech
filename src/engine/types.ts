@@ -119,6 +119,7 @@ export type Pending =
   | { kind: 'kvartirnikReply'; player: string; from: string; give: string; want: string }
   | { kind: 'naslednikiPick'; player: string; cards: string[] }
   | { kind: 'posrednichestvoKeep'; player: string; cards: string[] }
+  | { kind: 'spisanieKeep'; player: string; cards: string[] } // Библиотечное списание: что оставить
   | { kind: 'posrednichestvoGroup'; player: string }
   | { kind: 'sproutBonus'; player: string; sprout: string; options: SproutBonusId[] }
   | { kind: 'kontoraWarning'; player: string; from: string }
@@ -251,6 +252,7 @@ export type Action =
   | { type: 'kvartirnikReply'; accept: boolean }
   | { type: 'naslednikiPick'; cards: string[] }
   | { type: 'posrednichestvoKeep'; keep: string[] }
+  | { type: 'spisanieKeep'; keep: string[] }
   | { type: 'sproutBonus'; bonus: SproutBonusId; group?: GroupAction }
   | { type: 'gathering'; show: string[] }
   | { type: 'hiding'; hidden: string[]; memorize?: string | null; fillLoad?: boolean }

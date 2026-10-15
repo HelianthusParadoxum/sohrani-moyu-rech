@@ -25,7 +25,7 @@ function allCards(s: GameState): string[] {
   return [
     ...s.deck, ...s.discard, ...s.loadDeck, ...s.loadDiscard, ...s.tolkuchka, ...s.knigoobmen, ...s.raspredelitel,
     ...s.razval.filter((c): c is string => !!c), ...s.baraholka.filter((c): c is string => !!c),
-    ...s.pending.flatMap((p) => (p.kind === 'posrednichestvoKeep' ? p.cards : [])),
+    ...s.pending.flatMap((p) => (p.kind === 'posrednichestvoKeep' || p.kind === 'spisanieKeep' ? p.cards : [])),
     ...s.players.flatMap((p) => [...p.warehouse.map((w) => w.card), ...p.published]),
     ...s.spetskhran,
   ];
