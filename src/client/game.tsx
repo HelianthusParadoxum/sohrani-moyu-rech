@@ -16,7 +16,7 @@ import { Book, GenreChip, SpeedSelect, Modal, PLAYER_COLORS, fromLoadDeck, icons
 
 type Send = (m: ClientMessage) => void;
 type VPlayer = PlayerView['players'][number];
-type Panel = { kind: 'address'; id: AddressId } | { kind: 'group'; id: GroupActionId } | null;
+type Panel = { kind: 'address'; id: AddressId } | { kind: 'group'; id: GroupActionId } | { kind: 'cache' } | null;
 
 const PHASE_NAMES: Record<string, string> = {
   passion: 'Выбор Пристрастий', orders: 'Поручения', gathering: 'Посиделки', hiding: 'Укрытие', end: 'Конец Застоя',
@@ -94,7 +94,8 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
           {me && (
             <MyPanel view={view} me={me} color={PLAYER_COLORS[seatIndex(me.id)]}
               groupEnabled={(canPlace && !mustRed) || bonusTurn} onGroup={(id) => setPanel({ kind: 'group', id })}
-              onMemorize={view.mode === 'full' && (canPlace || bonusTurn) ? (card) => act({ type: 'memorize', card }) : null} />
+              onMemorize={view.mode === 'full' && (canPlace || bonusTurn) ? (card) => act({ type: 'memorize', card }) : null}
+              onCache={canPlace || bonusTurn ? () => setPanel({ kind: 'cache' }) : null} />
           )}
           {view.players.filter((p) => p.id !== you).map((p) => (
             <OtherPlayer key={p.id} view={view} p={p} color={PLAYER_COLORS[seatIndex(p.id)]} active={view.active.includes(p.id)} first={view.order[0] === p.id} />
@@ -108,6 +109,9 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
       )}
       {panel?.kind === 'address' && !(panel.id === 'club' && RULES.clubFreeGift) && me && (
         <AddressPanel id={panel.id} view={view} me={me} close={() => setPanel(null)} place={(place) => { act({ type: 'place', place }); setPanel(null); }} />
+      )}
+      {panel?.kind === 'cache' && me && (
+        <CacheModal view={view} me={me} close={() => setPanel(null)} done={(hidden) => { act({ type: 'hiding', hidden }); setPanel(null); }} />
       )}
       {panel?.kind === 'group' && me && (
         <GroupPanel id={panel.id} view={view} me={me} close={() => setPanel(null)} done={(group) => { act({ type: 'group', group }); setPanel(null); }} />
@@ -816,6 +820,26 @@ function GatheringPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act
   );
 }
 
+// Пересобрать Тайник в свой ход: свободно, ход не заканчивается.
+function CacheModal({ view, me, close, done }: { view: PlayerView; me: VPlayer; close: () => void; done: (hidden: string[]) => void }) {
+  const cards = me.warehouse.filter((s) => s.card && !s.memorized).map((s) => s.card!);
+  const [sel, setSel] = useState<string[]>(() => me.warehouse.filter((s) => s.hidden).map((s) => s.card!));
+  const limit = me.cache + loadCover(view, me.warehouse);
+  return (
+    <Modal title="Тайник" wide onClose={close}>
+      <p>Отметьте книги, которые лежат в Тайнике: их не видят соперники и не трогает облава. Мест: {limit} (из них за Нагрузку: {loadCover(view, me.warehouse)}). Отмечено: {sel.length}.</p>
+      <p className="muted small">Это не тратит действие. Книга, которую уже видели соперники, от того, что её спрятали, не станет для них тайной — но облава её не тронет.</p>
+      <div className="shelf wrap">
+        {cards.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} hidden={sel.includes(c)} onClick={() => setSel(toggle(sel, c))} />)}
+      </div>
+      <div className="modal-foot">
+        <button onClick={close}>Отмена</button>
+        <button className="primary" disabled={sel.length > limit} onClick={() => done(sel)}>{sel.length > limit ? `Мест только ${limit}` : 'Сохранить'}</button>
+      </div>
+    </Modal>
+  );
+}
+
 function HidingPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
   const cards = me.warehouse.map((s) => s.card!).filter(Boolean);
   const [sel, setSel] = useState<string[]>(() => me.warehouse.filter((s) => s.hidden).map((s) => s.card!));
@@ -910,8 +934,9 @@ function Stats({ p, view }: { p: VPlayer; view: PlayerView }) {
   );
 }
 
-function MyPanel({ view, me, color, groupEnabled, onGroup, onMemorize }: {
+function MyPanel({ view, me, color, groupEnabled, onGroup, onMemorize, onCache }: {
   view: PlayerView; me: VPlayer; color: string; groupEnabled: boolean; onGroup: (id: GroupActionId) => void; onMemorize: ((card: string | null) => void) | null;
+  onCache: (() => void) | null;
 }) {
   const memorized = me.warehouse.find((s) => s.memorized)?.card ?? null;
   const poetry = me.warehouse.map((s) => s.card!).filter((c) => c && c !== memorized && iconsOf(view, c).includes('poetry'));
@@ -928,6 +953,11 @@ function MyPanel({ view, me, color, groupEnabled, onGroup, onMemorize }: {
         </div>
       )}
       <div className="shelf wrap">{me.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}</div>
+      {onCache && (
+        <div className="group-actions">
+          <button className="small" onClick={onCache} title="Убрать книги из Тайника или спрятать туда другие — не тратит действие">Пересобрать Тайник</button>
+        </div>
+      )}
       {onMemorize && (poetry.length > 0 || memorized) && (
         <div className="group-actions">
           <span className="muted small">«Заучить» (сборник поэзии сверх Склада и Тайника, не тратит действие):</span>

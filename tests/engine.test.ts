@@ -536,3 +536,25 @@ describe('Тайник и закрытые книги', () => {
     expect(viewFor(s, me).players.find((x) => x.id === me)!.warehouse.map((x) => x.card)).toContain(card);
   });
 });
+
+describe('Тайник в свой ход', () => {
+  it('можно пересобрать Тайник, не тратя действие и не передавая ход; соперник не видит спрятанное', () => {
+    let s = createGame({ players: players(2), seed: 8 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    const me = s.order[s.turn];
+    const other = s.players.find((p) => p.id !== me)!.id;
+    const p0 = s.players.find((p) => p.id === me)!;
+    p0.cache = 0; // одно место в Тайнике дают 2 стартовые Нагрузки
+    const [a, b] = p0.warehouse.map((x) => x.card);
+    s = applyAction(s, me, { type: 'hiding', hidden: [a] });
+    expect(s.order[s.turn]).toBe(me);
+    expect(s.players.find((p) => p.id === me)!.available).toBe(p0.available);
+    expect(viewFor(s, other).players.find((p) => p.id === me)!.warehouse.map((x) => x.card)).not.toContain(a);
+    expect(() => applyAction(s, me, { type: 'hiding', hidden: [a, b] })).toThrow(RuleError); // мест только 1
+    s = applyAction(s, me, { type: 'hiding', hidden: [b] }); // переложить: a — открыто, b — в Тайник
+    const w = s.players.find((p) => p.id === me)!.warehouse;
+    expect(w.find((x) => x.card === a)!.hidden).toBe(false);
+    expect(w.find((x) => x.card === b)!.hidden).toBe(true);
+    expect(() => applyAction(s, other, { type: 'hiding', hidden: [] })).toThrow(RuleError); // не в свой ход
+  });
+});

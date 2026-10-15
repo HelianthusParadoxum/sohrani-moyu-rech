@@ -219,6 +219,8 @@ function randomMove(state: GameState, me: string, rand: Rand): GameState {
   }
   // Ничего не подошло: в фазе поручений — Красный уголок без сдачи или пас.
   for (const a of [{ type: 'place', place: { address: 'redCorner', recycle: [] } }, { type: 'pass' }, { type: 'gathering', show: [] }, { type: 'hiding', hidden: [] }, { type: 'baraholkaBuy' }, { type: 'kvartirnikReply', accept: false }, { type: 'kontoraDecide', go: false }, { type: 'kontoraHide', hidden: [] }] as Action[]) {
+    // Пересобрать Тайник можно и в свой ход, но ход это не завершает — в поручениях это не выход.
+    if (a.type === 'hiding' && state.phase !== 'hiding') continue;
     try { return applyAction(state, me, a); } catch (e) { if (!(e instanceof RuleError)) throw e; }
   }
   throw new Error(`Бот ${me} не нашёл допустимого хода (фаза ${state.phase})`);

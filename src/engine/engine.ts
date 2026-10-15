@@ -463,6 +463,13 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
     state.holdTurn = true;
     return;
   }
+  if (action.type === 'hiding') {
+    // Пересобрать Тайник в свой ход — свободно, ход не заканчивается.
+    setHidden(state, p, action.hidden);
+    log(state, `${p.name} перекладывает книги в Тайнике.`);
+    state.holdTurn = true;
+    return;
+  }
   if (action.type === 'clubGift') {
     // Клуб как свободное действие: одна книга одному Завсегдатаю за ход, ход не завершается.
     check(isFull(state) && RULES.clubFreeGift, 'Связь в Клубе так не завести');
