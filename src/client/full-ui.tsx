@@ -112,15 +112,14 @@ export function KontoraPanel({ view, place }: { view: PlayerView; place: (p: Pla
       {targets.length === 0
         ? <p className="warn-text">Сейчас в Контору не пойти: ни у кого на Складе нет открытой опальной книги — нечем заплатить.</p>
         : <TargetShelf view={view} targets={targets} />}
-      <p>Сначала вы предупредите остальных игроков: они смогут перепрятать книги. После этого вы окончательно решите, идти ли в Контору, и выберете от 1 до 4 пунктов:</p>
+      <p>Соперники уже не успеют перепрятать книги. Дальше вы выберете от 1 до 4 пунктов и книгу для Спецхрана:</p>
       <ul>
         <li><b>Ходатайство</b> — вернуть из Конторы до 2 удержанных Единомышленников любых игроков.</li>
         <li><b>Выдача на руки</b> — посмотреть Спецхран и взять оттуда одну книгу.</li>
         <li><b>Сигнал</b> — удержать в Конторе Единомышленника любого игрока.</li>
         <li><b>Профилактика</b> — удалить одного Завсегдатая Клуба.</li>
       </ul>
-      <p className="muted small">Книги выше могут спрятать после предупреждения — окончательный выбор будет после него.</p>
-      <div className="modal-foot"><button className="primary" disabled={!targets.length} onClick={() => place({ address: 'kontora' })}>Предупредить остальных</button></div>
+      <div className="modal-foot"><button className="primary" disabled={!targets.length} onClick={() => place({ address: 'kontora' })}>Дальше</button></div>
     </>
   );
 }
@@ -196,7 +195,7 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
       </label>
       <h4>Цена похода (обязательно): выберите открытую опальную книгу — она уйдёт в Спецхран</h4>
       {targets.length === 0
-        ? <p className="warn-text">Все опальные книги успели спрятать — заплатить нечем, в Контору сейчас не пойти. Единомышленник остаётся у вас.</p>
+        ? <p className="warn-text">Заплатить нечем — в Контору сейчас не пойти. Единомышленник остаётся у вас.</p>
         : <TargetShelf view={view} targets={targets} selected={seize?.card} onPick={(t) => setSeize(seize?.card === t.card ? null : t)} />}
       <div className="modal-foot">
         <button onClick={() => act({ type: 'kontoraDecide', go: false })}>Передумать</button>

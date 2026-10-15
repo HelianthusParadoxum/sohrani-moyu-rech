@@ -293,6 +293,9 @@ export function rankActions(state: GameState, me: string, preset: BotPreset, ran
     if (curator) return [{ a: cands[0], v: 0 }];
   }
   const samples = Array.from({ length: SAMPLES }, () => determinize(state, rand));
+  // В свой ход — сначала спрятать в Тайник самое ценное из опального: потом (Контора, облава) будет поздно.
+  const rehide = rehideAction(state, me, ctx);
+  if (rehide) return [{ a: rehide, v: 0 }];
   // Клуб как свободное действие: сначала решаем, стоит ли отдать книгу Завсегдатаю, — это не тратит ход.
   const gifts = freeGiftCandidates(state, me, ctx);
   if (gifts.length) {
@@ -570,6 +573,20 @@ function hideList(state: GameState, me: string, ctx: Ctx, keep: Map<string, numb
   const banned = p.warehouse.filter((s) => s.card !== opts.exclude && !s.memorized && isBanned(state, s.card)
     && (ctx.curator || !isPropaganda(state, s.card))).map((s) => s.card);
   return byValue(keep, banned).reverse().slice(0, limit);
+}
+
+// Пересобрать Тайник в свой ход: опальные книги — по ценности, остальное место — тому, что уже лежит в Тайнике.
+function rehideAction(state: GameState, me: string, ctx: Ctx): Action | null {
+  if (state.phase !== 'orders' || state.pending.length) return null;
+  const p = player(state, me);
+  const open = p.warehouse.some((s) => !s.hidden && !s.memorized && isBanned(state, s.card) && (ctx.curator || !isPropaganda(state, s.card)));
+  if (!open) return null;
+  const want = hideList(state, me, ctx, keepValues(state, me, ctx));
+  const rest = p.warehouse.filter((s) => s.hidden && !want.includes(s.card)).map((s) => s.card);
+  const target = [...want, ...rest].slice(0, cacheLimit(state, p));
+  const now = p.warehouse.filter((s) => s.hidden).map((s) => s.card);
+  if (target.length === now.length && target.every((c) => now.includes(c))) return null;
+  return { type: 'hiding', hidden: target };
 }
 
 export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {

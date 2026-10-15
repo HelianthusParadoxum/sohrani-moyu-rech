@@ -134,16 +134,16 @@ describe('думающий бот в полном режиме', () => {
     }
   }, 120_000);
 
-  it('перепрятывает опальные книги, когда соперник идёт в Контору', () => {
+  it('в свой ход прячет опальную книгу в Тайник: от Конторы потом не спрятаться', () => {
     let s = createGame({ players: players(3), seed: 5, mode: 'full' });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions.find((x) => x !== 'curator')! });
-    const me = s.players.find((p) => p.id !== s.order[s.turn])!;
+    const me = s.players.find((p) => p.id === s.order[s.turn])!;
     me.cache = 1;
     me.capacity = 10;
+    for (const w of me.warehouse) w.hidden = false;
     const book = s.deck.find((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.some((g) => s.banned.includes(g)))!;
     s.deck = s.deck.filter((c) => c !== book);
     me.warehouse.push({ card: book, hidden: false });
-    s.pending = [{ kind: 'kontoraWarning', player: me.id, from: s.order[s.turn] }];
     s = botMove(s, me.id, seeded(1));
     expect(s.players.find((p) => p.id === me.id)!.warehouse.find((w) => w.card === book)!.hidden).toBe(true);
   });

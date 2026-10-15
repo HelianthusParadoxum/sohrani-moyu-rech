@@ -148,19 +148,8 @@ export function kontoraTargets(state: TargetsInfo): { player: string; card: stri
 
 export function startKontora(state: GameState, p: PlayerState) {
   check(kontoraTargets(state).length > 0, 'В Контору сейчас не пойти: ни у кого на Складе нет открытой опальной книги — нечем заплатить');
-  // Предупреждение: другие игроки могут перепрятать книги, прежде чем вы решите.
-  const others = rotate(state.order, p.id).filter((id) => id !== p.id);
-  for (const id of others) {
-    const o = player(state, id);
-    if (o.warehouse.some((s) => isBanned(state, s.card))) state.pending.push({ kind: 'kontoraWarning', player: id, from: p.id });
-  }
+  // Перепрятать книги соперники уже не успеют: перепрятывают только в свой ход. Игрок сразу выбирает пункты и цену.
   state.pending.push({ kind: 'kontoraDecide', player: p.id });
-  log(state, `${p.name} предупреждает, что собирается в Контору. Остальные могут перепрятать книги.`);
-}
-
-function rotate(order: string[], first: string) {
-  const i = order.indexOf(first);
-  return [...order.slice(i), ...order.slice(0, i)];
 }
 
 export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {

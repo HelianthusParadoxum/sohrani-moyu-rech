@@ -250,7 +250,7 @@ describe('полный режим', () => {
     expect(s.clubGiftBy).toBeUndefined();
   });
 
-  it('Контора: сначала предупреждение остальным, потом решение; Сигнал удерживает Единомышленника', () => {
+  it('Контора: соперники не успевают перепрятать — сразу решение; Сигнал удерживает Единомышленника', () => {
     let s = fullGame(11);
     const me = s.order[s.turn];
     const other = s.order.find((x) => x !== me)!;
@@ -261,7 +261,7 @@ describe('полный режим', () => {
     s.deck = s.deck.filter((c) => c !== book);
     s.players.find((x) => x.id === other)!.warehouse.push({ card: book, hidden: false });
     s = applyAction(s, me, { type: 'place', place: { address: 'kontora' } });
-    if (s.pending[0].kind === 'kontoraWarning') s = applyAction(s, other, { type: 'kontoraHide', hidden: [] });
+    expect(s.pending).toHaveLength(1);
     expect(s.pending[0]).toMatchObject({ kind: 'kontoraDecide', player: me });
     expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: other } })).toThrow(RuleError);
     const before = s.players.find((x) => x.id === other)!.available;

@@ -526,7 +526,7 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
   }
   if (info.perPlayer) check(!here.includes(p.id), `${info.name}: не больше одного Единомышленника от игрока`);
   if (a.address === 'kontora') {
-    // Единомышленник отправится в Контору, только когда игрок примет решение после предупреждения.
+    // Единомышленник отправится в Контору, когда игрок выберет пункты и книгу для Спецхрана (или передумает).
     startKontora(state, p);
     return;
   }
@@ -1101,6 +1101,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       break;
     }
     case 'kontoraWarning': {
+      // Старые сохранения: раньше соперников предупреждали о походе в Контору.
       check(action.type === 'kontoraHide', 'Перепрячьте книги или подтвердите, что готовы');
       setHidden(state, p, action.hidden);
       log(state, `${p.name} готов(а) к визиту в Контору.`);
