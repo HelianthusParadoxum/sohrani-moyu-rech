@@ -85,7 +85,8 @@ export function Game({ view, room, you, send }: { view: PlayerView; room: RoomIn
         <aside className="side">
           {me && (
             <MyPanel view={view} me={me} color={PLAYER_COLORS[seatIndex(me.id)]}
-              groupEnabled={(canPlace && !mustRed) || bonusTurn} onGroup={(id) => setPanel({ kind: 'group', id })} />
+              groupEnabled={(canPlace && !mustRed) || bonusTurn} onGroup={(id) => setPanel({ kind: 'group', id })}
+              onMemorize={view.mode === 'full' && (canPlace || bonusTurn) ? (card) => act({ type: 'memorize', card }) : null} />
           )}
           {view.players.filter((p) => p.id !== you).map((p) => (
             <OtherPlayer key={p.id} view={view} p={p} color={PLAYER_COLORS[seatIndex(p.id)]} active={view.active.includes(p.id)} first={view.order[0] === p.id} />
@@ -351,7 +352,7 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
       body = <ClubPanel view={view} me={me} place={place} />;
       break;
     case 'kontora':
-      body = <KontoraPanel place={place} />;
+      body = <KontoraPanel view={view} place={place} />;
       break;
     case 'nasledniki':
     case 'posrednichestvo':
@@ -707,19 +708,29 @@ function Stats({ p, view }: { p: VPlayer; view: PlayerView }) {
       <span title="Единомышленники: свободны / всего">👤 {p.available}/{p.workers}</span>
       <span title="Склад: занято / мест">📚 {p.warehouse.length}/{p.capacity}</span>
       <span title={`Мест в Тайнике: ${p.cache}${cover ? ` + ${cover} за Нагрузку на складе` : ''}`}>🔒 {p.cache + cover}{cover ? '*' : ''}</span>
-      {p.spetskhranCount > 0 && <span title="Изъято в Спецхран">⛔ {p.spetskhranCount}</span>}
       {p.held > 0 && <span title="Единомышленников удерживает Контора">🏢 {p.held}</span>}
       {view.mode === 'full' && <span title="Связи в Клубе книголюбов">🤝 {view.patrons.filter((x) => !x.removed && x.connections.includes(p.id)).length}</span>}
     </div>
   );
 }
 
-function MyPanel({ view, me, color, groupEnabled, onGroup }: { view: PlayerView; me: VPlayer; color: string; groupEnabled: boolean; onGroup: (id: GroupActionId) => void }) {
+function MyPanel({ view, me, color, groupEnabled, onGroup, onMemorize }: {
+  view: PlayerView; me: VPlayer; color: string; groupEnabled: boolean; onGroup: (id: GroupActionId) => void; onMemorize: ((card: string | null) => void) | null;
+}) {
+  const memorized = me.warehouse.find((s) => s.memorized)?.card ?? null;
+  const poetry = me.warehouse.map((s) => s.card!).filter((c) => c && c !== memorized && iconsOf(view, c).includes('poetry'));
   return (
     <div className="player me" style={{ borderColor: color }}>
       <div className="addr-head"><b style={{ color }}>{me.name} (вы)</b>{me.passion && <span className="passion-tag" title={PASSIONS[me.passion].hint}>{PASSIONS[me.passion].name}</span>}</div>
       <Stats p={me} view={view} />
       <div className="shelf wrap">{me.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}</div>
+      {onMemorize && (poetry.length > 0 || memorized) && (
+        <div className="group-actions">
+          <span className="muted small">«Заучить» (сборник поэзии сверх Склада и Тайника, не тратит действие):</span>
+          {poetry.map((c) => <button key={c} className="small" onClick={() => onMemorize(c)}>Заучить «{view.cards[c].title}»</button>)}
+          {memorized && <button className="small" onClick={() => onMemorize(null)}>Вернуть «{view.cards[memorized].title}» на Склад</button>}
+        </div>
+      )}
       {me.published.length > 0 && <div className="published"><span className="muted small">Издано:</span><div className="shelf wrap">{me.published.map((c) => <Book key={c} v={view} id={c} small />)}</div></div>}
       {me.subscriptions.length > 0 && <div className="muted small">Подписка: {me.subscriptions.map((s) => `${GENRE_NAMES[s.genre]} (${s.rounds})`).join(', ')}</div>}
       <div className="group">

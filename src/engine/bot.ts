@@ -35,7 +35,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
           { type: 'kontoraDecide', go: false },
         ];
       }
-      case 'kontoraHandout': return [{ type: 'kontoraHandout', card: pend.cards[0].card }];
+      case 'kontoraHandout': return [{ type: 'kontoraHandout', card: pend.cards[0] }];
       case 'extraGroup': return [...groupCandidates(state, me), { type: 'pass' }];
       case 'freeConnection': return [...clubGifts(state, me).map((gift) => ({ type: 'clubGift' as const, gift })), { type: 'pass' }];
       case 'sproutBonus': {

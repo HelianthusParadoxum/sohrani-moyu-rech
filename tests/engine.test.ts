@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyAction, createGame } from '../src/engine/engine';
 import { playOut } from '../src/engine/bot';
 import { viewFor } from '../src/engine/view';
-import { RuleError, cacheLimit, coversStep } from '../src/engine/util';
+import { RuleError, cacheLimit, coversStep, isBanned } from '../src/engine/util';
 import { passionPoints } from '../src/engine/scoring';
 import type { GameState } from '../src/engine/types';
 
@@ -23,7 +23,8 @@ function allCards(s: GameState): string[] {
     ...s.deck, ...s.discard, ...s.loadDeck, ...s.loadDiscard, ...s.tolkuchka, ...s.knigoobmen, ...s.raspredelitel,
     ...s.razval.filter((c): c is string => !!c), ...s.baraholka.filter((c): c is string => !!c),
     ...s.pending.flatMap((p) => (p.kind === 'posrednichestvoKeep' ? p.cards : [])),
-    ...s.players.flatMap((p) => [...p.warehouse.map((w) => w.card), ...p.published, ...p.spetskhran]),
+    ...s.players.flatMap((p) => [...p.warehouse.map((w) => w.card), ...p.published]),
+    ...s.spetskhran,
   ];
 }
 
@@ -187,14 +188,22 @@ describe('полный режим', () => {
     let s = fullGame(11);
     const me = s.order[s.turn];
     const other = s.order.find((x) => x !== me)!;
+    // Без открытых опальных книг в Контору не пойти: нечем заплатить.
+    for (const p of s.players) p.warehouse = p.warehouse.filter((w) => !isBanned(s, w.card));
+    expect(() => applyAction(s, me, { type: 'place', place: { address: 'kontora' } })).toThrow(RuleError);
+    const book = s.deck.find((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.some((g) => s.banned.includes(g)))!;
+    s.deck = s.deck.filter((c) => c !== book);
+    s.players.find((x) => x.id === other)!.warehouse.push({ card: book, hidden: false });
     s = applyAction(s, me, { type: 'place', place: { address: 'kontora' } });
     if (s.pending[0].kind === 'kontoraWarning') s = applyAction(s, other, { type: 'kontoraHide', hidden: [] });
     expect(s.pending[0]).toMatchObject({ kind: 'kontoraDecide', player: me });
+    expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: other } })).toThrow(RuleError);
     const before = s.players.find((x) => x.id === other)!.available;
-    s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: other } });
+    s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: other, seize: { player: other, card: book } } });
     const o = s.players.find((x) => x.id === other)!;
     expect(o.held).toBe(1);
     expect(o.available).toBe(before - 1);
+    expect(s.spetskhran).toContain(book);
   });
 
   it('Фантастика считается значком любого жанра при питании Ростков', () => {
@@ -202,5 +211,21 @@ describe('полный режим', () => {
     const sf = Object.values(s.cards).find((c) => c.kind === 'genre' && c.icons.length === 1 && c.icons[0] === 'scifi')!;
     expect(coversStep(s, [sf.id], 'prose', 1, undefined, { wildScifi: true })).toBe(true);
     expect(coversStep(s, [sf.id], 'prose', 1)).toBe(false);
+  });
+});
+
+describe('Поэзия «Заучить»', () => {
+  it('в свой ход, не тратя действия: заученный сборник не занимает место на Складе', () => {
+    let s = createGame({ players: players(2), seed: 3, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    const me = s.order[s.turn];
+    const poem = s.deck.find((c) => s.cards[c].icons.includes('poetry'))!;
+    s.deck = s.deck.filter((c) => c !== poem);
+    s.players.find((x) => x.id === me)!.warehouse.push({ card: poem, hidden: false });
+    const free = (st: typeof s) => { const p = st.players.find((x) => x.id === me)!; return p.capacity - p.warehouse.filter((w) => !w.memorized).length; };
+    const before = free(s);
+    s = applyAction(s, me, { type: 'memorize', card: poem });
+    expect(free(s)).toBe(before + 1);
+    expect(s.order[s.turn]).toBe(me);
   });
 });

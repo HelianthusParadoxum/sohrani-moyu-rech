@@ -192,3 +192,4 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 .patrons li { padding: 2px 0; }
 .patrons li.removed { opacity: 0.4; text-decoration: line-through; }
 .patrons li.turned b { color: var(--muted); }
+.targets .book { box-shadow: 0 0 0 2px #e6b35a; }

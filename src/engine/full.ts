@@ -137,7 +137,19 @@ export function removePatron(state: GameState, id: PatronId) {
 
 // ---------- Контора ----------
 
+// Открытые опальные книги на Складах — цена похода в Контору (одна уходит в Спецхран).
+type TargetsInfo = Pick<GameState, 'cards' | 'restored' | 'banned'> & {
+  players: { id: string; warehouse: { card: string | null; hidden: boolean; memorized?: boolean }[] }[];
+};
+
+export function kontoraTargets(state: TargetsInfo): { player: string; card: string }[] {
+  return state.players.flatMap((o) => o.warehouse
+    .filter((s) => s.card && !s.hidden && !s.memorized && isGenreBook(state, s.card) && isBanned(state, s.card))
+    .map((s) => ({ player: o.id, card: s.card! })));
+}
+
 export function startKontora(state: GameState, p: PlayerState) {
+  check(kontoraTargets(state).length > 0, 'В Контору сейчас не пойти: ни у кого на Складе нет открытой опальной книги — нечем заплатить');
   // Предупреждение: другие игроки могут перепрятать книги, прежде чем вы решите.
   const others = rotate(state.order, p.id).filter((id) => id !== p.id);
   for (const id of others) {
@@ -156,6 +168,7 @@ function rotate(order: string[], first: string) {
 export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
   const chosen = [c.petition?.length, c.handout, c.signal, c.prophylaxis].filter(Boolean).length;
   check(chosen >= 1, 'Выберите от 1 до 4 пунктов');
+  check(c.seize, 'Выберите открытую опальную книгу, которая уйдёт в Спецхран — это цена похода в Контору');
   if (c.petition?.length) {
     check(c.petition.length <= 2, 'Ходатайство возвращает до 2 Единомышленников');
     for (const id of c.petition) {
@@ -176,20 +189,19 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
     check(s && !s.hidden && !s.memorized, 'Изъять можно только открыто лежащую на складе книгу');
     check(isGenreBook(state, s.card) && isBanned(state, s.card), 'Изъять можно только книгу опального жанра');
     removeBook(o, s.card);
-    o.spetskhran.push(s.card);
+    state.spetskhran.push(s.card);
     log(state, `По доносу из Конторы у ${o.name} изъята в Спецхран ${title(state, s.card)}.`);
   }
   if (c.handout) {
-    const cards = state.players.flatMap((o) => o.spetskhran.map((card) => ({ owner: o.id, card })));
+    const cards = [...state.spetskhran];
     if (cards.length && freeSlots(p) > 0) state.pending.push({ kind: 'kontoraHandout', player: p.id, cards });
     else log(state, `${p.name}: Выдача на руки — брать нечего или некуда.`);
   }
 }
 
 export function takeFromSpetskhran(state: GameState, p: PlayerState, card: string) {
-  const owner = state.players.find((o) => o.spetskhran.includes(card));
-  check(owner, 'Этой книги нет в Спецхране');
-  owner.spetskhran = owner.spetskhran.filter((c) => c !== card);
+  check(state.spetskhran.includes(card), 'Этой книги нет в Спецхране');
+  state.spetskhran = state.spetskhran.filter((c) => c !== card);
   addBook(p, card);
   log(state, `${p.name} получает книгу из Спецхрана (Выдача на руки).`);
   log(state, `Вы получили ${title(state, card)}.`, [p.id]);

@@ -41,7 +41,7 @@ export function createGame(opts: NewGameOptions): GameState {
     deck: [], discard: [], loadDeck: [], loadDiscard: [],
     tolkuchka: [], razval: [], baraholka: [], knigoobmen: [], raspredelitel: [],
     safehouses: [], safehouseDeck: [], occupancy: {},
-    sprouts: [], patrons: [], pending: [], ready: [], log: [],
+    sprouts: [], patrons: [], spetskhran: [], pending: [], ready: [], log: [],
   };
   state.deck = shuffle(state, CARDS.filter((c) => !['load', 'loadReturnable', 'loadEvidence'].includes(c.kind)).map((c) => c.id));
   state.loadDeck = shuffle(state, CARDS.filter((c) => ['load', 'loadReturnable', 'loadEvidence'].includes(c.kind)).map((c) => c.id));
@@ -66,7 +66,7 @@ export function createGame(opts: NewGameOptions): GameState {
       workers: RULES.startWorkers, available: RULES.startWorkers, bonusGroupTurns: 0,
       talons: RULES.startTalons, points: 0,
       capacity: RULES.startCapacity, cache: 0, warehouse: [],
-      published: [], tamizdat: [], spetskhran: [],
+      published: [], tamizdat: [],
       passion: null, passionOptions: [passions.pop()!, passions.pop()!],
       groupUsed: [], visitedRedCorner: false, sproutsFed: [], subscriptions: [],
       held: 0, buzoterUsed: false, patronBonus: { capacity: 0, cache: 0 },
@@ -132,6 +132,10 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
         doGathering(state, p, action.show);
         return done(state);
       case 'hiding':
+        if (action.type === 'memorize') {
+          memorize(state, p, action.card);
+          return done(state);
+        }
         check(action.type === 'hiding', 'Сейчас Укрытие');
         doHiding(state, p, action);
         return done(state);
@@ -337,6 +341,17 @@ function doHiding(state: GameState, p: PlayerState, a: Extract<Action, { type: '
   }
 }
 
+function memorize(state: GameState, p: PlayerState, card: string | null) {
+  check(isFull(state), 'Заучивать стихи можно только в полном режиме');
+  if (card) check(hasBook(p, card) && iconsOf(state, card).includes('poetry'), 'Заучить можно только сборник поэзии со своего склада');
+  for (const s of p.warehouse) {
+    s.memorized = s.card === card || undefined;
+    if (s.memorized) s.hidden = false;
+  }
+  check(freeSlots(p) >= 0, 'Склад переполнен: сначала освободите место');
+  log(state, card ? `${p.name} заучивает ${title(state, card)}.` : `${p.name} больше не держит сборник заученным.`);
+}
+
 // Расставить книги по Тайнику. memorize — заученный сборник поэзии (полный режим), undefined — не менять.
 function setHidden(state: GameState, p: PlayerState, hidden: string[], memorize?: string | null) {
   check(new Set(hidden).size === hidden.length, 'Книга указана дважды');
@@ -375,7 +390,7 @@ function raid(state: GameState) {
     const seized = p.warehouse.filter((s) => !s.hidden && !s.memorized && isBanned(state, s.card));
     if (!seized.length) continue;
     p.warehouse = p.warehouse.filter((s) => !seized.includes(s));
-    p.spetskhran.push(...seized.map((s) => s.card));
+    state.spetskhran.push(...seized.map((s) => s.card));
     log(state, `У ${p.name} изъято в Спецхран: ${seized.map((s) => title(state, s.card)).join(', ')}.`);
     if (isFull(state)) holdWorker(state, p, 'изъятие при облаве');
   }
@@ -412,6 +427,12 @@ function changeRound(state: GameState) {
 // ---------- Фаза поручений ----------
 
 function doOrder(state: GameState, p: PlayerState, action: Action) {
+  if (action.type === 'memorize') {
+    // «Заучить» не тратит действие и не завершает ход.
+    memorize(state, p, action.card);
+    state.holdTurn = true;
+    return;
+  }
   if (p.available === 0) {
     check(p.bonusGroupTurns > 0, 'У вас не осталось Единомышленников');
     if (action.type === 'pass') {
@@ -448,9 +469,7 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
   const here = state.occupancy[a.address] ?? [];
   const info = ADDRESSES[a.address];
   let buzoter = false;
-  const freeLimit = (a.address === 'samizdat' && isFull(state) && iconsOf(state, (a as { card: string }).card).includes('foreign'))
-    || (a.address === 'tamizdat' && isFull(state) && iconsOf(state, (a as { card: string }).card).includes('testimony'));
-  if (here.length >= limitFor(a.address, state.players.length) && !freeLimit) {
+  if (here.length >= limitFor(a.address, state.players.length)) {
     // Бузотёр: раз в Пятилетку — на адрес, где достигнут общий лимит.
     buzoter = hasPatron(state, p.id, 'buzoter') && !p.buzoterUsed;
     check(buzoter, `${info.name}: все места заняты`);
@@ -945,7 +964,9 @@ export type { AddressId, Genre, PassionId };
 // Сохранения, сделанные до появления полного режима, дополняем недостающими полями.
 export function migrate(state: GameState): GameState {
   state.patrons ??= [];
-  for (const p of state.players) {
+  state.spetskhran ??= [];
+  for (const p of state.players as (PlayerState & { spetskhran?: string[] })[]) {
+    if (p.spetskhran) { state.spetskhran.push(...p.spetskhran); delete p.spetskhran; }
     p.held ??= 0;
     p.buzoterUsed ??= false;
     p.patronBonus ??= { capacity: 0, cache: 0 };

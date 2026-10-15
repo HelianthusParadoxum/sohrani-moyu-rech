@@ -4,6 +4,7 @@ import { GENRE_NAMES, PATRONS } from '../engine/content';
 import type { Action, ClubGift, GroupAction, KontoraChoice, PatronId, PlaceAction } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import { cacheLimit } from '../engine/util';
+import { kontoraTargets } from '../engine/full';
 import { Book, GenreChip, Modal, PLAYER_COLORS, iconsOf, isBanned, toggle } from './ui';
 
 type VPlayer = PlayerView['players'][number];
@@ -30,6 +31,7 @@ export function KontoraContents({ view }: { view: PlayerView }) {
   return (
     <div className="small">
       Удержано: <b>{total}</b> из 7{held.length > 0 && ` (${held.map((p) => `${p.name}: ${p.held}`).join(', ')})`}
+      <div>В Спецхране: <b>{view.spetskhranCount}</b> книг(и)</div>
       {total >= 5 && <div className="warn-text">При 7 удержанных подполье проигрывает!</div>}
     </div>
   );
@@ -84,9 +86,14 @@ export function ClubPanel({ view, me, place }: { view: PlayerView; me: VPlayer; 
   return <GiftPicker view={view} me={me} onDone={(gifts) => place({ address: 'club', gifts })} />;
 }
 
-export function KontoraPanel({ place }: { place: (p: PlaceAction) => void }) {
+export function KontoraPanel({ view, place }: { view: PlayerView; place: (p: PlaceAction) => void }) {
+  const targets = kontoraTargets(view);
   return (
     <>
+      <h4>Цена похода: одна открыто лежащая на чьём-то Складе книга опального жанра уйдёт в Спецхран</h4>
+      {targets.length === 0
+        ? <p className="warn-text">Сейчас в Контору не пойти: ни у кого на Складе нет открытой опальной книги — нечем заплатить.</p>
+        : <TargetShelf view={view} targets={targets} />}
       <p>Сначала вы предупредите остальных игроков: они смогут перепрятать книги. После этого вы окончательно решите, идти ли в Контору, и выберете от 1 до 4 пунктов:</p>
       <ul>
         <li><b>Ходатайство</b> — вернуть из Конторы до 2 удержанных Единомышленников любых игроков.</li>
@@ -94,9 +101,22 @@ export function KontoraPanel({ place }: { place: (p: PlaceAction) => void }) {
         <li><b>Сигнал</b> — удержать в Конторе Единомышленника любого игрока.</li>
         <li><b>Профилактика</b> — удалить одного Завсегдатая Клуба.</li>
       </ul>
-      <p>Доход: одна открыто лежащая на чьём-то складе книга опального жанра уходит в Спецхран.</p>
-      <div className="modal-foot"><button className="primary" onClick={() => place({ address: 'kontora' })}>Предупредить остальных</button></div>
+      <p className="muted small">Книги выше могут спрятать после предупреждения — окончательный выбор будет после него.</p>
+      <div className="modal-foot"><button className="primary" disabled={!targets.length} onClick={() => place({ address: 'kontora' })}>Предупредить остальных</button></div>
     </>
+  );
+}
+
+function TargetShelf({ view, targets, selected, onPick }: {
+  view: PlayerView; targets: { player: string; card: string }[]; selected?: string; onPick?: (t: { player: string; card: string }) => void;
+}) {
+  return (
+    <div className="shelf wrap targets">
+      {targets.map((t) => (
+        <Book key={t.card} v={view} id={t.card} note={view.players.find((p) => p.id === t.player)!.name}
+          selected={selected === t.card} onClick={onPick ? () => onPick(t) : undefined} />
+      ))}
+    </div>
   );
 }
 
@@ -123,8 +143,7 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
   const [prophylaxis, setProphylaxis] = useState<PatronId | ''>('');
   const [seize, setSeize] = useState<{ player: string; card: string } | null>(null);
   const held = view.players.filter((p) => p.held > 0);
-  const targets = view.players.flatMap((p) =>
-    p.warehouse.filter((s) => s.card && !s.hidden && !s.memorized && iconsOf(view, s.card).length > 0 && isBanned(view, s.card)).map((s) => ({ player: p.id, card: s.card! })));
+  const targets = kontoraTargets(view);
   const count = [petition.length > 0, handout, !!signal, !!prophylaxis].filter(Boolean).length;
   const choice: KontoraChoice = {
     ...(petition.length ? { petition } : {}), ...(handout ? { handout } : {}), ...(signal ? { signal } : {}),
@@ -157,30 +176,25 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
           {view.patrons.filter((x) => !x.removed).map((x) => <option key={x.id} value={x.id}>{PATRONS[x.id].name}</option>)}
         </select>
       </label>
-      <h4>Доход: изъять открытую опальную книгу (необязательно)</h4>
-      <div className="shelf wrap">
-        {targets.length === 0 && <span className="muted">Открытых опальных книг ни у кого нет</span>}
-        {targets.map((t) => (
-          <Book key={t.card} v={view} id={t.card} note={view.players.find((p) => p.id === t.player)!.name}
-            selected={seize?.card === t.card} onClick={() => setSeize(seize?.card === t.card ? null : t)} />
-        ))}
-      </div>
+      <h4>Цена похода (обязательно): выберите открытую опальную книгу — она уйдёт в Спецхран</h4>
+      {targets.length === 0
+        ? <p className="warn-text">Все опальные книги успели спрятать — заплатить нечем, в Контору сейчас не пойти. Единомышленник остаётся у вас.</p>
+        : <TargetShelf view={view} targets={targets} selected={seize?.card} onPick={(t) => setSeize(seize?.card === t.card ? null : t)} />}
       <div className="modal-foot">
         <button onClick={() => act({ type: 'kontoraDecide', go: false })}>Передумать</button>
-        <button className="primary" disabled={count < 1} onClick={() => act({ type: 'kontoraDecide', go: true, choice })}>Пойти в Контору ({count})</button>
+        <button className="primary" disabled={count < 1 || !seize} title={!seize ? 'Выберите книгу для Спецхрана' : count < 1 ? 'Выберите хотя бы один пункт' : ''}
+          onClick={() => act({ type: 'kontoraDecide', go: true, choice })}>Пойти в Контору ({count})</button>
       </div>
     </Modal>
   );
 }
 
-export function HandoutPrompt({ view, cards, act }: { view: PlayerView; cards: { owner: string; card: string }[]; act: (a: Action) => void }) {
+export function HandoutPrompt({ view, cards, act }: { view: PlayerView; cards: string[]; act: (a: Action) => void }) {
   return (
     <Modal title="Выдача на руки: Спецхран" wide>
       <p>Возьмите одну книгу.</p>
       <div className="shelf wrap">
-        {cards.map((c) => (
-          <Book key={c.card} v={view} id={c.card} note={`у ${view.players.find((p) => p.id === c.owner)!.name}`} onClick={() => act({ type: 'kontoraHandout', card: c.card })} />
-        ))}
+        {cards.map((c) => <Book key={c} v={view} id={c} onClick={() => act({ type: 'kontoraHandout', card: c })} />)}
       </div>
     </Modal>
   );

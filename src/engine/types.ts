@@ -93,7 +93,6 @@ export interface PlayerState {
   warehouse: WarehouseSlot[];
   published: string[]; // изданное (Самиздат, Тамиздат) — учитывается в Пристрастии
   tamizdat: string[]; // подмножество published, изданное через Тамиздат
-  spetskhran: string[]; // изъятое облавой
   passion: PassionId | null;
   passionOptions: PassionId[]; // две карты на выбор в начале партии
   groupUsed: GroupActionId[]; // действия Группы, сделанные в эту Пятилетку
@@ -119,7 +118,7 @@ export type Pending =
   | { kind: 'sproutBonus'; player: string; sprout: string; options: SproutBonusId[] }
   | { kind: 'kontoraWarning'; player: string; from: string }
   | { kind: 'kontoraDecide'; player: string }
-  | { kind: 'kontoraHandout'; player: string; cards: { owner: string; card: string }[] }
+  | { kind: 'kontoraHandout'; player: string; cards: string[] }
   | { kind: 'extraGroup'; player: string } // Подмастерье
   | { kind: 'freeConnection'; player: string }; // Председатель
 
@@ -162,6 +161,7 @@ export interface GameState {
   occupancy: Partial<Record<AddressId, string[]>>;
   sprouts: Sprout[];
   patrons: PatronState[];
+  spetskhran: string[]; // Спецхран Конторы — общий, лежит взакрытую
   holdTurn?: boolean; // действие не завершило ход (отказ от Конторы)
   pending: Pending[];
   ready: string[]; // кто подтвердил одновременную фазу
@@ -245,4 +245,5 @@ export type Action =
   | { type: 'kontoraHide'; hidden: string[] }
   | { type: 'kontoraDecide'; go: boolean; choice?: KontoraChoice }
   | { type: 'kontoraHandout'; card: string }
-  | { type: 'clubGift'; gift: ClubGift | null };
+  | { type: 'clubGift'; gift: ClubGift | null }
+  | { type: 'memorize'; card: string | null }; // Поэзия «Заучить» — в любой момент своего хода
