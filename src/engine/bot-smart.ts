@@ -4,7 +4,7 @@
 // Честность: бот не подглядывает в закрытые карты. Перед примеркой он перемешивает свою копию
 // стопок и Барахолки, поэтому вытянутая при примерке книга — догадка, а не знание.
 import { applyAction, mustVisitRedCorner } from './engine';
-import { BOT_BASE, type BotGoal, type BotPreset } from './bot-presets';
+import { BOT_BASE, CURATOR_STYLES, curatorStyle, type BotGoal, type BotPreset, type CuratorStyle } from './bot-presets';
 import { PERMANENT_ADDRESSES, PASSIONS, RULES, SPROUTS, STEP_REWARDS, FIRST_FEED_POINTS, ADDRESSES, KONTORA_LOSS, limitFor } from './content';
 import { heldTotal, kontoraTargets } from './full';
 import { passionPoints } from './scoring';
@@ -27,6 +27,7 @@ interface Ctx {
   curator: boolean; // бот — Куратор: побеждает, если Гласность не наступит
   aggression: number; // готовность вредить соперникам (полный режим)
   suspect: Record<string, number>; // насколько каждый соперник похож на Куратора, 0..1 (только по открытой информации)
+  style?: CuratorStyle; // характер Куратора-бота
   coop: number; // 0..1: насколько партия стала «все против Куратора» — тогда бот не вредит остальным и тянет Гласность
 }
 
@@ -48,8 +49,10 @@ function makeCtx(state: GameState, me: string, preset: BotPreset): Ctx {
   // Кооперация: подозрение на Куратора или просто видно, что Гласность под угрозой (не хватает ступеней на оставшиеся ходы).
   const risk = r >= 3 ? Math.min(1, Math.max(0, (urgency - BOT_BASE.coopRiskFrom) / BOT_BASE.coopRiskSpan)) : 0;
   const coop = curator ? 0 : Math.max(risk, ...Object.values(suspect));
+  const style = curator ? curatorStyle(state, me) : undefined;
+  if (style) w.talons *= CURATOR_STYLES[style].talons[r - 1];
   return {
-    me, preset, round: r, w, talon: BOT_BASE.talon[r - 1] ?? 0.5,
+    me, preset, round: r, w, talon: BOT_BASE.talon[r - 1] ?? 0.5, style,
     // Против общего врага Гласность важнее: без неё проигрывают все Единомышленники.
     glasnost: BOT_BASE.glasnostStep * urgency * (1 + BOT_BASE.coopGlasnost * coop),
     full: state.mode === 'full', curator, aggression: (preset.character.aggression ?? 0) * (1 - coop),
@@ -67,6 +70,17 @@ function blockBonus(state: GameState, a: Action, ctx: Ctx): number {
   return BOT_BASE.blockCurator * enemy[1];
 }
 const BLOCK_ADDRESSES: string[] = ['baraholka', 'spisanie', 'nasledniki', 'posrednichestvo', 'raspredelitel'];
+
+// Открытые книги на столе, годные для ближайшей ступени какого-нибудь Ростка до порога Гласности (основной жанр).
+function feedBooksOnTable(state: GameState): number {
+  const need = new Set<Genre>();
+  for (const sp of state.sprouts) {
+    if (sp.progress >= RULES.glasnostStep) continue;
+    need.add(SPROUTS.find((s) => s.id === sp.id)!.main);
+  }
+  return [...state.tolkuchka, ...state.razval, ...state.raspredelitel, ...state.knigoobmen]
+    .filter((c): c is string => !!c && iconsOf(state, c).some((g) => need.has(g))).length;
+}
 
 // Сколько Пропаганды может достаться Куратору: открыто на столе и (пока партия не кончилась и есть Наследники) в сбросе.
 function reachablePropaganda(state: GameState, left: number): number {
@@ -192,11 +206,29 @@ function resources(state: GameState, p: PlayerState, ctx: Ctx): number {
 // Куратор: Гласность не должна наступить. Тормозит отстающий Росток, копит Пропаганду, помогает Конторе.
 function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   if (state.result) return state.result.winners.includes(p.id) ? BOT_BASE.loss : -BOT_BASE.loss;
+  const style = CURATOR_STYLES[ctx.style ?? 'open'];
+  const r = ctx.round - 1;
+  // Насколько он уже на подозрении у честных (смотрит на себя их глазами).
+  const exposed = Math.max(0, ...state.players.filter((o) => o.id !== p.id).map((o) => curatorSuspicion(state, o.id)[p.id] ?? 0));
+  const revealed = style.untilRevealed && exposed >= BOT_BASE.suspectAct;
+  const attack = revealed ? style.attack[4] : style.attack[r];
+  const conceal = revealed ? 0 : style.conceal[r];
   let v = resources(state, p, ctx);
   const prog = state.sprouts.map((sp) => Math.min(sp.progress, RULES.glasnostStep));
   v -= BOT_BASE.curatorStep * prog.reduce((a, b) => a + b, 0) + BOT_BASE.curatorWeakest * Math.min(...prog);
   v += BOT_BASE.curatorPropaganda * p.warehouse.filter((s) => isPropaganda(state, s.card)).length;
-  v += BOT_BASE.curatorHeld * state.players.filter((o) => o.id !== p.id).reduce((s, o) => s + o.held, 0);
+  v += attack * BOT_BASE.curatorHeld * state.players.filter((o) => o.id !== p.id).reduce((s, o) => s + o.held, 0);
+  // Жанровые книги — разменная монета: Книгообмен на Пропаганду, Главлит «прокруткой», оплата Конторы своей книгой.
+  for (const s of p.warehouse) {
+    if (!isGenreBook(state, s.card)) continue;
+    v += BOT_BASE.curatorBook + (isBanned(state, s.card) ? BOT_BASE.curatorBannedBook : 0);
+  }
+  // Книги на столе, которыми честные закроют ближайшие ступени, — лучше забрать себе.
+  v -= BOT_BASE.curatorDenyFeed * feedBooksOnTable(state);
+  // Маскировка и «отжим» Талонов.
+  v -= conceal * BOT_BASE.curatorConceal * exposed;
+  const others = state.players.filter((o) => o.id !== p.id);
+  v -= style.squeeze[r] * ctx.talon * others.reduce((s, o) => s + o.talons, 0) / Math.max(1, others.length);
   if (state.phase !== 'end' && state.phase !== 'passion') {
     const risky = atRisk(state, p, (c) => ownBookValue(state, p, c, ctx), true);
     v -= risky.reduce((s, c) => s + Math.max(0, ownBookValue(state, p, c, ctx)), 0) * ctx.preset.character.caution;

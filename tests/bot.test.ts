@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyAction, createGame } from '../src/engine/engine';
 import { botMove, playOut } from '../src/engine/bot';
 import { curatorSuspicion, rankActions } from '../src/engine/bot-smart';
-import { BOT_GOALS, BOT_PRESETS, presetById } from '../src/engine/bot-presets';
+import { BOT_GOALS, BOT_PRESETS, CURATOR_STYLES, curatorStyle, curatorStyleNote, presetById } from '../src/engine/bot-presets';
 import { isBanned, isGenreBook } from '../src/engine/util';
 import type { GameState } from '../src/engine/types';
 
@@ -164,6 +164,17 @@ describe('думающий бот в полном режиме', () => {
     expect(curatorSuspicion(s, me.id)[x.id]).toBe(0);
     // Без Куратора в колоде подозревать некого.
     expect(curatorSuspicion(createGame({ players: players(3), seed: 5, mode: 'full', curator: false }), me.id)).toEqual({});
+  });
+
+  it('характер Куратора-бота выбирается случайно, но одинаково для той же партии; все три встречаются', () => {
+    const seen = new Set<string>();
+    for (let seed = 1; seed <= 30; seed++) {
+      const st = curatorStyle({ seed }, 'p1');
+      expect(curatorStyle({ seed }, 'p1')).toBe(st);
+      seen.add(st);
+    }
+    expect([...seen].sort()).toEqual(['ambush', 'boa', 'open']);
+    expect(curatorStyleNote({ seed: 1 }, 'p1', 'Бот 1')).toContain(CURATOR_STYLES[curatorStyle({ seed: 1 }, 'p1')].name);
   });
 
   it('Куратор не кормит Ростки и бережёт Пропаганду', () => {

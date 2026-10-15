@@ -8,7 +8,7 @@ import { randomBytes } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
 import { applyAction, createGame, activePlayers, migrate } from '../engine/engine';
 import { botMove } from '../engine/bot';
-import { BOT_PRESETS, DEFAULT_PRESET, presetById } from '../engine/bot-presets';
+import { BOT_PRESETS, DEFAULT_PRESET, curatorStyleNote, presetById } from '../engine/bot-presets';
 import { viewFor } from '../engine/view';
 import { RuleError } from '../engine/util';
 import type { Action, GameState, Mode } from '../engine/types';
@@ -31,8 +31,19 @@ const sockets = new Map<WebSocket, { room: string; seat: string | null; host: bo
 
 // ---------- Сохранение ----------
 
+// Партия окончена, Куратор — бот: в конце журнала пишем, какой стратегии он держался (один раз).
+function noteCuratorStyle(room: Room) {
+  const s = room.state;
+  if (!s || s.phase !== 'end') return;
+  const cur = s.players.find((p) => p.passion === 'curator');
+  if (!cur || !room.seats.find((x) => x.id === cur.id)?.bot) return;
+  const text = curatorStyleNote(s, cur.id, cur.name);
+  if (!s.log.some((l) => l.text === text)) s.log.push({ round: s.round, text });
+}
+
 function save(room: Room) {
   room.updated = Date.now();
+  noteCuratorStyle(room);
   const { history, ...rest } = room;
   writeFileSync(join(SAVE_DIR, `${room.code}.json`), JSON.stringify({ ...rest, history: history.slice(-20) }));
 }

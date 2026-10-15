@@ -133,6 +133,45 @@ export const BOT_PRESETS: BotPreset[] = [
 
 export const DEFAULT_PRESET = 'bookman';
 
+// ---------- Характеры Куратора-бота ----------
+// Куратору-боту характер достаётся случайно (по номеру партии и месту — одинаково при повторе партии).
+// Числа по Пятилеткам 1..5:
+// conceal — насколько он не хочет выдать себя (смотрит на себя глазами честных ботов: Пропаганда на виду, некормленые Ростки);
+// attack — насколько он вредит: Сигналы, удержанные Конторой Единомышленники, срезы;
+// talons — множитель ценности своих Талонов; squeeze — насколько ему на руку бедность соперников (в Талонах).
+// untilRevealed — маскируется и не нападает, пока подозрение на него не дойдёт до 0.5 (тогда — как в последней Пятилетке).
+export type CuratorStyle = 'open' | 'ambush' | 'boa';
+type Five = [number, number, number, number, number];
+export const CURATOR_STYLES: Record<CuratorStyle, {
+  name: string; hint: string; conceal: Five; attack: Five; talons: Five; squeeze: Five; untilRevealed?: boolean;
+}> = {
+  open: {
+    name: 'Открытое забрало', hint: 'С первого хода напорист и агрессивен, не скрывает, кто он.',
+    conceal: [0, 0, 0, 0, 0], attack: [1.6, 1.6, 1.6, 1.6, 1.6], talons: [0.5, 0.5, 0.5, 0.4, 0.3], squeeze: [0, 0, 0, 0, 0],
+  },
+  ambush: {
+    name: 'Хищник в засаде', hint: 'Первые две Пятилетки не отсвечивает, копит ресурсы и подрезает ключевые действия; потом бьёт.',
+    conceal: [8, 8, 0, 0, 0], attack: [0.3, 0.5, 1.8, 1.8, 1.8], talons: [1.3, 1.3, 0.6, 0.4, 0.3], squeeze: [0, 0, 0, 0, 0],
+  },
+  boa: {
+    name: 'Удав', hint: 'Изображает честного игрока, пока его не раскроют; методично отжимает Талоны и ключевые действия.',
+    conceal: [8, 8, 8, 8, 8], attack: [0.4, 0.4, 0.6, 0.8, 1.2], talons: [1.5, 1.5, 1.4, 1.2, 0.8], squeeze: [0.6, 0.6, 0.6, 0.6, 0.4],
+    untilRevealed: true,
+  },
+};
+
+// Строка для журнала в конце партии: какой стратегии держался Куратор-бот.
+export function curatorStyleNote(state: { seed: number }, pid: string, name: string): string {
+  const st = CURATOR_STYLES[curatorStyle(state, pid)];
+  return `Стратегия Куратора-бота (${name}): «${st.name}» — ${st.hint.charAt(0).toLowerCase()}${st.hint.slice(1)}`;
+}
+
+export function curatorStyle(state: { seed: number }, pid: string): CuratorStyle {
+  let h = state.seed | 0;
+  for (const ch of pid) h = Math.imul(h ^ ch.charCodeAt(0), 0x9e3779b1) >>> 0;
+  return (['open', 'ambush', 'boa'] as const)[h % 3];
+}
+
 export function presetById(id?: string | null): BotPreset {
   return BOT_PRESETS.find((p) => p.id === id) ?? BOT_PRESETS.find((p) => p.id === DEFAULT_PRESET)!;
 }
@@ -179,6 +218,10 @@ export const BOT_BASE = {
   curatorWeakest: 8, // ...особенно у самого отстающего Ростка
   curatorPropaganda: 4, // Пропаганда на складе Куратора: в конце срезает ступень у Ростка
   curatorHeld: 3, // каждый удержанный Конторой Единомышленник соперников
+  curatorBook: 1, // жанровая книга на руках у Куратора — разменная монета (Книгообмен на Пропаганду, Главлит, сдать себя в Контору)
+  curatorBannedBook: 0.7, // ...ещё сверху за подцензурную (её можно сдать в Главлит или заплатить ею за Контору)
+  curatorDenyFeed: 1.5, // каждая открытая книга на столе, которая годится честным для ближайшей ступени Ростка
+  curatorConceal: 1, // × conceal характера: цена подозрения на себя (0..1)
   insurance: 3, // «Громоотвод»: ступень сверх 3-й у любого Ростка страхует от срезов Куратора (засчитывается до 3 ступеней)
   insuranceSteps: 3,
   coopInsurance: 2, // при полной кооперации «Громоотвод» втрое ценнее

@@ -3,7 +3,7 @@
 // Пресеты раздаются по местам по кругу и каждую партию сдвигаются, чтобы никому не доставалось одно и то же место.
 import { createGame } from '../src/engine/engine';
 import { playOut } from '../src/engine/bot';
-import { BOT_PRESETS, DEFAULT_PRESET, presetById } from '../src/engine/bot-presets';
+import { BOT_PRESETS, CURATOR_STYLES, DEFAULT_PRESET, curatorStyle, presetById, type CuratorStyle } from '../src/engine/bot-presets';
 import { PASSIONS } from '../src/engine/content';
 import type { Mode } from '../src/engine/types';
 
@@ -29,6 +29,7 @@ function seeded(seed: number) {
 let glasnost = 0;
 const progress: number[] = [];
 const passionWins: Record<string, number> = {};
+const curatorStyles: Record<string, { plays: number; wins: number }> = {};
 const passionPlays: Record<string, number> = {};
 const stat: Record<string, { plays: number; wins: number; total: number[]; workers: number[]; sources: Record<string, number> }> = {};
 const started = Date.now();
@@ -56,6 +57,11 @@ for (let i = 0; i < games; i++) {
     }
     st.workers.push(p.workers);
     passionPlays[p.passion!] = (passionPlays[p.passion!] ?? 0) + 1;
+    if (p.passion === 'curator') {
+      const st = (curatorStyles[curatorStyle(s, p.id)] ??= { plays: 0, wins: 0 });
+      st.plays++;
+      if (r.winners.includes(p.id)) st.wins++;
+    }
     if (r.winners.includes(p.id)) passionWins[p.passion!] = (passionWins[p.passion!] ?? 0) + 1;
   }
 }
@@ -69,6 +75,10 @@ console.log('По пресетам (побед / мест, средний ито
 for (const [id, st] of Object.entries(stat)) {
   console.log(`  ${presetById(id).name.padEnd(14)} ${st.wins} / ${st.plays}, итог ${avg(st.total)}, сеть ${avg(st.workers)}`);
   console.log(`    ${Object.entries(st.sources).map(([k, v]) => `${k} ${(v / st.plays).toFixed(1)}`).join(', ')}`);
+}
+if (Object.keys(curatorStyles).length) {
+  console.log('Куратор по характерам (побед / сыграно):');
+  for (const [id, x] of Object.entries(curatorStyles)) console.log(`  ${CURATOR_STYLES[id as CuratorStyle].name.padEnd(18)} ${x.wins} / ${x.plays}`);
 }
 console.log('Победы по Пристрастиям (побед / сыграно):');
 for (const [id, plays] of Object.entries(passionPlays).sort()) {
