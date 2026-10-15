@@ -8,7 +8,7 @@ import { randomBytes } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
 import { applyAction, createGame, activePlayers, migrate } from '../engine/engine';
 import { botMove } from '../engine/bot';
-import { BOT_PRESETS, DEFAULT_PRESET } from '../engine/bot-presets';
+import { BOT_PRESETS, DEFAULT_PRESET, presetById } from '../engine/bot-presets';
 import { viewFor } from '../engine/view';
 import { RuleError } from '../engine/util';
 import type { Action, GameState, Mode } from '../engine/types';
@@ -115,6 +115,23 @@ function scheduleBots(room: Room) {
   }, room.botDelay ?? 700));
 }
 
+// Боты называются по пресету; номер — только если у нескольких ботов один пресет.
+// Место хоста, отданное боту, сохраняет имя хоста.
+function renameBots(room: Room) {
+  const bots = room.seats.filter((s) => s.bot && s.id !== room.host);
+  const count = new Map<string, number>();
+  for (const s of bots) count.set(presetById(s.preset ?? DEFAULT_PRESET).name, (count.get(presetById(s.preset ?? DEFAULT_PRESET).name) ?? 0) + 1);
+  const seen = new Map<string, number>();
+  for (const s of bots) {
+    const base = presetById(s.preset ?? DEFAULT_PRESET).name;
+    const k = (seen.get(base) ?? 0) + 1;
+    seen.set(base, k);
+    s.name = count.get(base)! > 1 ? `${base} ${k}` : base;
+    const p = room.state?.players.find((x) => x.id === s.id);
+    if (p) p.name = s.name;
+  }
+}
+
 function handle(ws: WebSocket, msg: ClientMessage) {
   const conn = sockets.get(ws);
   switch (msg.t) {
@@ -162,8 +179,7 @@ function handle(ws: WebSocket, msg: ClientMessage) {
     case 'addBot': {
       if (!isHost || room.state) return;
       if (room.seats.length >= 4) return send(ws, { t: 'error', message: 'За столом уже 4 игрока' });
-      const n = room.seats.filter((s) => s.bot).length + 1;
-      room.seats.push({ id: newId(), name: `Бот ${n}`, token: newId(), bot: true });
+      room.seats.push({ id: newId(), name: 'Бот', token: newId(), bot: true });
       break;
     }
     case 'removeSeat': {
@@ -230,6 +246,7 @@ function handle(ws: WebSocket, msg: ClientMessage) {
       break;
     }
   }
+  renameBots(room);
   save(room);
   broadcast(room);
   scheduleBots(room);
