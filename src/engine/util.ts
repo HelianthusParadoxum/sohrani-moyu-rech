@@ -1,6 +1,6 @@
 // Вспомогательные функции: случайность, карты, игроки.
 import { RULES } from './content';
-import type { GameState, Genre, PlayerState } from './types';
+import type { GameState, Genre, PatronId, PlayerState } from './types';
 
 export class RuleError extends Error {}
 
@@ -68,16 +68,37 @@ export function flexGenres(state: CardsInfo, id: string): Genre[] | null {
   return v.length > 1 ? v.map((icons) => icons[icons.length - 1]) : null;
 }
 
-// Закрывают ли книги ступень Ростка: перебираем выбор жанра гибких значков.
-export function coversStep(state: CardsInfo, books: string[], main: Genre, need: number, support?: Genre): boolean {
+export interface StepOptions {
+  wildScifi?: boolean; // «Заронить зерно»: значки Фантастики — значки любого жанра
+  labtech?: boolean; // Лаборант: на 1 значок меньше (минимум 1)
+}
+
+// Закрывают ли книги ступень Ростка: перебираем выбор жанра гибких значков и Фантастики.
+export function coversStep(state: CardsInfo, books: string[], main: Genre, need: number, support?: Genre, opts: StepOptions = {}): boolean {
+  const reqs: { need: number; support?: Genre }[] = [{ need, support }];
+  if (opts.labtech) {
+    if (need > 1 || support) reqs.push({ need: Math.max(need - 1, support ? 0 : 1), support });
+    if (support) reqs.push({ need });
+  }
   const options = books.map((b) => iconVariants(state, b));
+  const ok = (icons: Genre[], r: { need: number; support?: Genre }) => {
+    let m = icons.filter((g) => g === main).length;
+    let s = r.support ? icons.filter((g) => g === r.support).length : 0;
+    let wild = opts.wildScifi && main !== 'scifi' && r.support !== 'scifi' ? icons.filter((g) => g === 'scifi').length : 0;
+    if (r.support && s === 0 && wild > 0) { wild--; s = 1; }
+    m += wild;
+    return m >= r.need && (!r.support || s >= 1);
+  };
   const go = (i: number, icons: Genre[]): boolean => {
-    if (i === options.length) {
-      return icons.filter((g) => g === main).length >= need && (!support || icons.includes(support));
-    }
+    if (i === options.length) return reqs.some((r) => ok(icons, r));
     return options[i].some((v) => go(i + 1, [...icons, ...v]));
   };
   return go(0, []);
+}
+
+// Есть ли у игрока связь с Завсегдатаем (только полный режим).
+export function hasPatron(state: Partial<Pick<GameState, 'patrons' | 'mode'>>, pid: string, id: PatronId): boolean {
+  return state.mode === 'full' && !!state.patrons?.some((x) => x.id === id && !x.removed && x.connections.includes(pid));
 }
 
 export function isLoad(state: CardsInfo, id: string): boolean {
@@ -146,8 +167,9 @@ export function discard(state: GameState, id: string) {
 
 // ---------- Склад ----------
 
+// Заученный сборник поэзии лежит сверх склада и места не занимает.
 export function freeSlots(p: PlayerState): number {
-  return p.capacity - p.warehouse.length;
+  return p.capacity - p.warehouse.filter((s) => !s.memorized).length;
 }
 
 export function addBook(p: PlayerState, id: string) {
@@ -175,7 +197,7 @@ export function loadCover(state: CardsInfo, warehouse: { card: string | null }[]
   return Math.floor(warehouse.filter((s) => s.card && isLoad(state, s.card)).length / 2);
 }
 
-export function cacheLimit(state: CardsInfo, p: Pick<PlayerState, 'cache' | 'warehouse'>): number {
+export function cacheLimit(state: CardsInfo, p: { cache: number; warehouse: { card: string | null }[] }): number {
   return p.cache + loadCover(state, p.warehouse);
 }
 

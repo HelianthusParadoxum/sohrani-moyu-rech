@@ -68,9 +68,10 @@ export function scoreLine(state: GameState, p: PlayerState): ScoreLine {
   const propaganda = RULES.propagandaPoints * stash.filter((id) => isPropaganda(state, id)).length;
   const evidence = RULES.evidencePoints * [...stash, ...p.tamizdat].filter((id) => isEvidence(state, id)).length;
   const icons = collection(state, p).reduce((s, id) => s + iconsOf(state, id).length, 0);
+  const connections = state.patrons.filter((x) => !x.removed && x.connections.includes(p.id)).length;
   return {
-    player: p.id, during: p.points, passion, sprouts, propaganda, evidence,
-    total: p.points + passion + sprouts + propaganda + evidence, icons,
+    player: p.id, during: p.points, passion, sprouts, propaganda, evidence, connections,
+    total: p.points + passion + sprouts + propaganda + evidence + connections, icons,
   };
 }
 
@@ -107,10 +108,10 @@ export function finalScoring(state: GameState): GameResult {
   const ranked = scores
     .filter((s) => s.player !== curator?.id)
     .map((s) => ({ s, talons: state.players.find((p) => p.id === s.player)!.talons }))
-    .sort((a, b) => b.s.total - a.s.total || b.s.icons - a.s.icons || b.talons - a.talons);
+    .sort((a, b) => b.s.total - a.s.total || b.s.icons - a.s.icons || b.s.connections - a.s.connections || b.talons - a.talons);
   const top = ranked[0];
   const winners = ranked
-    .filter((r) => r.s.total === top.s.total && r.s.icons === top.s.icons && r.talons === top.talons)
+    .filter((r) => r.s.total === top.s.total && r.s.icons === top.s.icons && r.s.connections === top.s.connections && r.talons === top.talons)
     .map((r) => r.s.player);
   const names = winners.map((id) => state.players.find((p) => p.id === id)!.name).join(', ');
   return { glasnost: true, scores, winners, note: `Гласность наступила! Победа: ${names} (${top.s.total} очков).` };

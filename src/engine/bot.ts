@@ -2,7 +2,7 @@
 // с лёгкими предпочтениями. Нужен для симуляций, тестов и пустых мест за столом.
 import { applyAction, activePlayers, mustVisitRedCorner } from './engine';
 import { PERMANENT_ADDRESSES, SPROUTS } from './content';
-import type { Action, GameState, Genre, GroupAction } from './types';
+import type { Action, ClubGift, GameState, Genre, GroupAction } from './types';
 import { GENRES } from './types';
 import { cacheLimit, iconsOf, isBanned, isLoad, isPropaganda, player, RuleError } from './util';
 
@@ -23,6 +23,21 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
       case 'naslednikiPick': return [{ type: 'naslednikiPick', cards: pend.cards.slice(-2) }, { type: 'naslednikiPick', cards: pend.cards.slice(-1) }];
       case 'posrednichestvoKeep': return [{ type: 'posrednichestvoKeep', keep: pend.cards.slice(0, 2) }, { type: 'posrednichestvoKeep', keep: pend.cards.slice(0, 1) }];
       case 'posrednichestvoGroup': return [...groupCandidates(state, me), { type: 'pass' }];
+      case 'kontoraWarning':
+        return [{ type: 'kontoraHide', hidden: p.warehouse.filter((s) => s.hidden).map((s) => s.card) }];
+      case 'kontoraDecide': {
+        const victim = state.players.find((o) => o.id !== me && o.warehouse.some((s) => !s.hidden && !s.memorized && iconsOf(state, s.card).length > 0 && isBanned(state, s.card)));
+        const card = victim?.warehouse.find((s) => !s.hidden && !s.memorized && iconsOf(state, s.card).length > 0 && isBanned(state, s.card))?.card;
+        const held = state.players.find((o) => o.held > 0);
+        const choice = held ? { petition: [held.id] } : { handout: true };
+        return [
+          { type: 'kontoraDecide', go: true, choice: { ...choice, ...(victim && card ? { seize: { player: victim.id, card } } : {}) } },
+          { type: 'kontoraDecide', go: false },
+        ];
+      }
+      case 'kontoraHandout': return [{ type: 'kontoraHandout', card: pend.cards[0].card }];
+      case 'extraGroup': return [...groupCandidates(state, me), { type: 'pass' }];
+      case 'freeConnection': return [...clubGifts(state, me).map((gift) => ({ type: 'clubGift' as const, gift })), { type: 'pass' }];
       case 'sproutBonus': {
         const out: Action[] = [];
         for (const b of pend.options) {
@@ -45,7 +60,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
     }
     case 'orders': {
       if (p.available === 0) return [...groupCandidates(state, me), { type: 'pass' }];
-      if (mustVisitRedCorner(p)) return redCorner(state, me);
+      if (mustVisitRedCorner(state, p)) return redCorner(state, me);
       const out: Action[] = [...groupCandidates(state, me), ...redCorner(state, me)];
       const addrs = [...PERMANENT_ADDRESSES, ...state.safehouses];
       for (const a of addrs) {
@@ -91,6 +106,8 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
           }
           case 'raspredelitel': for (const c of state.raspredelitel) out.push({ type: 'place', place: { address: 'raspredelitel', card: c } }); break;
           case 'nasledniki': case 'posrednichestvo': case 'spisanie': out.push({ type: 'place', place: { address: a } }); break;
+          case 'club': for (const gift of clubGifts(state, me)) out.push({ type: 'place', place: { address: 'club', gifts: [gift] } }); break;
+          case 'kontora': if (rand() < 0.15) out.push({ type: 'place', place: { address: 'kontora' } }); break;
         }
       }
       return out;
@@ -124,11 +141,24 @@ function chooseBooks(state: GameState, books: string[], main: Genre, need: numbe
   return chosen;
 }
 
+function clubGifts(state: GameState, me: string): ClubGift[] {
+  const p = player(state, me);
+  const out: ClubGift[] = [];
+  for (const pt of state.patrons) {
+    if (pt.removed || pt.turned || pt.connections.includes(me)) continue;
+    const card = p.warehouse.find((s) => iconsOf(state, s.card).includes(pt.genre))?.card;
+    if (card) out.push({ patron: pt.id, card });
+  }
+  return out;
+}
+
 function groupCandidates(state: GameState, me: string): Action[] {
   const p = player(state, me);
   const out: GroupAction[] = [{ action: 'expandWarehouse' }, { action: 'expandCache' }, { action: 'copyText', card: 'deck' }, { action: 'hire' }];
   const r = p.warehouse.find((s) => !state.restored[s.card] && ['genre', 'loadReturnable'].includes(state.cards[s.card].kind));
   if (r) out.push({ action: 'restore', card: r.card });
+  const held = state.players.filter((o) => o.held > 0);
+  if (held.length) out.push({ action: 'rescue', returns: Object.fromEntries(held.map((o) => [o.id, o.held])) });
   return out.map((group) => ({ type: 'group', group }));
 }
 
@@ -137,6 +167,7 @@ function weight(a: Action): number {
   if (a.type === 'place') {
     if (a.place.address === 'sprouts') return 6;
     if (a.place.address === 'tamizdat') return 3;
+    if (a.place.address === 'club') return 2;
     if (a.place.address === 'redCorner') return 0.5;
   }
   if (a.type === 'pass') return 0.1;
@@ -159,7 +190,7 @@ export function botMove(state: GameState, me: string, rand: Rand = Math.random):
     }
   }
   // Ничего не подошло: в фазе поручений — Красный уголок без сдачи или пас.
-  for (const a of [{ type: 'place', place: { address: 'redCorner', recycle: [] } }, { type: 'pass' }, { type: 'gathering', show: [] }, { type: 'hiding', hidden: [] }, { type: 'baraholkaBuy', buy: false }, { type: 'kvartirnikReply', accept: false }] as Action[]) {
+  for (const a of [{ type: 'place', place: { address: 'redCorner', recycle: [] } }, { type: 'pass' }, { type: 'gathering', show: [] }, { type: 'hiding', hidden: [] }, { type: 'baraholkaBuy', buy: false }, { type: 'kvartirnikReply', accept: false }, { type: 'kontoraDecide', go: false }, { type: 'kontoraHide', hidden: [] }] as Action[]) {
     try { return applyAction(state, me, a); } catch (e) { if (!(e instanceof RuleError)) throw e; }
   }
   throw new Error(`Бот ${me} не нашёл допустимого хода (фаза ${state.phase})`);

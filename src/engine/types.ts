@@ -40,7 +40,10 @@ export type AddressId =
   | 'raspredelitel'
   | 'nasledniki'
   | 'posrednichestvo'
-  | 'spisanie';
+  | 'spisanie'
+  // Полный режим
+  | 'club' // Клуб книголюбов
+  | 'kontora'; // Контора
 
 export type GroupActionId =
   | 'expandWarehouse' // Увеличение склада
@@ -49,6 +52,20 @@ export type GroupActionId =
   | 'rescue' // Вызволение из бед (Контора — только полный режим)
   | 'restore' // Возвращение смыслов
   | 'hire'; // Расширение сети
+
+export type PatronId =
+  | 'binder' | 'carpenter' | 'correspondent' | 'postgrad' | 'professor' | 'housekeeper' | 'spotter' | 'veteran'
+  | 'buyer' | 'fartsovshchik' | 'librarian' | 'tsekhovik' | 'partorg' | 'zavmag' | 'apprentice' | 'druzhinnik'
+  | 'chairman' | 'zavkhoz' | 'buzoter' | 'broker' | 'blatnoy' | 'glavlit' | 'lieutenant' | 'cataloguer'
+  | 'doctor' | 'zavpunktom' | 'typist' | 'editor' | 'labtech' | 'psychiatrist' | 'nesun' | 'geologist';
+
+export interface PatronState {
+  id: PatronId;
+  genre: Genre; // жанровый слот Клуба
+  connections: string[]; // игроки, у которых есть связь с Завсегдатаем
+  turned: boolean; // связь в эту Пятилетку уже завязана
+  removed: boolean; // удалён Профилактикой Конторы
+}
 
 export type SproutBonusId = GroupActionId | 'sideJob' | 'underCounter';
 
@@ -60,6 +77,7 @@ export type PassionId =
 export interface WarehouseSlot {
   card: string;
   hidden: boolean; // лежит в Тайнике (не видна другим, облава не трогает)
+  memorized?: boolean; // «Заучить»: сборник поэзии сверх склада и Тайника, виден всем
 }
 
 export interface PlayerState {
@@ -82,6 +100,9 @@ export interface PlayerState {
   visitedRedCorner: boolean;
   sproutsFed: string[]; // id Ростков, у которых игрок закрыл хоть одну ступень
   subscriptions: { genre: Genre; rounds: number }[];
+  held: number; // Единомышленников удерживает Контора
+  buzoterUsed: boolean;
+  patronBonus: { capacity: number; cache: number }; // прибавки от Управдома и Столяра
 }
 
 export interface Sprout {
@@ -95,7 +116,12 @@ export type Pending =
   | { kind: 'naslednikiPick'; player: string; cards: string[] }
   | { kind: 'posrednichestvoKeep'; player: string; cards: string[] }
   | { kind: 'posrednichestvoGroup'; player: string }
-  | { kind: 'sproutBonus'; player: string; sprout: string; options: SproutBonusId[] };
+  | { kind: 'sproutBonus'; player: string; sprout: string; options: SproutBonusId[] }
+  | { kind: 'kontoraWarning'; player: string; from: string }
+  | { kind: 'kontoraDecide'; player: string }
+  | { kind: 'kontoraHandout'; player: string; cards: { owner: string; card: string }[] }
+  | { kind: 'extraGroup'; player: string } // Подмастерье
+  | { kind: 'freeConnection'; player: string }; // Председатель
 
 export type Phase = 'passion' | 'orders' | 'gathering' | 'hiding' | 'end';
 
@@ -135,6 +161,8 @@ export interface GameState {
   safehouseDeck: AddressId[];
   occupancy: Partial<Record<AddressId, string[]>>;
   sprouts: Sprout[];
+  patrons: PatronState[];
+  holdTurn?: boolean; // действие не завершило ход (отказ от Конторы)
   pending: Pending[];
   ready: string[]; // кто подтвердил одновременную фазу
   result?: GameResult;
@@ -148,6 +176,7 @@ export interface ScoreLine {
   sprouts: number;
   propaganda: number;
   evidence: number;
+  connections: number;
   total: number;
   icons: number;
 }
@@ -164,7 +193,7 @@ export interface GameResult {
 export type TolkuchkaOp = { op: 'buy'; card: string } | { op: 'sell'; card: string };
 
 export type PlaceAction =
-  | { address: 'gostorg'; pairs: number }
+  | { address: 'gostorg'; pairs: number; mix?: ('load' | 'unprinted')[] } // mix — Завмаг
   | { address: 'tolkuchka'; ops: TolkuchkaOp[] }
   | { address: 'redCorner'; recycle: string[] }
   | { address: 'razval'; slot: number }
@@ -179,13 +208,25 @@ export type PlaceAction =
   | { address: 'raspredelitel'; card: string }
   | { address: 'nasledniki' }
   | { address: 'posrednichestvo' }
-  | { address: 'spisanie' };
+  | { address: 'spisanie' }
+  | { address: 'club'; gifts: ClubGift[] }
+  | { address: 'kontora' };
+
+export interface ClubGift { patron: PatronId; card: string }
+
+export interface KontoraChoice {
+  petition?: string[]; // Ходатайство: чьих Единомышленников вернуть (до 2)
+  handout?: boolean; // Выдача на руки
+  signal?: string; // Сигнал: чьего Единомышленника удержать
+  prophylaxis?: PatronId; // Профилактика: какого Завсегдатая удалить
+  seize?: { player: string; card: string }; // доход: открытая опальная книга в Спецхран
+}
 
 export type GroupAction =
   | { action: 'expandWarehouse' }
   | { action: 'expandCache' }
   | { action: 'copyText'; card: string | 'deck' }
-  | { action: 'rescue' }
+  | { action: 'rescue'; returns: Record<string, number> }
   | { action: 'restore'; card: string }
   | { action: 'hire' };
 
@@ -200,4 +241,8 @@ export type Action =
   | { type: 'posrednichestvoKeep'; keep: string[] }
   | { type: 'sproutBonus'; bonus: SproutBonusId; group?: GroupAction }
   | { type: 'gathering'; show: string[] }
-  | { type: 'hiding'; hidden: string[] };
+  | { type: 'hiding'; hidden: string[]; memorize?: string | null; fillLoad?: boolean }
+  | { type: 'kontoraHide'; hidden: string[] }
+  | { type: 'kontoraDecide'; go: boolean; choice?: KontoraChoice }
+  | { type: 'kontoraHandout'; card: string }
+  | { type: 'clubGift'; gift: ClubGift | null };

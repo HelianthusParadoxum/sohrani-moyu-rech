@@ -149,3 +149,58 @@ describe('Нагрузка прикрывает', () => {
     expect(cacheLimit(s, p)).toBe(7);
   });
 });
+
+describe('полный режим', () => {
+  for (const n of [2, 3, 4]) {
+    it(`${n} игрока доигрывают полную партию ботами, карты не теряются`, () => {
+      for (let seed = 1; seed <= 12; seed++) {
+        const s = playOut(createGame({ players: players(n), seed, mode: 'full' }), seeded(seed));
+        expect(s.phase).toBe('end');
+        const cards = allCards(s);
+        expect(new Set(cards).size).toBe(cards.length);
+        expect(cards.length).toBe(131);
+      }
+    });
+  }
+
+  function fullGame(seed = 3) {
+    let s = createGame({ players: players(2), seed, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    return s;
+  }
+
+  it('в Клубе 8 Завсегдатаев на 8 жанров, связь — за книгу жанра слота', () => {
+    let s = fullGame();
+    expect(s.patrons).toHaveLength(8);
+    expect(new Set(s.patrons.map((x) => x.genre)).size).toBe(8);
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    const book = Object.values(s.cards).find((c) => c.kind === 'genre' && c.icons.length === 1 && c.icons[0] !== 'album')!;
+    p.warehouse.push({ card: book.id, hidden: false });
+    s.deck = s.deck.filter((c) => c !== book.id);
+    const patron = s.patrons.find((x) => x.genre === book.icons[0])!;
+    s = applyAction(s, me, { type: 'place', place: { address: 'club', gifts: [{ patron: patron.id, card: book.id }] } });
+    expect(s.patrons.find((x) => x.id === patron.id)!.connections).toContain(me);
+  });
+
+  it('Контора: сначала предупреждение остальным, потом решение; Сигнал удерживает Единомышленника', () => {
+    let s = fullGame(11);
+    const me = s.order[s.turn];
+    const other = s.order.find((x) => x !== me)!;
+    s = applyAction(s, me, { type: 'place', place: { address: 'kontora' } });
+    if (s.pending[0].kind === 'kontoraWarning') s = applyAction(s, other, { type: 'kontoraHide', hidden: [] });
+    expect(s.pending[0]).toMatchObject({ kind: 'kontoraDecide', player: me });
+    const before = s.players.find((x) => x.id === other)!.available;
+    s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: other } });
+    const o = s.players.find((x) => x.id === other)!;
+    expect(o.held).toBe(1);
+    expect(o.available).toBe(before - 1);
+  });
+
+  it('Фантастика считается значком любого жанра при питании Ростков', () => {
+    const s = fullGame();
+    const sf = Object.values(s.cards).find((c) => c.kind === 'genre' && c.icons.length === 1 && c.icons[0] === 'scifi')!;
+    expect(coversStep(s, [sf.id], 'prose', 1, undefined, { wildScifi: true })).toBe(true);
+    expect(coversStep(s, [sf.id], 'prose', 1)).toBe(false);
+  });
+});

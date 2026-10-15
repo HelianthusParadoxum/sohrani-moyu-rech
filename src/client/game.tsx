@@ -6,7 +6,11 @@ import {
 import type { Action, AddressId, Genre, GroupAction, GroupActionId, PlaceAction, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
-import { coversStep, loadCover } from '../engine/util';
+import { coversStep, hasPatron, loadCover } from '../engine/util';
+import {
+  ClubContents, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
+  KontoraWarningPrompt, RescuePanel,
+} from './full-ui';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
 import { Book, GenreChip, Modal, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, toggle } from './ui';
 
@@ -30,7 +34,7 @@ export function Game({ view, room, you, send }: { view: PlayerView; room: RoomIn
   const myPending = head && head.player === you && !('secret' in head) ? head : null;
   const canPlace = myTurn && view.phase === 'orders' && !myPending && !!me && me.available > 0;
   const bonusTurn = myTurn && view.phase === 'orders' && !myPending && !!me && me.available === 0 && me.bonusGroupTurns > 0;
-  const mustRed = !!me && me.available === 1 && !me.visitedRedCorner;
+  const mustRed = !!me && me.available === 1 && !me.visitedRedCorner && !hasPatron(view, me.id, 'doctor');
 
   useEffect(() => { if (!canPlace && !bonusTurn) setPanel(null); }, [canPlace, bonusTurn]);
 
@@ -45,7 +49,7 @@ export function Game({ view, room, you, send }: { view: PlayerView; room: RoomIn
   } else if (you && view.active.includes(you)) status = 'Ваше решение';
   else status = `Ждём: ${view.active.map(nameOf).join(', ')}`;
 
-  const addresses = [...PERMANENT_ADDRESSES, ...view.safehouses];
+  const addresses = [...PERMANENT_ADDRESSES.filter((a) => !ADDRESSES[a].fullOnly || view.mode === 'full'), ...view.safehouses];
 
   return (
     <div className="game">
@@ -115,7 +119,7 @@ function AddressCard({ id, view, seatIndex, me, enabled, onOpen }: {
   const limit = limitFor(id, view.players.length);
   const full = here.length >= limit || (id === 'redCorner' && !!me && here.includes(me.id));
   return (
-    <div className={`address ${info.safehouse ? 'safehouse' : ''} ${enabled && !full ? 'can' : ''}`}>
+    <div className={`address addr-${id} ${info.safehouse ? 'safehouse' : ''} ${enabled && !full ? 'can' : ''}`}>
       <div className="addr-head">
         <b>{info.name}</b>
         <span className="workers">
@@ -132,6 +136,10 @@ function AddressCard({ id, view, seatIndex, me, enabled, onOpen }: {
 
 function AddressContents({ id, view, seatIndex }: { id: AddressId; view: PlayerView; seatIndex: (id: string) => number }) {
   switch (id) {
+    case 'club':
+      return <ClubContents view={view} seatIndex={seatIndex} />;
+    case 'kontora':
+      return <KontoraContents view={view} />;
     case 'redCorner': {
       if (view.round >= RULES.rounds) return <div className="muted small">Последняя Пятилетка — очередь уже не важна.</div>;
       // Новый порядок: сперва посетившие Красный уголок, затем остальные в прежнем порядке.
@@ -171,11 +179,12 @@ function AddressContents({ id, view, seatIndex }: { id: AddressId; view: PlayerV
 function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: PlayerView; me: VPlayer; close: () => void; place: (p: PlaceAction) => void }) {
   const info = ADDRESSES[id];
   const mine = me.warehouse.map((s) => s.card!).filter(Boolean);
-  const free = me.capacity - me.warehouse.length;
+  const free = me.capacity - me.warehouse.filter((s) => !s.memorized).length;
   const [sel, setSel] = useState<string[]>([]);
   const [sel2, setSel2] = useState<string[]>([]);
   const [num, setNum] = useState(1);
   const [genre, setGenre] = useState<Genre>('prose');
+  const [loadN, setLoadN] = useState(1);
   const [target, setTarget] = useState<string>(view.players.find((p) => p.id !== me.id)?.id ?? '');
   const confirmBtn = (label: string, action: PlaceAction | null, extra?: string) => (
     <div className="modal-foot">
@@ -201,11 +210,17 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
   switch (id) {
     case 'gostorg': {
       const max = Math.min(Math.floor(free / 2), me.talons);
+      const zavmag = hasPatron(view, me.id, 'zavmag');
       body = (
         <>
           <p>Каждая пара — 1 Нагрузка и 1 Непечатная книга вслепую, за 1 Талон. Свободных мест: {free}.</p>
           <label>Пар: <input type="number" min={1} max={max} value={num} onChange={(e) => setNum(Number(e.target.value))} /></label>
-          {confirmBtn(`Купить за ${num}т`, max >= 1 && num >= 1 && num <= max ? { address: 'gostorg', pairs: num } : null, max < 1 ? 'Нужно 2 свободных места и 1 Талон' : undefined)}
+          {zavmag && (
+            <label>Завмаг: из {num * 2} книг Нагрузки — <input type="number" min={0} max={num * 2} value={Math.min(loadN, num * 2)} onChange={(e) => setLoadN(Number(e.target.value))} />, остальные — Непечатные</label>
+          )}
+          {confirmBtn(`Купить за ${num}т`, max >= 1 && num >= 1 && num <= max
+            ? { address: 'gostorg', pairs: num, ...(zavmag ? { mix: Array.from({ length: num * 2 }, (_, i) => (i < Math.min(loadN, num * 2) ? 'load' as const : 'unprinted' as const)) } : {}) }
+            : null, max < 1 ? 'Нужно 2 свободных места и 1 Талон' : undefined)}
         </>
       );
       break;
@@ -234,7 +249,7 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
         <>
           <p>Вы встанете в очередь хода следующей Пятилетки. Можно сдать в макулатуру до 1 Непечатной книги и до 1 книги Нагрузки — по 1 Талону за каждую. Пропаганду можно сбыть только здесь.</p>
           {pickList(mine, sel, setSel)}
-          {confirmBtn('Пойти в Красный уголок', unprinted <= 1 && load <= 1 ? { address: 'redCorner', recycle: sel } : null, unprinted > 1 || load > 1 ? 'Слишком много книг' : `+${sel.length}т`)}
+          {confirmBtn('Пойти в Красный уголок', (unprinted <= 1 && load <= 1) || hasPatron(view, me.id, 'zavpunktom') ? { address: 'redCorner', recycle: sel } : null, unprinted > 1 || load > 1 ? 'Слишком много книг' : `+${sel.length}т`)}
         </>
       );
       break;
@@ -332,6 +347,12 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
         </>
       );
       break;
+    case 'club':
+      body = <ClubPanel view={view} me={me} place={place} />;
+      break;
+    case 'kontora':
+      body = <KontoraPanel place={place} />;
+      break;
     case 'nasledniki':
     case 'posrednichestvo':
     case 'spisanie':
@@ -387,7 +408,7 @@ function SproutFeeder({ view, me, place }: { view: PlayerView; me: VPlayer; plac
   const progressOf = (id: string) => view.sprouts.find((s) => s.id === id)!.progress + feeds.filter((f) => f.sprout === id).length;
   const info = SPROUTS.find((s) => s.id === sprout);
   const step = info && info.steps[progressOf(sprout)];
-  const ok = !!info && !!step && coversStep(view, books, info.main, step.main, step.support);
+  const ok = !!info && !!step && coversStep(view, books, info.main, step.main, step.support, { wildScifi: view.mode === 'full', labtech: hasPatron(view, me.id, 'labtech') });
   return (
     <>
       <p>Закройте ступени: одним действием отдайте книги, на которых есть все значки ступени. Можно закрыть несколько ступеней у разных Ростков.</p>
@@ -425,7 +446,7 @@ function SproutFeeder({ view, me, place }: { view: PlayerView; me: VPlayer; plac
 
 // Почему действие Группы сейчас невозможно (null — возможно).
 function groupBlocker(view: PlayerView, me: VPlayer, id: GroupActionId): string | null {
-  const free = me.capacity - me.warehouse.length;
+  const free = me.capacity - me.warehouse.filter((s) => !s.memorized).length;
   switch (id) {
     case 'hire':
       if (me.workers >= RULES.maxWorkers) return `У вас уже максимум Единомышленников (${RULES.maxWorkers}).`;
@@ -437,6 +458,8 @@ function groupBlocker(view: PlayerView, me: VPlayer, id: GroupActionId): string 
       return me.cache >= RULES.maxCache ? `Тайник уже максимального размера (${RULES.maxCache}).` : null;
     case 'copyText':
       return free <= 0 ? 'На складе нет свободного места.' : null;
+    case 'rescue':
+      return view.players.some((p) => p.held > 0) ? null : 'Контора никого не удерживает.';
     case 'restore':
       return me.warehouse.some((s) => s.card && !view.restored[s.card] && ['genre', 'loadReturnable'].includes(view.cards[s.card].kind))
         ? null : 'На складе нет книги, которой можно вернуть смыслы.';
@@ -458,6 +481,8 @@ function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; v
         <div className="modal-foot">{close && <button onClick={close}>Понятно</button>}<button className="primary" disabled>Выполнить</button></div>
       </>
     );
+  } else if (id === 'rescue') {
+    body = <RescuePanel view={view} done={done} />;
   } else if (id === 'copyText') {
     const singles = [...view.tolkuchka, ...view.knigoobmen, ...view.raspredelitel, ...view.razval.filter((c): c is string => !!c)];
     body = (
@@ -498,6 +523,14 @@ function PendingPrompt({ view, me, act, nameOf }: { view: PlayerView; me: VPlaye
   const [groupFor, setGroupFor] = useState<SproutBonusId | 'posred' | null>(null);
   if ('secret' in p) return null;
   switch (p.kind) {
+    case 'kontoraWarning':
+      return <KontoraWarningPrompt view={view} me={me} from={p.from} act={act} />;
+    case 'kontoraDecide':
+      return <KontoraDecidePrompt view={view} me={me} act={act} />;
+    case 'kontoraHandout':
+      return <HandoutPrompt view={view} cards={p.cards} act={act} />;
+    case 'freeConnection':
+      return <FreeConnectionPrompt view={view} me={me} act={act} />;
     case 'baraholkaLook':
       return (
         <Modal title="Барахолка">
@@ -524,7 +557,7 @@ function PendingPrompt({ view, me, act, nameOf }: { view: PlayerView; me: VPlaye
       );
     case 'naslednikiPick':
     case 'posrednichestvoKeep': {
-      const free = me.capacity - me.warehouse.length;
+      const free = me.capacity - me.warehouse.filter((s) => !s.memorized).length;
       const isN = p.kind === 'naslednikiPick';
       return (
         <Modal title={isN ? 'Наследники: сброс Непечатных' : 'Посредничество авторам'} wide>
@@ -538,22 +571,25 @@ function PendingPrompt({ view, me, act, nameOf }: { view: PlayerView; me: VPlaye
       );
     }
     case 'posrednichestvoGroup':
+    case 'extraGroup':
     case 'sproutBonus': {
       const options: (GroupActionId | SproutBonusId)[] = p.kind === 'sproutBonus'
         ? p.options
-        : (Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => !GROUP_ACTIONS[g].fullOnly || view.mode === 'full');
+        : (Object.keys(GROUP_ACTIONS) as GroupActionId[])
+          .filter((g) => !GROUP_ACTIONS[g].fullOnly || view.mode === 'full')
+          .filter((g) => p.kind !== 'extraGroup' || !me.groupUsed.includes(g));
       const sendGroup = (g: GroupAction) => act(p.kind === 'sproutBonus' ? { type: 'sproutBonus', bonus: g.action, group: g } : { type: 'group', group: g });
       if (groupFor && groupFor !== 'posred' && groupFor in GROUP_ACTIONS) {
         return <GroupPanel id={groupFor as GroupActionId} view={view} me={me} close={() => setGroupFor(null)} done={sendGroup} />;
       }
       return (
-        <Modal title={p.kind === 'sproutBonus' ? `Бонус Ростка «${SPROUTS.find((s) => s.id === p.sprout)!.name}»` : 'Действие Инициативной группы'}>
+        <Modal title={p.kind === 'sproutBonus' ? `Бонус Ростка «${SPROUTS.find((s) => s.id === p.sprout)!.name}»` : p.kind === 'extraGroup' ? 'Подмастерье: действие Группы' : 'Действие Инициативной группы'}>
           <p>{p.kind === 'sproutBonus' ? 'Выберите одно действие. Оно не требует Единомышленника; собственную цену действия платите как обычно.' : 'Выполните одно действие Группы.'}</p>
           <div className="genres">
             {options.map((o) => (
               <button key={o} onClick={() => {
                 if (o === 'sideJob' || o === 'underCounter') act({ type: 'sproutBonus', bonus: o });
-                else if (o === 'copyText' || o === 'restore' || groupBlocker(view, me, o as GroupActionId)) setGroupFor(o);
+                else if (o === 'copyText' || o === 'restore' || o === 'rescue' || groupBlocker(view, me, o as GroupActionId)) setGroupFor(o);
                 else sendGroup({ action: o } as GroupAction);
               }}>{SPROUT_BONUS_NAMES[o as SproutBonusId]}</button>
             ))}
@@ -582,11 +618,17 @@ function PassionPrompt({ me, act }: { me: VPlayer; act: (a: Action) => void }) {
 
 function GatheringPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
   const [sel, setSel] = useState<string[]>([]);
-  const cands = me.warehouse.map((s) => s.card!).filter((c) => c && iconsOf(view, c).length > 0 && isBanned(view, c));
-  const pts = sel.length;
+  const full = view.mode === 'full';
+  const isDrama = (c: string) => full && iconsOf(view, c).includes('drama');
+  const cands = [
+    ...me.warehouse.map((s) => s.card!).filter((c) => c && iconsOf(view, c).length > 0 && (isBanned(view, c) || isDrama(c))),
+    ...me.published.filter(isDrama),
+  ];
+  const pts = sel.reduce((s, c) => s + (isBanned(view, c) && !me.published.includes(c) ? 1 : 0) + (isDrama(c) ? 1 : 0), 0);
   return (
     <Modal title="Посиделки" wide>
-      <p>Покажите опальные жанровые книги: +1 очко за каждую книгу опального жанра. Показанные книги остаются на складе — не забудьте укрыть их перед облавой.</p>
+      <p>Покажите опальные жанровые книги: +1 очко за каждую книгу опального жанра. Показанные книги остаются на складе — не забудьте укрыть их перед облавой.
+        {full && ' Драматургию можно показывать и неопальную, и из изданного: +1 очко за каждую («Разыграть»).'}</p>
       <div className="shelf wrap">
         {cands.length === 0 && <span className="muted">Опальных жанровых книг нет</span>}
         {cands.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} onClick={() => setSel(toggle(sel, c))} />)}
@@ -599,17 +641,33 @@ function GatheringPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act
 function HidingPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
   const cards = me.warehouse.map((s) => s.card!).filter(Boolean);
   const [sel, setSel] = useState<string[]>(() => me.warehouse.filter((s) => s.hidden).map((s) => s.card!));
+  const [memo, setMemo] = useState<string | null>(() => me.warehouse.find((s) => s.memorized)?.card ?? null);
+  const [fill, setFill] = useState(false);
+  const full = view.mode === 'full';
+  const partorg = hasPatron(view, me.id, 'partorg');
+  const poetry = cards.filter((c) => iconsOf(view, c).includes('poetry'));
   const cover = loadCover(view, me.warehouse);
   const limit = me.cache + cover;
-  const exposed = cards.filter((c) => !sel.includes(c) && isBanned(view, c));
+  const hiddenNow = sel.filter((c) => c !== memo);
+  const exposed = cards.filter((c) => !sel.includes(c) && c !== memo && isBanned(view, c));
   return (
     <Modal title="Укрытие" wide>
       <p>Отметьте книги, которые прячете в Тайник. Мест в Тайнике: {me.cache}, ещё {cover} — за Нагрузку на складе (каждые 2 Нагрузки дают +1 место). Сейчас спрятано {sel.length} из {limit}.</p>
       <div className="shelf wrap">
         {cards.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} hidden={sel.includes(c)} onClick={() => setSel(toggle(sel, c))} />)}
       </div>
+      {full && poetry.length > 0 && (
+        <>
+          <h4>«Заучить»: один сборник поэзии сверх склада и Тайника (виден всем, облава не трогает)</h4>
+          <div className="shelf wrap">
+            {poetry.map((c) => <Book key={c} v={view} id={c} small selected={memo === c} onClick={() => setMemo(memo === c ? null : c)} note={memo === c ? 'заучено' : undefined} />)}
+          </div>
+        </>
+      )}
+      {partorg && <label className="row"><input type="checkbox" checked={fill} onChange={(e) => setFill(e.target.checked)} /> Парторг: заполнить пустые места склада Нагрузкой (бесплатно, до укрытия)</label>}
       {exposed.length > 0 && <p className="warn-text">При облаве будут изъяты: {exposed.map((c) => `«${view.cards[c].title}»`).join(', ')}</p>}
-      <div className="modal-foot"><button className="primary" disabled={sel.length > limit} onClick={() => act({ type: 'hiding', hidden: sel })}>Готово к облаве</button></div>
+      <div className="modal-foot"><button className="primary" disabled={hiddenNow.length > limit && !fill}
+        onClick={() => act({ type: 'hiding', hidden: hiddenNow, ...(full ? { memorize: memo } : {}), ...(fill ? { fillLoad: true } : {}) })}>Готово к облаве</button></div>
     </Modal>
   );
 }
@@ -621,14 +679,14 @@ function Results({ view, close }: { view: PlayerView; close: () => void }) {
     <Modal title="Конец Застоя" onClose={close} wide>
       <p><b>{r.note}</b></p>
       <table className="scores">
-        <thead><tr><th>Игрок</th><th>Пристрастие</th><th>По ходу</th><th>Пристрастие</th><th>Ростки</th><th>Пропаганда</th><th>Улики</th><th>Итого</th></tr></thead>
+        <thead><tr><th>Игрок</th><th>Пристрастие</th><th>По ходу</th><th>Пристрастие</th><th>Ростки</th><th>Пропаганда</th><th>Улики</th><th>Связи</th><th>Итого</th></tr></thead>
         <tbody>
           {r.scores.map((s) => {
             const p = view.players.find((x) => x.id === s.player)!;
             return (
               <tr key={s.player} className={r.winners.includes(s.player) ? 'winner' : ''}>
                 <td>{name(s.player)}</td><td>{p.passion ? PASSIONS[p.passion].name : '—'}</td>
-                <td>{s.during}</td><td>{s.passion}</td><td>{s.sprouts}</td><td>{s.propaganda}</td><td>{s.evidence}</td><td><b>{s.total}</b></td>
+                <td>{s.during}</td><td>{s.passion}</td><td>{s.sprouts}</td><td>{s.propaganda}</td><td>{s.evidence}</td><td>{s.connections ?? 0}</td><td><b>{s.total}</b></td>
               </tr>
             );
           })}
@@ -650,6 +708,8 @@ function Stats({ p, view }: { p: VPlayer; view: PlayerView }) {
       <span title="Склад: занято / мест">📚 {p.warehouse.length}/{p.capacity}</span>
       <span title={`Мест в Тайнике: ${p.cache}${cover ? ` + ${cover} за Нагрузку на складе` : ''}`}>🔒 {p.cache + cover}{cover ? '*' : ''}</span>
       {p.spetskhranCount > 0 && <span title="Изъято в Спецхран">⛔ {p.spetskhranCount}</span>}
+      {p.held > 0 && <span title="Единомышленников удерживает Контора">🏢 {p.held}</span>}
+      {view.mode === 'full' && <span title="Связи в Клубе книголюбов">🤝 {view.patrons.filter((x) => !x.removed && x.connections.includes(p.id)).length}</span>}
     </div>
   );
 }
@@ -659,7 +719,7 @@ function MyPanel({ view, me, color, groupEnabled, onGroup }: { view: PlayerView;
     <div className="player me" style={{ borderColor: color }}>
       <div className="addr-head"><b style={{ color }}>{me.name} (вы)</b>{me.passion && <span className="passion-tag" title={PASSIONS[me.passion].hint}>{PASSIONS[me.passion].name}</span>}</div>
       <Stats p={me} view={view} />
-      <div className="shelf wrap">{me.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small />)}</div>
+      <div className="shelf wrap">{me.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}</div>
       {me.published.length > 0 && <div className="published"><span className="muted small">Издано:</span><div className="shelf wrap">{me.published.map((c) => <Book key={c} v={view} id={c} small />)}</div></div>}
       {me.subscriptions.length > 0 && <div className="muted small">Подписка: {me.subscriptions.map((s) => `${GENRE_NAMES[s.genre]} (${s.rounds})`).join(', ')}</div>}
       <div className="group">
@@ -683,7 +743,7 @@ function OtherPlayer({ view, p, color, active, first }: { view: PlayerView; p: V
     <div className={`player ${active ? 'active' : ''}`} style={{ borderColor: color }}>
       <div className="addr-head"><b style={{ color }}>{p.name}</b>{first && <span className="muted small">ходит первым</span>}</div>
       <Stats p={p} view={view} />
-      <div className="shelf wrap">{p.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small />)}</div>
+      <div className="shelf wrap">{p.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}</div>
       {p.published.length > 0 && <div className="muted small">Издано: {p.published.length}</div>}
     </div>
   );

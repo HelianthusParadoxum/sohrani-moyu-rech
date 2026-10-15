@@ -1,5 +1,5 @@
 // Справочные данные правил: адреса, Ростки, Пристрастия. Меняйте здесь, когда меняются правила.
-import type { AddressId, Genre, GroupActionId, PassionId, SproutBonusId } from './types';
+import type { AddressId, Genre, GroupActionId, PassionId, PatronId, SproutBonusId } from './types';
 import cardsJson from '../data/cards.json';
 import type { Card } from './types';
 
@@ -54,13 +54,15 @@ export interface AddressInfo {
   name: string;
   limits: Limits;
   safehouse?: boolean;
+  fullOnly?: boolean;
+  perPlayer?: boolean; // не больше 1 Единомышленника от игрока
   hint: string;
 }
 
 export const ADDRESSES: Record<AddressId, AddressInfo> = {
   gostorg: { id: 'gostorg', name: 'Госкниготорг', limits: [2, 3, 4], hint: '−1т за пару: Нагрузка + Непечатное, любое число пар' },
   tolkuchka: { id: 'tolkuchka', name: 'Толкучка', limits: [2, 3, 4], hint: 'Купить: −2т за книгу. Продать: +2т за книгу опального жанра, +1т за прочие' },
-  redCorner: { id: 'redCorner', name: 'Красный уголок', limits: [INF, INF, INF], hint: 'Очередь хода на следующую Пятилетку; сдать до 1 Непечатной и до 1 Нагрузки, +1т за книгу' },
+  redCorner: { id: 'redCorner', name: 'Красный уголок', limits: [INF, INF, INF], perPlayer: true, hint: 'Очередь хода на следующую Пятилетку; сдать до 1 Непечатной и до 1 Нагрузки, +1т за книгу' },
   razval: { id: 'razval', name: 'Развал', limits: [2, 3, 4], hint: 'Купить 1 книгу: −2/−2/−1/−1т по свежести' },
   zavoz: { id: 'zavoz', name: 'Завоз', limits: [1, 1, 2], hint: '+2т, Развал полностью обновляется' },
   baraholka: { id: 'baraholka', name: 'Барахолка', limits: [4, 4, 4], hint: 'Тайно посмотреть 1 из 4 закрытых книг и купить за 1т' },
@@ -74,10 +76,13 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   nasledniki: { id: 'nasledniki', name: 'Наследники', limits: [1, 1, 1], safehouse: true, hint: '−3т: тайно взять 2 книги из сброса Непечатных' },
   posrednichestvo: { id: 'posrednichestvo', name: 'Посредничество авторам', limits: [1, 1, 1], safehouse: true, hint: '−3т: тайно вытянуть 3, оставить 1–2, затем 1 действие Группы' },
   spisanie: { id: 'spisanie', name: 'Библиотечное списание', limits: [1, 1, 1], safehouse: true, hint: '−3т: взять 3 книги сверху стопки Непечатных' },
+  club: { id: 'club', name: 'Клуб книголюбов', limits: [2, 3, 4], fullOnly: true, hint: 'Отдайте Завсегдатаям книги их жанров — завяжите связи' },
+  kontora: { id: 'kontora', name: 'Контора', limits: [INF, INF, INF], fullOnly: true, perPlayer: true, hint: 'Ходатайство, Выдача на руки, Сигнал, Профилактика; доход — чужая опальная книга в Спецхран' },
 };
 
 export const PERMANENT_ADDRESSES: AddressId[] = [
   'gostorg', 'tolkuchka', 'redCorner', 'razval', 'zavoz', 'baraholka', 'podpiska', 'sprouts', 'samizdat', 'tamizdat',
+  'club', 'kontora',
 ];
 export const SAFEHOUSES: AddressId[] = ['knigoobmen', 'kvartirnik', 'raspredelitel', 'nasledniki', 'posrednichestvo', 'spisanie'];
 // Адреса, которые начинают партию заполненными (если выложены).
@@ -151,3 +156,48 @@ export const PASSIONS: Record<PassionId, PassionInfo> = {
 
 export const KEEPERS = Object.values(PASSIONS).filter((p) => !p.special).map((p) => p.id);
 export const SPECIALS: PassionId[] = ['erudite', 'monogamist', 'innovator', 'curator'];
+
+// ---------- Завсегдатаи Клуба книголюбов ----------
+
+export interface PatronInfo { id: PatronId; name: string; hint: string; implemented: boolean }
+
+const P = (id: PatronId, name: string, hint: string, implemented = true): PatronInfo => ({ id, name, hint, implemented });
+
+// implemented: false — эффект ещё не запрограммирован, такой Завсегдатай не попадает в партию.
+export const PATRONS: Record<PatronId, PatronInfo> = Object.fromEntries([
+  P('binder', 'Переплётчик', 'В одно место склада помещаются 2 книги с общим жанром', false),
+  P('carpenter', 'Столяр', '+2 места в Тайнике (до 5)'),
+  P('correspondent', 'Корреспондент', 'Самиздат и Тамиздат: ещё +1 Талон за значок'),
+  P('postgrad', 'Аспирант', 'Возвращение смыслов: +2 очка Гласности'),
+  P('professor', 'Профессор', 'Каждая закрытая ступень Ростка: +1 Талон'),
+  P('housekeeper', 'Управдом', '+2 места на складе (до 10)'),
+  P('spotter', 'Наводчик', 'Можно смотреть закрытые книги, сбросы и верх стопок', false),
+  P('veteran', 'Ветеран', 'На Барахолке — сколько угодно книг за действие, на 1 Талон дешевле', false),
+  P('buyer', 'Скупщик', 'Каждое действие с ценой в Талонах — на 1 Талон дешевле (минимум 1)'),
+  P('fartsovshchik', 'Фарцовщик', 'На Толкучке все ваши книги продаются как опальные'),
+  P('librarian', 'Библиотекарь', 'После облавы: до 2 книг из перетасованного сброса Непечатных'),
+  P('tsekhovik', 'Цеховик', 'Единократно +4 Талона'),
+  P('partorg', 'Парторг', 'Перед облавой можно бесплатно заполнить пустые места Нагрузкой'),
+  P('zavmag', 'Завмаг', 'В Госкниготорге можно выбирать: Непечатное или Нагрузка'),
+  P('apprentice', 'Подмастерье', 'После поручений — ещё одно не сделанное действие Группы'),
+  P('druzhinnik', 'Дружинник', 'Особый Единомышленник, ходит первым', false),
+  P('chairman', 'Председатель', 'После поручений — одна связь в Клубе бесплатно'),
+  P('zavkhoz', 'Завхоз', 'Красный уголок: +1 Талон за каждую сданную книгу'),
+  P('buzoter', 'Бузотёр', 'Раз в Пятилетку можно встать на занятый до предела адрес'),
+  P('broker', 'Маклер', 'Каждая новая связь в Клубе (и эта): +1 Талон'),
+  P('blatnoy', 'Блатной', 'Покупая книгу, можно за то же действие купить ещё одну в другом месте', false),
+  P('glavlit', 'Главлитовец', 'Заменяет жетон цензуры', false),
+  P('lieutenant', 'Лейтенант', 'После облавы — 1 изъятая с адресов книга', false),
+  P('cataloguer', 'Каталогизатор', 'Может смотреть книги и с низа стопки', false),
+  P('doctor', 'Врач', 'Можно не ходить в Красный уголок'),
+  P('zavpunktom', 'Завпунктом', 'Красный уголок: сдавать любое число книг'),
+  P('typist', 'Машинистка', 'Тиражирование: +1 Талон'),
+  P('editor', 'Главред', 'Самиздат: ещё +1 очко Гласности за значок'),
+  P('labtech', 'Лаборант', 'Ступени Ростков — на 1 значок меньше (минимум 1)'),
+  P('psychiatrist', 'Психиатр', 'Контора не может удерживать ваших Единомышленников'),
+  P('nesun', 'Несун', 'В конце Пятилетки +1 Талон за каждое пустое место Тайника'),
+  P('geologist', 'Геолог', 'Посиделки: +1 Талон за каждую показанную опальную книгу'),
+].map((p) => [p.id, p])) as Record<PatronId, PatronInfo>;
+
+export const CLUB_SIZE = 8;
+export const KONTORA_LOSS = 7; // столько удержанных Единомышленников — и все, кроме Куратора, проигрывают

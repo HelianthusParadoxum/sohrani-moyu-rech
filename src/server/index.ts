@@ -6,7 +6,7 @@ import { readFileSync, existsSync, mkdirSync, readdirSync, writeFileSync, statSy
 import { join, extname, resolve } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
-import { applyAction, createGame, activePlayers } from '../engine/engine';
+import { applyAction, createGame, activePlayers, migrate } from '../engine/engine';
 import { botMove } from '../engine/bot';
 import { viewFor } from '../engine/view';
 import { RuleError } from '../engine/util';
@@ -37,6 +37,7 @@ for (const f of readdirSync(SAVE_DIR)) {
   try {
     const r = JSON.parse(readFileSync(join(SAVE_DIR, f), 'utf8')) as Room;
     r.history ??= [];
+    if (r.state) r.state = migrate(r.state);
     rooms.set(r.code, r);
   } catch {
     console.warn('Не удалось прочитать сохранение', f);

@@ -12,7 +12,7 @@ const passionPlays: Record<string, number> = {};
 const progress: number[] = [];
 
 for (let i = 0; i < games; i++) {
-  const s = playOut(createGame({ players: Array.from({ length: n }, (_, k) => ({ id: `p${k}`, name: `Бот ${k}` })), seed: i + 1 }));
+  const s = playOut(createGame({ players: Array.from({ length: n }, (_, k) => ({ id: `p${k}`, name: `Бот ${k}` })), seed: i + 1, mode: (process.argv[4] as 'full') ?? 'beginner' }));
   const r = s.result!;
   if (r.glasnost) glasnost++;
   s.sprouts.forEach((sp) => progress.push(sp.progress));

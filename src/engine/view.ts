@@ -11,7 +11,7 @@ export interface PlayerView extends Omit<GameState, 'rng' | 'seed' | 'deck' | 'd
   loadDiscardCount: number;
   baraholka: boolean[]; // есть ли книга в ячейке
   players: (Omit<PlayerState, 'warehouse' | 'spetskhran' | 'passion' | 'passionOptions'> & {
-    warehouse: { card: string | null; hidden: boolean }[];
+    warehouse: { card: string | null; hidden: boolean; memorized?: boolean }[];
     spetskhranCount: number;
     passion: PlayerState['passion'];
     passionOptions: PlayerState['passionOptions'];
@@ -36,7 +36,7 @@ export function viewFor(state: GameState, me: string | null): PlayerView {
       const { spetskhran, warehouse, passion, passionOptions, ...pub } = p;
       return {
         ...pub,
-        warehouse: warehouse.map((s) => ({ card: own || !s.hidden ? s.card : null, hidden: s.hidden })),
+        warehouse: warehouse.map((s) => ({ card: own || !s.hidden ? s.card : null, hidden: s.hidden, ...(s.memorized ? { memorized: true } : {}) })),
         spetskhranCount: spetskhran.length,
         passion: own ? passion : null,
         passionOptions: p.id === me ? passionOptions : [],

@@ -185,3 +185,10 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .queue li .dot { vertical-align: -1px; }
 .queue li.pending { opacity: 0.55; }
 button.short { border-style: dashed; color: var(--muted); }
+
+label.row { flex-direction: row; align-items: center; gap: 8px; }
+.address.addr-club { grid-column: 1 / -1; }
+.patrons { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 12px; }
+.patrons li { padding: 2px 0; }
+.patrons li.removed { opacity: 0.4; text-decoration: line-through; }
+.patrons li.turned b { color: var(--muted); }
