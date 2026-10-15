@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyAction, createGame } from '../src/engine/engine';
 import { playOut } from '../src/engine/bot';
 import { viewFor } from '../src/engine/view';
-import { RuleError, coversStep } from '../src/engine/util';
+import { RuleError, cacheLimit, coversStep } from '../src/engine/util';
 import { passionPoints } from '../src/engine/scoring';
 import type { GameState } from '../src/engine/types';
 
@@ -135,5 +135,17 @@ describe('значок возвращения у двужанровой книг
     expect(coversStep(s, [dual.id], 'drama', 2)).toBe(true);
     expect(coversStep(s, [dual.id], 'irony', 2)).toBe(true);
     expect(coversStep(s, [dual.id], 'drama', 3)).toBe(false);
+  });
+});
+
+describe('Нагрузка прикрывает', () => {
+  it('каждые 2 Нагрузки на складе дают +1 место в Тайнике, даже сверх 5 и даже если Нагрузка спрятана', () => {
+    const s = createGame({ players: players(2), seed: 4 });
+    const loads = Object.values(s.cards).filter((c) => c.kind === 'load').slice(0, 4).map((c) => c.id);
+    const p = s.players[0];
+    p.cache = 5;
+    p.capacity = 10;
+    p.warehouse = loads.map((card, i) => ({ card, hidden: i === 0 }));
+    expect(cacheLimit(s, p)).toBe(7);
   });
 });

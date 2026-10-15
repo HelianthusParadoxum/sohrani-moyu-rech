@@ -6,9 +6,9 @@ import {
 import type { Action, AddressId, Genre, GroupAction, GroupActionId, PlaceAction, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
-import { coversStep } from '../engine/util';
+import { coversStep, loadCover } from '../engine/util';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
-import { Book, GenreChip, Modal, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, isLoad, toggle } from './ui';
+import { Book, GenreChip, Modal, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, toggle } from './ui';
 
 type Send = (m: ClientMessage) => void;
 type VPlayer = PlayerView['players'][number];
@@ -546,12 +546,12 @@ function GatheringPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act
 function HidingPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
   const cards = me.warehouse.map((s) => s.card!).filter(Boolean);
   const [sel, setSel] = useState<string[]>(() => me.warehouse.filter((s) => s.hidden).map((s) => s.card!));
-  const openLoad = cards.filter((c) => !sel.includes(c) && isLoad(view, c)).length;
-  const limit = me.cache + Math.floor(openLoad / 2);
+  const cover = loadCover(view, me.warehouse);
+  const limit = me.cache + cover;
   const exposed = cards.filter((c) => !sel.includes(c) && isBanned(view, c));
   return (
     <Modal title="Укрытие" wide>
-      <p>Отметьте книги, которые прячете в Тайник. Мест в Тайнике: {me.cache}, ещё {Math.floor(openLoad / 2)} — за открытую Нагрузку (2 Нагрузки укрывают 1 книгу). Сейчас спрятано {sel.length} из {limit}.</p>
+      <p>Отметьте книги, которые прячете в Тайник. Мест в Тайнике: {me.cache}, ещё {cover} — за Нагрузку на складе (каждые 2 Нагрузки дают +1 место). Сейчас спрятано {sel.length} из {limit}.</p>
       <div className="shelf wrap">
         {cards.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} hidden={sel.includes(c)} onClick={() => setSel(toggle(sel, c))} />)}
       </div>
@@ -587,14 +587,15 @@ function Results({ view, close }: { view: PlayerView; close: () => void }) {
 
 // ---------- Игроки ----------
 
-function Stats({ p }: { p: VPlayer }) {
+function Stats({ p, view }: { p: VPlayer; view: PlayerView }) {
+  const cover = loadCover(view, p.warehouse);
   return (
     <div className="stats">
       <span title="Талоны">🎫 {p.talons}</span>
       <span title="Очки Гласности, набранные по ходу игры">★ {p.points}</span>
       <span title="Единомышленники: свободны / всего">👤 {p.available}/{p.workers}</span>
       <span title="Склад: занято / мест">📚 {p.warehouse.length}/{p.capacity}</span>
-      <span title="Мест в Тайнике">🔒 {p.cache}</span>
+      <span title={`Мест в Тайнике: ${p.cache}${cover ? ` + ${cover} за Нагрузку на складе` : ''}`}>🔒 {p.cache + cover}{cover ? '*' : ''}</span>
       {p.spetskhranCount > 0 && <span title="Изъято в Спецхран">⛔ {p.spetskhranCount}</span>}
     </div>
   );
@@ -604,7 +605,7 @@ function MyPanel({ view, me, color, groupEnabled, onGroup }: { view: PlayerView;
   return (
     <div className="player me" style={{ borderColor: color }}>
       <div className="addr-head"><b style={{ color }}>{me.name} (вы)</b>{me.passion && <span className="passion-tag" title={PASSIONS[me.passion].hint}>{PASSIONS[me.passion].name}</span>}</div>
-      <Stats p={me} />
+      <Stats p={me} view={view} />
       <div className="shelf wrap">{me.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small />)}</div>
       {me.published.length > 0 && <div className="published"><span className="muted small">Издано:</span><div className="shelf wrap">{me.published.map((c) => <Book key={c} v={view} id={c} small />)}</div></div>}
       {me.subscriptions.length > 0 && <div className="muted small">Подписка: {me.subscriptions.map((s) => `${GENRE_NAMES[s.genre]} (${s.rounds})`).join(', ')}</div>}
@@ -626,7 +627,7 @@ function OtherPlayer({ view, p, color, active, first }: { view: PlayerView; p: V
   return (
     <div className={`player ${active ? 'active' : ''}`} style={{ borderColor: color }}>
       <div className="addr-head"><b style={{ color }}>{p.name}</b>{first && <span className="muted small">ходит первым</span>}</div>
-      <Stats p={p} />
+      <Stats p={p} view={view} />
       <div className="shelf wrap">{p.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small />)}</div>
       {p.published.length > 0 && <div className="muted small">Издано: {p.published.length}</div>}
     </div>

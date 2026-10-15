@@ -269,7 +269,7 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
   if (state.ready.length === state.players.length) {
     state.phase = 'hiding';
     state.ready = [];
-    log(state, 'Укрытие: прячьте опальные книги в Тайник (2 открытые Нагрузки укрывают ещё 1 книгу).');
+    log(state, 'Укрытие: прячьте опальные книги в Тайник (каждые 2 Нагрузки на складе дают +1 место).');
   }
 }
 

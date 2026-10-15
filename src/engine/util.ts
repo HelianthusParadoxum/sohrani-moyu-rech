@@ -170,9 +170,13 @@ export function pay(p: PlayerState, talons: number) {
   p.talons -= talons;
 }
 
-export function cacheLimit(state: GameState, p: PlayerState): number {
-  const openLoad = p.warehouse.filter((s) => !s.hidden && isLoad(state, s.card)).length;
-  return p.cache + Math.floor(openLoad / 2);
+// «Нагрузка прикрывает»: за каждые 2 карты Нагрузки на складе Тайник на 1 больше (даже сверх 5).
+export function loadCover(state: CardsInfo, warehouse: { card: string | null }[]): number {
+  return Math.floor(warehouse.filter((s) => s.card && isLoad(state, s.card)).length / 2);
+}
+
+export function cacheLimit(state: CardsInfo, p: Pick<PlayerState, 'cache' | 'warehouse'>): number {
+  return p.cache + loadCover(state, p.warehouse);
 }
 
 export const plural = (n: number, one: string, few: string, many: string) => {
