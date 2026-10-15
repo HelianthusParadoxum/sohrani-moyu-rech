@@ -35,6 +35,10 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
           { type: 'kontoraDecide', go: false },
         ];
       }
+      case 'glavlitSwap': {
+        const free = GENRES.filter((g) => !state.banned.includes(g));
+        return [{ type: 'glavlitSwap', from: pick(state.banned, rand)!, to: pick(free, rand)! }];
+      }
       case 'lieutenantPick': return [{ type: 'lieutenantPick', card: pend.cards[0] }, { type: 'lieutenantPick', card: null }];
       case 'discardExcess': return [{ type: 'discardExcess', cards: books.slice(-pend.count) }];
       case 'kontoraHandout': return [{ type: 'kontoraHandout', card: pend.cards[0] }];

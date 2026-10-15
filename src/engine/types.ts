@@ -123,7 +123,8 @@ export type Pending =
   | { kind: 'extraGroup'; player: string } // Подмастерье
   | { kind: 'freeConnection'; player: string } // Председатель
   | { kind: 'lieutenantPick'; player: string; cards: string[] } // Лейтенант: книги, изъятые облавой с адресов
-  | { kind: 'discardExcess'; player: string; count: number }; // склад уменьшился — игрок выбирает, что отдать
+  | { kind: 'discardExcess'; player: string; count: number }
+  | { kind: 'glavlitSwap'; player: string; roundStart?: boolean }; // Главлитовец переносит опалу с жанра на жанр // склад уменьшился — игрок выбирает, что отдать
 
 export type Phase = 'passion' | 'orders' | 'gathering' | 'hiding' | 'end';
 
@@ -251,4 +252,5 @@ export type Action =
   | { type: 'clubGift'; gift: ClubGift | null }
   | { type: 'memorize'; card: string | null }
   | { type: 'lieutenantPick'; card: string | null }
-  | { type: 'discardExcess'; cards: string[] }; // Поэзия «Заучить» — в любой момент своего хода
+  | { type: 'discardExcess'; cards: string[] }
+  | { type: 'glavlitSwap'; from: Genre; to: Genre }; // Поэзия «Заучить» — в любой момент своего хода

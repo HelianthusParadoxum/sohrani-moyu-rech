@@ -561,6 +561,8 @@ function PendingPrompt({ view, me, act, nameOf }: { view: PlayerView; me: VPlaye
         </Modal>
       );
     }
+    case 'glavlitSwap':
+      return <GlavlitPrompt view={view} act={act} />;
     case 'lieutenantPick': {
       const free = me.capacity - me.warehouse.filter((s) => !s.memorized).length;
       return (
@@ -803,5 +805,20 @@ function Log({ view }: { view: PlayerView }) {
       <h3>Журнал</h3>
       {entries.map((l, i) => <div key={i} className={l.only ? 'secret' : ''}>{l.text}</div>)}
     </div>
+  );
+}
+
+function GlavlitPrompt({ view, act }: { view: PlayerView; act: (a: Action) => void }) {
+  const [from, setFrom] = useState<Genre | null>(null);
+  const [to, setTo] = useState<Genre | null>(null);
+  return (
+    <Modal title="Главлитовец">
+      <p>Снимите опалу с одного жанра и наложите её на другой.</p>
+      <h4>Снять опалу с жанра</h4>
+      <div className="genres">{view.banned.map((g) => <button key={g} className={from === g ? 'selected' : ''} onClick={() => setFrom(g)}><GenreChip g={g} banned /> {GENRE_NAMES[g]}</button>)}</div>
+      <h4>Наложить опалу на жанр</h4>
+      <div className="genres">{GENRES.filter((g) => !view.banned.includes(g)).map((g) => <button key={g} className={to === g ? 'selected' : ''} onClick={() => setTo(g)}><GenreChip g={g} /> {GENRE_NAMES[g]}</button>)}</div>
+      <div className="modal-foot"><button className="primary" disabled={!from || !to} onClick={() => from && to && act({ type: 'glavlitSwap', from, to })}>Перенести опалу</button></div>
+    </Modal>
   );
 }

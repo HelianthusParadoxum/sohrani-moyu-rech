@@ -5,6 +5,7 @@ import { viewFor } from '../src/engine/view';
 import { RuleError, cacheLimit, coversStep, isBanned } from '../src/engine/util';
 import { passionPoints } from '../src/engine/scoring';
 import type { GameState, PatronId } from '../src/engine/types';
+import { GENRES } from '../src/engine/types';
 import { removePatron } from '../src/engine/full';
 
 const players = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `p${i + 1}`, name: `Игрок ${i + 1}` }));
@@ -283,5 +284,39 @@ describe('Завсегдатаи: Ветеран, Лейтенант, Управ
     const after = s.players.find((x) => x.id === me)!;
     expect(after.warehouse.length).toBe(after.capacity);
     expect(after.warehouse.some((w) => give.includes(w.card))).toBe(false);
+  });
+});
+
+describe('Главлитовец', () => {
+  it('переносит опалу с одного жанра на другой; число опальных жанров не меняется', () => {
+    let s = createGame({ players: players(2), seed: 8, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    const me = s.order[s.turn];
+    const slot = s.patrons[0];
+    s.patrons[0] = { ...slot, id: 'glavlit' };
+    const book = s.deck.find((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.includes(slot.genre))!;
+    s.deck = s.deck.filter((c) => c !== book);
+    s.players.find((x) => x.id === me)!.warehouse.push({ card: book, hidden: false });
+    s.players.find((x) => x.id === me)!.capacity = 10;
+    s = applyAction(s, me, { type: 'place', place: { address: 'club', gifts: [{ patron: 'glavlit', card: book }] } });
+    expect(s.pending[0]).toMatchObject({ kind: 'glavlitSwap', player: me });
+    const from = s.banned[0];
+    const to = GENRES.find((g) => !s.banned.includes(g))!;
+    const n = s.banned.length;
+    s = applyAction(s, me, { type: 'glavlitSwap', from, to });
+    expect(s.banned).toContain(to);
+    expect(s.banned).not.toContain(from);
+    expect(s.banned.length).toBe(n);
+    expect(s.order[s.turn]).not.toBe(me); // ход перешёл дальше
+  });
+
+  it('боты с Главлитовцем доигрывают партии', () => {
+    for (let seed = 1; seed <= 5; seed++) {
+      const s0 = createGame({ players: players(3), seed, mode: 'full' });
+      s0.patrons[0] = { ...s0.patrons[0], id: 'glavlit', connections: ['p1', 'p2'] };
+      const s = playOut(s0, seeded(seed));
+      expect(s.phase).toBe('end');
+      expect(s.log.some((l) => l.text.includes('(Главлитовец)'))).toBe(true);
+    }
   });
 });

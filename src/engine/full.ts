@@ -90,6 +90,9 @@ export function giveToPatron(state: GameState, p: PlayerState, gift: ClubGift) {
 
 function onConnect(state: GameState, p: PlayerState, id: PatronId) {
   switch (id) {
+    case 'glavlit':
+      state.pending.push({ kind: 'glavlitSwap', player: p.id });
+      break;
     case 'tsekhovik':
       p.talons += 4;
       log(state, `${p.name}: Цеховик — +4 Талона.`);

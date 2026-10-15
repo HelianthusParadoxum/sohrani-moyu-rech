@@ -190,6 +190,12 @@ function startRound(state: GameState) {
   state.banned = shuffle(state, [...GENRES]).slice(0, state.censorship);
   log(state, `— Пятилетка ${state.round}. Цензура: ${state.censorship}. В опале: ${state.banned.map((g) => GENRE_NAMES[g]).join(', ')}.`);
   refreshChannels(state, state.round === 1);
+  // Главлитовец: после Обстановки — в порядке, обратном порядку хода.
+  if (isFull(state)) {
+    for (const id of [...state.order].reverse()) {
+      if (hasPatron(state, id, 'glavlit')) state.pending.push({ kind: 'glavlitSwap', player: id, roundStart: true });
+    }
+  }
   state.turn = 0;
   state.turn = -1;
   advanceTurn(state);
@@ -938,6 +944,16 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       }
       log(state, `Бонус Ростка: ${SPROUT_BONUS_NAMES[action.bonus]}.`, [p.id]);
       break;
+    }
+    case 'glavlitSwap': {
+      check(action.type === 'glavlitSwap', 'Перенесите опалу с одного жанра на другой');
+      check(state.banned.includes(action.from), 'Снять опалу можно только с опального жанра');
+      check(GENRES.includes(action.to) && !state.banned.includes(action.to), 'Наложить опалу можно только на жанр, который сейчас не в опале');
+      state.banned = state.banned.map((g) => (g === action.from ? action.to : g));
+      log(state, `${p.name} (Главлитовец): опала снята с жанра «${GENRE_NAMES[action.from]}» и наложена на «${GENRE_NAMES[action.to]}».`);
+      state.pending.shift();
+      if (pend.roundStart) state.holdTurn = true; // Пятилетка только началась — первый ход ещё впереди
+      return;
     }
     case 'lieutenantPick': {
       check(action.type === 'lieutenantPick', 'Выберите изъятую книгу или откажитесь');
