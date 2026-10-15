@@ -2,7 +2,7 @@
 import { PASSIONS, RULES, SPROUTS } from './content';
 import type { GameResult, GameState, Genre, PlayerState, ScoreLine } from './types';
 import { GENRES } from './types';
-import { iconVariants, iconsOf, isEvidence, isPropaganda } from './util';
+import { iconVariants, iconsOf, isEvidence, isPropaganda, log, roman } from './util';
 
 // Коллекция для Пристрастия: склад (включая Тайник) + изданное.
 export function collection(state: GameState, p: PlayerState): string[] {
@@ -120,10 +120,12 @@ export function finalScoring(state: GameState): GameResult {
     // Срез: за каждую Пропаганду у Куратора — минус ступень у самого развитого Ростка.
     const cuts = curator.warehouse.filter((s) => isPropaganda(state, s.card)).length;
     const cutLog: string[] = [];
+    log(state, `Куратор раскрывается: ${curator.name}. Пропаганды у него на Складе и в Тайнике: ${cuts}${cuts ? ' — столько ступеней он срежет.' : ' — срезать нечем.'}`);
     for (let i = 0; i < cuts; i++) {
       const top = [...state.sprouts].sort((a, b) => b.progress - a.progress)[0];
       top.progress--;
       cutLog.push(sproutName(top.id));
+      log(state, `Срез: Росток «${sproutName(top.id)}» — ступень ${roman(top.progress + 1)} → ${top.progress ? roman(top.progress) : '0'}.`);
     }
     if (!glasnostReached(state)) {
       return {

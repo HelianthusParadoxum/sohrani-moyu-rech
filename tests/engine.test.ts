@@ -3,7 +3,7 @@ import { applyAction, createGame } from '../src/engine/engine';
 import { playOut } from '../src/engine/bot';
 import { viewFor } from '../src/engine/view';
 import { RuleError, cacheLimit, coversStep, isBanned } from '../src/engine/util';
-import { passionPoints } from '../src/engine/scoring';
+import { finalScoring, passionPoints } from '../src/engine/scoring';
 import { RULES } from '../src/engine/content';
 import type { GameState, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
@@ -610,5 +610,22 @@ describe('Тайник в свой ход', () => {
     expect(w.find((x) => x.card === a)!.hidden).toBe(false);
     expect(w.find((x) => x.card === b)!.hidden).toBe(true);
     expect(() => applyAction(s, other, { type: 'hiding', hidden: [] })).toThrow(RuleError); // не в свой ход
+  });
+});
+
+describe('Срезы Куратора', () => {
+  it('в журнале видно, сколько Пропаганды у Куратора и какие ступени он срезал', () => {
+    const s = createGame({ players: players(3), seed: 4, mode: 'full' });
+    const [cur] = s.players;
+    cur.passion = 'curator';
+    const props = s.deck.filter((c) => s.cards[c].kind === 'propaganda').slice(0, 2);
+    cur.warehouse = props.map((card) => ({ card, hidden: true }));
+    for (const sp of s.sprouts) sp.progress = 4;
+    const r = finalScoring(s);
+    expect(r.glasnost).toBe(true);
+    const text = s.log.map((l) => l.text).join('\n');
+    expect(text).toContain('Пропаганды у него на Складе и в Тайнике: 2');
+    expect(text.match(/Срез: Росток/g)).toHaveLength(2);
+    expect(text).toContain('ступень IV → III');
   });
 });
