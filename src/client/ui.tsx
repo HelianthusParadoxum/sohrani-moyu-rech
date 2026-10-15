@@ -119,13 +119,17 @@ export function SpeedSelect({ room, send }: { room: RoomInfo; send: (m: ClientMe
 }
 
 
-// Пресет бота: хост выбирает, остальные видят название.
+// Пресет бота: хост выбирает, остальные видят название. Под строкой — описание (подсказки при наведении на телефоне не видны).
 export function PresetSelect({ seat, host, send }: { seat: RoomInfo['seats'][number]; host: boolean; send: (m: ClientMessage) => void }) {
   const current = presetById(seat.preset);
-  if (!host) return <span className="muted small" title={current.description}> {current.name}</span>;
   return (
-    <select className="small" value={current.id} title={current.description} onChange={(e) => send({ t: 'botPreset', seat: seat.id, preset: e.target.value })}>
-      {BOT_PRESETS.map((p) => <option key={p.id} value={p.id} title={p.description}>{p.name}</option>)}
-    </select>
+    <>
+      {host ? (
+        <select value={current.id} aria-label="Пресет бота" onChange={(e) => send({ t: 'botPreset', seat: seat.id, preset: e.target.value })}>
+          {BOT_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      ) : <span className="small">{current.name}</span>}
+      <span className="preset-desc muted small">{current.description}</span>
+    </>
   );
 }
