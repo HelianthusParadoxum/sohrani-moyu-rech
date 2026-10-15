@@ -723,7 +723,11 @@ function HidingPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (
   );
 }
 
+// Источники очков «по ходу», возможные в этом режиме.
+const BEGINNER_SOURCES: PointSource[] = ['gathering', 'sprouts', 'firstFeed', 'tamizdat'];
+
 function Results({ view, close }: { view: PlayerView; close: () => void }) {
+  const sources = view.mode === 'full' ? (Object.keys(POINT_SOURCES) as PointSource[]) : BEGINNER_SOURCES;
   const r = view.result!;
   const name = (id: string) => view.players.find((p) => p.id === id)!.name;
   return (
@@ -734,7 +738,7 @@ function Results({ view, close }: { view: PlayerView; close: () => void }) {
         <tbody>
           {r.scores.map((s) => {
             const p = view.players.find((x) => x.id === s.player)!;
-            const by = Object.entries(s.duringBy ?? {}).filter(([, n]) => n) as [PointSource, number][];
+            const by = sources.map((k) => [k, s.duringBy?.[k] ?? 0] as [PointSource, number]);
             return (
               <Fragment key={s.player}>
                 <tr className={r.winners.includes(s.player) ? 'winner' : ''}>

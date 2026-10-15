@@ -41,6 +41,7 @@ export const RULES = {
   sideJobIncome: 3,
   propagandaPoints: -5,
   evidencePoints: 5,
+  extraSprouts: { beginner: 0, full: 1 }, // Ростков на партию: число игроков + это число
   glasnostStep: 3, // до какой ступени должны дорасти Ростки
   glasnostAllSprouts: true, // все выложенные Ростки (true) или хотя бы один (false)
 };

@@ -39,7 +39,8 @@ describe('подготовка', () => {
       expect(p.talons).toBe(5);
       expect(p.passionOptions).toHaveLength(2);
     }
-    expect(s.sprouts).toHaveLength(4);
+    expect(s.sprouts).toHaveLength(3); // Райцентр: Ростков по числу игроков
+    expect(createGame({ players: players(3), seed: 1, mode: 'full' }).sprouts).toHaveLength(4); // полный: +1
     expect(s.razval.every(Boolean)).toBe(true);
     expect(new Set(allCards(s)).size).toBe(131);
   });
