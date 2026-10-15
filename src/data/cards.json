@@ -1,0 +1,1159 @@
+[
+ {
+  "id": "c001",
+  "kind": "genre",
+  "title": "Мастер и Маргарита",
+  "author": "Михаил Булгаков",
+  "icons": [
+   "prose",
+   "prose"
+  ]
+ },
+ {
+  "id": "c002",
+  "kind": "genre",
+  "title": "Жизнь и судьба",
+  "author": "Василий Гроссман",
+  "icons": [
+   "prose",
+   "prose"
+  ]
+ },
+ {
+  "id": "c003",
+  "kind": "genre",
+  "title": "Котлован",
+  "author": "Андрей Платонов",
+  "icons": [
+   "prose"
+  ]
+ },
+ {
+  "id": "c004",
+  "kind": "genre",
+  "title": "Бабий Яр",
+  "author": "Анатолий Кузнецов",
+  "icons": [
+   "prose"
+  ]
+ },
+ {
+  "id": "c005",
+  "kind": "genre",
+  "title": "Один день Ивана Денисовича",
+  "author": "Александр Солженицын",
+  "icons": [
+   "prose"
+  ]
+ },
+ {
+  "id": "c006",
+  "kind": "genre",
+  "title": "Бесы",
+  "author": "Фёдор Достоевский",
+  "icons": [
+   "prose"
+  ]
+ },
+ {
+  "id": "c007",
+  "kind": "genre",
+  "title": "Факультет ненужных вещей",
+  "author": "Юрий Домбровский",
+  "icons": [
+   "prose"
+  ]
+ },
+ {
+  "id": "c008",
+  "kind": "genre",
+  "title": "Солнце мёртвых",
+  "author": "Иван Шмелёв",
+  "icons": [
+   "prose"
+  ]
+ },
+ {
+  "id": "c009",
+  "kind": "genre",
+  "title": "Пушкинский дом",
+  "author": "Андрей Битов",
+  "icons": [
+   "prose"
+  ]
+ },
+ {
+  "id": "c010",
+  "kind": "genre",
+  "title": "Софья Петровна",
+  "author": "Лидия Чуковская",
+  "icons": [
+   "prose"
+  ]
+ },
+ {
+  "id": "c011",
+  "kind": "genre",
+  "title": "Мы",
+  "author": "Евгений Замятин",
+  "icons": [
+   "scifi",
+   "scifi"
+  ]
+ },
+ {
+  "id": "c012",
+  "kind": "genre",
+  "title": "Приглашение на казнь",
+  "author": "Владимир Набоков",
+  "icons": [
+   "scifi",
+   "scifi"
+  ]
+ },
+ {
+  "id": "c013",
+  "kind": "genre",
+  "title": "Пикник на обочине",
+  "author": "Аркадий и Борис Стругацкие",
+  "icons": [
+   "scifi"
+  ]
+ },
+ {
+  "id": "c014",
+  "kind": "genre",
+  "title": "Зоряний корсар",
+  "author": "Олесь Бердник",
+  "icons": [
+   "scifi"
+  ]
+ },
+ {
+  "id": "c015",
+  "kind": "genre",
+  "title": "Собачье сердце",
+  "author": "Михаил Булгаков",
+  "icons": [
+   "scifi"
+  ]
+ },
+ {
+  "id": "c016",
+  "kind": "genre",
+  "title": "Говорит Москва",
+  "author": "Николай Аржак (Юлий Даниэль)",
+  "icons": [
+   "scifi"
+  ]
+ },
+ {
+  "id": "c017",
+  "kind": "genre",
+  "title": "Любимов",
+  "author": "Абрам Терц (Андрей Синявский)",
+  "icons": [
+   "scifi"
+  ]
+ },
+ {
+  "id": "c018",
+  "kind": "genre",
+  "title": "Остров Крым",
+  "author": "Василий Аксёнов",
+  "icons": [
+   "scifi"
+  ]
+ },
+ {
+  "id": "c019",
+  "kind": "genre",
+  "title": "Возвращение Мюнхгаузена",
+  "author": "Сигизмунд Кржижановский",
+  "icons": [
+   "scifi"
+  ]
+ },
+ {
+  "id": "c020",
+  "kind": "genre",
+  "title": "Путешествие моего брата Алексея в страну крестьянской утопии",
+  "author": "Иван Кремнёв (Александр Чаянов)",
+  "icons": [
+   "scifi"
+  ]
+ },
+ {
+  "id": "c021",
+  "kind": "genre",
+  "title": "Реквием",
+  "author": "Анна Ахматова",
+  "icons": [
+   "poetry",
+   "poetry"
+  ]
+ },
+ {
+  "id": "c022",
+  "kind": "genre",
+  "title": "Лебединый стан",
+  "author": "Марина Цветаева",
+  "icons": [
+   "poetry",
+   "poetry"
+  ]
+ },
+ {
+  "id": "c023",
+  "kind": "genre",
+  "title": "Воронежские тетради",
+  "author": "Осип Мандельштам",
+  "icons": [
+   "poetry"
+  ]
+ },
+ {
+  "id": "c024",
+  "kind": "genre",
+  "title": "Охота на волков и другие стихи",
+  "author": "Владимир Высоцкий",
+  "icons": [
+   "poetry"
+  ]
+ },
+ {
+  "id": "c025",
+  "kind": "genre",
+  "title": "Огненный столп",
+  "author": "Николай Гумилёв",
+  "icons": [
+   "poetry"
+  ]
+ },
+ {
+  "id": "c026",
+  "kind": "genre",
+  "title": "Столбцы",
+  "author": "Николай Заболоцкий",
+  "icons": [
+   "poetry"
+  ]
+ },
+ {
+  "id": "c027",
+  "kind": "genre",
+  "title": "Погорельщина",
+  "author": "Николай Клюев",
+  "icons": [
+   "poetry"
+  ]
+ },
+ {
+  "id": "c028",
+  "kind": "genre",
+  "title": "Русские боги",
+  "author": "Даниил Андреев",
+  "icons": [
+   "poetry"
+  ]
+ },
+ {
+  "id": "c029",
+  "kind": "genre",
+  "title": "Палімпсести",
+  "author": "Василь Стус",
+  "icons": [
+   "poetry"
+  ]
+ },
+ {
+  "id": "c030",
+  "kind": "genre",
+  "title": "Возвращение",
+  "author": "Анна Баркова",
+  "icons": [
+   "poetry"
+  ]
+ },
+ {
+  "id": "c031",
+  "kind": "genre",
+  "title": "1984",
+  "author": "Джордж Оруэлл",
+  "icons": [
+   "foreign",
+   "foreign"
+  ]
+ },
+ {
+  "id": "c032",
+  "kind": "genre",
+  "title": "Повесть о Кольце",
+  "author": "Джон Р. Р. Толкин",
+  "icons": [
+   "foreign",
+   "foreign"
+  ]
+ },
+ {
+  "id": "c033",
+  "kind": "genre",
+  "title": "Групповой портрет с дамой",
+  "author": "Генрих Бёлль",
+  "icons": [
+   "foreign"
+  ]
+ },
+ {
+  "id": "c034",
+  "kind": "genre",
+  "title": "Аудиенция",
+  "author": "Вацлав Гавел",
+  "icons": [
+   "foreign"
+  ]
+ },
+ {
+  "id": "c035",
+  "kind": "genre",
+  "title": "О дивный новый мир",
+  "author": "Олдос Хаксли",
+  "icons": [
+   "foreign"
+  ]
+ },
+ {
+  "id": "c036",
+  "kind": "genre",
+  "title": "Замок",
+  "author": "Франц Кафка",
+  "icons": [
+   "foreign"
+  ]
+ },
+ {
+  "id": "c037",
+  "kind": "genre",
+  "title": "Улисс",
+  "author": "Джеймс Джойс",
+  "icons": [
+   "foreign"
+  ]
+ },
+ {
+  "id": "c038",
+  "kind": "genre",
+  "title": "Танго",
+  "author": "Славомир Мрожек",
+  "icons": [
+   "foreign"
+  ]
+ },
+ {
+  "id": "c039",
+  "kind": "genre",
+  "title": "По направлению к Свану",
+  "author": "Марсель Пруст",
+  "icons": [
+   "foreign"
+  ]
+ },
+ {
+  "id": "c040",
+  "kind": "genre",
+  "title": "Дело Тулаева",
+  "author": "Виктор Серж",
+  "icons": [
+   "foreign"
+  ]
+ },
+ {
+  "id": "c041",
+  "kind": "genre",
+  "title": "Архипелаг ГУЛАГ",
+  "author": "Александр Солженицын",
+  "icons": [
+   "testimony",
+   "testimony"
+  ]
+ },
+ {
+  "id": "c042",
+  "kind": "genre",
+  "title": "Колымские рассказы",
+  "author": "Варлам Шаламов",
+  "icons": [
+   "testimony",
+   "testimony"
+  ]
+ },
+ {
+  "id": "c043",
+  "kind": "genre",
+  "title": "Воспоминания",
+  "author": "Надежда Мандельштам",
+  "icons": [
+   "testimony"
+  ]
+ },
+ {
+  "id": "c044",
+  "kind": "genre",
+  "title": "Роздуми про українську мову та культуру в Донецькій області",
+  "author": "Олекса Тихий",
+  "icons": [
+   "testimony"
+  ]
+ },
+ {
+  "id": "c045",
+  "kind": "genre",
+  "title": "Мои показания",
+  "author": "Анатолий Марченко",
+  "icons": [
+   "testimony"
+  ]
+ },
+ {
+  "id": "c046",
+  "kind": "genre",
+  "title": "Хроника текущих событий",
+  "author": "Наталья Горбаневская",
+  "icons": [
+   "testimony"
+  ]
+ },
+ {
+  "id": "c047",
+  "kind": "genre",
+  "title": "Крутой маршрут",
+  "author": "Евгения Гинзбург",
+  "icons": [
+   "testimony"
+  ]
+ },
+ {
+  "id": "c048",
+  "kind": "genre",
+  "title": "Чёрная книга",
+  "author": "Василий Гроссман, Илья Эренбург (ред.)",
+  "icons": [
+   "testimony"
+  ]
+ },
+ {
+  "id": "c049",
+  "kind": "genre",
+  "title": "Запретный дневник",
+  "author": "Ольга Берггольц",
+  "icons": [
+   "testimony"
+  ]
+ },
+ {
+  "id": "c050",
+  "kind": "genre",
+  "title": "О Марине Цветаевой. Воспоминания дочери",
+  "author": "Ариадна Эфрон",
+  "icons": [
+   "testimony"
+  ]
+ },
+ {
+  "id": "c051",
+  "kind": "genre",
+  "title": "Елизавета Бам",
+  "author": "Даниил Хармс",
+  "icons": [
+   "drama",
+   "drama"
+  ]
+ },
+ {
+  "id": "c052",
+  "kind": "genre",
+  "title": "Дракон",
+  "author": "Евгений Шварц",
+  "icons": [
+   "drama",
+   "drama"
+  ]
+ },
+ {
+  "id": "c053",
+  "kind": "genre",
+  "title": "Самоубийца",
+  "author": "Николай Эрдман",
+  "icons": [
+   "drama"
+  ]
+ },
+ {
+  "id": "c054",
+  "kind": "genre",
+  "title": "Уроки музыки",
+  "author": "Людмила Петрушевская",
+  "icons": [
+   "drama"
+  ]
+ },
+ {
+  "id": "c055",
+  "kind": "genre",
+  "title": "Зойкина квартира",
+  "author": "Михаил Булгаков",
+  "icons": [
+   "drama"
+  ]
+ },
+ {
+  "id": "c056",
+  "kind": "genre",
+  "title": "Утиная охота",
+  "author": "Александр Вампилов",
+  "icons": [
+   "drama"
+  ]
+ },
+ {
+  "id": "c057",
+  "kind": "genre",
+  "title": "Ёлка у Ивановых",
+  "author": "Александр Введенский",
+  "icons": [
+   "drama"
+  ]
+ },
+ {
+  "id": "c058",
+  "kind": "genre",
+  "title": "Мария",
+  "author": "Исаак Бабель",
+  "icons": [
+   "drama"
+  ]
+ },
+ {
+  "id": "c059",
+  "kind": "genre",
+  "title": "Матросская тишина",
+  "author": "Александр Галич",
+  "icons": [
+   "drama"
+  ]
+ },
+ {
+  "id": "c060",
+  "kind": "genre",
+  "title": "Хочу ребёнка!",
+  "author": "Сергей Третьяков",
+  "icons": [
+   "drama"
+  ]
+ },
+ {
+  "id": "c061",
+  "kind": "genre",
+  "title": "Чёрный квадрат",
+  "author": "Казимир Малевич",
+  "icons": [
+   "album",
+   "album"
+  ]
+ },
+ {
+  "id": "c062",
+  "kind": "genre",
+  "title": "Пир королей",
+  "author": "Павел Филонов",
+  "icons": [
+   "album",
+   "album"
+  ]
+ },
+ {
+  "id": "c063",
+  "kind": "genre",
+  "title": "Барак и забор",
+  "author": "Оскар Рабин",
+  "icons": [
+   "album"
+  ]
+ },
+ {
+  "id": "c064",
+  "kind": "genre",
+  "title": "Двойной автопортрет",
+  "author": "Виталий Комар и Александр Меламид",
+  "icons": [
+   "album"
+  ]
+ },
+ {
+  "id": "c065",
+  "kind": "genre",
+  "title": "Башня Татлина",
+  "author": "Владимир Татлин",
+  "icons": [
+   "album"
+  ]
+ },
+ {
+  "id": "c066",
+  "kind": "genre",
+  "title": "Цикл «Баухаус»",
+  "author": "Вера Ермолаева",
+  "icons": [
+   "album"
+  ]
+ },
+ {
+  "id": "c067",
+  "kind": "genre",
+  "title": "Ядерный взрыв",
+  "author": "Эрнст Неизвестный",
+  "icons": [
+   "album"
+  ]
+ },
+ {
+  "id": "c068",
+  "kind": "genre",
+  "title": "Лагерная сюита",
+  "author": "Борис Свешников",
+  "icons": [
+   "album"
+  ]
+ },
+ {
+  "id": "c069",
+  "kind": "genre",
+  "title": "Глаз-яйцо",
+  "author": "Юло Соостер",
+  "icons": [
+   "album"
+  ]
+ },
+ {
+  "id": "c070",
+  "kind": "genre",
+  "title": "Женщина у окна",
+  "author": "Александр Древин",
+  "icons": [
+   "album"
+  ]
+ },
+ {
+  "id": "c071",
+  "kind": "genre",
+  "title": "Случаи",
+  "author": "Даниил Хармс",
+  "icons": [
+   "irony",
+   "irony"
+  ]
+ },
+ {
+  "id": "c072",
+  "kind": "genre",
+  "title": "Жизнь и необычайные приключения солдата Ивана Чонкина",
+  "author": "Владимир Войнович",
+  "icons": [
+   "irony",
+   "irony"
+  ]
+ },
+ {
+  "id": "c073",
+  "kind": "genre",
+  "title": "Заповедник",
+  "author": "Сергей Довлатов",
+  "icons": [
+   "irony"
+  ]
+ },
+ {
+  "id": "c074",
+  "kind": "genre",
+  "title": "Дюжина ножей в спину революции",
+  "author": "Аркадий Аверченко",
+  "icons": [
+   "irony"
+  ]
+ },
+ {
+  "id": "c075",
+  "kind": "genre",
+  "title": "Зияющие высоты",
+  "author": "Александр Зиновьев",
+  "icons": [
+   "irony"
+  ]
+ },
+ {
+  "id": "c076",
+  "kind": "genre",
+  "title": "Николай Николаевич",
+  "author": "Юз Алешковский",
+  "icons": [
+   "irony"
+  ]
+ },
+ {
+  "id": "c077",
+  "kind": "genre",
+  "title": "Сандро из Чегема",
+  "author": "Фазиль Искандер",
+  "icons": [
+   "irony"
+  ]
+ },
+ {
+  "id": "c078",
+  "kind": "genre",
+  "title": "Гарики",
+  "author": "Игорь Губерман",
+  "icons": [
+   "irony"
+  ]
+ },
+ {
+  "id": "c079",
+  "kind": "genre",
+  "title": "Одноэтажная Америка",
+  "author": "Илья Ильф, Евгений Петров",
+  "icons": [
+   "irony"
+  ]
+ },
+ {
+  "id": "c080",
+  "kind": "genre",
+  "title": "Пучина страстей",
+  "author": "Николай Олейников",
+  "icons": [
+   "irony"
+  ]
+ },
+ {
+  "id": "c081",
+  "kind": "genre",
+  "title": "Доктор Живаго",
+  "author": "Борис Пастернак",
+  "icons": [
+   "prose",
+   "poetry"
+  ]
+ },
+ {
+  "id": "c082",
+  "kind": "genre",
+  "title": "Урания / To Urania",
+  "author": "Иосиф Бродский",
+  "icons": [
+   "poetry",
+   "foreign"
+  ]
+ },
+ {
+  "id": "c083",
+  "kind": "genre",
+  "title": "Судилище",
+  "author": "Фрида Вигдорова",
+  "icons": [
+   "testimony",
+   "drama"
+  ]
+ },
+ {
+  "id": "c084",
+  "kind": "genre",
+  "title": "Сколько стоит человек",
+  "author": "Евфросиния Керсновская",
+  "icons": [
+   "testimony",
+   "album"
+  ]
+ },
+ {
+  "id": "c085",
+  "kind": "genre",
+  "title": "Москва — Петушки",
+  "author": "Венедикт Ерофеев",
+  "icons": [
+   "prose",
+   "irony"
+  ]
+ },
+ {
+  "id": "c086",
+  "kind": "genre",
+  "title": "Шутка",
+  "author": "Милан Кундера",
+  "icons": [
+   "irony",
+   "foreign"
+  ]
+ },
+ {
+  "id": "c087",
+  "kind": "genre",
+  "title": "Восток — Запад",
+  "author": "Андрей Амальрик",
+  "icons": [
+   "drama",
+   "irony"
+  ]
+ },
+ {
+  "id": "c088",
+  "kind": "genre",
+  "title": "Панно для Еврейского камерного театра",
+  "author": "Марк Шагал",
+  "icons": [
+   "album",
+   "drama"
+  ]
+ },
+ {
+  "id": "c089",
+  "kind": "genre",
+  "title": "Тёркин на том свете",
+  "author": "Александр Твардовский",
+  "icons": [
+   "poetry",
+   "scifi"
+  ]
+ },
+ {
+  "id": "c090",
+  "kind": "genre",
+  "title": "Вшкафусидящий Примаков",
+  "author": "Илья Кабаков",
+  "icons": [
+   "album",
+   "irony"
+  ]
+ },
+ {
+  "id": "c091",
+  "kind": "genre",
+  "title": "За миллиард лет до конца света",
+  "author": "Аркадий и Борис Стругацкие",
+  "icons": [
+   "scifi",
+   "prose"
+  ]
+ },
+ {
+  "id": "c092",
+  "kind": "genre",
+  "title": "Калигула",
+  "author": "Альбер Камю",
+  "icons": [
+   "drama",
+   "foreign"
+  ]
+ },
+ {
+  "id": "c093",
+  "kind": "genre",
+  "title": "Верный Руслан",
+  "author": "Георгий Владимов",
+  "icons": [
+   "scifi",
+   "testimony"
+  ]
+ },
+ {
+  "id": "c094",
+  "kind": "genre",
+  "title": "Повесть непогашенной луны",
+  "author": "Борис Пильняк",
+  "icons": [
+   "testimony",
+   "prose"
+  ]
+ },
+ {
+  "id": "c095",
+  "kind": "genre",
+  "title": "Звуки",
+  "author": "Василий Кандинский",
+  "icons": [
+   "album",
+   "poetry"
+  ]
+ },
+ {
+  "id": "c096",
+  "kind": "genre",
+  "title": "Солярис",
+  "author": "Станислав Лем",
+  "icons": [
+   "scifi",
+   "foreign"
+  ]
+ },
+ {
+  "id": "c097",
+  "kind": "evidence",
+  "title": "Беломорско-Балтийский канал имени Сталина. История строительства",
+  "author": "36 писателей под редакцией Максима Горького, Леопольда Авербаха, Семёна Фирина",
+  "icons": []
+ },
+ {
+  "id": "c098",
+  "kind": "evidence",
+  "title": "Десять лет Узбекистана",
+  "author": "Александр Родченко, Варвара Степанова",
+  "icons": []
+ },
+ {
+  "id": "c099",
+  "kind": "evidence",
+  "title": "Музей обороны Ленинграда. Очерк-путеводитель",
+  "author": "Под редакцией Льва Ракова, директора музея",
+  "icons": []
+ },
+ {
+  "id": "c100",
+  "kind": "evidence",
+  "title": "«Правда» 2 августа 1975 года",
+  "author": "Издание ЦК КПСС",
+  "icons": []
+ },
+ {
+  "id": "c101",
+  "kind": "propaganda",
+  "title": "Протоколы сионских мудрецов",
+  "author": "Анонимная фальшивка",
+  "icons": []
+ },
+ {
+  "id": "c102",
+  "kind": "propaganda",
+  "title": "Моя борьба",
+  "author": "Адольф Гитлер",
+  "icons": []
+ },
+ {
+  "id": "c103",
+  "kind": "propaganda",
+  "title": "Слово нации",
+  "author": "Анатолий Иванов",
+  "icons": []
+ },
+ {
+  "id": "c104",
+  "kind": "propaganda",
+  "title": "Десионизация",
+  "author": "Валерий Емельянов",
+  "icons": []
+ },
+ {
+  "id": "c105",
+  "kind": "load",
+  "title": "Материализм и эмпириокритицизм",
+  "author": "Владимир Ленин",
+  "icons": []
+ },
+ {
+  "id": "c106",
+  "kind": "load",
+  "title": "Империализм как высшая стадия капитализма",
+  "author": "Владимир Ленин",
+  "icons": []
+ },
+ {
+  "id": "c107",
+  "kind": "load",
+  "title": "Что делать?",
+  "author": "Владимир Ленин",
+  "icons": []
+ },
+ {
+  "id": "c108",
+  "kind": "load",
+  "title": "Шаг вперёд, два шага назад",
+  "author": "Владимир Ленин",
+  "icons": []
+ },
+ {
+  "id": "c109",
+  "kind": "load",
+  "title": "Апрельские тезисы",
+  "author": "Владимир Ленин",
+  "icons": []
+ },
+ {
+  "id": "c110",
+  "kind": "load",
+  "title": "Малая земля",
+  "author": "Леонид Брежнев",
+  "icons": []
+ },
+ {
+  "id": "c111",
+  "kind": "load",
+  "title": "Целина",
+  "author": "Леонид Брежнев",
+  "icons": []
+ },
+ {
+  "id": "c112",
+  "kind": "load",
+  "title": "Возрождение",
+  "author": "Леонид Брежнев",
+  "icons": []
+ },
+ {
+  "id": "c113",
+  "kind": "load",
+  "title": "Ленинским курсом",
+  "author": "Леонид Брежнев",
+  "icons": []
+ },
+ {
+  "id": "c114",
+  "kind": "load",
+  "title": "Материалы … съезда КПСС",
+  "author": "Политиздат",
+  "icons": []
+ },
+ {
+  "id": "c115",
+  "kind": "load",
+  "title": "Моральный кодекс строителя коммунизма",
+  "author": "Группа консультантов ЦК КПСС (Фёдор Бурлацкий, Елизар Кусков и др.)",
+  "icons": []
+ },
+ {
+  "id": "c116",
+  "kind": "load",
+  "title": "История Коммунистической партии Советского Союза",
+  "author": "Коллектив авторов под ред. Бориса Пономарёва",
+  "icons": []
+ },
+ {
+  "id": "c117",
+  "kind": "load",
+  "title": "О комсомольской этике и воспитании молодежи",
+  "author": "ЦК ВЛКСМ",
+  "icons": []
+ },
+ {
+  "id": "c118",
+  "kind": "load",
+  "title": "Статьи и речи (Собрание сочинений, т. 5×",
+  "author": "Александр Фадеев",
+  "icons": []
+ },
+ {
+  "id": "c119",
+  "kind": "load",
+  "title": "Стихи о ненависти",
+  "author": "Алексей Сурков",
+  "icons": []
+ },
+ {
+  "id": "c120",
+  "kind": "load",
+  "title": "Секретарь обкома",
+  "author": "Всеволод Кочетов",
+  "icons": []
+ },
+ {
+  "id": "c121",
+  "kind": "loadReturnable",
+  "title": "Мать",
+  "author": "Максим Горький",
+  "icons": [],
+  "genre": "prose",
+  "returned": "Несвоевременные мысли"
+ },
+ {
+  "id": "c122",
+  "kind": "loadReturnable",
+  "title": "Владимир Ильич Ленин",
+  "author": "Владимир Маяковский",
+  "icons": [],
+  "genre": "poetry",
+  "returned": "Письма к Лиле Брик"
+ },
+ {
+  "id": "c123",
+  "kind": "loadReturnable",
+  "title": "Туманность Андромеды",
+  "author": "Иван Ефремов",
+  "icons": [],
+  "genre": "scifi",
+  "returned": "Час Быка"
+ },
+ {
+  "id": "c124",
+  "kind": "loadReturnable",
+  "title": "Шестое июля",
+  "author": "Михаил Шатров",
+  "icons": [],
+  "genre": "drama",
+  "returned": "Брестский мир"
+ },
+ {
+  "id": "c125",
+  "kind": "loadReturnable",
+  "title": "Рассказы о Ленине",
+  "author": "Михаил Зощенко",
+  "icons": [],
+  "genre": "irony",
+  "returned": "Голубая книга"
+ },
+ {
+  "id": "c126",
+  "kind": "loadReturnable",
+  "title": "Буря",
+  "author": "Илья Эренбург",
+  "icons": [],
+  "genre": "testimony",
+  "returned": "Люди, годы, жизнь"
+ },
+ {
+  "id": "c127",
+  "kind": "loadReturnable",
+  "title": "Выполним пятилетку в 4 года",
+  "author": "Густав Клуцис",
+  "icons": [],
+  "genre": "album",
+  "returned": "Динамический город"
+ },
+ {
+  "id": "c128",
+  "kind": "loadReturnable",
+  "title": "Рукопожатия",
+  "author": "Дьюла Ийеш",
+  "icons": [],
+  "genre": "foreign",
+  "returned": "Одна фраза о тирании"
+ },
+ {
+  "id": "c129",
+  "kind": "loadEvidence",
+  "title": "О преодолении культа личности и его последствий",
+  "author": "Никита Хрущёв",
+  "icons": []
+ },
+ {
+  "id": "c130",
+  "kind": "loadEvidence",
+  "title": "Разоблачения дипломатической истории XVIII века",
+  "author": "Карл Маркс, Фридрих Энгельс",
+  "icons": []
+ },
+ {
+  "id": "c131",
+  "kind": "evidence",
+  "title": "Письма к Луначарскому",
+  "author": "Владимир Короленко",
+  "icons": []
+ }
+]
