@@ -220,6 +220,9 @@ export type PlaceAction =
   | { address: 'club'; gifts: ClubGift[] }
   | { address: 'kontora' };
 
+// Покупка в рамках Тиражирования текста.
+export type CopyTextBuy = Extract<PlaceAction, { address: 'razval' | 'tolkuchka' | 'raspredelitel' }>;
+
 export interface ClubGift { patron: PatronId; card: string }
 
 export interface KontoraChoice {
@@ -233,7 +236,7 @@ export interface KontoraChoice {
 export type GroupAction =
   | { action: 'expandWarehouse' }
   | { action: 'expandCache' }
-  | { action: 'copyText'; card: string | 'deck' }
+  | { action: 'copyText'; buy: CopyTextBuy; card: string } // купить на адресе + card бесплатно оттуда же
   | { action: 'rescue'; returns: Record<string, number> }
   | { action: 'restore'; card: string }
   | { action: 'hire' };

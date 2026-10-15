@@ -1,9 +1,9 @@
 // Игровой стол.
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import {
-  ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, PASSIONS, POINT_SOURCES, passionLabel, PERMANENT_ADDRESSES, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, limitFor,
+  ADDRESSES, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, PERMANENT_ADDRESSES, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, limitFor,
 } from '../engine/content';
-import type { Action, AddressId, Genre, GroupAction, GroupActionId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
+import type { Action, AddressId, CopyTextBuy, Genre, GroupAction, GroupActionId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import { coversStep, hasPatron, loadCover } from '../engine/util';
@@ -317,9 +317,9 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
       const n = sel[0] ? iconsOf(view, sel[0]).length : 0;
       body = (
         <>
-          <p>Издайте одну книгу: она навсегда спасена, место на складе освобождается, а в подсчёте по Пристрастию книга участвует. {id === 'tamizdat' ? '+1 Талон и +1 очко за значок.' : '+1 Талон за значок.'}</p>
+          <p>Издайте одну книгу: она навсегда спасена, место на складе освобождается, а в подсчёте по Пристрастию книга участвует. {id === 'tamizdat' ? `+${RULES.tamizdatTalons}т и +1 очко за значок.` : `+${RULES.samizdatTalons}т за значок.`}</p>
           {pickList(mine.filter(ok), sel, setSel, { max: 1 })}
-          {confirmBtn('Издать', sel.length ? { address: id, card: sel[0] } : null, sel.length ? `+${n}т${id === 'tamizdat' ? `, +${n} оч.` : ''}` : undefined)}
+          {confirmBtn('Издать', sel.length ? { address: id, card: sel[0] } : null, sel.length ? `+${n * (id === 'tamizdat' ? RULES.tamizdatTalons : RULES.samizdatTalons)}т${id === 'tamizdat' ? `, +${n} оч.` : ''}` : undefined)}
         </>
       );
       break;
@@ -356,7 +356,7 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
       body = (
         <>
           {pickList(view.raspredelitel, sel, setSel, { max: 1 })}
-          {confirmBtn(`Купить за ${RULES.safehousePrice}т`, sel.length && free > 0 ? { address: 'raspredelitel', card: sel[0] } : null)}
+          {confirmBtn(`Купить за ${RULES.raspredelitelPrice}т`, sel.length && free > 0 ? { address: 'raspredelitel', card: sel[0] } : null)}
         </>
       );
       break;
@@ -369,8 +369,8 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
     case 'nasledniki':
     case 'posrednichestvo':
     case 'spisanie':
-      body = <><p>{info.hint}</p>{confirmBtn(`Заплатить ${RULES.safehousePrice}т`, me.talons >= RULES.safehousePrice && free > 0 ? { address: id } : null,
-        free <= 0 ? 'Нет места на складе' : me.talons < RULES.safehousePrice ? `Не хватает Талонов: нужно ${RULES.safehousePrice}, у вас ${me.talons}` : undefined)}</>;
+      body = <><p>{info.hint}</p>{confirmBtn(`Заплатить ${safehouseCost(id)}т`, me.talons >= safehouseCost(id) && free > 0 ? { address: id } : null,
+        free <= 0 ? 'Нет места на складе' : me.talons < safehouseCost(id) ? `Не хватает Талонов: нужно ${safehouseCost(id)}, у вас ${me.talons}` : undefined)}</>;
       break;
   }
   return <Modal title={info.name} onClose={close} wide>{body}<p className="muted small">Талонов: {me.talons} · Свободных мест: {free}</p></Modal>;
@@ -483,10 +483,12 @@ function groupBlocker(view: PlayerView, me: VPlayer, id: GroupActionId): string 
     case 'expandCache':
       return me.cache >= RULES.maxCache ? `Тайник уже максимального размера (${RULES.maxCache}).` : null;
     case 'copyText':
-      return free <= 0 ? 'На складе нет свободного места.' : null;
+      // Купленная и бесплатная книги — 2 места; на Толкучке место можно освободить продажей.
+      return free < 1 ? 'На складе нет свободного места.' : null;
     case 'rescue':
       return view.players.some((p) => p.held > 0) ? null : 'Контора никого не удерживает.';
     case 'restore':
+      if (me.talons < RULES.restoreCost) return `Нужно ${RULES.restoreCost}т, у вас ${me.talons}.`;
       return me.warehouse.some((s) => s.card && !view.restored[s.card] && ['genre', 'loadReturnable'].includes(view.cards[s.card].kind))
         ? null : 'На складе нет книги, которой можно вернуть смыслы.';
     default:
@@ -510,17 +512,7 @@ function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; v
   } else if (id === 'rescue') {
     body = <RescuePanel view={view} done={done} />;
   } else if (id === 'copyText') {
-    const singles = [...view.tolkuchka, ...view.knigoobmen, ...view.raspredelitel, ...view.razval.filter((c): c is string => !!c)];
-    body = (
-      <>
-        <p>Возьмите любую открытую книгу с адреса или верхнюю книгу стопки Непечатных.</p>
-        <div className="shelf wrap">
-          <button className={`book back clickable ${sel === 'deck' ? 'selected' : ''}`} onClick={() => setSel('deck')}><span>Из стопки</span></button>
-          {singles.map((c) => <Book key={c} v={view} id={c} selected={sel === c} onClick={() => setSel(c)} />)}
-        </div>
-        <div className="modal-foot"><button className="primary" disabled={!sel} onClick={() => done({ action: 'copyText', card: sel })}>Тиражировать</button></div>
-      </>
-    );
+    body = <CopyTextPanel view={view} me={me} done={done} />;
   } else if (id === 'restore') {
     const cands = me.warehouse.map((s) => s.card!).filter((c) => c && !view.restored[c] && ['genre', 'loadReturnable'].includes(view.cards[c].kind));
     body = (
@@ -539,6 +531,69 @@ function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; v
     );
   }
   return <Modal title={title ?? info.name} onClose={close}>{body}</Modal>;
+}
+
+// Тиражирование текста: купить на адресе с открытыми книгами и взять оттуда же ещё одну бесплатно.
+function CopyTextPanel({ view, me, done }: { view: PlayerView; me: VPlayer; done: (g: GroupAction) => void }) {
+  const addrs = COPY_TEXT_ADDRESSES.filter((a) => a !== 'raspredelitel' || view.safehouses.includes('raspredelitel'));
+  const [addr, setAddr] = useState<CopyTextBuy['address']>('razval');
+  const [buy, setBuy] = useState<string[]>([]); // на Развале — номера ячеек, иначе — книги
+  const [gift, setGift] = useState('');
+  const [sell, setSell] = useState<string[]>([]);
+  const choose = (a: CopyTextBuy['address']) => { setAddr(a); setBuy([]); setGift(''); setSell([]); };
+  const free = me.capacity - me.warehouse.filter((s) => !s.memorized).length;
+  const mine = me.warehouse.map((s) => s.card).filter((c): c is string => !!c);
+  const sellable = mine.filter((c) => iconsOf(view, c).length > 0 && !['evidence', 'loadEvidence', 'propaganda'].includes(view.cards[c].kind));
+  const sellPrice = (c: string) => (iconsOf(view, c).some((g) => view.banned.includes(g)) ? RULES.tolkuchkaSellBanned : RULES.tolkuchkaSellFree);
+  const shelf: { key: string; card: string; price: number }[] =
+    addr === 'razval' ? view.razval.flatMap((c, i) => (c ? [{ key: String(i), card: c, price: RULES.razvalPrices[i] }] : []))
+      : addr === 'tolkuchka' ? view.tolkuchka.map((c) => ({ key: c, card: c, price: RULES.tolkuchkaBuy }))
+        : view.raspredelitel.map((c) => ({ key: c, card: c, price: RULES.raspredelitelPrice }));
+  const bought = shelf.filter((x) => buy.includes(x.key));
+  const income = addr === 'tolkuchka' ? sell.reduce((s, c) => s + sellPrice(c), 0) : 0;
+  const cost = bought.reduce((s, x) => s + x.price, 0) - income;
+  const room = free + (addr === 'tolkuchka' ? sell.length : 0) - bought.length - (gift ? 1 : 0);
+  const action: CopyTextBuy | null = !bought.length ? null
+    : addr === 'razval' ? { address: 'razval', slot: Number(buy[0]) }
+      : addr === 'tolkuchka' ? { address: 'tolkuchka', ops: [...sell.map((card) => ({ op: 'sell' as const, card })), ...bought.map((x) => ({ op: 'buy' as const, card: x.card }))] }
+        : { address: 'raspredelitel', card: bought[0].card };
+  const busy = (a: AddressId) => (view.occupancy[a]?.length ?? 0) >= limitFor(a, view.players.length);
+  return (
+    <>
+      <p>{GROUP_ACTIONS.copyText.hint}. Единомышленник занимает место на этом адресе.</p>
+      <div className="row">
+        {addrs.map((a) => (
+          <button key={a} className={addr === a ? 'selected' : ''} onClick={() => choose(a)}>{ADDRESSES[a].name}{busy(a) ? ' (занято)' : ''}</button>
+        ))}
+      </div>
+      <h4>Купить{addr === 'tolkuchka' ? ' (можно несколько)' : ''}</h4>
+      <div className="shelf wrap">
+        {shelf.length === 0 && <span className="muted">Здесь нет книг</span>}
+        {shelf.map((x) => (
+          <Book key={x.key} v={view} id={x.card} note={`${x.price}т`} selected={buy.includes(x.key)}
+            onClick={() => { setBuy(addr === 'tolkuchka' ? toggle(buy, x.key) : [x.key]); if (gift === x.card) setGift(''); }} />
+        ))}
+      </div>
+      {addr === 'tolkuchka' && (
+        <>
+          <h4>Продать свои (освобождает место)</h4>
+          <div className="shelf wrap">
+            {sellable.map((c) => <Book key={c} v={view} id={c} note={`+${sellPrice(c)}т`} selected={sell.includes(c)} onClick={() => setSell(toggle(sell, c))} />)}
+          </div>
+        </>
+      )}
+      <h4>Взять бесплатно</h4>
+      <div className="shelf wrap">
+        {shelf.filter((x) => !buy.includes(x.key)).map((x) => (
+          <Book key={x.key} v={view} id={x.card} note="даром" selected={gift === x.card} onClick={() => setGift(x.card)} />
+        ))}
+      </div>
+      <div className="modal-foot">
+        <span className={room < 0 ? 'warn-text' : 'muted'}>{cost >= 0 ? `−${cost}` : `+${-cost}`}т (у вас {me.talons}т){room < 0 ? ' · не хватает места на складе' : ''}</span>
+        <button className="primary" disabled={!action || !gift || cost > me.talons || room < 0} onClick={() => action && done({ action: 'copyText', buy: action, card: gift })}>Тиражировать</button>
+      </div>
+    </>
+  );
 }
 
 // ---------- Решения ----------

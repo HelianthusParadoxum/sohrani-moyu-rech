@@ -320,13 +320,42 @@ function sproutCandidates(state: GameState, me: string, keep: Map<string, number
   return out;
 }
 
+// Все варианты Тиражирования: что купить на адресе и какую книгу оттуда же взять бесплатно.
+export function copyTextOptions(state: GameState, me: string): GroupAction[] {
+  const out: GroupAction[] = [];
+  const p = player(state, me);
+  const others = (list: (string | null)[], taken: string) => list.filter((c): c is string => !!c && c !== taken);
+  state.razval.forEach((c, slot) => {
+    if (c) for (const card of others(state.razval, c)) out.push({ action: 'copyText', buy: { address: 'razval', slot }, card });
+  });
+  // Мало места — можно освободить его, продав на Толкучке свою книгу.
+  const sells: (string | null)[] = [null];
+  if (freeSlots(p) < 2) {
+    for (const s of p.warehouse) {
+      if (isGenreBook(state, s.card) && !isEvidence(state, s.card) && !isPropaganda(state, s.card)) sells.push(s.card);
+    }
+  }
+  for (const c of state.tolkuchka) {
+    for (const card of others(state.tolkuchka, c)) {
+      for (const sell of sells) {
+        const ops = [...(sell ? [{ op: 'sell' as const, card: sell }] : []), { op: 'buy' as const, card: c }];
+        out.push({ action: 'copyText', buy: { address: 'tolkuchka', ops }, card });
+      }
+    }
+  }
+  if (state.safehouses.includes('raspredelitel')) {
+    for (const c of state.raspredelitel) {
+      for (const card of others(state.raspredelitel, c)) out.push({ action: 'copyText', buy: { address: 'raspredelitel', card: c }, card });
+    }
+  }
+  return out;
+}
+
 function groupCandidates(state: GameState, me: string, ctx: Ctx): GroupAction[] {
   const p = player(state, me);
   const out: GroupAction[] = [{ action: 'expandWarehouse' }, { action: 'expandCache' }];
   if (ctx.w.network > 0) out.push({ action: 'hire' });
-  out.push({ action: 'copyText', card: 'deck' });
-  const visible = [...state.tolkuchka, ...state.razval.filter((c): c is string => !!c), ...state.knigoobmen, ...state.raspredelitel];
-  for (const c of visible) out.push({ action: 'copyText', card: c });
+  out.push(...copyTextOptions(state, me));
   for (const s of p.warehouse) {
     if (!state.restored[s.card] && ['genre', 'loadReturnable'].includes(state.cards[s.card].kind)) out.push({ action: 'restore', card: s.card });
   }

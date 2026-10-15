@@ -1,7 +1,7 @@
 // Движок правил: создание партии и применение действий.
 // applyAction не меняет переданное состояние, а возвращает новое.
 import {
-  ADDRESSES, CARDS, GENRE_NAMES, GROUP_ACTIONS, KEEPERS, PASSIONS, PERMANENT_ADDRESSES, RULES, SAFEHOUSES,
+  ADDRESSES, CARDS, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, KEEPERS, PASSIONS, PERMANENT_ADDRESSES, RULES, SAFEHOUSES,
   SPECIALS, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
 } from './content';
 import { finalScoring } from './scoring';
@@ -478,7 +478,7 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
   }
   if (action.type === 'group') {
     check(!mustVisitRedCorner(state, p), 'Последнего Единомышленника нужно отправить в Красный уголок');
-    doGroup(state, p, action.group, { limited: true });
+    doGroup(state, p, action.group, { limited: true, worker: true });
     track(p, `group:${action.group.action}`);
     p.available--;
     return;
@@ -677,7 +677,8 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       removeBook(p, a.card);
       p.published.push(a.card);
       const genres = iconsOf(state, a.card);
-      let talons = icons + (hasPatron(state, p.id, 'correspondent') ? icons : 0);
+      const perIcon = a.address === 'samizdat' ? RULES.samizdatTalons : RULES.tamizdatTalons;
+      const talons = icons * perIcon + (hasPatron(state, p.id, 'correspondent') ? icons : 0);
       let pts = 0;
       const add = (n: number, src: Parameters<typeof gain>[2]) => { gain(p, n, src); pts += n; };
       if (a.address === 'tamizdat') {
@@ -717,7 +718,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     }
     case 'raspredelitel': {
       check(state.raspredelitel.includes(a.card), 'Этой книги нет в Распределителе');
-      payPrice(state, p, RULES.safehousePrice);
+      payPrice(state, p, RULES.raspredelitelPrice);
       addBook(p, a.card);
       state.raspredelitel = state.raspredelitel.filter((c) => c !== a.card);
       log(state, `${p.name} получает из Распределителя ${title(state, a.card)}.`);
@@ -749,7 +750,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       return;
     case 'spisanie': {
       check(freeSlots(p) > 0, 'На складе нет места');
-      payPrice(state, p, RULES.safehousePrice);
+      payPrice(state, p, RULES.spisaniePrice);
       let got = 0;
       const titles: string[] = [];
       for (let i = 0; i < 3; i++) {
@@ -772,7 +773,8 @@ function isFromLoadDeck(state: GameState, id: string) {
 
 // ---------- Действия Инициативной группы ----------
 
-function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limited: boolean }) {
+// worker — действие делает Единомышленник из Группы (он занимает место на адресе, куда идёт тиражировать).
+function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limited: boolean; worker?: boolean }) {
   const info = GROUP_ACTIONS[g.action];
   check(info, 'Нет такого действия');
   if (opts.limited) check(!p.groupUsed.includes(g.action), `«${info.name}» уже сделано в эту Пятилетку`);
@@ -789,23 +791,29 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       log(state, `${p.name}: Тайник увеличен до ${p.cache}.`);
       break;
     case 'copyText': {
-      check(freeSlots(p) > 0, 'На складе нет места');
-      if (g.card === 'deck') {
-        const c = draw(state);
-        check(c, 'Стопка Непечатных пуста');
-        addBook(p, c);
-        log(state, `${p.name} тиражирует текст: берёт книгу из стопки.`);
-        log(state, `Вы получили ${title(state, c)}.`, [p.id]);
+      // Единомышленник сразу идёт покупать на адрес с открытыми книгами и берёт оттуда ещё одну книгу бесплатно.
+      const a = g.buy;
+      check((COPY_TEXT_ADDRESSES as readonly string[]).includes(a?.address), 'Тиражировать можно на Развале, Толкучке или в Распределителе');
+      check(a.address !== 'raspredelitel' || state.safehouses.includes('raspredelitel'), 'Распределителя нет на столе');
+      if (a.address === 'tolkuchka') check(a.ops.some((op) => op.op === 'buy'), 'На Толкучке нужно купить хотя бы одну книгу');
+      const here = state.occupancy[a.address] ?? [];
+      if (opts.worker) check(here.length < limitFor(a.address, state.players.length), `${ADDRESSES[a.address].name}: все места заняты`);
+      doPlace(state, p, a);
+      const c = g.card;
+      if (a.address === 'razval') {
+        check(state.razval.includes(c), 'Бесплатную книгу нужно взять с того же Развала');
+        state.razval = state.razval.map((x) => (x === c ? null : x));
+      } else if (a.address === 'tolkuchka') {
+        check(state.tolkuchka.includes(c), 'Бесплатную книгу нужно взять с той же Толкучки');
+        check(!a.ops.some((op) => op.op === 'sell' && op.card === c), 'Только что проданную книгу нельзя забрать обратно');
+        state.tolkuchka = state.tolkuchka.filter((x) => x !== c);
       } else {
-        const c = g.card;
-        if (state.raspredelitel.includes(c)) state.raspredelitel = state.raspredelitel.filter((x) => x !== c);
-        else if (state.tolkuchka.includes(c)) state.tolkuchka = state.tolkuchka.filter((x) => x !== c);
-        else if (state.knigoobmen.includes(c)) state.knigoobmen = state.knigoobmen.filter((x) => x !== c);
-        else if (state.razval.includes(c)) state.razval = state.razval.map((x) => (x === c ? null : x));
-        else fail('Эта книга не лежит открыто по адресу');
-        addBook(p, c);
-        log(state, `${p.name} тиражирует ${title(state, c)}.`);
+        check(state.raspredelitel.includes(c), 'Бесплатную книгу нужно взять из того же Распределителя');
+        state.raspredelitel = state.raspredelitel.filter((x) => x !== c);
       }
+      addBook(p, c);
+      if (opts.worker) state.occupancy[a.address] = [...here, p.id];
+      log(state, `${p.name} тиражирует ${title(state, c)} (${ADDRESSES[a.address].name}).`);
       if (hasPatron(state, p.id, 'typist')) {
         p.talons += 1;
         log(state, `${p.name}: Машинистка — +1 Талон.`);
@@ -824,7 +832,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       } else {
         log(state, `${p.name} возвращает смыслы книге ${title(state, g.card)}: +1 значок.`);
       }
-      pay(p, RULES.restoreCost);
+      payPrice(state, p, RULES.restoreCost);
       if (hasPatron(state, p.id, 'postgrad')) {
         gain(p, 2, 'postgrad');
         log(state, `${p.name}: Аспирант — +2 очка Гласности.`);
