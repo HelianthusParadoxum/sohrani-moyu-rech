@@ -533,7 +533,7 @@ function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; v
   return <Modal title={title ?? info.name} onClose={close}>{body}</Modal>;
 }
 
-// Тиражирование текста: Единомышленник идёт на адрес с открытыми книгами — может купить (обменять) и берёт 1 книгу даром.
+// Тиражирование текста: покупая на адресе, Единомышленник на Тиражировании позволяет взять оттуда же ещё 1 книгу даром.
 function CopyTextPanel({ view, me, done }: { view: PlayerView; me: VPlayer; done: (g: GroupAction) => void }) {
   const addrs = COPY_TEXT_ADDRESSES.filter((a) => !ADDRESSES[a].safehouse || view.safehouses.includes(a));
   const [addr, setAddr] = useState<CopyTextAddress>('razval');
@@ -564,16 +564,16 @@ function CopyTextPanel({ view, me, done }: { view: PlayerView; me: VPlayer; done
           : (bought.length && sell.length ? { address: 'knigoobmen', give: sell[0], take: bought[0].card } : null);
   const halfSwap = swap && (bought.length > 0) !== (sell.length > 0);
   const busy = (a: AddressId) => (view.occupancy[a]?.length ?? 0) >= limitFor(a, view.players.length);
-  const ok = (purchase || gift) && !halfSwap && cost <= me.talons && room >= 0;
+  const ok = purchase && gift && !halfSwap && cost <= me.talons && room >= 0;
   return (
     <>
-      <p>{GROUP_ACTIONS.copyText.hint}. Единомышленник занимает место на адресе.</p>
+      <p>{GROUP_ACTIONS.copyText.hint}. Покупатель занимает место на адресе, второй Единомышленник встаёт на Тиражирование (если Тиражирование — бонус, идёт только покупатель).</p>
       <div className="row">
         {addrs.map((a) => (
           <button key={a} className={addr === a ? 'selected' : ''} onClick={() => choose(a)}>{ADDRESSES[a].name}{busy(a) ? ' (занято)' : ''}</button>
         ))}
       </div>
-      <h4>{swap ? 'Обменять (по желанию): взять с витрины' : `Купить (по желанию${addr === 'tolkuchka' ? ', можно несколько' : ''})`}</h4>
+      <h4>{swap ? 'Обменять: взять с витрины' : `Купить${addr === 'tolkuchka' ? ' (можно несколько)' : ''}`}</h4>
       <div className="shelf wrap">
         {shelf.length === 0 && <span className="muted">Здесь нет книг</span>}
         {shelf.map((x) => (

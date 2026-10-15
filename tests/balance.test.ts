@@ -43,23 +43,23 @@ describe('Тиражирование текста', () => {
     expect(s.razval[0]).toBeNull();
     expect(s.occupancy.razval).toEqual([p.id]);
     expect(after.groupUsed).toContain('copyText');
-    expect(after.available).toBe(p.available - 1);
+    expect(after.available).toBe(p.available - 2); // покупатель и Единомышленник на Тиражировании
   });
 
-  it('покупать не обязательно: можно просто взять книгу даром', () => {
-    let s = started();
-    const p = me(s);
-    const t = p.talons;
-    const gift = s.tolkuchka[0];
-    s = applyAction(s, p.id, copy('tolkuchka', null, gift));
-    expect(byId(s, p.id).talons).toBe(t);
-    expect(byId(s, p.id).warehouse.map((w) => w.card)).toContain(gift);
-    expect(s.occupancy.tolkuchka).toEqual([p.id]);
-  });
-
-  it('ничего не купить и ничего не взять нельзя', () => {
+  it('без покупки Тиражирования нет', () => {
     const s = started();
-    expect(() => applyAction(s, me(s).id, copy('razval', null, null))).toThrow(RuleError);
+    expect(() => applyAction(s, me(s).id, copy('tolkuchka', null, s.tolkuchka[0]))).toThrow(/вместе с покупкой/);
+  });
+
+  it('нужны два Единомышленника, и последний должен остаться для Красного уголка', () => {
+    const s = started();
+    const p = me(s);
+    p.talons = 10;
+    p.available = 2;
+    expect(() => applyAction(s, p.id, copy('razval', { address: 'razval', slot: 0 }, s.razval[1]!))).toThrow(/Красный уголок/);
+    p.available = 1;
+    p.visitedRedCorner = true;
+    expect(() => applyAction(s, p.id, copy('razval', { address: 'razval', slot: 0 }, s.razval[1]!))).toThrow(/два Единомышленника/);
   });
 
   it('на Толкучке можно освободить место продажей, но проданное не забрать обратно', () => {
@@ -102,8 +102,9 @@ describe('Тиражирование текста', () => {
   it('на занятый до предела адрес тиражировать нельзя', () => {
     const s = started();
     const p = me(s);
+    p.talons = 10;
     s.occupancy.razval = ['x', 'y', 'z'];
-    expect(() => applyAction(s, p.id, copy('razval', null, s.razval[1]!))).toThrow(/все места заняты/);
+    expect(() => applyAction(s, p.id, copy('razval', { address: 'razval', slot: 0 }, s.razval[1]!))).toThrow(/все места заняты/);
   });
 
   it('в Распределителе: одну купить, вторую — даром', () => {
@@ -119,19 +120,21 @@ describe('Тиражирование текста', () => {
     expect(s.raspredelitel).toEqual([]);
   });
 
-  it('из бонуса отправляет ещё одного доступного Единомышленника; без него — нельзя', () => {
+  it('из бонуса по адресу идёт только покупатель; без доступного Единомышленника — нельзя', () => {
     const s = started();
     const p = me(s);
+    p.talons = 10;
     s.pending = [{ kind: 'extraGroup', player: p.id }];
     const avail = p.available;
-    const after = applyAction(s, p.id, copy('razval', null, s.razval[0]!));
+    const after = applyAction(s, p.id, copy('razval', { address: 'razval', slot: 1 }, s.razval[0]!));
     expect(byId(after, p.id).available).toBe(avail - 1);
     expect(after.occupancy.razval).toEqual([p.id]);
     const none = started();
     const q = me(none);
     q.available = 0;
     none.pending = [{ kind: 'extraGroup', player: q.id }];
-    expect(() => applyAction(none, q.id, copy('razval', null, none.razval[0]!))).toThrow(/доступного Единомышленника/);
+    q.talons = 10;
+    expect(() => applyAction(none, q.id, copy('razval', { address: 'razval', slot: 1 }, none.razval[0]!))).toThrow(/доступного Единомышленника/);
   });
 });
 

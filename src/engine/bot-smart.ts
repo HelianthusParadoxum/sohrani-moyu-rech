@@ -320,19 +320,14 @@ function sproutCandidates(state: GameState, me: string, keep: Map<string, number
   return out;
 }
 
-// Все варианты Тиражирования: где, что купить (по желанию) и какую открытую книгу оттуда же взять бесплатно.
+// Все варианты Тиражирования: где и что купить и какую открытую книгу оттуда же взять бесплатно.
 export function copyTextOptions(state: GameState, me: string): GroupAction[] {
   const out: GroupAction[] = [];
   const p = player(state, me);
   const others = (list: (string | null)[], taken?: string) => list.filter((c): c is string => !!c && c !== taken);
-  const freeOnly = (address: CopyTextAddress, list: (string | null)[]) => {
-    for (const card of others(list)) out.push({ action: 'copyText', address, card });
-  };
-  freeOnly('razval', state.razval);
   state.razval.forEach((c, slot) => {
     if (c) for (const card of others(state.razval, c)) out.push({ action: 'copyText', address: 'razval', buy: { address: 'razval', slot }, card });
   });
-  freeOnly('tolkuchka', state.tolkuchka);
   // Мало места — можно освободить его, продав на Толкучке свою книгу.
   const sells: (string | null)[] = [null];
   if (freeSlots(p) < 2) {
@@ -349,13 +344,11 @@ export function copyTextOptions(state: GameState, me: string): GroupAction[] {
     }
   }
   if (state.safehouses.includes('raspredelitel')) {
-    freeOnly('raspredelitel', state.raspredelitel);
     for (const c of state.raspredelitel) {
       for (const card of others(state.raspredelitel, c)) out.push({ action: 'copyText', address: 'raspredelitel', buy: { address: 'raspredelitel', card: c }, card });
     }
   }
   if (state.safehouses.includes('knigoobmen')) {
-    freeOnly('knigoobmen', state.knigoobmen);
     // Обменять одну из двух самых скромных своих книг и взять ещё одну даром.
     const give = p.warehouse.map((s) => s.card).filter((c) => isGenreBook(state, c))
       .sort((x, y) => iconsOf(state, x).length - iconsOf(state, y).length).slice(0, 2);

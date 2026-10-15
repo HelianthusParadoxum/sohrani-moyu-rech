@@ -792,19 +792,23 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       log(state, `${p.name}: Тайник увеличен до ${p.cache}.`);
       break;
     case 'copyText': {
-      // Единомышленник сразу идёт на адрес с открытыми книгами: может купить (на Книгообмене — обменять)
-      // и одну открытую книгу оттуда же берёт бесплатно.
+      // «Покупая книгу на адресе, можете поставить Единомышленника на Тиражирование текста и взять с этого адреса
+      // ещё одну книгу бесплатно». Покупатель идёт на адрес (занимает там место), второй Единомышленник — на Тиражирование.
+      // Из бонуса Тиражирование уже есть — по адресу идёт только покупатель.
       const addr = g.address;
       const name = ADDRESSES[addr]?.name;
       check((COPY_TEXT_ADDRESSES as readonly string[]).includes(addr), 'Тиражировать можно на Развале, Толкучке, в Распределителе или на Книгообмене');
       check(!ADDRESSES[addr].safehouse || state.safehouses.includes(addr), `${name}: этого адреса нет на столе`);
       check(!g.buy || g.buy.address === addr, 'Покупать нужно на том же адресе');
-      check(g.buy || g.card, 'Купите книгу или возьмите бесплатную');
-      if (!opts.worker) {
-        // Тиражирование из бонуса отправляет по адресу ещё одного доступного Единомышленника.
-        check(p.available > 0, 'Нет доступного Единомышленника, чтобы отправить его по адресу');
-        check(!mustVisitRedCorner(state, p), 'Последнего Единомышленника нужно отправить в Красный уголок');
-      }
+      check(g.buy, 'Тиражирование — только вместе с покупкой (на Книгообмене — обменом) на этом адресе');
+      check(g.buy.address !== 'tolkuchka' || g.buy.ops.some((op) => op.op === 'buy'), 'На Толкучке нужно купить хотя бы одну книгу');
+      check(g.card, 'Выберите книгу, которую взять бесплатно');
+      // Сколько Единомышленников уходит: покупатель, а в обычном ходе — ещё и тот, что на Тиражировании.
+      const going = opts.worker ? 2 : 1;
+      check(p.available >= going, opts.worker
+        ? 'Нужны два Единомышленника: один покупает на адресе, другой — на Тиражировании'
+        : 'Нет доступного Единомышленника, чтобы отправить его покупать');
+      check(p.visitedRedCorner || hasPatron(state, p.id, 'doctor') || p.available > going, 'Последнего Единомышленника нужно отправить в Красный уголок');
       const here = state.occupancy[addr] ?? [];
       check(here.length < limitFor(addr, state.players.length), `${name}: все места заняты`);
       if (g.buy) doPlace(state, p, g.buy);
@@ -827,10 +831,9 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
         log(state, `${p.name} тиражирует: ${name}.`);
       }
       state.occupancy[addr] = [...here, p.id];
-      if (!opts.worker) {
-        p.available--;
-        track(p, 'group:copyText');
-      }
+      // Покупатель; Единомышленника на Тиражировании в обычном ходе спишет doOrder.
+      p.available--;
+      track(p, addr);
       if (hasPatron(state, p.id, 'typist')) {
         p.talons += 1;
         log(state, `${p.name}: Машинистка — +1 Талон.`);
