@@ -1,5 +1,5 @@
 // Справочные данные правил: адреса, Ростки, Пристрастия. Меняйте здесь, когда меняются правила.
-import type { AddressId, Genre, GroupActionId, PassionId, PatronId, SproutBonusId } from './types';
+import type { AddressId, Genre, GroupActionId, PassionId, PatronId, PointSource, SproutBonusId } from './types';
 import cardsJson from '../data/cards.json';
 import type { Card } from './types';
 
@@ -201,3 +201,17 @@ export const PATRONS: Record<PatronId, PatronInfo> = Object.fromEntries([
 
 export const CLUB_SIZE = 8;
 export const KONTORA_LOSS = 7; // столько удержанных Единомышленников — и все, кроме Куратора, проигрывают
+
+// Названия источников очков для финальной таблицы.
+export const POINT_SOURCES: Record<PointSource, string> = {
+  gathering: 'Посиделки',
+  drama: 'Драматургия «Разыграть»',
+  sprouts: 'Ступени Ростков',
+  firstFeed: 'Первое питание Ростков',
+  tamizdat: 'Тамиздат',
+  testimony: 'Свидетельства «Придать огласке»',
+  foreign: 'Иностранная «Перевести»',
+  editor: 'Главред',
+  postgrad: 'Аспирант',
+  prose: 'Проза «Вдохновиться»',
+};

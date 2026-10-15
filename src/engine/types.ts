@@ -67,6 +67,9 @@ export interface PatronState {
   removed: boolean; // удалён Профилактикой Конторы
 }
 
+export type PointSource =
+  | 'gathering' | 'drama' | 'sprouts' | 'firstFeed' | 'tamizdat' | 'testimony' | 'foreign' | 'editor' | 'postgrad' | 'prose';
+
 export type SproutBonusId = GroupActionId | 'sideJob' | 'underCounter';
 
 export type PassionId =
@@ -101,7 +104,7 @@ export interface PlayerState {
   subscriptions: { genre: Genre; rounds: number }[];
   held: number; // Единомышленников удерживает Контора
   buzoterUsed: boolean;
-  proseEarned: number; // статистика: очков от «Вдохновиться»
+  pointsBy: Partial<Record<PointSource, number>>; // откуда взялись очки, набранные по ходу игры
   patronBonus: { capacity: number; cache: number }; // прибавки от Управдома и Столяра
 }
 
@@ -181,6 +184,7 @@ export interface ScoreLine {
   propaganda: number;
   evidence: number;
   connections: number;
+  duringBy: Partial<Record<PointSource, number>>;
   total: number;
   icons: number;
 }

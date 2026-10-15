@@ -1,9 +1,9 @@
 // Игровой стол.
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import {
-  ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, PASSIONS, PERMANENT_ADDRESSES, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, limitFor,
+  ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, PASSIONS, POINT_SOURCES, PERMANENT_ADDRESSES, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, limitFor,
 } from '../engine/content';
-import type { Action, AddressId, Genre, GroupAction, GroupActionId, PlaceAction, SproutBonusId } from '../engine/types';
+import type { Action, AddressId, Genre, GroupAction, GroupActionId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import { coversStep, hasPatron, loadCover } from '../engine/util';
@@ -75,6 +75,7 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
       <div className={`status ${myTurn ? 'mine' : ''}`}>
         {status}
         {bonusTurn && <button className="small" onClick={() => act({ type: 'pass' })}>Отказаться</button>}
+        {view.phase === 'end' && view.result && <button className="small" onClick={() => setShowResult(true)}>Таблица счёта</button>}
         {canPlace && me.visitedRedCorner && <button className="small" onClick={() => confirm('Спасовать до конца Пятилетки? Оставшиеся Единомышленники не будут действовать.') && act({ type: 'pass' })}>Спасовать</button>}
       </div>
 
@@ -728,20 +729,30 @@ function Results({ view, close }: { view: PlayerView; close: () => void }) {
   return (
     <Modal title="Конец Застоя" onClose={close} wide>
       <p><b>{r.note}</b></p>
-      <table className="scores">
-        <thead><tr><th>Игрок</th><th>Пристрастие</th><th>По ходу</th><th>Пристрастие</th><th>Ростки</th><th>Пропаганда</th><th>Улики</th><th>Связи</th><th>Итого</th></tr></thead>
+      <div className="scores-wrap"><table className="scores">
+        <thead><tr><th>Игрок</th><th>Пристрастие</th><th>По ходу</th><th>За Пристрастие</th><th>Ростки</th><th>Пропаганда</th><th>Улики</th><th>Связи</th><th>Итого</th></tr></thead>
         <tbody>
           {r.scores.map((s) => {
             const p = view.players.find((x) => x.id === s.player)!;
+            const by = Object.entries(s.duringBy ?? {}).filter(([, n]) => n) as [PointSource, number][];
             return (
-              <tr key={s.player} className={r.winners.includes(s.player) ? 'winner' : ''}>
-                <td>{name(s.player)}</td><td>{p.passion ? PASSIONS[p.passion].name : '—'}</td>
-                <td>{s.during}</td><td>{s.passion}</td><td>{s.sprouts}</td><td>{s.propaganda}</td><td>{s.evidence}</td><td>{s.connections ?? 0}</td><td><b>{s.total}</b></td>
-              </tr>
+              <Fragment key={s.player}>
+                <tr className={r.winners.includes(s.player) ? 'winner' : ''}>
+                  <td>{name(s.player)}</td><td>{p.passion ? PASSIONS[p.passion].name : '—'}</td>
+                  <td>{s.during}</td><td>{s.passion}</td><td>{s.sprouts}</td><td>{s.propaganda}</td><td>{s.evidence}</td><td>{s.connections ?? 0}</td><td><b>{s.total}</b></td>
+                </tr>
+                {by.length > 0 && (
+                  <tr className="score-detail">
+                    <td colSpan={9}>
+                      По ходу игры: {by.map(([k, n]) => <span key={k} className="src">{POINT_SOURCES[k]} <b>{n}</b></span>)}
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
             );
           })}
         </tbody>
-      </table>
+      </table></div>
     </Modal>
   );
 }
@@ -780,7 +791,7 @@ function MyPanel({ view, me, color, groupEnabled, onGroup, onMemorize }: {
           {memorized && <button className="small" onClick={() => onMemorize(null)}>Вернуть «{view.cards[memorized].title}» на Склад</button>}
         </div>
       )}
-      {me.published.length > 0 && <div className="published"><span className="muted small">Издано:</span><div className="shelf wrap">{me.published.map((c) => <Book key={c} v={view} id={c} small />)}</div></div>}
+      <Published view={view} p={me} />
       {me.subscriptions.length > 0 && <div className="muted small">Подписка: {me.subscriptions.map((s) => `${GENRE_NAMES[s.genre]} (${s.rounds})`).join(', ')}</div>}
       <div className="group">
         <div className="muted small">Инициативная группа (каждое действие — раз в Пятилетку):</div>
@@ -804,7 +815,7 @@ function OtherPlayer({ view, p, color, active, first }: { view: PlayerView; p: V
       <div className="addr-head"><b style={{ color }}>{p.name}</b>{first && <span className="muted small">ходит первым</span>}</div>
       <Stats p={p} view={view} />
       <div className="shelf wrap">{p.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}</div>
-      {p.published.length > 0 && <div className="muted small">Издано: {p.published.length}</div>}
+      <Published view={view} p={p} />
     </div>
   );
 }
@@ -840,4 +851,25 @@ function GlavlitPrompt({ view, act }: { view: PlayerView; act: (a: Action) => vo
       <div className="modal-foot"><button className="primary" disabled={!from || !to} onClick={() => from && to && act({ type: 'glavlitSwap', from, to })}>Перенести опалу</button></div>
     </Modal>
   );
+}
+
+// Изданные книги — только значки: Тамиздат и Самиздат отдельно.
+function Published({ view, p }: { view: PlayerView; p: VPlayer }) {
+  if (!p.published.length) return null;
+  const tam = p.published.filter((c) => p.tamizdat.includes(c));
+  const sam = p.published.filter((c) => !p.tamizdat.includes(c));
+  const row = (label: string, list: string[]) => list.length > 0 && (
+    <div className="pub-row">
+      <span className="muted small">{label}:</span>
+      {list.map((c) => {
+        const icons = iconsOf(view, c);
+        return (
+          <span key={c} className="pub-book" title={view.cards[c].title}>
+            {icons.length ? icons.map((g, i) => <GenreChip key={i} g={g} />) : <span className="kind">{view.cards[c].kind === 'evidence' || view.cards[c].kind === 'loadEvidence' ? 'Улика' : '—'}</span>}
+          </span>
+        );
+      })}
+    </div>
+  );
+  return <div className="published">{row('Тамиздат', tam)}{row('Самиздат', sam)}</div>;
 }

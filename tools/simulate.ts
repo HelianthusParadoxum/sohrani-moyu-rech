@@ -18,7 +18,7 @@ for (let i = 0; i < games; i++) {
   if (r.glasnost) glasnost++;
   s.sprouts.forEach((sp) => progress.push(sp.progress));
   for (const p of s.players) {
-    prose.push(p.proseEarned ?? 0);
+    prose.push(p.pointsBy?.prose ?? 0);
     passionPlays[p.passion!] = (passionPlays[p.passion!] ?? 0) + 1;
     if (r.winners.includes(p.id)) passionWins[p.passion!] = (passionWins[p.passion!] ?? 0) + 1;
   }

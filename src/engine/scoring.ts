@@ -70,7 +70,7 @@ export function scoreLine(state: GameState, p: PlayerState): ScoreLine {
   const icons = collection(state, p).reduce((s, id) => s + iconsOf(state, id).length, 0);
   const connections = state.patrons.filter((x) => !x.removed && x.connections.includes(p.id)).length;
   return {
-    player: p.id, during: p.points, passion, sprouts, propaganda, evidence, connections,
+    player: p.id, during: p.points, duringBy: { ...p.pointsBy }, passion, sprouts, propaganda, evidence, connections,
     total: p.points + passion + sprouts + propaganda + evidence + connections, icons,
   };
 }

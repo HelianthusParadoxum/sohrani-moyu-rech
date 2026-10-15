@@ -227,3 +227,15 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 .sprouts-panel .chip { min-width: 18px; font-size: 0.62rem; }
 .host-tools label.row { margin: 0; color: var(--paper); }
 .host-tools select { padding: 1px 4px; }
+
+.score-detail td { font-size: 0.8rem; color: var(--muted); padding-top: 0; }
+.score-detail .src { margin-right: 12px; white-space: nowrap; }
+.pub-row { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+.pub-book { display: inline-flex; gap: 1px; padding: 1px 2px; border: 1px solid var(--line); border-radius: 3px; background: #fff; }
+
+.scores-wrap { overflow-x: auto; }
+.scores { font-size: 0.88rem; }
+.scores th, .scores td { padding: 4px 5px; }
+.scores th { font-size: 0.78rem; white-space: nowrap; }
+.score-detail td { white-space: normal; }
+.score-detail .src { display: inline-block; }

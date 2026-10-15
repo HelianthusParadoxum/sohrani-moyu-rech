@@ -1,6 +1,6 @@
 // Вспомогательные функции: случайность, карты, игроки.
 import { RULES } from './content';
-import type { GameState, Genre, PatronId, PlayerState } from './types';
+import type { GameState, Genre, PatronId, PlayerState, PointSource } from './types';
 
 export class RuleError extends Error {}
 
@@ -212,3 +212,10 @@ export const talonsText = (n: number) => plural(n, 'Талон', 'Талона',
 export const pointsText = (n: number) => plural(n, 'очко', 'очка', 'очков');
 
 export { RULES };
+
+// Начислить очки Гласности по ходу игры, запомнив источник.
+export function gain(p: PlayerState, n: number, source: PointSource) {
+  if (!n) return;
+  p.points += n;
+  p.pointsBy[source] = (p.pointsBy[source] ?? 0) + n;
+}

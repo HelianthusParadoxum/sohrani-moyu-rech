@@ -14,7 +14,7 @@ import type {
 } from './types';
 import { GENRES } from './types';
 import {
-  addBook, cacheLimit, check, coversStep, discard, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
+  addBook, cacheLimit, check, coversStep, discard, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isSingle, log, pay, player, pointsText, random, removeBook, shuffle,
   talonsText, title,
 } from './util';
@@ -69,7 +69,7 @@ export function createGame(opts: NewGameOptions): GameState {
       published: [], tamizdat: [],
       passion: null, passionOptions: [passions.pop()!, passions.pop()!],
       groupUsed: [], visitedRedCorner: false, sproutsFed: [], subscriptions: [],
-      held: 0, buzoterUsed: false, proseEarned: 0, patronBonus: { capacity: 0, cache: 0 },
+      held: 0, buzoterUsed: false, pointsBy: {}, patronBonus: { capacity: 0, cache: 0 },
     };
     for (let i = 0; i < 2; i++) addBook(p, draw(state)!);
     for (let i = 0; i < 2; i++) addBook(p, drawLoad(state)!);
@@ -151,8 +151,7 @@ function finishAction(state: GameState, p: PlayerState, pointsBefore: number): G
   if (p.points > pointsBefore) {
     const bonus = proseBonus(state, p);
     if (bonus) {
-      p.points += bonus;
-      p.proseEarned += bonus;
+      gain(p, bonus, 'prose');
       log(state, `${p.name}: проза вдохновляет — +${pointsText(bonus)}.`);
     }
   }
@@ -306,6 +305,7 @@ function endOrders(state: GameState) {
 function doGathering(state: GameState, p: PlayerState, show: string[]) {
   check(new Set(show).size === show.length, 'Книга указана дважды');
   let pts = 0;
+  let dramaPts = 0;
   let geo = 0;
   for (const id of show) {
     // Драматургия «Разыграть»: можно показывать и неопальную, и из изданного — +1 очко.
@@ -317,9 +317,11 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
       pts += 1;
       if (hasPatron(state, p.id, 'geologist')) geo++;
     }
-    if (drama) pts += 1;
+    if (drama) dramaPts += 1;
   }
-  p.points += pts;
+  gain(p, pts, 'gathering');
+  gain(p, dramaPts, 'drama');
+  pts += dramaPts;
   if (geo) {
     p.talons += geo;
     log(state, `${p.name}: Геолог — +${talonsText(geo)}.`);
@@ -637,12 +639,12 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         const reward = STEP_REWARDS[sp.progress];
         sp.progress++;
         p.talons += reward.talons + (hasPatron(state, p.id, 'professor') ? 1 : 0);
-        p.points += reward.points;
+        gain(p, reward.points, 'sprouts');
         let text = `${p.name} питает Росток «${info.name}»: ступень ${sp.progress} закрыта (${f.books.map((b) => title(state, b)).join(', ')})`;
         text += reward.talons ? `, +${talonsText(reward.talons)}` : `, +${pointsText(reward.points)}`;
         if (!p.sproutsFed.includes(sp.id)) {
           p.sproutsFed.push(sp.id);
-          p.points += FIRST_FEED_POINTS;
+          gain(p, FIRST_FEED_POINTS, 'firstFeed');
           text += `, +${pointsText(FIRST_FEED_POINTS)} за первое питание`;
         }
         log(state, text + '.');
@@ -666,16 +668,16 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       const genres = iconsOf(state, a.card);
       let talons = icons + (hasPatron(state, p.id, 'correspondent') ? icons : 0);
       let pts = 0;
+      const add = (n: number, src: Parameters<typeof gain>[2]) => { gain(p, n, src); pts += n; };
       if (a.address === 'tamizdat') {
         p.tamizdat.push(a.card);
-        pts += icons;
-        if (isFull(state) && genres.includes('testimony')) pts += 2; // «Придать огласке»
+        add(icons, 'tamizdat');
+        if (isFull(state) && genres.includes('testimony')) add(2, 'testimony'); // «Придать огласке»
       } else {
-        if (hasPatron(state, p.id, 'editor')) pts += icons;
-        if (isFull(state) && genres.includes('foreign')) pts += 2; // «Перевести»
+        if (hasPatron(state, p.id, 'editor')) add(icons, 'editor');
+        if (isFull(state) && genres.includes('foreign')) add(2, 'foreign'); // «Перевести»
       }
       p.talons += talons;
-      p.points += pts;
       gaveAway(state, p, a.card);
       log(state, `${p.name} издаёт ${title(state, a.card)} через ${name}: +${talonsText(talons)}${pts ? `, +${pointsText(pts)}` : ''}.`);
       return;
@@ -813,7 +815,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       }
       pay(p, RULES.restoreCost);
       if (hasPatron(state, p.id, 'postgrad')) {
-        p.points += 2;
+        gain(p, 2, 'postgrad');
         log(state, `${p.name}: Аспирант — +2 очка Гласности.`);
       }
       break;
@@ -1035,7 +1037,7 @@ export function migrate(state: GameState): GameState {
     if (p.spetskhran) { state.spetskhran.push(...p.spetskhran); delete p.spetskhran; }
     p.held ??= 0;
     p.buzoterUsed ??= false;
-    p.proseEarned ??= 0;
+    p.pointsBy ??= {};
     p.patronBonus ??= { capacity: 0, cache: 0 };
   }
   return state;

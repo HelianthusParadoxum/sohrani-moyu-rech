@@ -320,3 +320,17 @@ describe('Главлитовец', () => {
     }
   });
 });
+
+describe('разбивка очков по источникам', () => {
+  it('сумма по источникам равна очкам, набранным по ходу игры', () => {
+    for (const mode of ['beginner', 'full'] as const) {
+      for (let seed = 1; seed <= 8; seed++) {
+        const s = playOut(createGame({ players: players(3), seed, mode }), seeded(seed));
+        for (const p of s.players) {
+          const sum = Object.values(p.pointsBy).reduce((a, n) => a + (n ?? 0), 0);
+          expect(sum).toBe(p.points);
+        }
+      }
+    }
+  });
+});
