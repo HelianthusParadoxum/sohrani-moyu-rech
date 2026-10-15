@@ -116,7 +116,10 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
           }
           case 'raspredelitel': for (const c of state.raspredelitel) out.push({ type: 'place', place: { address: 'raspredelitel', card: c } }); break;
           case 'nasledniki': case 'posrednichestvo': case 'spisanie': out.push({ type: 'place', place: { address: a } }); break;
-          case 'club': for (const gift of clubGifts(state, me)) out.push({ type: 'place', place: { address: 'club', gifts: [gift] } }); break;
+          case 'club':
+            if (!RULES.clubFreeGift) for (const gift of clubGifts(state, me)) out.push({ type: 'place', place: { address: 'club', gifts: [gift] } });
+            else if (state.clubGiftBy !== me) for (const gift of clubGifts(state, me)) out.push({ type: 'clubGift', gift });
+            break;
           case 'kontora': if (rand() < 0.15) out.push({ type: 'place', place: { address: 'kontora' } }); break;
         }
       }

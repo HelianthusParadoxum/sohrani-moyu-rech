@@ -8,7 +8,7 @@ import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import { coversStep, hasPatron, loadCover } from '../engine/util';
 import {
-  ClubContents, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
+  ClubContents, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
   KontoraWarningPrompt, RescuePanel,
 } from './full-ui';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
@@ -34,9 +34,10 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
   const myPending = head && head.player === you && !('secret' in head) ? head : null;
   const canPlace = myTurn && view.phase === 'orders' && !myPending && !!me && me.available > 0;
   const bonusTurn = myTurn && view.phase === 'orders' && !myPending && !!me && me.available === 0 && me.bonusGroupTurns > 0;
+  const canGift = myTurn && view.mode === 'full' && RULES.clubFreeGift && view.phase === 'orders' && !myPending && !!me && view.clubGiftBy !== me.id;
   const mustRed = !!me && me.available === 1 && !me.visitedRedCorner && !hasPatron(view, me.id, 'doctor');
 
-  useEffect(() => { if (!canPlace && !bonusTurn) setPanel(null); }, [canPlace, bonusTurn]);
+  useEffect(() => { if (!canPlace && !bonusTurn && !canGift) setPanel(null); }, [canPlace, bonusTurn, canGift]);
 
   let status: string;
   if (view.phase === 'end') status = view.result?.note ?? 'Партия окончена';
@@ -84,7 +85,7 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
           <div className="addresses">
             {addresses.map((id) => (
               <AddressCard key={id} id={id} view={view} seatIndex={seatIndex} me={me}
-                enabled={canPlace && (!mustRed || id === 'redCorner')} onOpen={() => setPanel({ kind: 'address', id })} />
+                enabled={id === 'club' && RULES.clubFreeGift ? canGift : canPlace && (!mustRed || id === 'redCorner')} onOpen={() => setPanel({ kind: 'address', id })} />
             ))}
             <Sprouts view={view} beside={full} seatIndex={seatIndex} />
           </div>
@@ -102,7 +103,10 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
         </aside>
       </main>
 
-      {panel?.kind === 'address' && me && (
+      {panel?.kind === 'address' && panel.id === 'club' && RULES.clubFreeGift && me && canGift && (
+        <ClubGiftModal view={view} me={me} act={act} close={() => setPanel(null)} />
+      )}
+      {panel?.kind === 'address' && !(panel.id === 'club' && RULES.clubFreeGift) && me && (
         <AddressPanel id={panel.id} view={view} me={me} close={() => setPanel(null)} place={(place) => { act({ type: 'place', place }); setPanel(null); }} />
       )}
       {panel?.kind === 'group' && me && (
@@ -125,7 +129,8 @@ function AddressCard({ id, view, seatIndex, me, enabled, onOpen }: {
   const info = ADDRESSES[id];
   const here = view.occupancy[id] ?? [];
   const limit = limitFor(id, view.players.length);
-  const full = here.length >= limit || (id === 'redCorner' && !!me && here.includes(me.id));
+  const freeClub = id === 'club' && RULES.clubFreeGift; // Клуб — свободное действие, мест нет
+  const full = !freeClub && (here.length >= limit || (id === 'redCorner' && !!me && here.includes(me.id)));
   return (
     <div className={`address addr-${id} ${info.safehouse ? 'safehouse' : ''} ${enabled && !full ? 'can' : ''}`}>
       <div className="addr-head">
@@ -137,8 +142,9 @@ function AddressCard({ id, view, seatIndex, me, enabled, onOpen }: {
             const n = view.players.find((x) => x.id === pid)?.actions?.filter((a) => a.target === id)[k]?.n;
             return <span key={i} className="dot num" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} title={n ? `${n}-е действие игрока` : undefined}>{n ?? ''}</span>;
           })}
-          <span className="muted small">{limit === Infinity ? '∞' : `${here.length}/${limit}`}</span>
-          {enabled && <button className="go small" disabled={full} onClick={onOpen} title={full ? 'Мест нет' : 'Отправить Единомышленника сюда'}>{full ? 'занято' : 'сюда →'}</button>}
+          {!freeClub && <span className="muted small">{limit === Infinity ? '∞' : `${here.length}/${limit}`}</span>}
+          {enabled && freeClub && <button className="go small" onClick={onOpen} title="Свободное действие: Единомышленник не нужен">отдать книгу →</button>}
+          {enabled && !freeClub && <button className="go small" disabled={full} onClick={onOpen} title={full ? 'Мест нет' : 'Отправить Единомышленника сюда'}>{full ? 'занято' : 'сюда →'}</button>}
         </span>
       </div>
       <div className="hint">{info.hint}</div>

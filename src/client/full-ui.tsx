@@ -90,6 +90,16 @@ export function ClubPanel({ view, me, place }: { view: PlayerView; me: VPlayer; 
   return <GiftPicker view={view} me={me} onDone={(gifts) => place({ address: 'club', gifts })} />;
 }
 
+// Клуб как свободное действие: одна книга одному Завсегдатаю за ход, Единомышленник не нужен.
+export function ClubGiftModal({ view, me, act, close }: { view: PlayerView; me: VPlayer; act: (a: Action) => void; close: () => void }) {
+  return (
+    <Modal title="Клуб книголюбов" wide onClose={close}>
+      <p className="muted small">Свободное действие: Единомышленник не нужен, ход не заканчивается. Одна книга за ход.</p>
+      <GiftPicker view={view} me={me} single onDone={(g) => { act({ type: 'clubGift', gift: g[0] }); close(); }} />
+    </Modal>
+  );
+}
+
 export function KontoraPanel({ view, place }: { view: PlayerView; place: (p: PlaceAction) => void }) {
   const targets = kontoraTargets(view);
   return (

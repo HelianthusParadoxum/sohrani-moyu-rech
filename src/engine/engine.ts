@@ -146,7 +146,10 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
     }
   }
   if (state.holdTurn) delete state.holdTurn;
-  else if (state.phase === 'orders' && state.pending.length === 0) advanceTurn(state);
+  else if (state.phase === 'orders' && state.pending.length === 0) {
+    if (state.freeHold) delete state.freeHold;
+    else advanceTurn(state);
+  }
   return done(state);
 }
 
@@ -181,6 +184,7 @@ function startRound(state: GameState) {
   state.ready = [];
   state.occupancy = {};
   state.nextOrder = [];
+  delete state.clubGiftBy;
   for (const pt of state.patrons) pt.turned = false;
   for (const p of state.players) {
     p.available = p.workers - p.held;
@@ -259,6 +263,8 @@ function canAct(p: PlayerState) {
 }
 
 function advanceTurn(state: GameState) {
+  delete state.clubGiftBy;
+  delete state.freeHold;
   const n = state.order.length;
   for (let i = 1; i <= n; i++) {
     const idx = (state.turn + i + n) % n;
@@ -455,6 +461,17 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
     // «Заучить» не тратит действие и не завершает ход.
     memorize(state, p, action.card);
     state.holdTurn = true;
+    return;
+  }
+  if (action.type === 'clubGift') {
+    // Клуб как свободное действие: одна книга одному Завсегдатаю за ход, ход не завершается.
+    check(isFull(state) && RULES.clubFreeGift, 'Связь в Клубе так не завести');
+    check(action.gift, 'Выберите, кому из Завсегдатаев что отдать');
+    check(state.clubGiftBy !== p.id, 'В этот ход вы уже отдали книгу в Клуб');
+    giveToPatron(state, p, action.gift);
+    state.clubGiftBy = p.id;
+    // Ход не заканчивается — и после решений, которые вызвала связь (Главлитовец, Управдом…).
+    state.freeHold = true;
     return;
   }
   if (p.available === 0) {
@@ -753,6 +770,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       return;
     }
     case 'club': {
+      check(!RULES.clubFreeGift, 'В Клуб не нужно ходить: отдать книгу Завсегдатаю можно в свой ход без Единомышленника');
       check(a.gifts.length > 0, 'Выберите, кому из Завсегдатаев что отдать');
       for (const g of a.gifts) giveToPatron(state, p, g);
       return;

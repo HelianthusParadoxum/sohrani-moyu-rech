@@ -172,6 +172,8 @@ export interface GameState {
   patrons: PatronState[];
   spetskhran: string[]; // Спецхран Конторы — общий, лежит взакрытую
   holdTurn?: boolean; // действие не завершило ход (отказ от Конторы)
+  clubGiftBy?: string; // кто уже отдал книгу в Клуб в этот ход (Клуб как свободное действие)
+  freeHold?: boolean; // идёт свободное действие: когда его решения закончатся, ход не передаётся
   pending: Pending[];
   ready: string[]; // кто подтвердил одновременную фазу
   result?: GameResult;

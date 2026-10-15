@@ -54,12 +54,15 @@ export const RULES = {
   passionErudite: 1, // Эрудит: очков за значок (по 1 книге на жанр); было 2 без бонуса за жанры
   eruditePerGenre: 1, // Эрудит: ещё очков за каждый жанр, в котором засчитана книга
   eruditeMaxGenres: 8, // Эрудит: сколько жанров засчитывается (8 — все)
-  passionMonogamist: 2, // Однолюб: очков за значок лучшего жанра
-  monogamistSecond: 1, // Однолюб: очков за значок второго по силе жанра
+  passionMonogamist: 2, // Вольная душа: очков за значок лучшего жанра
+  monogamistSecond: 1, // Вольная душа: очков за значок второго по силе жанра
   passionInnovator: 2, // Новатор: очков за значок на двужанровых книгах
   innovatorSingle: -1, // Новатор: очков за каждую книгу с одним жанром (на складе и в изданном)
   propagandaPoints: -5,
   evidencePoints: 5,
+  // Клуб книголюбов: true — свободное действие (за свой ход можно отдать 1 книгу 1 Завсегдатаю, Единомышленник не нужен);
+  // false — адрес, куда ставят Единомышленника, и можно завязать несколько связей за приход.
+  clubFreeGift: true,
   testimonyPoints: 3, // Свидетельства «Придать огласке»: очков за издание через Тамиздат (полный режим)
   foreignPoints: 3, // Иностранная «Перевести»: очков за издание через Самиздат (полный режим)
   extraSprouts: { beginner: 0, full: 1 }, // Ростков на партию: число игроков + это число
@@ -98,7 +101,9 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   nasledniki: { id: 'nasledniki', name: 'Наследники', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.safehousePrice}т: тайно взять 2 книги из сброса Непечатных` },
   posrednichestvo: { id: 'posrednichestvo', name: 'Посредничество авторам', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.safehousePrice}т: тайно вытянуть ${RULES.posrednichestvoDraw}, оставить ${RULES.posrednichestvoKeep}, затем 1 любое действие Группы (даже уже сделанное)` },
   spisanie: { id: 'spisanie', name: 'Библиотечное списание', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.spisaniePrice}т: тайно взять ${RULES.spisanieDraw} книги сверху стопки Непечатных, оставить сколько угодно, остальные — в сброс` },
-  club: { id: 'club', name: 'Клуб книголюбов', limits: [2, 3, 4], fullOnly: true, hint: 'Отдайте Завсегдатаям книги их жанров — завяжите связи' },
+  club: { id: 'club', name: 'Клуб книголюбов', limits: [2, 3, 4], fullOnly: true, hint: RULES.clubFreeGift
+    ? 'Без Единомышленника: за свой ход отдайте 1 книгу 1 Завсегдатаю (его жанра или Альбом) — завяжите связь'
+    : 'Отдайте Завсегдатаям книги их жанров — завяжите связи' },
   kontora: { id: 'kontora', name: 'Контора', limits: [INF, INF, INF], fullOnly: true, perPlayer: true, hint: 'Ходатайство, Выдача на руки, Сигнал, Профилактика; доход — чужая опальная книга в Спецхран' },
 };
 
@@ -181,7 +186,7 @@ export const PASSIONS: Record<PassionId, PassionInfo> = {
   keeper_skit: { id: 'keeper_skit', name: 'Капустник', genres: ['irony', 'drama'], hint: `${RULES.passionKeeper} очка за значок Иронии и Драматургии` },
   keeper_theatre: { id: 'keeper_theatre', name: 'Театрал', genres: ['drama', 'prose'], hint: `${RULES.passionKeeper} очка за значок Драматургии и Прозы` },
   erudite: { id: 'erudite', name: 'Эрудит', special: true, hint: `${RULES.passionErudite} очко за значок и ${RULES.eruditePerGenre} за каждый жанр; в каждом жанре засчитывается 1 книга${RULES.eruditeMaxGenres < 8 ? `, не больше ${RULES.eruditeMaxGenres} жанров` : ''}` },
-  monogamist: { id: 'monogamist', name: 'Однолюб', special: true, hint: `${RULES.passionMonogamist} очка за значок лучшего жанра${RULES.monogamistSecond ? ` и ${RULES.monogamistSecond} за значок второго по силе` : ''} (на момент подсчёта)` },
+  monogamist: { id: 'monogamist', name: 'Вольная душа', special: true, hint: `${RULES.passionMonogamist} очка за значок лучшего жанра${RULES.monogamistSecond ? ` и ${RULES.monogamistSecond} за значок второго по силе` : ''} (на момент подсчёта)` },
   innovator: { id: 'innovator', name: 'Новатор', special: true, hint: `${RULES.passionInnovator} очка за значок на двужанровых книгах${RULES.innovatorSingle ? `, ${RULES.innovatorSingle} очко за каждую книгу с одним жанром` : ''}` },
   curator: { id: 'curator', name: 'Куратор', special: true, hint: 'Агент госбезопасности: побеждает, если Гласность не наступит' },
 };

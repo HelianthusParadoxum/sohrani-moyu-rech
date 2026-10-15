@@ -154,7 +154,7 @@ describe('значок возвращения у двужанровой книг
     expect(passionPoints(s, p)).toBe(6);
   });
 
-  it('Однолюб выбирает жанр значка в свою пользу и не засчитывает его дважды', () => {
+  it('Вольная душа выбирает жанр значка в свою пользу и не засчитывает его дважды', () => {
     const { s, p } = withBook('monogamist');
     // Лучший жанр — 2 значка (со значком возвращения), второй — 1.
     expect(passionPoints(s, p)).toBe(2 * RULES.passionMonogamist + 1 * RULES.monogamistSecond);
@@ -215,8 +215,21 @@ describe('полный режим', () => {
     p.warehouse.push({ card: book.id, hidden: false });
     s.deck = s.deck.filter((c) => c !== book.id);
     const patron = s.patrons.find((x) => x.genre === book.icons[0])!;
-    s = applyAction(s, me, { type: 'place', place: { address: 'club', gifts: [{ patron: patron.id, card: book.id }] } });
+    const available = p.available;
+    expect(() => applyAction(s, me, { type: 'place', place: { address: 'club', gifts: [{ patron: patron.id, card: book.id }] } })).toThrow(RuleError);
+    s = applyAction(s, me, { type: 'clubGift', gift: { patron: patron.id, card: book.id } });
     expect(s.patrons.find((x) => x.id === patron.id)!.connections).toContain(me);
+    // Свободное действие: Единомышленник не тратится, ход не переходит, но вторую книгу за ход отдать нельзя.
+    expect(s.order[s.turn]).toBe(me);
+    expect(s.players.find((x) => x.id === me)!.available).toBe(available);
+    const other = s.patrons.find((x) => x.id !== patron.id)!;
+    const book2 = s.deck.find((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.includes(other.genre))!;
+    s.players.find((x) => x.id === me)!.warehouse.push({ card: book2, hidden: false });
+    expect(() => applyAction(s, me, { type: 'clubGift', gift: { patron: other.id, card: book2 } })).toThrow(RuleError);
+    // После обычного действия ход переходит, и в следующий свой ход снова можно отдать книгу.
+    s = applyAction(s, me, { type: 'place', place: { address: 'zavoz' } });
+    expect(s.order[s.turn]).not.toBe(me);
+    expect(s.clubGiftBy).toBeUndefined();
   });
 
   it('Контора: сначала предупреждение остальным, потом решение; Сигнал удерживает Единомышленника', () => {
@@ -333,7 +346,7 @@ describe('Главлитовец', () => {
     s.deck = s.deck.filter((c) => c !== book);
     s.players.find((x) => x.id === me)!.warehouse.push({ card: book, hidden: false });
     s.players.find((x) => x.id === me)!.capacity = 10;
-    s = applyAction(s, me, { type: 'place', place: { address: 'club', gifts: [{ patron: 'glavlit', card: book }] } });
+    s = applyAction(s, me, { type: 'clubGift', gift: { patron: 'glavlit', card: book } });
     expect(s.pending[0]).toMatchObject({ kind: 'glavlitSwap', player: me });
     const from = s.banned[0];
     const to = GENRES.find((g) => !s.banned.includes(g))!;
@@ -342,7 +355,7 @@ describe('Главлитовец', () => {
     expect(s.banned).toContain(to);
     expect(s.banned).not.toContain(from);
     expect(s.banned.length).toBe(n);
-    expect(s.order[s.turn]).not.toBe(me); // ход перешёл дальше
+    expect(s.order[s.turn]).toBe(me); // связь — свободное действие: ход остаётся у игрока
   });
 
   it('боты с Главлитовцем доигрывают партии', () => {

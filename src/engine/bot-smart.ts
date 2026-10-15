@@ -293,6 +293,19 @@ export function rankActions(state: GameState, me: string, preset: BotPreset, ran
     if (curator) return [{ a: cands[0], v: 0 }];
   }
   const samples = Array.from({ length: SAMPLES }, () => determinize(state, rand));
+  // Клуб как свободное действие: сначала решаем, стоит ли отдать книгу Завсегдатаю, — это не тратит ход.
+  const gifts = freeGiftCandidates(state, me, ctx);
+  if (gifts.length) {
+    const base = samples.reduce((s, x) => s + evaluate(x, me, ctx), 0) / samples.length;
+    let best: { a: Action; v: number } | null = null;
+    for (const a of gifts) {
+      const vs = samples.map((s) => score(s, me, a, ctx, 2));
+      if (vs.some((v) => v === null)) continue;
+      const v = (vs as number[]).reduce((s, x) => s + x, 0) / vs.length;
+      if (!best || v > best.v) best = { a, v };
+    }
+    if (best && best.v > base + BOT_BASE.freeGiftMargin) return [best];
+  }
   const rated: { a: Action; v: number }[] = [];
   for (const a of cands) {
     let sum = 0;
@@ -461,6 +474,15 @@ function clubGifts(state: GameState, me: string): ClubGift[] {
     }
   }
   return out;
+}
+
+// Клуб как свободное действие: по одному варианту на Завсегдатая — с самой скромной подходящей книгой.
+function freeGiftCandidates(state: GameState, me: string, ctx: Ctx): Action[] {
+  if (!RULES.clubFreeGift || state.mode !== 'full' || state.phase !== 'orders' || state.pending.length || state.clubGiftBy === me) return [];
+  if (!clubGifts(state, me).length) return [];
+  const keep = keepValues(state, me, ctx);
+  return clubCandidates(state, me, keep).flatMap((a) =>
+    a.type === 'place' && a.place.address === 'club' && a.place.gifts.length === 1 ? [{ type: 'clubGift' as const, gift: a.place.gifts[0] }] : []);
 }
 
 // Связи в Клубе за одно действие: по одной и жадно все сразу (самые скромные книги — первыми).
@@ -676,7 +698,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
           }
           case 'raspredelitel': for (const c of state.raspredelitel) out.push({ type: 'place', place: { address: 'raspredelitel', card: c } }); break;
           case 'nasledniki': case 'posrednichestvo': case 'spisanie': out.push({ type: 'place', place: { address: a } }); break;
-          case 'club': out.push(...clubCandidates(state, me, keepMap())); break;
+          case 'club': if (!RULES.clubFreeGift) out.push(...clubCandidates(state, me, keepMap())); break;
           case 'kontora': {
             // Только что передумал идти (соперники перепрятали книги) — второй раз за ход не объявляет.
             const mine = state.log.filter((l) => l.text.startsWith(p.name + ' ')).pop();
