@@ -4,7 +4,8 @@ import { playOut } from '../src/engine/bot';
 import { viewFor } from '../src/engine/view';
 import { RuleError, cacheLimit, coversStep, isBanned } from '../src/engine/util';
 import { passionPoints } from '../src/engine/scoring';
-import type { GameState } from '../src/engine/types';
+import type { GameState, PatronId } from '../src/engine/types';
+import { removePatron } from '../src/engine/full';
 
 const players = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `p${i + 1}`, name: `Игрок ${i + 1}` }));
 
@@ -227,5 +228,60 @@ describe('Поэзия «Заучить»', () => {
     s = applyAction(s, me, { type: 'memorize', card: poem });
     expect(free(s)).toBe(before + 1);
     expect(s.order[s.turn]).toBe(me);
+  });
+});
+
+describe('Завсегдатаи: Ветеран, Лейтенант, Управдом', () => {
+  function started(seed = 21) {
+    let s = createGame({ players: players(2), seed, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    return s;
+  }
+  function connect(s: GameState, id: PatronId, who: string[]) {
+    s.patrons[0] = { id, genre: s.patrons[0].genre, connections: who, turned: false, removed: false };
+  }
+
+  it('Ветеран: две книги с Барахолки за одно действие стоят 1 Талон', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    connect(s, 'veteran', [me]);
+    s.players.find((x) => x.id === me)!.capacity = 10;
+    const talons = s.players.find((x) => x.id === me)!.talons;
+    s = applyAction(s, me, { type: 'place', place: { address: 'baraholka', slot: 0 } });
+    s = applyAction(s, me, { type: 'baraholkaBuy', buy: true, next: 1 });
+    s = applyAction(s, me, { type: 'baraholkaBuy', buy: true });
+    const p = s.players.find((x) => x.id === me)!;
+    expect(p.talons).toBe(talons - 1);
+    expect(s.baraholka[0]).toBeNull();
+    expect(s.baraholka[1]).toBeNull();
+  });
+
+  it('Лейтенант забирает книги, изъятые с адресов', () => {
+    let found = false;
+    for (let seed = 1; seed <= 10 && !found; seed++) {
+      const s0 = createGame({ players: players(2), seed, mode: 'full' });
+      connect(s0, 'lieutenant', ['p1', 'p2']);
+      const s = playOut(s0, seeded(seed));
+      expect(s.phase).toBe('end');
+      found = s.log.some((l) => l.text.includes('Лейтенант приносит'));
+    }
+    expect(found).toBe(true);
+  });
+
+  it('Управдом: после Профилактики игрок сам выбирает, какие книги отдать', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    connect(s, 'housekeeper', [me]);
+    const p = s.players.find((x) => x.id === me)!;
+    p.capacity += 2;
+    p.patronBonus.capacity = 2;
+    while (p.warehouse.length < p.capacity) p.warehouse.push({ card: s.deck.pop()!, hidden: false });
+    removePatron(s, 'housekeeper');
+    expect(s.pending[0]).toMatchObject({ kind: 'discardExcess', player: me, count: 2 });
+    const give = p.warehouse.slice(0, 2).map((w) => w.card);
+    s = applyAction(s, me, { type: 'discardExcess', cards: give });
+    const after = s.players.find((x) => x.id === me)!;
+    expect(after.warehouse.length).toBe(after.capacity);
+    expect(after.warehouse.some((w) => give.includes(w.card))).toBe(false);
   });
 });

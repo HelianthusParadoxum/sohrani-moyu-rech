@@ -101,6 +101,7 @@ export interface PlayerState {
   subscriptions: { genre: Genre; rounds: number }[];
   held: number; // Единомышленников удерживает Контора
   buzoterUsed: boolean;
+  proseEarned: number; // статистика: очков от «Вдохновиться»
   patronBonus: { capacity: number; cache: number }; // прибавки от Управдома и Столяра
 }
 
@@ -110,7 +111,7 @@ export interface Sprout {
 }
 
 export type Pending =
-  | { kind: 'baraholkaLook'; player: string; slot: number; card: string }
+  | { kind: 'baraholkaLook'; player: string; slot: number; card: string; looked?: number[]; bought?: number }
   | { kind: 'kvartirnikReply'; player: string; from: string; give: string; want: string }
   | { kind: 'naslednikiPick'; player: string; cards: string[] }
   | { kind: 'posrednichestvoKeep'; player: string; cards: string[] }
@@ -120,7 +121,9 @@ export type Pending =
   | { kind: 'kontoraDecide'; player: string }
   | { kind: 'kontoraHandout'; player: string; cards: string[] }
   | { kind: 'extraGroup'; player: string } // Подмастерье
-  | { kind: 'freeConnection'; player: string }; // Председатель
+  | { kind: 'freeConnection'; player: string } // Председатель
+  | { kind: 'lieutenantPick'; player: string; cards: string[] } // Лейтенант: книги, изъятые облавой с адресов
+  | { kind: 'discardExcess'; player: string; count: number }; // склад уменьшился — игрок выбирает, что отдать
 
 export type Phase = 'passion' | 'orders' | 'gathering' | 'hiding' | 'end';
 
@@ -235,7 +238,7 @@ export type Action =
   | { type: 'place'; place: PlaceAction }
   | { type: 'group'; group: GroupAction }
   | { type: 'pass' } // отказаться от бонусного действия Группы
-  | { type: 'baraholkaBuy'; buy: boolean }
+  | { type: 'baraholkaBuy'; buy: boolean; next?: number } // next — Ветеран смотрит следующую книгу
   | { type: 'kvartirnikReply'; accept: boolean }
   | { type: 'naslednikiPick'; cards: string[] }
   | { type: 'posrednichestvoKeep'; keep: string[] }
@@ -246,4 +249,6 @@ export type Action =
   | { type: 'kontoraDecide'; go: boolean; choice?: KontoraChoice }
   | { type: 'kontoraHandout'; card: string }
   | { type: 'clubGift'; gift: ClubGift | null }
-  | { type: 'memorize'; card: string | null }; // Поэзия «Заучить» — в любой момент своего хода
+  | { type: 'memorize'; card: string | null }
+  | { type: 'lieutenantPick'; card: string | null }
+  | { type: 'discardExcess'; cards: string[] }; // Поэзия «Заучить» — в любой момент своего хода

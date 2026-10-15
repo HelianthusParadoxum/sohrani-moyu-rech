@@ -69,7 +69,7 @@ export function createGame(opts: NewGameOptions): GameState {
       published: [], tamizdat: [],
       passion: null, passionOptions: [passions.pop()!, passions.pop()!],
       groupUsed: [], visitedRedCorner: false, sproutsFed: [], subscriptions: [],
-      held: 0, buzoterUsed: false, patronBonus: { capacity: 0, cache: 0 },
+      held: 0, buzoterUsed: false, proseEarned: 0, patronBonus: { capacity: 0, cache: 0 },
     };
     for (let i = 0; i < 2; i++) addBook(p, draw(state)!);
     for (let i = 0; i < 2; i++) addBook(p, drawLoad(state)!);
@@ -152,6 +152,7 @@ function finishAction(state: GameState, p: PlayerState, pointsBefore: number): G
     const bonus = proseBonus(state, p);
     if (bonus) {
       p.points += bonus;
+      p.proseEarned += bonus;
       log(state, `${p.name}: проза вдохновляет — +${pointsText(bonus)}.`);
     }
   }
@@ -335,10 +336,7 @@ function doHiding(state: GameState, p: PlayerState, a: Extract<Action, { type: '
   setHidden(state, p, a.hidden, a.memorize);
   state.ready.push(p.id);
   log(state, `${p.name} готов(а) к облаве.`);
-  if (state.ready.length === state.players.length) {
-    raid(state);
-    changeRound(state);
-  }
+  if (state.ready.length === state.players.length) raid(state);
 }
 
 function memorize(state: GameState, p: PlayerState, card: string | null) {
@@ -379,6 +377,7 @@ function raid(state: GameState) {
     }
     return keep;
   };
+  const discardBefore = state.discard.length;
   const before = state.tolkuchka.length + state.knigoobmen.length + state.raspredelitel.length + state.razval.filter(Boolean).length;
   state.tolkuchka = sweep(state.tolkuchka);
   state.knigoobmen = sweep(state.knigoobmen);
@@ -394,7 +393,19 @@ function raid(state: GameState) {
     log(state, `У ${p.name} изъято в Спецхран: ${seized.map((s) => title(state, s.card)).join(', ')}.`);
     if (isFull(state)) holdWorker(state, p, 'изъятие при облаве');
   }
+  // Лейтенант: после изъятий — одна из книг, изъятых с адресов.
+  const swept = state.discard.slice(discardBefore);
+  if (swept.length) {
+    for (const id of state.order) {
+      if (hasPatron(state, id, 'lieutenant')) state.pending.push({ kind: 'lieutenantPick', player: id, cards: swept });
+    }
+  }
+  if (!state.pending.length) finishRound(state);
+}
+
+function finishRound(state: GameState) {
   afterRaid(state);
+  changeRound(state);
 }
 
 function changeRound(state: GameState) {
@@ -822,14 +833,27 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
   switch (pend.kind) {
     case 'baraholkaLook': {
       check(action.type === 'baraholkaBuy', 'Решите, покупать ли книгу с Барахолки');
+      const bought = pend.bought ?? 0;
+      const looked = [...(pend.looked ?? []), pend.slot];
+      const veteran = hasPatron(state, p.id, 'veteran');
       if (action.buy) {
-        payPrice(state, p, RULES.baraholkaPrice);
+        // Ветеран платит за все книги действия в сумме на 1 Талон меньше (минимум 1): вторая книга — бесплатно.
+        const cost = veteran && bought === 1 ? 0 : bought === 0 ? price(state, p, RULES.baraholkaPrice) : RULES.baraholkaPrice;
+        pay(p, cost);
         addBook(p, pend.card);
         state.baraholka[pend.slot] = null;
         log(state, `${p.name} покупает книгу на Барахолке.`);
         log(state, `Вы купили ${title(state, pend.card)}.`, [p.id]);
-      } else {
-        log(state, `${p.name} уходит с Барахолки ни с чем.`);
+      } else if (!action.next) {
+        log(state, `${p.name} больше ничего не берёт на Барахолке.`);
+      }
+      if (action.next !== undefined) {
+        check(veteran, 'Смотреть ещё книги может только игрок со связью с Ветераном');
+        const card = state.baraholka[action.next];
+        check(card && !looked.includes(action.next), 'Эту книгу нельзя посмотреть');
+        state.pending.shift();
+        state.pending.unshift({ kind: 'baraholkaLook', player: p.id, slot: action.next, card, looked, bought: bought + (action.buy ? 1 : 0) });
+        return;
       }
       break;
     }
@@ -915,6 +939,32 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       log(state, `Бонус Ростка: ${SPROUT_BONUS_NAMES[action.bonus]}.`, [p.id]);
       break;
     }
+    case 'lieutenantPick': {
+      check(action.type === 'lieutenantPick', 'Выберите изъятую книгу или откажитесь');
+      if (action.card) {
+        check(pend.cards.includes(action.card) && state.discard.includes(action.card), 'Эту книгу уже забрали');
+        check(freeSlots(p) > 0, 'На Складе нет места');
+        state.discard = state.discard.filter((c) => c !== action.card);
+        addBook(p, action.card);
+        log(state, `${p.name}: Лейтенант приносит изъятую книгу ${title(state, action.card)}.`);
+      }
+      state.pending.shift();
+      if (!state.pending.length) {
+        finishRound(state);
+        state.holdTurn = true; // новый раунд уже начался — ход не сдвигаем
+      }
+      return;
+    }
+    case 'discardExcess': {
+      check(action.type === 'discardExcess', 'Выберите, какие книги отдать');
+      check(action.cards.length === pend.count && new Set(action.cards).size === pend.count, `Нужно отдать книг: ${pend.count}`);
+      for (const c of action.cards) {
+        removeBook(p, c);
+        discard(state, c);
+      }
+      log(state, `${p.name} отдаёт лишние книги: ${action.cards.map((c) => title(state, c)).join(', ')}.`);
+      break;
+    }
     case 'kontoraWarning': {
       check(action.type === 'kontoraHide', 'Перепрячьте книги или подтвердите, что готовы');
       setHidden(state, p, action.hidden);
@@ -969,6 +1019,7 @@ export function migrate(state: GameState): GameState {
     if (p.spetskhran) { state.spetskhran.push(...p.spetskhran); delete p.spetskhran; }
     p.held ??= 0;
     p.buzoterUsed ??= false;
+    p.proseEarned ??= 0;
     p.patronBonus ??= { capacity: 0, cache: 0 };
   }
   return state;

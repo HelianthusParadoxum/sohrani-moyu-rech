@@ -532,15 +532,51 @@ function PendingPrompt({ view, me, act, nameOf }: { view: PlayerView; me: VPlaye
       return <HandoutPrompt view={view} cards={p.cards} act={act} />;
     case 'freeConnection':
       return <FreeConnectionPrompt view={view} me={me} act={act} />;
-    case 'baraholkaLook':
+    case 'baraholkaLook': {
+      const veteran = hasPatron(view, me.id, 'veteran');
+      const looked = [...(p.looked ?? []), p.slot];
+      const more = veteran ? view.baraholka.map((has, i) => (has && !looked.includes(i) ? i : -1)).filter((i) => i >= 0) : [];
+      const bought = p.bought ?? 0;
+      const cost = veteran && bought === 1 ? 0 : RULES.baraholkaPrice;
       return (
         <Modal title="Барахолка">
           <p>Вы тайно смотрите книгу:</p>
           <div className="shelf"><Book v={view} id={p.card} /></div>
+          {veteran && <p className="muted small">Ветеран: можно смотреть и покупать сколько угодно книг; в сумме на 1 Талон дешевле (вторая книга бесплатно). Куплено: {bought}.</p>}
           <div className="modal-foot">
-            <button onClick={() => act({ type: 'baraholkaBuy', buy: false })}>Не брать</button>
-            <button className="primary" disabled={me.talons < RULES.baraholkaPrice} onClick={() => act({ type: 'baraholkaBuy', buy: true })}>Купить за {RULES.baraholkaPrice}т</button>
+            <button onClick={() => act({ type: 'baraholkaBuy', buy: false })}>{bought ? 'Закончить' : 'Не брать'}</button>
+            <button className="primary" disabled={me.talons < cost} onClick={() => act({ type: 'baraholkaBuy', buy: true })}>Купить за {cost}т</button>
           </div>
+          {more.length > 0 && (
+            <div className="modal-foot">
+              <span className="muted small">Посмотреть ещё:</span>
+              {more.map((i) => (
+                <span key={i} className="row">
+                  <button className="small" onClick={() => act({ type: 'baraholkaBuy', buy: false, next: i })}>№{i + 1} (эту не брать)</button>
+                  <button className="small" disabled={me.talons < cost} onClick={() => act({ type: 'baraholkaBuy', buy: true, next: i })}>№{i + 1} (эту купить)</button>
+                </span>
+              ))}
+            </div>
+          )}
+        </Modal>
+      );
+    }
+    case 'lieutenantPick': {
+      const free = me.capacity - me.warehouse.filter((s) => !s.memorized).length;
+      return (
+        <Modal title="Лейтенант" wide>
+          <p>Возьмите себе одну из книг, изъятых облавой с адресов.{free <= 0 && ' На Складе нет места.'}</p>
+          <div className="shelf wrap">{p.cards.map((c) => <Book key={c} v={view} id={c} onClick={free > 0 ? () => act({ type: 'lieutenantPick', card: c }) : undefined} />)}</div>
+          <div className="modal-foot"><button onClick={() => act({ type: 'lieutenantPick', card: null })}>Ничего не брать</button></div>
+        </Modal>
+      );
+    }
+    case 'discardExcess':
+      return (
+        <Modal title="Склад уменьшился" wide>
+          <p>Связь с Управдомом потеряна: выберите книги, которые придётся отдать ({p.count}).</p>
+          <div className="shelf wrap">{me.warehouse.map((s) => s.card!).map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} onClick={() => setSel(toggle(sel, c))} />)}</div>
+          <div className="modal-foot"><button className="primary" disabled={sel.length !== p.count} onClick={() => act({ type: 'discardExcess', cards: sel })}>Отдать ({sel.length}/{p.count})</button></div>
         </Modal>
       );
     case 'kvartirnikReply':

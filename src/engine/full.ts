@@ -120,12 +120,10 @@ export function removePatron(state: GameState, id: PatronId) {
     if (id === 'housekeeper') {
       p.capacity -= p.patronBonus.capacity;
       p.patronBonus.capacity = 0;
-      // Лишние книги немедленно отдаются: уходят последние положенные открытые.
-      while (freeSlots(p) < 0) {
-        const s = [...p.warehouse].reverse().find((x) => !x.memorized) ?? p.warehouse[p.warehouse.length - 1];
-        removeBook(p, s.card);
-        discard(state, s.card);
-        log(state, `${p.name}: склад уменьшился, ${title(state, s.card)} уходит в сброс.`);
+      // Лишние книги немедленно отдаются — какие, выбирает сам игрок.
+      if (freeSlots(p) < 0) {
+        state.pending.unshift({ kind: 'discardExcess', player: p.id, count: -freeSlots(p) });
+        log(state, `${p.name}: Склад уменьшился — нужно отдать книг: ${-freeSlots(p)}.`);
       }
     }
     if (id === 'carpenter') {
