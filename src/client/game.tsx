@@ -49,7 +49,9 @@ export function Game({ view, room, you, send }: { view: PlayerView; room: RoomIn
   } else if (you && view.active.includes(you)) status = 'Ваше решение';
   else status = `Ждём: ${view.active.map(nameOf).join(', ')}`;
 
-  const addresses = [...PERMANENT_ADDRESSES.filter((a) => !ADDRESSES[a].fullOnly || view.mode === 'full'), ...view.safehouses];
+  // Порядок на столе: постоянные адреса, явочные, затем Клуб на всю ширину, Контора и рядом с ней Ростки.
+  const full = view.mode === 'full';
+  const addresses = [...PERMANENT_ADDRESSES.filter((a) => !ADDRESSES[a].fullOnly), ...view.safehouses, ...(full ? (['club', 'kontora'] as AddressId[]) : [])];
 
   return (
     <div className="game">
@@ -78,9 +80,8 @@ export function Game({ view, room, you, send }: { view: PlayerView; room: RoomIn
               <AddressCard key={id} id={id} view={view} seatIndex={seatIndex} me={me}
                 enabled={canPlace && (!mustRed || id === 'redCorner')} onOpen={() => setPanel({ kind: 'address', id })} />
             ))}
+            <Sprouts view={view} beside={full} />
           </div>
-          <h2>Ростки Гласности</h2>
-          <Sprouts view={view} />
         </section>
         <aside className="side">
           {me && (
@@ -126,11 +127,11 @@ function AddressCard({ id, view, seatIndex, me, enabled, onOpen }: {
         <span className="workers">
           {here.map((pid, i) => <span key={i} className="dot" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} />)}
           <span className="muted small">{limit === Infinity ? '∞' : `${here.length}/${limit}`}</span>
+          {enabled && <button className="go small" disabled={full} onClick={onOpen} title={full ? 'Мест нет' : 'Отправить Единомышленника сюда'}>{full ? 'занято' : 'сюда →'}</button>}
         </span>
       </div>
       <div className="hint">{info.hint}</div>
       <AddressContents id={id} view={view} seatIndex={seatIndex} />
-      {enabled && <button className="go" disabled={full} onClick={onOpen}>{full ? 'Мест нет' : 'Отправить сюда'}</button>}
     </div>
   );
 }
@@ -375,9 +376,14 @@ function stepText(main: Genre, step: { main: number; support?: Genre }) {
   );
 }
 
-function Sprouts({ view }: { view: PlayerView }) {
+function Sprouts({ view, beside }: { view: PlayerView; beside: boolean }) {
   return (
-    <div className="sprouts">
+    <div className={`sprouts-panel ${beside ? 'beside' : ''}`}>
+      <div className="addr-head">
+        <b>Ростки Гласности</b>
+        <span className="muted small">Гласность: {RULES.glasnostAllSprouts ? 'все Ростки' : 'хотя бы один Росток'} до {RULES.glasnostStep}-й ступени</span>
+      </div>
+      <div className="sprouts">
       {view.sprouts.map((sp) => {
         const info = SPROUTS.find((s) => s.id === sp.id)!;
         return (
@@ -387,15 +393,15 @@ function Sprouts({ view }: { view: PlayerView }) {
               {info.steps.map((st, i) => (
                 <li key={i} className={i < sp.progress ? 'done' : i === sp.progress ? 'next' : ''}>
                   {stepText(info.main, st)}
-                  <span className="muted small"> → {STEP_REWARDS[i].talons ? `+${STEP_REWARDS[i].talons}т` : `+${STEP_REWARDS[i].points} оч.`}</span>
+                  <span className="muted small"> {STEP_REWARDS[i].talons ? `+${STEP_REWARDS[i].talons}т` : `+${STEP_REWARDS[i].points}★`}</span>
                 </li>
               ))}
             </ol>
-            <div className="muted small">Бонус: {info.bonuses.map((b) => SPROUT_BONUS_NAMES[b]).join(' / ')}</div>
+            <div className="muted bonus" title="Бонус за закрытие ступени (одно на выбор)">Бонус: {info.bonuses.map((b) => SPROUT_BONUS_NAMES[b]).join(' / ')}</div>
           </div>
         );
       })}
-      <p className="muted small">Гласность наступит, если к концу партии {RULES.glasnostAllSprouts ? 'все Ростки' : 'хотя бы один Росток'} дорастут до {RULES.glasnostStep}-й ступени.</p>
+      </div>
     </div>
   );
 }
