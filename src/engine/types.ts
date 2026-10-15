@@ -180,6 +180,7 @@ export interface GameState {
   curatorPossible?: boolean; // Куратор есть в колоде Пристрастий (это знают все)
   holdTurn?: boolean; // действие не завершило ход (отказ от Конторы)
   clubGiftBy?: string; // кто уже отдал книгу в Клуб в этот ход (Клуб как свободное действие)
+  turnDone?: string; // игрок сделал действие и может только свободные действия, пока сам не закончит ход
   freeHold?: boolean; // идёт свободное действие: когда его решения закончатся, ход не передаётся
   pending: Pending[];
   ready: string[]; // кто подтвердил одновременную фазу
@@ -258,6 +259,7 @@ export type Action =
   | { type: 'place'; place: PlaceAction }
   | { type: 'group'; group: GroupAction }
   | { type: 'pass' } // отказаться от бонусного действия Группы
+  | { type: 'endTurn' } // закончить ход после действия (до этого можно пересобрать Тайник, заучить, отдать книгу в Клуб)
   | { type: 'baraholkaBuy'; slot?: number; next?: number } // slot — какую из просмотренных купить (нет — не покупать); next — Ветеран смотрит ещё книгу
   | { type: 'kvartirnikReply'; accept: boolean }
   | { type: 'naslednikiPick'; cards: string[] }

@@ -70,6 +70,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
       return [{ type: 'hiding', hidden: banned.slice(0, limit) }, { type: 'hiding', hidden: [] }];
     }
     case 'orders': {
+      if (state.turnDone === me) return [{ type: 'endTurn' }];
       if (p.available === 0) return [...groupCandidates(state, me, rand), { type: 'pass' }];
       if (mustVisitRedCorner(state, p)) return redCorner(state, me);
       const out: Action[] = [...groupCandidates(state, me, rand), ...redCorner(state, me)];
@@ -219,7 +220,7 @@ function randomMove(state: GameState, me: string, rand: Rand): GameState {
     }
   }
   // Ничего не подошло: в фазе поручений — Красный уголок без сдачи или пас.
-  for (const a of [{ type: 'place', place: { address: 'redCorner', recycle: [] } }, { type: 'pass' }, { type: 'gathering', show: [] }, { type: 'hiding', hidden: [] }, { type: 'baraholkaBuy' }, { type: 'kvartirnikReply', accept: false }, { type: 'kontoraDecide', go: false }, { type: 'kontoraHide', hidden: [] }] as Action[]) {
+  for (const a of [{ type: 'endTurn' }, { type: 'place', place: { address: 'redCorner', recycle: [] } }, { type: 'pass' }, { type: 'gathering', show: [] }, { type: 'hiding', hidden: [] }, { type: 'baraholkaBuy' }, { type: 'kvartirnikReply', accept: false }, { type: 'kontoraDecide', go: false }, { type: 'kontoraHide', hidden: [] }] as Action[]) {
     // Пересобрать Тайник можно и в свой ход, но ход это не завершает — в поручениях это не выход.
     if (a.type === 'hiding' && state.phase !== 'hiding') continue;
     try { return applyAction(state, me, a); } catch (e) { if (!(e instanceof RuleError)) throw e; }

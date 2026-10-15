@@ -9,6 +9,13 @@ import type { GameState, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
 import { removePatron } from '../src/engine/full';
 
+// Действие и сразу «Закончить ход».
+function act(s: GameState, who: string, a: Parameters<typeof applyAction>[2]): GameState {
+  s = applyAction(s, who, a);
+  return s.turnDone === who ? applyAction(s, who, { type: 'endTurn' }) : s;
+}
+
+
 // Пропустить раскладку стартовых Тайников: всё остаётся на виду.
 function startOrders(s: GameState): GameState {
   for (const p of s.players) if (s.phase === 'setupCache') s = applyAction(s, p.id, { type: 'hiding', hidden: [] });
@@ -132,10 +139,10 @@ describe('правила редакции октября', () => {
     let s = started();
     const me = s.order[s.turn];
     expect(() => applyAction(s, me, { type: 'pass' })).toThrow(RuleError);
-    s = applyAction(s, me, { type: 'place', place: { address: 'redCorner', recycle: [] } });
+    s = act(s, me, { type: 'place', place: { address: 'redCorner', recycle: [] } });
     while (s.order[s.turn] !== me) {
       const other = s.order[s.turn];
-      s = applyAction(s, other, { type: 'place', place: { address: 'zavoz' } });
+      s = act(s, other, { type: 'place', place: { address: 'zavoz' } });
     }
     s = applyAction(s, me, { type: 'pass' });
     const p = s.players.find((x) => x.id === me)!;
@@ -228,7 +235,7 @@ describe('полный режим', () => {
     s.players.forEach((x) => (x.capacity = 10));
     s = applyAction(s, a, { type: 'clubGift', gift: give(a) });
     expect(s.patrons[0].since?.[a]).toBe(1);
-    s = applyAction(s, a, { type: 'place', place: { address: 'zavoz' } });
+    s = act(s, a, { type: 'place', place: { address: 'zavoz' } });
     expect(s.order[s.turn]).toBe(b);
     expect(() => applyAction(s, b, { type: 'clubGift', gift: give(b) })).toThrow('связь в эту Пятилетку уже завязана');
   });
@@ -256,6 +263,8 @@ describe('полный режим', () => {
     expect(() => applyAction(s, me, { type: 'clubGift', gift: { patron: other.id, card: book2 } })).toThrow(RuleError);
     // После обычного действия ход переходит, и в следующий свой ход снова можно отдать книгу.
     s = applyAction(s, me, { type: 'place', place: { address: 'zavoz' } });
+    expect(s.order[s.turn]).toBe(me); // ход ждёт «Закончить ход»
+    s = applyAction(s, me, { type: 'endTurn' });
     expect(s.order[s.turn]).not.toBe(me);
     expect(s.clubGiftBy).toBeUndefined();
   });

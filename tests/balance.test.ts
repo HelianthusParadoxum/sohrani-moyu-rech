@@ -7,6 +7,13 @@ import { viewFor } from '../src/engine/view';
 import { passionPoints } from '../src/engine/scoring';
 import type { Action, GameState } from '../src/engine/types';
 
+// Действие и сразу «Закончить ход».
+function act(s: GameState, who: string, a: Parameters<typeof applyAction>[2]): GameState {
+  s = applyAction(s, who, a);
+  return s.turnDone === who ? applyAction(s, who, { type: 'endTurn' }) : s;
+}
+
+
 // Пропустить раскладку стартовых Тайников: всё остаётся на виду.
 function startOrders(s: GameState): GameState {
   for (const p of s.players) if (s.phase === 'setupCache') s = applyAction(s, p.id, { type: 'hiding', hidden: [] });
@@ -178,10 +185,10 @@ describe('цены и доходы', () => {
     const c = s.deck.find((x) => s.cards[x].kind === 'genre' && s.cards[x].icons.length === 2)!;
     s.deck = s.deck.filter((x) => x !== c);
     s.raspredelitel = [c];
-    s = applyAction(s, p.id, { type: 'place', place: { address: 'raspredelitel', card: c } });
+    s = act(s, p.id, { type: 'place', place: { address: 'raspredelitel', card: c } });
     expect(byId(s, p.id).talons).toBe(10 - RULES.raspredelitelPrice);
     // Ход переходит по кругу — ждём, пока снова походит тот же игрок.
-    while (s.order[s.turn] !== p.id) s = applyAction(s, s.order[s.turn], { type: 'place', place: { address: 'redCorner', recycle: [] } });
+    while (s.order[s.turn] !== p.id) s = act(s, s.order[s.turn], { type: 'place', place: { address: 'redCorner', recycle: [] } });
     const before = byId(s, p.id).talons;
     s = applyAction(s, p.id, { type: 'place', place: { address: 'spisanie' } });
     expect(byId(s, p.id).talons).toBe(before - RULES.spisaniePrice);

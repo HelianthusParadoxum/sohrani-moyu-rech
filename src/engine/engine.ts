@@ -168,7 +168,9 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
   if (state.holdTurn) delete state.holdTurn;
   else if (state.phase === 'orders' && state.pending.length === 0) {
     if (state.freeHold) delete state.freeHold;
-    else advanceTurn(state);
+    // Ход передаётся, только когда игрок сам его закончит (или спасует); до тех пор — свободные действия.
+    else if (action.type === 'endTurn' || action.type === 'pass') advanceTurn(state);
+    else state.turnDone = state.order[state.turn];
   }
   return done(state);
 }
@@ -204,6 +206,7 @@ function startRound(state: GameState) {
   state.ready = [];
   state.occupancy = {};
   state.nextOrder = [];
+  delete state.turnDone;
   delete state.clubGiftBy;
   for (const pt of state.patrons) pt.turned = false;
   for (const p of state.players) {
@@ -283,6 +286,7 @@ function canAct(p: PlayerState) {
 }
 
 function advanceTurn(state: GameState) {
+  delete state.turnDone;
   delete state.clubGiftBy;
   delete state.freeHold;
   const n = state.order.length;
@@ -490,6 +494,10 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
     state.holdTurn = true;
     return;
   }
+  if (action.type === 'endTurn') {
+    check(state.turnDone === p.id, 'Сначала сделайте действие (или спасуйте)');
+    return;
+  }
   if (action.type === 'clubGift') {
     // Клуб как свободное действие: одна книга одному Завсегдатаю за ход, ход не завершается.
     check(isFull(state) && RULES.clubFreeGift, 'Связь в Клубе так не завести');
@@ -501,6 +509,7 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
     state.freeHold = true;
     return;
   }
+  check(state.turnDone !== p.id, 'Действие уже сделано: можно пересобрать Тайник, заучить, отдать книгу в Клуб — или закончите ход');
   if (p.available === 0) {
     check(p.bonusGroupTurns > 0, 'У вас не осталось Единомышленников');
     if (action.type === 'pass') {

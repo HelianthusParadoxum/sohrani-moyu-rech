@@ -32,19 +32,22 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
   const myTurn = !!you && view.active.includes(you);
   const head = view.pending[0];
   const myPending = head && head.player === you && !('secret' in head) ? head : null;
-  const canPlace = myTurn && view.phase === 'orders' && !myPending && !!me && me.available > 0;
-  const bonusTurn = myTurn && view.phase === 'orders' && !myPending && !!me && me.available === 0 && me.bonusGroupTurns > 0;
+  // Действие сделано — дальше только свободные действия и «Закончить ход».
+  const afterAction = myTurn && view.phase === 'orders' && !myPending && !!me && view.turnDone === me.id;
+  const canPlace = myTurn && view.phase === 'orders' && !myPending && !!me && me.available > 0 && !afterAction;
+  const bonusTurn = myTurn && view.phase === 'orders' && !myPending && !!me && me.available === 0 && me.bonusGroupTurns > 0 && !afterAction;
   const canGift = myTurn && view.mode === 'full' && RULES.clubFreeGift && view.phase === 'orders' && !myPending && !!me && view.clubGiftBy !== me.id;
   const mustRed = !!me && me.available === 1 && !me.visitedRedCorner && !hasPatron(view, me.id, 'doctor');
 
-  useEffect(() => { if (!canPlace && !bonusTurn && !canGift) setPanel(null); }, [canPlace, bonusTurn, canGift]);
+  useEffect(() => { if (!canPlace && !bonusTurn && !canGift && !afterAction) setPanel(null); }, [canPlace, bonusTurn, canGift, afterAction]);
 
   let status: string;
   if (view.phase === 'end') status = view.result?.note ?? 'Партия окончена';
   else if (head && head.player !== you) status = `${nameOf(head.player)} принимает решение…`;
   else if (myPending) status = 'Примите решение';
   else if (view.phase === 'orders') {
-    if (canPlace) status = mustRed ? 'Ваш ход: последнего Единомышленника — в Красный уголок' : 'Ваш ход: отправьте Единомышленника по адресу или в Инициативную группу';
+    if (afterAction) status = 'Действие сделано. Можно пересобрать Тайник' + (view.mode === 'full' ? ', заучить сборник поэзии, отдать книгу в Клуб' : '') + ' — или закончите ход';
+    else if (canPlace) status = mustRed ? 'Ваш ход: последнего Единомышленника — в Красный уголок' : 'Ваш ход: отправьте Единомышленника по адресу или в Инициативную группу';
     else if (bonusTurn) status = 'Ваш ход: дополнительное действие Группы с явочного адреса — или откажитесь';
     else status = `Ходит ${view.active.map(nameOf).join(', ')}`;
   } else if (you && view.active.includes(you)) status = 'Ваше решение';
@@ -76,6 +79,7 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
       <div className={`status ${myTurn ? 'mine' : ''}`}>
         {status}
         {bonusTurn && <button className="small" onClick={() => act({ type: 'pass' })}>Отказаться</button>}
+        {afterAction && <button className="primary small" onClick={() => act({ type: 'endTurn' })}>Закончить ход</button>}
         {view.phase === 'end' && view.result && <button className="small" onClick={() => setShowResult(true)}>Таблица счёта</button>}
         {canPlace && me.visitedRedCorner && <button className="small" onClick={() => confirm('Спасовать до конца Пятилетки? Оставшиеся Единомышленники не будут действовать.') && act({ type: 'pass' })}>Спасовать</button>}
       </div>
@@ -94,8 +98,8 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
           {me && (
             <MyPanel view={view} me={me} color={PLAYER_COLORS[seatIndex(me.id)]}
               groupEnabled={(canPlace && !mustRed) || bonusTurn} onGroup={(id) => setPanel({ kind: 'group', id })}
-              onMemorize={view.mode === 'full' && (canPlace || bonusTurn) ? (card) => act({ type: 'memorize', card }) : null}
-              onCache={canPlace || bonusTurn ? () => setPanel({ kind: 'cache' }) : null} />
+              onMemorize={view.mode === 'full' && (canPlace || bonusTurn || afterAction) ? (card) => act({ type: 'memorize', card }) : null}
+              onCache={canPlace || bonusTurn || afterAction ? () => setPanel({ kind: 'cache' }) : null} />
           )}
           {view.players.filter((p) => p.id !== you).map((p) => (
             <OtherPlayer key={p.id} view={view} p={p} color={PLAYER_COLORS[seatIndex(p.id)]} active={view.active.includes(p.id)} first={view.order[0] === p.id} />

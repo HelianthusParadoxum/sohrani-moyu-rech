@@ -783,6 +783,8 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       return out;
     }
     case 'orders': {
+      // Действие уже сделано (Тайник и Клуб бот перебирает раньше, в rankActions) — закончить ход.
+      if (state.turnDone === me) return [{ type: 'endTurn' }];
       const groups = () => groupCandidates(state, me, ctx).filter((g) => !p.groupUsed.includes(g.action)).map((group) => ({ type: 'group' as const, group }));
       if (p.available === 0) return [...groups(), { type: 'pass' }];
       if (mustVisitRedCorner(state, p)) return redCornerCandidates(state, me, keepMap());
