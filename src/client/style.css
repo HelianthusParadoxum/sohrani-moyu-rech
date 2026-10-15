@@ -243,3 +243,6 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 .chip.favored { box-shadow: 0 0 0 2px #3a8fd8; }
 .chip.banned.favored { box-shadow: 0 0 0 2px var(--red), 0 0 0 4px #3a8fd8; }
 .passion-line { font-size: 0.9rem; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+
+.ghost { display: inline-flex; gap: 2px; opacity: 0.45; }
+.ghost .chip { outline: 1px dashed currentColor; outline-offset: 1px; }

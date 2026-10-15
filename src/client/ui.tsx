@@ -69,6 +69,11 @@ export function Book({ v, id, selected, onClick, hidden, small, note }: {
             {flex.map((g) => GENRE_SHORT[g]).join('/')}
           </span>
         )}
+        {c.kind === 'loadReturnable' && !restored && c.genre && (
+          <span className="ghost" title={`После Возвращения смыслов: «${c.returned}», 3 значка ${GENRE_NAMES[c.genre]}`}>
+            {[0, 1, 2].map((i) => <GenreChip key={i} g={c.genre!} />)}
+          </span>
+        )}
         {label && <span className="kind">{label}</span>}
         {restored && <span className="restored" title="Смыслы возвращены">↺</span>}
       </div>
