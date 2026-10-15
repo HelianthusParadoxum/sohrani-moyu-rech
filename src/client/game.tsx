@@ -124,14 +124,35 @@ function AddressCard({ id, view, seatIndex, me, enabled, onOpen }: {
         </span>
       </div>
       <div className="hint">{info.hint}</div>
-      <AddressContents id={id} view={view} />
+      <AddressContents id={id} view={view} seatIndex={seatIndex} />
       {enabled && <button className="go" disabled={full} onClick={onOpen}>{full ? 'Мест нет' : 'Отправить сюда'}</button>}
     </div>
   );
 }
 
-function AddressContents({ id, view }: { id: AddressId; view: PlayerView }) {
+function AddressContents({ id, view, seatIndex }: { id: AddressId; view: PlayerView; seatIndex: (id: string) => number }) {
   switch (id) {
+    case 'redCorner': {
+      if (view.round >= RULES.rounds) return <div className="muted small">Последняя Пятилетка — очередь уже не важна.</div>;
+      // Новый порядок: сперва посетившие Красный уголок, затем остальные в прежнем порядке.
+      const rest = view.order.filter((pid) => !view.nextOrder.includes(pid));
+      const name = (pid: string) => view.players.find((p) => p.id === pid)?.name ?? '?';
+      return (
+        <div className="queue">
+          <div className="muted small">Порядок хода в следующей Пятилетке:</div>
+          <ol>
+            {view.nextOrder.map((pid) => (
+              <li key={pid}><span className="dot" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} /> {name(pid)}</li>
+            ))}
+            {rest.map((pid) => (
+              <li key={pid} className="pending" title="Ещё не был(а) в Красном уголке: встанет после всех, кто был">
+                <span className="dot" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} /> {name(pid)} <span className="muted small">— ещё не был(а)</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      );
+    }
     case 'tolkuchka':
       return <div className="shelf wrap">{view.tolkuchka.map((c) => <Book key={c} v={view} id={c} small note={`${RULES.tolkuchkaBuy}т`} />)}</div>;
     case 'razval':
