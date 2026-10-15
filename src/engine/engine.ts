@@ -687,10 +687,10 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       if (a.address === 'tamizdat') {
         p.tamizdat.push(a.card);
         add(icons * RULES.tamizdatPoints, 'tamizdat');
-        if (isFull(state) && genres.includes('testimony')) add(2, 'testimony'); // «Придать огласке»
+        if (isFull(state) && genres.includes('testimony')) add(RULES.testimonyPoints, 'testimony'); // «Придать огласке»
       } else {
         if (hasPatron(state, p.id, 'editor')) add(icons, 'editor');
-        if (isFull(state) && genres.includes('foreign')) add(2, 'foreign'); // «Перевести»
+        if (isFull(state) && genres.includes('foreign')) add(RULES.foreignPoints, 'foreign'); // «Перевести»
       }
       p.talons += talons;
       gaveAway(state, p, a.card);

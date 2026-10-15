@@ -59,6 +59,8 @@ export const RULES = {
   innovatorSingle: -1, // Новатор: очков за каждую книгу с одним жанром (на складе и в изданном)
   propagandaPoints: -5,
   evidencePoints: 5,
+  testimonyPoints: 3, // Свидетельства «Придать огласке»: очков за издание через Тамиздат (полный режим)
+  foreignPoints: 3, // Иностранная «Перевести»: очков за издание через Самиздат (полный режим)
   extraSprouts: { beginner: 0, full: 1 }, // Ростков на партию: число игроков + это число
   glasnostStep: 3, // до какой ступени должны дорасти Ростки
   glasnostAllSprouts: true, // все выложенные Ростки (true) или хотя бы один (false)
@@ -162,7 +164,7 @@ export const STEP_REWARDS = [
   { talons: 2, points: 0 },
   { talons: 0, points: 2 },
   { talons: 0, points: 4 },
-  { talons: 0, points: 6 },
+  { talons: 0, points: 8 },
 ];
 export const FIRST_FEED_POINTS = 2;
 

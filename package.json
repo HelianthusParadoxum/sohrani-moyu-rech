@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "simulate": "tsx tools/simulate.ts",
     "data": "python3 -I tools/build_cards.py",
-    "addresses": "tsx tools/addresses.ts"
+    "addresses": "tsx tools/addresses.ts",
+    "club": "tsx tools/club.ts"
   },
   "dependencies": {
     "react": "^19.3.1",

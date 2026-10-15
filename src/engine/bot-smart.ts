@@ -480,7 +480,8 @@ function clubCandidates(state: GameState, me: string, keep: Map<string, number>)
     used.add(g.card);
     all.push(g);
   }
-  if (all.length > 1) out.push({ type: 'place', place: { address: 'club', gifts: all } });
+  // Все промежуточные наборы: 2, 3, … самых скромных подарков — чтобы не отдавать ценное ради лишней связи.
+  for (let k = 2; k <= all.length; k++) out.push({ type: 'place', place: { address: 'club', gifts: all.slice(0, k) } });
   return out;
 }
 
