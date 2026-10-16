@@ -95,6 +95,16 @@ export function createGame(opts: NewGameOptions): GameState {
   return state;
 }
 
+// Стартовый Тайник: опальные книги (не Пропаганда) по порядку — больше значков, затем жанр Пристрастия, затем случайно.
+export function startHide(state: GameState, p: PlayerState) {
+  const favored: Genre[] = (p.passion && PASSIONS[p.passion].genres) || [];
+  const fits = (c: string) => (iconsOf(state, c).some((g) => favored.includes(g)) ? 1 : 0);
+  const books = shuffle(state, p.warehouse.filter((w) => !w.hidden && !w.memorized && isBanned(state, w.card) && !isPropaganda(state, w.card)))
+    .sort((a, b) => iconsOf(state, b.card).length - iconsOf(state, a.card).length || fits(b.card) - fits(a.card));
+  let room = cacheLimit(state, p) - p.warehouse.filter((w) => w.hidden).length;
+  for (const w of books) if (room-- > 0) w.hidden = true;
+}
+
 // ---------- Кто сейчас ходит ----------
 
 export function activePlayers(state: GameState): string[] {
@@ -140,7 +150,7 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
             state.phase = 'setupCache';
             state.ready = [];
             // Опальные стартовые книги сразу предложены в Тайник (если есть место) — игрок может переложить.
-            for (const q of state.players) for (const slot of [...q.warehouse]) autoHide(state, q, slot.card);
+            for (const q of state.players) startHide(state, q);
             log(state, 'Все раскладывают стартовые книги: что спрятать в Тайник, что оставить на виду.');
           }
         }

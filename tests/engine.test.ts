@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { applyAction, createGame } from '../src/engine/engine';
+import { applyAction, createGame, startHide } from '../src/engine/engine';
 import { playOut } from '../src/engine/bot';
 import { viewFor } from '../src/engine/view';
 import { RuleError, cacheLimit, coversStep, iconsOf, isBanned, isEvidence, isLoad } from '../src/engine/util';
 import { finalScoring, passionPoints } from '../src/engine/scoring';
-import { RULES, SPROUTS } from '../src/engine/content';
+import { PASSIONS, RULES, SPROUTS } from '../src/engine/content';
 import type { GameState, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
 import { removePatron } from '../src/engine/full';
@@ -935,5 +935,27 @@ describe('Стартовый Тайник', () => {
       }
     }
     expect(checked).toBeGreaterThan(0);
+  });
+
+  it('мест мало: сперва книга с большим числом значков, затем жанр Пристрастия', () => {
+    let s = createGame({ players: players(2), seed: 3 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    // Переиграть стартовую раскладку на подобранном Складе.
+    const p = s.players[0];
+    const passion = PASSIONS[p.passion!];
+    const banned = Object.keys(s.cards).filter((c) => isBanned(s, c) && s.cards[c].kind === 'genre');
+    const two = banned.find((c) => iconsOf(s, c).length === 2)!;
+    const fav = banned.find((c) => iconsOf(s, c).length === 1 && passion.genres?.includes(iconsOf(s, c)[0]));
+    const plain = banned.find((c) => iconsOf(s, c).length === 1 && !passion.genres?.includes(iconsOf(s, c)[0]))!;
+    expect(two && plain).toBeTruthy();
+    const take = (list: string[]) => {
+      p.warehouse = list.map((card) => ({ card, hidden: false }));
+      startHide(s, p);
+      return p.warehouse.filter((w) => w.hidden).map((w) => w.card);
+    };
+    // Без Нагрузки на Складе — 1 место в Тайнике.
+    p.cache = 1;
+    expect(take([plain, two])).toEqual([two]);
+    if (fav) expect(take([plain, fav])).toEqual([fav]);
   });
 });
