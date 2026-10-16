@@ -894,8 +894,8 @@ function GatheringPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act
     ...me.warehouse.map((s) => s.card!).filter((c) => c && (iconsOf(view, c).length > 0 || isEvidence(view, c)) && (isBanned(view, c) || isDrama(c))),
     ...me.published.filter(isDrama),
   ];
-  // По умолчанию к показу выбраны все опальные книги со Склада (за каждую — очко).
-  const [sel, setSel] = useState<string[]>(() => cands.filter((c) => isBanned(view, c) && !me.published.includes(c)));
+  // По умолчанию к показу выбрано всё, что приносит очки: опальные книги, Улики и Драматургия (в том числе изданная).
+  const [sel, setSel] = useState<string[]>(() => cands);
   const pts = sel.reduce((s, c) => s + (isBanned(view, c) && !me.published.includes(c) ? 1 : 0) + (isDrama(c) ? 1 : 0), 0);
   return (
     <Modal title="Посиделки" wide>
