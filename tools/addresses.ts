@@ -1,25 +1,26 @@
 // Посещаемость адресов с учётом того, сколько Пятилеток адрес лежал на столе:
-// npm run addresses -- [партий] [игроков] [пресет]. Явочные адреса выкладываются по одному в конце Пятилетки,
+// npm run addresses -- [партий] [игроков] [пресеты через запятую] [режим beginner|full]. Явочные адреса выкладываются по одному в конце Пятилетки,
 // поэтому сравнивать их с постоянными честнее «за Пятилетку на столе» и по заполненности мест.
 import { createGame, activePlayers } from '../src/engine/engine';
 import { botMove } from '../src/engine/bot';
 import { ADDRESSES, PERMANENT_ADDRESSES, limitFor } from '../src/engine/content';
 import type { AddressId } from '../src/engine/types';
 const games = Number(process.argv[2] ?? 100), n = Number(process.argv[3] ?? 3), preset = process.argv[4] ?? 'bookman';
+const presets = preset.split(','), mode = (process.argv[5] ?? 'beginner') as 'beginner' | 'full';
 const visits: Record<string, number> = {}, viaCopy: Record<string, number> = {}, present: Record<string, number> = {};
 for (let seed = 1; seed <= games; seed++) {
   let t = seed; const rand = () => { t = (t + 0x6d2b79f5) | 0; let x = Math.imul(t ^ (t >>> 15), t | 1); x ^= x + Math.imul(x ^ (x >>> 7), x | 61); return ((x ^ (x >>> 14)) >>> 0) / 4294967296; };
-  let s = createGame({ players: Array.from({ length: n }, (_, k) => ({ id: 'p' + k, name: 'Б' + k })), seed });
+  let s = createGame({ players: Array.from({ length: n }, (_, k) => ({ id: 'p' + k, name: 'Б' + k })), seed, mode });
   let lastRound = 0;
   for (let i = 0; i < 6000 && s.phase !== 'end'; i++) {
     if (s.phase === 'orders' && s.round !== lastRound) {
       lastRound = s.round;
-      for (const a of [...PERMANENT_ADDRESSES.filter((x) => !ADDRESSES[x].fullOnly), ...s.safehouses]) present[a] = (present[a] ?? 0) + 1;
+      for (const a of [...PERMANENT_ADDRESSES.filter((x) => (!ADDRESSES[x].fullOnly || mode === 'full') && x !== 'club'), ...s.safehouses]) present[a] = (present[a] ?? 0) + 1;
     }
     const who = activePlayers(s)[0];
     const before = s.players.find((p) => p.id === who)!.actions.length;
     const round = s.round;
-    s = botMove(s, who, rand, preset);
+    s = botMove(s, who, rand, presets[(Number(who.slice(1)) + seed) % presets.length]);
     const p = s.players.find((x) => x.id === who)!;
     if (s.round === round && p.actions.length > before) {
       const added = p.actions.slice(before).map((x) => x.target);
@@ -28,7 +29,7 @@ for (let seed = 1; seed <= games; seed++) {
     }
   }
 }
-console.log(`${games} партий на ${n}, ${preset}`);
+console.log(`${games} партий на ${n}, ${preset}, режим ${mode}`);
 console.log('Адрес                       на столе    за партию   за пятилетку      заполненность мест   (из них через Тиражирование)');
 console.log('                            (пятилеток  на игрока   на столе,         (доля занятых мест');
 console.log('                            за партию)              на игрока         за пятилетку на столе)');
