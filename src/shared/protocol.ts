@@ -12,6 +12,7 @@ export interface RoomInfo {
   hostBot: boolean; // за хоста играет бот, хост смотрит со стороны
   botDelay: number; // пауза между ходами ботов, мс
   curator: boolean; // Куратор в колоде Пристрастий (полный режим)
+  outdated?: boolean; // партию сбросили: игра обновилась, старую партию продолжить нельзя
 }
 
 export type ClientMessage =
@@ -33,4 +34,5 @@ export type ClientMessage =
 export type ServerMessage =
   | { t: 'joined'; code: string; token: string }
   | { t: 'room'; room: RoomInfo; you: string | null; isHost: boolean; view: PlayerView | null }
-  | { t: 'error'; message: string };
+  | { t: 'error'; message: string }
+  | { t: 'gone'; code: string }; // комнаты нет (например, сервер обновили и сохранения пропали)

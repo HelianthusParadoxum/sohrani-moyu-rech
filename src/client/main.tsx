@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { useServer } from './net';
 import { Game } from './game';
 import { RULES } from '../engine/content';
-import { PLAYER_COLORS, PresetSelect, SpeedSelect } from './ui';
+import { Modal, PLAYER_COLORS, PresetSelect, SpeedSelect } from './ui';
 import './style.css';
 
 function useHashCode(): string | null {
@@ -28,6 +28,7 @@ function App() {
   const code = useHashCode();
   const net = useServer(code);
   const [name, setName] = useState(savedName);
+  const [seenOutdated, setSeenOutdated] = useState<string | null>(null);
 
   const join = (msg: { t: 'create' } | { t: 'join'; code: string }) => {
     storeName(name);
@@ -35,7 +36,14 @@ function App() {
   };
 
   let body;
-  if (!code) {
+  if (code && net.gone) {
+    // Комнаты нет: после обновления игры сервер начал с чистого листа.
+    body = (
+      <Apology onOk={() => { location.hash = ''; }}>
+        Эта партия не сохранилась: игру обновили, и продолжить её нельзя. Начните, пожалуйста, новую партию.
+      </Apology>
+    );
+  } else if (!code) {
     body = <Home name={name} setName={setName} onCreate={() => join({ t: 'create' })} />;
   } else if (!net.room) {
     body = <p className="center muted">{net.connected ? 'Загрузка комнаты…' : 'Подключение к серверу…'}</p>;
@@ -45,12 +53,28 @@ function App() {
     body = <Lobby net={net} name={name} setName={setName} onJoin={() => join({ t: 'join', code })} />;
   }
 
+  // Комната осталась, но партия из прежней версии игры сброшена: места за столом те же, настройки новой партии — в лобби.
+  const outdated = !!code && !!net.room?.outdated && !net.room.started && seenOutdated !== code;
   return (
     <>
       {body}
+      {outdated && (
+        <Apology onOk={() => setSeenOutdated(code)}>
+          Игру обновили, и начатую партию продолжить нельзя: правила или подсчёт могли измениться. Места за столом сохранились — можно начать новую партию.
+        </Apology>
+      )}
       {!net.connected && net.room && <div className="toast warn">Связь потеряна, переподключаемся…</div>}
       {net.error && <div className="toast" onClick={net.clearError}>{net.error} <b>×</b></div>}
     </>
+  );
+}
+
+function Apology({ children, onOk }: { children: React.ReactNode; onOk: () => void }) {
+  return (
+    <Modal title="Извините!">
+      <p>{children}</p>
+      <div className="modal-foot"><button className="primary" autoFocus onClick={onOk}>ОК</button></div>
+    </Modal>
   );
 }
 

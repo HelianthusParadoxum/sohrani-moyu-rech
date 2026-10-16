@@ -4,7 +4,7 @@
 import { createServer } from 'node:http';
 import { readFileSync, existsSync, mkdirSync, readdirSync, writeFileSync, statSync } from 'node:fs';
 import { join, extname, resolve } from 'node:path';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
 import { applyAction, createGame, activePlayers, migrate } from '../engine/engine';
 import { botMove } from '../engine/bot';
@@ -24,7 +24,14 @@ interface Room {
   code: string; host: string; seats: Seat[]; mode: Mode; state: GameState | null; history: GameState[]; updated: number;
   botDelay?: number;
   noCurator?: boolean; // настройка: без Куратора в колоде Пристрастий
+  build?: string; // версия игры, в которой начата партия
+  outdated?: boolean; // партию сбросили из-за обновления игры — показать игрокам извинение
 }
+
+// Версия игры: коммит, из которого собран сервер (Render), иначе — отпечаток собранного клиента
+// (в него входит и движок правил). Партию, начатую в другой версии, продолжить нельзя: правила могли измениться.
+const BUILD = process.env.RENDER_GIT_COMMIT
+  ?? (existsSync(join(DIST, 'index.html')) ? createHash('sha1').update(readFileSync(join(DIST, 'index.html'))).digest('hex').slice(0, 12) : 'dev');
 
 const rooms = new Map<string, Room>();
 const sockets = new Map<WebSocket, { room: string; seat: string | null; host: boolean }>();
@@ -53,11 +60,19 @@ for (const f of readdirSync(SAVE_DIR)) {
   try {
     const r = JSON.parse(readFileSync(join(SAVE_DIR, f), 'utf8')) as Room;
     r.history ??= [];
-    if (r.state) r.state = migrate(r.state);
+    if (r.state && r.build !== BUILD) resetOutdated(r);
+    else if (r.state) r.state = migrate(r.state);
     rooms.set(r.code, r);
   } catch {
     console.warn('Не удалось прочитать сохранение', f);
   }
+}
+
+// Партия из прежней версии игры: места за столом остаются, партию начинают заново.
+function resetOutdated(room: Room) {
+  room.state = null;
+  room.history = [];
+  room.outdated = true;
 }
 
 // ---------- Комнаты ----------
@@ -80,6 +95,7 @@ function roomInfo(room: Room): RoomInfo {
     hostBot: hostSeat(room)?.bot ?? false,
     botDelay: room.botDelay ?? 700,
     curator: !room.noCurator,
+    outdated: room.outdated,
   };
 }
 
@@ -161,7 +177,11 @@ function handle(ws: WebSocket, msg: ClientMessage) {
     }
     case 'hello': {
       const room = rooms.get(msg.code);
-      if (!room) return send(ws, { t: 'error', message: 'Комната не найдена' });
+      if (!room) return send(ws, { t: 'gone', code: msg.code });
+      // Сохранение не читается новой версией движка — тоже считаем партию устаревшей.
+      if (room.state) {
+        try { viewFor(room.state, null, true); } catch { resetOutdated(room); save(room); }
+      }
       const seat = room.seats.find((s) => s.token === msg.token);
       const host = !!seat && seat.id === room.host;
       sockets.set(ws, { room: room.code, seat: seat && !seat.bot ? seat.id : null, host });
@@ -215,6 +235,8 @@ function handle(ws: WebSocket, msg: ClientMessage) {
       if (room.seats.length < 1) return send(ws, { t: 'error', message: 'За столом никого нет' });
       room.state = createGame({ players: room.seats.map((s) => ({ id: s.id, name: s.name })), mode: room.mode, curator: !room.noCurator });
       room.history = [];
+      room.build = BUILD;
+      delete room.outdated;
       break;
     }
     case 'action': {

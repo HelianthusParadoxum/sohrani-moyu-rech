@@ -10,6 +10,7 @@ export interface NetState {
   isHost: boolean;
   view: PlayerView | null;
   error: string | null;
+  gone: boolean; // комнаты больше нет на сервере
 }
 
 export const tokenKey = (code: string) => `smr:token:${code}`;
@@ -22,13 +23,14 @@ function writeToken(code: string, token: string) {
 }
 
 export function useServer(code: string | null) {
-  const [state, setState] = useState<NetState>({ connected: false, room: null, you: null, isHost: false, view: null, error: null });
+  const [state, setState] = useState<NetState>({ connected: false, room: null, you: null, isHost: false, view: null, error: null, gone: false });
   const ws = useRef<WebSocket | null>(null);
   const queue = useRef<ClientMessage[]>([]);
 
   useEffect(() => {
     let closed = false;
     let retry: ReturnType<typeof setTimeout>;
+    setState((s) => ({ ...s, room: null, view: null, gone: false }));
     const connect = () => {
       const proto = location.protocol === 'https:' ? 'wss' : 'ws';
       const sock = new WebSocket(`${proto}://${location.host}/ws`);
@@ -45,6 +47,8 @@ export function useServer(code: string | null) {
           if (location.hash !== `#/r/${msg.code}`) location.hash = `#/r/${msg.code}`;
         } else if (msg.t === 'room') {
           setState((s) => ({ ...s, room: msg.room, you: msg.you, isHost: msg.isHost, view: msg.view, error: null }));
+        } else if (msg.t === 'gone') {
+          setState((s) => ({ ...s, gone: true }));
         } else if (msg.t === 'error') {
           setState((s) => ({ ...s, error: msg.message }));
         }
