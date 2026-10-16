@@ -49,7 +49,7 @@ export function createGame(opts: NewGameOptions): GameState {
   state.deck = shuffle(state, CARDS.filter((c) => !['load', 'loadReturnable', 'loadEvidence'].includes(c.kind)).map((c) => c.id));
   state.loadDeck = shuffle(state, CARDS.filter((c) => ['load', 'loadReturnable', 'loadEvidence'].includes(c.kind)).map((c) => c.id));
   state.safehouseDeck = shuffle(state, [...SAFEHOUSES]);
-  state.sprouts = shuffle(state, SPROUTS.map((s) => s.id)).slice(0, solo ? RULES.soloSprouts : n + RULES.extraSprouts[mode]).map((id) => ({ id, progress: 0 }));
+  state.sprouts = shuffle(state, SPROUTS.map((s) => s.id)).slice(0, solo ? RULES.soloSprouts[mode] : n + RULES.extraSprouts[mode]).map((id) => ({ id, progress: 0 }));
 
   // Колода Пристрастий.
   let passions: PassionId[];

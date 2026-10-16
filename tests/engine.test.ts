@@ -854,11 +854,12 @@ describe('Лаборант', () => {
 describe('Несистемный (одиночная игра)', () => {
   const solo = (seed: number, mode: 'beginner' | 'full' = 'full') => createGame({ players: [{ id: 'p1', name: 'Один' }], seed, mode });
 
-  it('3 Ростка, без Куратора в Пристрастиях', () => {
+  it('3 Ростка (в Райцентре — 2), без Куратора в Пристрастиях', () => {
     for (let seed = 1; seed <= 30; seed++) {
       const s = solo(seed);
       expect(s.solo).toBe(true);
-      expect(s.sprouts).toHaveLength(RULES.soloSprouts);
+      expect(s.sprouts).toHaveLength(RULES.soloSprouts.full);
+      expect(solo(seed, 'beginner').sprouts).toHaveLength(RULES.soloSprouts.beginner);
       expect(s.players[0].passionOptions).not.toContain('curator');
       expect(s.curatorPossible).toBeFalsy();
     }
@@ -885,7 +886,7 @@ describe('Несистемный (одиночная игра)', () => {
   });
 
   it('в конце вскрываются 30 Непечатных: Пропаганда срезает самый развитый Росток', () => {
-    let s = solo(3, 'beginner');
+    let s = solo(3, 'full');
     s = applyAction(s, 'p1', { type: 'choosePassion', passion: s.players[0].passionOptions[0] });
     s = startOrders(s);
     s.sprouts.forEach((sp, i) => { sp.progress = i === 0 ? 4 : 3; });
