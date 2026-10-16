@@ -200,20 +200,36 @@ function shopValue(state: GameState, p: PlayerState, ctx: Ctx): number {
   return best * BOT_BASE.shopReach;
 }
 
-// Чем ценна для бота книга одного жанра (для Подписки).
-function genreValue(state: GameState, p: PlayerState, g: Genre, ctx: Ctx): number {
+// Чем ценна для бота книга одного жанра (для Подписки). forSprouts = false — книга придёт, когда кормить Ростки
+// уже поздно (в конце последней Пятилетки): ценна только для Пристрастия.
+function genreValue(state: GameState, p: PlayerState, g: Genre, ctx: Ctx, forSprouts = true): number {
   const info = p.passion ? PASSIONS[p.passion] : null;
   let passion = 0;
   if (info?.genres) passion = info.genres.includes(g) ? RULES.passionKeeper : 0;
   else if (p.passion === 'erudite') passion = (RULES.passionErudite + RULES.eruditePerGenre) * 0.75; // засчитается, только если жанра ещё нет
   else if (p.passion === 'monogamist') passion = RULES.passionMonogamist * 0.5 + RULES.monogamistSecond * 0.3; // если жанр станет лучшим или вторым
-  let v = passion * ctx.w.passion + BOT_BASE.bookLatent * ctx.w.publish;
-  const demand = state.sprouts.filter((sp) => {
+  let v = passion * ctx.w.passion;
+  if (!forSprouts) return v;
+  v += BOT_BASE.bookLatent * ctx.w.publish;
+  // Сколько значков этого жанра ещё нужно Росткам на оставшихся ступенях: основной жанр Ростка нужен на каждой ступени.
+  let demand = 0;
+  for (const sp of state.sprouts) {
     const s = SPROUTS.find((x) => x.id === sp.id)!;
-    return sp.progress < 4 && (s.main === g || s.steps[sp.progress]?.support === g);
-  }).length;
-  v += demand * 1.5 * ctx.w.sproutBooks;
+    for (let k = sp.progress; k < s.steps.length; k++) {
+      if (s.main === g) demand += s.steps[k].main;
+      if (s.steps[k].support === g) demand += 1;
+    }
+  }
+  v += Math.min(demand, BOT_BASE.subscriptionDemandCap) * 1.5 * ctx.w.sproutBooks;
   return v;
+}
+
+// Подписка: книги приходят в конце каждой фазы поручений; пришедшая в конце последней Пятилетки в Росток уже не пойдёт.
+function subscriptionValue(state: GameState, p: PlayerState, sub: { genre: Genre; rounds: number }, ctx: Ctx): number {
+  const first = state.phase === 'orders' || state.phase === 'passion' || state.phase === 'setupCache' ? state.round : state.round + 1;
+  let v = 0;
+  for (let k = 0; k < sub.rounds; k++) v += genreValue(state, p, sub.genre, ctx, first + k < RULES.rounds);
+  return v * 0.8;
 }
 
 function ownBookValue(state: GameState, p: PlayerState, card: string, ctx: Ctx): number {
@@ -321,7 +337,7 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   v += connections * (BOT_BASE.connection + BOT_BASE.patronEffect * w.club * (left + 1));
   // Ресурсы.
   v += resources(state, p, ctx);
-  for (const sub of p.subscriptions) v += sub.rounds * genreValue(state, p, sub.genre, ctx) * 0.8;
+  for (const sub of p.subscriptions) v += subscriptionValue(state, p, sub, ctx);
   // Книги.
   for (const c of cards) v += iconsOf(state, c).length * BOT_BASE.bookLatent * w.publish;
   v += p.published.reduce((s, c) => s + iconsOf(state, c).length, 0) * BOT_BASE.published * w.publish;
