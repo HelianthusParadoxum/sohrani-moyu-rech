@@ -99,7 +99,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   razval: { id: 'razval', name: 'Развал', limits: [2, 3, 4], hint: 'Купить 1 книгу: −2/−2/−1/−1т по свежести' },
   zavoz: { id: 'zavoz', name: 'Завоз', limits: [1, 1, 2], hint: '+2т, Развал полностью обновляется' },
   baraholka: { id: 'baraholka', name: 'Барахолка', limits: [4, 4, 4], hint: 'Тайно посмотреть 2 из 4 закрытых книг и купить одну из них за 1т' },
-  podpiska: { id: 'podpiska', name: 'Подписка', limits: [1, 1, 2], hint: 'Заказать жанр: −1т за каждую Пятилетку доставки' },
+  podpiska: { id: 'podpiska', name: 'Подписка', limits: [1, 1, 2], safehouse: true, hint: 'Заказать жанр: −1т за каждую Пятилетку доставки' },
   sprouts: { id: 'sprouts', name: 'Ростки Гласности', limits: [3, 4, 5], hint: 'Закрыть любое число ступеней Ростков' },
   samizdat: { id: 'samizdat', name: 'Самиздат', limits: [2, 2, 3], hint: `Издать книгу: +${RULES.samizdatTalons}т/значок` },
   tamizdat: { id: 'tamizdat', name: 'Тамиздат', limits: [1, 1, 2], hint: `Издать книгу: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка/значок` },
@@ -128,10 +128,10 @@ export function safehouseCost(id: AddressId): number {
 }
 
 export const PERMANENT_ADDRESSES: AddressId[] = [
-  'gostorg', 'tolkuchka', 'redCorner', 'razval', 'zavoz', 'baraholka', 'podpiska', 'sprouts', 'samizdat', 'tamizdat', 'glavlit',
+  'gostorg', 'tolkuchka', 'redCorner', 'razval', 'zavoz', 'baraholka', 'sprouts', 'samizdat', 'tamizdat', 'glavlit',
   'club', 'kontora',
 ];
-export const SAFEHOUSES: AddressId[] = ['knigoobmen', 'kvartirnik', 'raspredelitel', 'nasledniki', 'posrednichestvo', 'spisanie'];
+export const SAFEHOUSES: AddressId[] = ['knigoobmen', 'kvartirnik', 'raspredelitel', 'nasledniki', 'posrednichestvo', 'spisanie', 'podpiska'];
 // Адреса, которые начинают партию заполненными (если выложены).
 export const STARTS_FILLED: AddressId[] = ['knigoobmen', 'raspredelitel'];
 

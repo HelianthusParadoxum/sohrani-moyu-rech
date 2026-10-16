@@ -1,7 +1,7 @@
 // Игровой стол.
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  ADDRESSES, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, PERMANENT_ADDRESSES, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, limitFor,
+  ADDRESSES, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, limitFor,
 } from '../engine/content';
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
@@ -55,9 +55,13 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
   } else if (you && view.active.includes(you)) status = 'Ваше решение';
   else status = `Ждём: ${view.active.map(nameOf).join(', ')}`;
 
-  // Порядок на столе: постоянные адреса, явочные, затем Клуб на всю ширину, Контора и рядом с ней Ростки.
+  // Порядок на столе: Клуб на всю ширину, под ним Контора и Ростки (вместе с их действием), затем адреса и явочные.
   const full = view.mode === 'full';
-  const addresses = [...PERMANENT_ADDRESSES.filter((a) => !ADDRESSES[a].fullOnly), ...view.safehouses, ...(full ? (['club', 'kontora'] as AddressId[]) : [])];
+  const addresses: AddressId[] = [...BOARD_ORDER, ...view.safehouses];
+  const enabledFor = (id: AddressId) => (id === 'club' && RULES.clubFreeGift ? canGift : canPlace && (!mustRed || id === 'redCorner'));
+  const card = (id: AddressId) => (
+    <AddressCard key={id} id={id} view={view} seatIndex={seatIndex} me={me} enabled={enabledFor(id)} onOpen={() => setPanel({ kind: 'address', id })} />
+  );
 
   return (
     <div className="game">
@@ -89,11 +93,11 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
       <main className="layout">
         <section className="board">
           <div className="addresses">
-            {addresses.map((id) => (
-              <AddressCard key={id} id={id} view={view} seatIndex={seatIndex} me={me}
-                enabled={id === 'club' && RULES.clubFreeGift ? canGift : canPlace && (!mustRed || id === 'redCorner')} onOpen={() => setPanel({ kind: 'address', id })} />
-            ))}
-            <Sprouts view={view} beside={full} seatIndex={seatIndex} />
+            {full && card('club')}
+            {full && card('kontora')}
+            <Sprouts view={view} beside={full} seatIndex={seatIndex}
+              head={<AddressHead id="sprouts" view={view} seatIndex={seatIndex} me={me} enabled={enabledFor('sprouts')} onOpen={() => setPanel({ kind: 'address', id: 'sprouts' })} />} />
+            {addresses.map(card)}
           </div>
         </section>
         <aside className="side">
@@ -137,18 +141,42 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
 
 // ---------- Адреса ----------
 
-function AddressCard({ id, view, seatIndex, me, enabled, onOpen }: {
-  id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me: VPlayer | null; enabled: boolean; onOpen: () => void;
-}) {
+// Порядок обычных адресов на поле (после Клуба, Конторы и Ростков); явочные — следом.
+const BOARD_ORDER: AddressId[] = ['redCorner', 'glavlit', 'gostorg', 'baraholka', 'tolkuchka', 'razval', 'zavoz', 'tamizdat', 'samizdat'];
+
+type AddressProps = { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me: VPlayer | null; enabled: boolean; onOpen: () => void };
+
+function addressFull(id: AddressId, view: PlayerView, me: VPlayer | null) {
+  const here = view.occupancy[id] ?? [];
+  const freeClub = id === 'club' && RULES.clubFreeGift; // Клуб — свободное действие, мест нет
+  return !freeClub && (here.length >= limitFor(id, view.players.length) || (id === 'redCorner' && !!me && here.includes(me.id)));
+}
+
+function AddressCard(props: AddressProps) {
+  const { id, view, seatIndex, me, enabled } = props;
+  const info = ADDRESSES[id];
+  const full = addressFull(id, view, me);
+  const inlineHint = id === 'club'; // у Клуба описание — в строке заголовка, справа
+  return (
+    <div className={`address addr-${id} ${info.safehouse ? 'safehouse' : ''} ${enabled && !full ? 'can' : ''}`}>
+      <AddressHead {...props} inlineHint={inlineHint} />
+      {!inlineHint && <div className="hint">{info.hint}</div>}
+      <AddressContents id={id} view={view} seatIndex={seatIndex} />
+    </div>
+  );
+}
+
+// Заголовок адреса: название, жетоны Единомышленников, места и кнопка «сюда».
+function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint }: AddressProps & { inlineHint?: boolean }) {
   const info = ADDRESSES[id];
   const here = view.occupancy[id] ?? [];
   const limit = limitFor(id, view.players.length);
-  const freeClub = id === 'club' && RULES.clubFreeGift; // Клуб — свободное действие, мест нет
-  const full = !freeClub && (here.length >= limit || (id === 'redCorner' && !!me && here.includes(me.id)));
+  const freeClub = id === 'club' && RULES.clubFreeGift;
+  const full = addressFull(id, view, me);
   return (
-    <div className={`address addr-${id} ${info.safehouse ? 'safehouse' : ''} ${enabled && !full ? 'can' : ''}`}>
       <div className="addr-head">
         <b>{info.name}</b>
+        {inlineHint && <span className="hint inline">{info.hint}</span>}
         <span className="workers">
           {here.map((pid, i) => {
             // Номер на жетоне — каким по счёту в Пятилетке было это действие игрока.
@@ -161,9 +189,6 @@ function AddressCard({ id, view, seatIndex, me, enabled, onOpen }: {
           {enabled && !freeClub && <button className="go small" disabled={full} onClick={onOpen} title={full ? 'Мест нет' : 'Отправить Единомышленника сюда'}>{full ? 'занято' : 'сюда →'}</button>}
         </span>
       </div>
-      <div className="hint">{info.hint}</div>
-      <AddressContents id={id} view={view} seatIndex={seatIndex} />
-    </div>
   );
 }
 
@@ -444,13 +469,12 @@ function stepText(main: Genre, step: { main: number; support?: Genre }) {
   );
 }
 
-function Sprouts({ view, beside, seatIndex }: { view: PlayerView; beside: boolean; seatIndex: (id: string) => number }) {
+// Ростки Гласности вместе с их действием («сюда →» — закрыть ступени).
+function Sprouts({ view, beside, seatIndex, head }: { view: PlayerView; beside: boolean; seatIndex: (id: string) => number; head: ReactNode }) {
   return (
-    <div className={`sprouts-panel ${beside ? 'beside' : ''}`}>
-      <div className="addr-head">
-        <b>Ростки Гласности</b>
-        <span className="muted small">Гласность: {RULES.glasnostAllSprouts ? 'все Ростки' : 'хотя бы один Росток'} до ступени {roman(RULES.glasnostStep)}</span>
-      </div>
+    <div className={`sprouts-panel address addr-sprouts ${beside ? 'beside' : ''}`}>
+      {head}
+      <div className="hint">{ADDRESSES.sprouts.hint}. Гласность: {RULES.glasnostAllSprouts ? 'все Ростки' : 'хотя бы один Росток'} до ступени {roman(RULES.glasnostStep)}.</div>
       <div className="sprouts">
       {view.sprouts.map((sp) => {
         const info = SPROUTS.find((s) => s.id === sp.id)!;

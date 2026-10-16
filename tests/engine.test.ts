@@ -576,7 +576,8 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     let s2 = started();
     const me2 = s2.order[s2.turn];
     connect(s2, 'broker', [me2]);
-    const other = s2.patrons[1];
+    // Завсегдатай, для которого в стопке есть подходящая книга без Иронии.
+    const other = s2.patrons.slice(1).find((pt) => s2.deck.some((c) => s2.cards[c].kind === 'genre' && s2.cards[c].icons.includes(pt.genre) && !s2.cards[c].icons.includes('irony')))!;
     const card = give(s2, me2, (icons) => icons.includes(other.genre) && !icons.includes('irony'));
     const t2 = s2.players.find((x) => x.id === me2)!.talons;
     s2 = applyAction(s2, me2, { type: 'clubGift', gift: { patron: other.id, card } });

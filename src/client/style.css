@@ -256,3 +256,7 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 .group-actions.readonly { margin-top: 2px; }
 .nowrap { white-space: nowrap; }
 .dot.num.wide { width: auto; min-width: 16px; padding: 0 4px; border-radius: 8px; margin-left: 2px; }
+/* Клуб: описание — в строке заголовка, справа */
+.addr-club .addr-head .hint.inline { flex: 1; text-align: right; margin: 0 8px; }
+/* Ростки — карточка-адрес с действием */
+.sprouts-panel.address { padding: 8px 10px; }
