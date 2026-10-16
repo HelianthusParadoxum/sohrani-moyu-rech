@@ -25,7 +25,7 @@ export function ClubContents({ view, seatIndex }: { view: PlayerView; seatIndex:
               title={pt.since?.[pid] ? `Связь с ${pt.since[pid]}-й Пятилетки` : undefined}>{pt.since?.[pid] ? `П${pt.since[pid]}` : ''}</span>
           ))}
           {pt.removed && <span className="muted small"> — профилактика</span>}
-          {!pt.removed && pt.turned && <span className="muted small"> — связь уже завязана в эту Пятилетку</span>}
+          {!pt.removed && pt.turned && <span className="muted small"> — Занят на Пятилетку</span>}
           <div className="muted small">{PATRONS[pt.id].hint}</div>
         </li>
       ))}

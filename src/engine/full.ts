@@ -68,7 +68,7 @@ export function giveToPatron(state: GameState, p: PlayerState, gift: ClubGift) {
   const patron = state.patrons.find((x) => x.id === gift.patron);
   check(patron && !patron.removed, 'Этого Завсегдатая нет в Клубе');
   const name = PATRONS[patron.id].name;
-  check(!patron.turned, `${name}: связь в эту Пятилетку уже завязана`);
+  check(!patron.turned, `${name}: занят на Пятилетку`);
   check(!patron.connections.includes(p.id), `У вас уже есть связь с Завсегдатаем «${name}»`);
   check(hasBook(p, gift.card), 'Отдать можно только книгу со своего склада');
   const icons = iconsOf(state, gift.card);

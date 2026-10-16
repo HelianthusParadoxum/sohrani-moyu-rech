@@ -64,7 +64,7 @@ export interface PatronState {
   id: PatronId;
   genre: Genre; // жанровый слот Клуба
   connections: string[]; // игроки, у которых есть связь с Завсегдатаем
-  turned: boolean; // связь в эту Пятилетку уже завязана
+  turned: boolean; // занят на Пятилетку: связь в эту Пятилетку уже завязана
   since?: Record<string, number>; // в какую Пятилетку игрок завязал связь
   removed: boolean; // удалён Профилактикой Конторы
 }

@@ -238,7 +238,7 @@ describe('полный режим', () => {
     expect(s.log.find((l) => l.club)).toMatchObject({ club: { player: a, round: 1 } });
     s = act(s, a, { type: 'place', place: { address: 'zavoz' } });
     expect(s.order[s.turn]).toBe(b);
-    expect(() => applyAction(s, b, { type: 'clubGift', gift: give(b) })).toThrow('связь в эту Пятилетку уже завязана');
+    expect(() => applyAction(s, b, { type: 'clubGift', gift: give(b) })).toThrow('занят на Пятилетку');
   });
 
   it('в Клубе 8 Завсегдатаев на 8 жанров, связь — за книгу жанра слота', () => {

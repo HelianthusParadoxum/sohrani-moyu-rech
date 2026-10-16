@@ -42,8 +42,8 @@ const KIND_LABEL: Record<string, string> = {
   propaganda: 'Пропаганда', evidence: 'Улика', load: 'Нагрузка', loadReturnable: 'Нагрузка', loadEvidence: 'Нагрузка',
 };
 
-export function Book({ v, id, selected, onClick, hidden, small, note }: {
-  v: PlayerView; id: string | null; selected?: boolean; onClick?: () => void; hidden?: boolean; small?: boolean; note?: string;
+export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
+  v: PlayerView; id: string | null; selected?: boolean; onClick?: () => void; hidden?: boolean; small?: boolean; note?: string; price?: number;
 }) {
   if (!id) {
     return <div className={`book back ${small ? 'small' : ''}`} title="Книга взакрытую"><span>✦</span></div>;
@@ -80,6 +80,7 @@ export function Book({ v, id, selected, onClick, hidden, small, note }: {
         )}
         {label && <span className="kind">{label}</span>}
         {restored && <span className="restored" title="Смыслы возвращены">↺</span>}
+        {price !== undefined && <span className="book-price" title="Цена в Талонах">{price}т</span>}
       </div>
       <div className="book-title">{t}</div>
       {!small && <div className="book-author">{c.author}</div>}

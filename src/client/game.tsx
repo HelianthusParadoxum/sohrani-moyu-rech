@@ -184,7 +184,9 @@ function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint }: A
             const n = view.players.find((x) => x.id === pid)?.actions?.filter((a) => a.target === id)[k]?.n;
             return <span key={i} className="dot num" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} title={n ? `${n}-е действие игрока` : undefined}>{n ?? ''}</span>;
           })}
-          {!freeClub && <span className="muted small">{limit === Infinity ? '∞' : `${here.length}/${limit}`}</span>}
+          {!freeClub && (limit === Infinity
+            ? <span className="muted small">∞</span>
+            : Array.from({ length: Math.max(0, limit - here.length) }, (_, i) => <span key={`free${i}`} className="dot num slot-free" title="Свободное место" />))}
           {enabled && freeClub && <button className="go small" onClick={onOpen} title="Свободное действие: Единомышленник не нужен">отдать книгу →</button>}
           {enabled && !freeClub && <button className="go small" disabled={full} onClick={onOpen} title={full ? 'Мест нет' : 'Отправить Единомышленника сюда'}>{full ? 'занято' : 'сюда →'}</button>}
         </span>
@@ -220,15 +222,15 @@ function AddressContents({ id, view, seatIndex }: { id: AddressId; view: PlayerV
       );
     }
     case 'tolkuchka':
-      return <div className="shelf wrap">{view.tolkuchka.map((c) => <Book key={c} v={view} id={c} small note={`${RULES.tolkuchkaBuy}т`} />)}</div>;
+      return <div className="shelf wrap">{view.tolkuchka.map((c) => <Book key={c} v={view} id={c} small price={RULES.tolkuchkaBuy} />)}</div>;
     case 'razval':
-      return <div className="shelf wrap">{view.razval.map((c, i) => c ? <Book key={i} v={view} id={c} small note={`${RULES.razvalPrices[i]}т`} /> : <div key={i} className="book empty small" />)}</div>;
+      return <div className="shelf wrap">{view.razval.map((c, i) => c ? <Book key={i} v={view} id={c} small price={RULES.razvalPrices[i]} /> : <div key={i} className="book empty small" />)}</div>;
     case 'baraholka':
       return <div className="shelf wrap">{view.baraholka.map((has, i) => has ? <Book key={i} v={view} id={null} small /> : <div key={i} className="book empty small" />)}</div>;
     case 'knigoobmen':
       return <div className="shelf wrap">{view.knigoobmen.map((c) => <Book key={c} v={view} id={c} small />)}</div>;
     case 'raspredelitel':
-      return <div className="shelf wrap">{view.raspredelitel.map((c) => <Book key={c} v={view} id={c} small note={`${RULES.raspredelitelPrice}т`} />)}</div>;
+      return <div className="shelf wrap">{view.raspredelitel.map((c) => <Book key={c} v={view} id={c} small price={RULES.raspredelitelPrice} />)}</div>;
     default:
       return null;
   }
@@ -323,7 +325,7 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
           <p>{veteran ? 'Ветеран: купите сколько угодно книг, в сумме на 1 Талон дешевле (минимум 1).' : 'Купите 1 книгу.'} Цена зависит от свежести.</p>
           <div className="shelf wrap">
             {view.razval.map((c, i) => c && (
-              <Book key={i} v={view} id={c} note={`${RULES.razvalPrices[i]}т`} selected={sel.includes(String(i))}
+              <Book key={i} v={view} id={c} price={RULES.razvalPrices[i]} selected={sel.includes(String(i))}
                 onClick={() => setSel(veteran ? toggle(sel, String(i)) : [String(i)])} />
             ))}
           </div>
@@ -685,7 +687,7 @@ function CopyTextPanel({ view, me, done }: { view: PlayerView; me: VPlayer; done
       <div className="shelf wrap">
         {shelf.length === 0 && <span className="muted">Здесь нет книг</span>}
         {shelf.map((x) => (
-          <Book key={x.key} v={view} id={x.card} note={swap ? 'обмен' : `${x.price}т`} selected={buy.includes(x.key)}
+          <Book key={x.key} v={view} id={x.card} note={swap ? 'обмен' : undefined} price={swap ? undefined : x.price} selected={buy.includes(x.key)}
             onClick={() => { setBuy(addr === 'tolkuchka' ? toggle(buy, x.key) : buy.includes(x.key) ? [] : [x.key]); if (gift === x.card) setGift(''); }} />
         ))}
       </div>
@@ -1124,12 +1126,12 @@ function GlavlitPrompt({ view, act }: { view: PlayerView; act: (a: Action) => vo
 
 // Изданные книги — только значки: Тамиздат и Самиздат отдельно.
 function Published({ view, p }: { view: PlayerView; p: VPlayer }) {
-  if (!p.published.length) return null;
   const tam = p.published.filter((c) => p.tamizdat.includes(c));
   const sam = p.published.filter((c) => !p.tamizdat.includes(c));
-  const row = (label: string, list: string[]) => list.length > 0 && (
+  const row = (label: string, list: string[]) => (
     <div className="pub-row">
       <span className="muted small">{label}:</span>
+      {!list.length && <span className="muted small">—</span>}
       {list.map((c) => {
         const icons = iconsOf(view, c);
         return (
