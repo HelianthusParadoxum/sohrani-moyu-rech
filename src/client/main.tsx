@@ -2,6 +2,7 @@ import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useServer } from './net';
 import { Game } from './game';
+import { RULES } from '../engine/content';
 import { PLAYER_COLORS, PresetSelect, SpeedSelect } from './ui';
 import './style.css';
 
@@ -127,7 +128,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
             <p className="muted small">
               Один игрок — режим «Несистемный»: {room.mode === 'full' ? 3 : 2} Ростка, Куратора нет, Цензура растёт на 1 каждую Пятилетку
               {room.mode === 'full' ? ', со 2-й Пятилетки лишний жетон жанра бьёт по Клубу (Профилактика или Контора)' : ''}.
-              В конце вскрываются 30 Непечатных: каждая Пропаганда срезает ступень у самого развитого Ростка. Победа — если все Ростки устояли на III ступени.
+              В конце вскрываются {RULES.soloEndCards[room.mode]} Непечатных: каждая Пропаганда срезает ступень у самого развитого Ростка. Победа — если все Ростки устояли на III ступени.
             </p>
           )}
         </>

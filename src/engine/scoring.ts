@@ -182,7 +182,8 @@ function soloResult(state: GameState, scores: ScoreLine[], sproutName: (id: stri
     return { glasnost: false, scores, winners: [], note: `Гласность не наступила — поражение (${total} очк.).` };
   }
   let propaganda = 0;
-  for (let i = 0; i < RULES.soloEndCards; i++) {
+  const cards = RULES.soloEndCards[state.mode];
+  for (let i = 0; i < cards; i++) {
     const c = draw(state);
     if (!c) break;
     if (isPropaganda(state, c)) {
@@ -195,7 +196,7 @@ function soloResult(state: GameState, scores: ScoreLine[], sproutName: (id: stri
     }
     discard(state, c);
   }
-  log(state, `Вскрыто ${RULES.soloEndCards} Непечатных, Пропаганды среди них: ${propaganda}.`);
+  log(state, `Вскрыто ${cards} Непечатных, Пропаганды среди них: ${propaganda}.`);
   const won = glasnostReached(state);
   return {
     glasnost: won, scores, winners: won ? [me.id] : [],
