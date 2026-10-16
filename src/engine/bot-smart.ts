@@ -171,6 +171,12 @@ function feedPotential(state: GameState, p: PlayerState, ctx: Ctx): number {
   return v;
 }
 
+// Одиночная игра: самый развитый Росток не ниже IV, остальные не ниже III.
+function soloTargetMet(state: GameState): boolean {
+  const prog = state.sprouts.map((sp) => sp.progress).sort((a, b) => b - a);
+  return prog[0] >= 4 && prog.every((x) => x >= RULES.glasnostStep);
+}
+
 // Что ещё можно купить на открытых адресах в эту Пятилетку. Ценится, только пока у бота остались свободные поручения
 // (обязательный Красный уголок не в счёт): Завоз последним действием уже ничего не даёт, кроме Талонов, —
 // к следующей Пятилетке Развал всё равно обновится.
@@ -307,7 +313,10 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   // Финальный подсчёт.
   v += passionPoints(state, p) * w.passion;
   v += RULES.propagandaPoints * cards.filter((c) => isPropaganda(state, c)).length;
-  v += RULES.evidencePoints * [...cards, ...p.tamizdat].filter((c) => isEvidence(state, c)).length;
+  // В одиночной игре, пока цель «один Росток до IV, остальные до III» не выполнена, Улики почти не нужны:
+  // их трудно хранить (опальные), а Гласности они не помогают.
+  const evidenceWeight = state.solo && !soloTargetMet(state) ? BOT_BASE.soloEvidenceEarly : 1;
+  v += RULES.evidencePoints * evidenceWeight * [...cards, ...p.tamizdat].filter((c) => isEvidence(state, c)).length;
   const connections = state.patrons.filter((x) => !x.removed && x.connections.includes(me)).length;
   v += connections * (BOT_BASE.connection + BOT_BASE.patronEffect * w.club * (left + 1));
   // Ресурсы.
