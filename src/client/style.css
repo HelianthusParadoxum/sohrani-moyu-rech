@@ -260,3 +260,10 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 .addr-club .addr-head .hint.inline { flex: 1; text-align: right; margin: 0 8px; }
 /* Ростки — карточка-адрес с действием */
 .sprouts-panel.address { padding: 8px 10px; }
+
+/* ПК: планшеты игроков в две колонки, журнал — под ними на всю ширину */
+@media (min-width: 1300px) {
+  .layout { grid-template-columns: minmax(0, 1fr) 760px; }
+  .side { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  .side > :not(.player) { grid-column: 1 / -1; }
+}
