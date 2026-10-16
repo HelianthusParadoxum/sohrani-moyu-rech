@@ -918,3 +918,22 @@ describe('Несистемный (одиночная игра)', () => {
     expect(r.winners).toEqual(['p1']);
   });
 });
+
+describe('Стартовый Тайник', () => {
+  it('опальные стартовые книги сразу лежат в Тайнике, если есть место', () => {
+    let checked = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      let s = createGame({ players: players(3), seed });
+      for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+      expect(s.phase).toBe('setupCache');
+      for (const p of s.players) {
+        const banned = p.warehouse.filter((w) => isBanned(s, w.card) && s.cards[w.card].kind !== 'propaganda');
+        const hidden = p.warehouse.filter((w) => w.hidden);
+        expect(hidden.length).toBe(Math.min(banned.length, cacheLimit(s, p)));
+        for (const w of hidden) expect(isBanned(s, w.card)).toBe(true);
+        if (hidden.length) checked++;
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+});

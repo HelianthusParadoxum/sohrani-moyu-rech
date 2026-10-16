@@ -139,6 +139,8 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
           if (!state.pending.length) {
             state.phase = 'setupCache';
             state.ready = [];
+            // Опальные стартовые книги сразу предложены в Тайник (если есть место) — игрок может переложить.
+            for (const q of state.players) for (const slot of [...q.warehouse]) autoHide(state, q, slot.card);
             log(state, 'Все раскладывают стартовые книги: что спрятать в Тайник, что оставить на виду.');
           }
         }
