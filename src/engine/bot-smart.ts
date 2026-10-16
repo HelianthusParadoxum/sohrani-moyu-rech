@@ -33,7 +33,7 @@ interface Ctx {
 
 const SAMPLES = 2; // сколько раз перемешивать закрытые карты при примерке
 
-function makeCtx(state: GameState, me: string, preset: BotPreset): Ctx {
+function makeCtx(state: GameState, me: string, preset: BotPreset, honest = false): Ctx {
   const r = Math.min(Math.max(state.round, 1), RULES.rounds);
   const w = Object.fromEntries(
     (Object.keys(preset.goals) as BotGoal[]).map((g) => [g, (preset.goals[g][r - 1] ?? 5) / 5]),
@@ -44,7 +44,7 @@ function makeCtx(state: GameState, me: string, preset: BotPreset): Ctx {
   // В полном режиме на 3+ игроков среди соперников, возможно, Куратор: кормит Ростки на одного меньше.
   const feeders = state.players.length - (state.mode === 'full' && state.players.length >= 3 ? 1 : 0);
   const urgency = Math.min(2.5, Math.max(0.6, need / Math.max(1, roundsLeft * feeders * 0.5)));
-  const curator = player(state, me).passion === 'curator';
+  const curator = !honest && player(state, me).passion === 'curator';
   const suspect = curator ? {} : curatorSuspicion(state, me);
   // Кооперация: подозрение на Куратора или просто видно, что Гласность под угрозой (не хватает ступеней на оставшиеся ходы).
   const risk = r >= 3 ? Math.min(1, Math.max(0, (urgency - BOT_BASE.coopRiskFrom) / BOT_BASE.coopRiskSpan)) : 0;
@@ -420,8 +420,9 @@ function score(state: GameState, me: string, a: Action, ctx: Ctx, depth: number)
 }
 
 // Лучшие по оценке ходы, от лучшего к худшему.
-export function rankActions(state: GameState, me: string, preset: BotPreset, rand: Rand): { a: Action; v: number }[] {
-  const ctx = makeCtx(state, me, preset);
+// honest — оценить ход так, будто бот честный книжник (Куратору — для маскировки).
+export function rankActions(state: GameState, me: string, preset: BotPreset, rand: Rand, honest = false): { a: Action; v: number }[] {
+  const ctx = makeCtx(state, me, preset, honest);
   let cands = candidates(state, me, ctx);
   if (!cands.length) return [];
   // Роль Куратора бот берёт с вероятностью «агрессивность × 2»: по оценке её с другими Пристрастиями не сравнить.
@@ -430,7 +431,15 @@ export function rankActions(state: GameState, me: string, preset: BotPreset, ran
     cands = cands.filter((a) => a.type === 'choosePassion' && (a.passion === 'curator') === curator);
     if (curator) return [{ a: cands[0], v: 0 }];
   }
-  // Куратор почти никогда не кормит Ростки: это слишком дорого даже ради маскировки (но изредка — чтобы не читался железно).
+  // Маскировка: I ступень Ростка Куратору почти ничего не стоит (Талоны, очки, бонус), поэтому первую ступень он закрывает
+  // так же охотно, как честный книжник, — один раз за партию. Решает, как решил бы честный на его месте.
+  if (ctx.curator && state.phase === 'orders' && !player(state, me).sproutsFed.length
+    && cands.some((a) => a.type === 'place' && a.place.address === 'sprouts' && firstStepFeed(state, a.place.feeds))) {
+    const top = rankActions(state, me, preset, rand, true)[0]?.a;
+    const feed = top?.type === 'place' && top.place.address === 'sprouts' ? firstStepFeed(state, top.place.feeds) : null;
+    if (feed) return [{ a: { type: 'place', place: { address: 'sprouts', feeds: [feed] } }, v: 0 }];
+  }
+  // Дальше Куратор почти никогда не кормит Ростки: это слишком дорого (но изредка — чтобы не читался железно).
   if (ctx.curator && rand() >= BOT_BASE.curatorFeedChance) {
     cands = cands.filter((a) => !(a.type === 'place' && a.place.address === 'sprouts'));
     if (!cands.length) return [];
@@ -467,6 +476,11 @@ export function rankActions(state: GameState, me: string, preset: BotPreset, ran
   const noise = preset.character.randomness * 2;
   for (const r of rated) r.v += (rand() - 0.5) * 2 * noise;
   return rated.sort((x, y) => y.v - x.v);
+}
+
+// Первая в списке ступень I (Росток ещё не кормили).
+function firstStepFeed(state: GameState, feeds: { sprout: string; books: string[] }[]) {
+  return feeds.find((f) => state.sprouts.find((sp) => sp.id === f.sprout)?.progress === 0) ?? null;
 }
 
 export function smartMove(state: GameState, me: string, preset: BotPreset, rand: Rand): GameState | null {
