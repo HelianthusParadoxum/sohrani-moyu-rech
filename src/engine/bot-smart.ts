@@ -76,6 +76,18 @@ function kvartirnikLikely(state: GameState, give: string, want: string): boolean
   return iconsOf(state, give).length >= iconsOf(state, want).length;
 }
 
+// Книга годится честным для ближайшей ступени какого-нибудь Ростка до порога Гласности (основной жанр или поддержка).
+function feedUseful(state: GameState, card: string): boolean {
+  const icons = iconsOf(state, card);
+  if (!icons.length) return false;
+  return state.sprouts.some((sp) => {
+    if (sp.progress >= RULES.glasnostStep) return false;
+    const info = SPROUTS.find((s) => s.id === sp.id)!;
+    const step = info.steps[sp.progress];
+    return icons.includes(info.main) || (!!step?.support && icons.includes(step.support));
+  });
+}
+
 // Открытые книги на столе, годные для ближайшей ступени какого-нибудь Ростка до порога Гласности (основной жанр).
 function feedBooksOnTable(state: GameState): number {
   const need = new Set<Genre>();
@@ -231,6 +243,8 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   }
   // Книги на столе, которыми честные закроют ближайшие ступени, — лучше забрать себе.
   v -= BOT_BASE.curatorDenyFeed * feedBooksOnTable(state);
+  // ...и такие же книги, открыто лежащие у честных: им нельзя их дарить (Квартирник), а отнять — хорошо.
+  v -= BOT_BASE.curatorDenyHands * others.reduce((s, o) => s + o.warehouse.filter((w) => !w.hidden && feedUseful(state, w.card)).length, 0);
   // Связь с сильным Завсегдатаем в эту Пятилетку закрывает его для остальных до следующей.
   for (const pt of state.patrons) {
     if (pt.removed || !pt.connections.includes(p.id) || pt.since?.[p.id] !== state.round) continue;
@@ -886,7 +900,9 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
               if (o.id === me) continue;
               for (const w of o.warehouse) {
                 if (w.hidden || w.memorized || !isGenreBook(state, w.card)) continue;
-                for (const g of give) if (kvartirnikLikely(state, g, w.card)) offers.push({ type: 'place', place: { address: 'kvartirnik', to: o.id, give: g, want: w.card } });
+                // Куратор меняется, только чтобы отнять у честного книгу для Ростков и не дать взамен такой же.
+                if (ctx.curator && (!feedUseful(state, w.card))) continue;
+                for (const g of give) if (kvartirnikLikely(state, g, w.card) && !(ctx.curator && feedUseful(state, g))) offers.push({ type: 'place', place: { address: 'kvartirnik', to: o.id, give: g, want: w.card } });
               }
             }
             out.push(...offers.slice(0, 12));
