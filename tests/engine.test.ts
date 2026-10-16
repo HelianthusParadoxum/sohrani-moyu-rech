@@ -841,8 +841,17 @@ describe('Лаборант', () => {
     }
     const p = s.players.find((x) => x.id === me)!;
     p.warehouse = [{ card: ka, hidden: false }, { card: kb, hidden: false }];
+    // Сейчас за поручение и так только 1 ступень; проверяем Лаборанта при правиле «несколько ступеней за поручение».
+    const limit = RULES.sproutFeedsPerAction;
+    RULES.sproutFeedsPerAction = 2;
+    try {
+      expect(() => applyAction(s, me, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: a.id, books: [ka] }, { sprout: b.id, books: [kb] }] } }))
+        .toThrow(/один раз/);
+    } finally {
+      RULES.sproutFeedsPerAction = limit;
+    }
     expect(() => applyAction(s, me, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: a.id, books: [ka] }, { sprout: b.id, books: [kb] }] } }))
-      .toThrow(/один раз/);
+      .toThrow(/только 1 ступень/);
     const t = applyAction(s, me, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: a.id, books: [ka] }] } });
     expect(t.sprouts.find((x) => x.id === a.id)!.progress).toBe(2);
     // Без Лаборанта одного значка поддержки мало.

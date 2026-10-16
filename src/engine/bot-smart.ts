@@ -577,7 +577,7 @@ function sproutCandidates(state: GameState, me: string, keep: Map<string, number
       changed = true;
     }
   }
-  if (feeds.length > 1) out.push({ type: 'place', place: { address: 'sprouts', feeds } });
+  if (feeds.length > 1 && feeds.length <= RULES.sproutFeedsPerAction) out.push({ type: 'place', place: { address: 'sprouts', feeds } });
   return out;
 }
 

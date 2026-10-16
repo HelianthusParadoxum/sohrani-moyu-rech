@@ -525,7 +525,7 @@ function SproutFeeder({ view, me, place }: { view: PlayerView; me: VPlayer; plac
   const ok = plain || discount;
   return (
     <>
-      <p>Закройте ступени: одним действием отдайте книги, на которых есть все значки ступени. Можно закрыть несколько ступеней у разных Ростков.</p>
+      <p>Закройте ступень: отдайте книги, на которых есть все значки ступени. {RULES.sproutFeedsPerAction === 1 ? 'За одно поручение — только 1 ступень одного Ростка.' : `За одно поручение — до ${RULES.sproutFeedsPerAction} ступеней у разных Ростков.`}</p>
       <div className="genres">
         {view.sprouts.map((sp) => {
           const inf = SPROUTS.find((s) => s.id === sp.id)!;
@@ -543,15 +543,19 @@ function SproutFeeder({ view, me, place }: { view: PlayerView; me: VPlayer; plac
           <div className="shelf wrap">
             {mine.map((c) => <Book key={c} v={view} id={c} selected={books.includes(c)} onClick={() => setBooks(toggle(books, c))} />)}
           </div>
-          <button disabled={!ok} onClick={() => { setFeeds([...feeds, { sprout, books, labtech: discount }]); setBooks([]); }}>Добавить ступень{discount ? ' (скидка Лаборанта)' : ''}</button>
+          {feeds.length + 1 >= RULES.sproutFeedsPerAction
+            ? <button className="primary" disabled={!ok} onClick={() => place({ address: 'sprouts', feeds: [...feeds, { sprout, books }] })}>Закрыть ступень{discount ? ' (скидка Лаборанта)' : ''}</button>
+            : <button disabled={!ok} onClick={() => { setFeeds([...feeds, { sprout, books, labtech: discount }]); setBooks([]); }}>Добавить ступень{discount ? ' (скидка Лаборанта)' : ''}</button>}
         </>
       )}
       {feeds.length > 0 && (
         <ul>{feeds.map((f, i) => <li key={i}>{SPROUTS.find((s) => s.id === f.sprout)!.name}: {f.books.map((b) => view.cards[b].title).join(', ')}</li>)}</ul>
       )}
-      <div className="modal-foot">
-        <button className="primary" disabled={!feeds.length} onClick={() => place({ address: 'sprouts', feeds })}>Закрыть ступени ({feeds.length})</button>
-      </div>
+      {RULES.sproutFeedsPerAction > 1 && (
+        <div className="modal-foot">
+          <button className="primary" disabled={!feeds.length} onClick={() => place({ address: 'sprouts', feeds })}>Закрыть ступени ({feeds.length})</button>
+        </div>
+      )}
     </>
   );
 }

@@ -752,6 +752,9 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     }
     case 'sprouts': {
       check(a.feeds.length > 0, 'Выберите, какие ступени закрыть');
+      check(a.feeds.length <= RULES.sproutFeedsPerAction, RULES.sproutFeedsPerAction === 1
+        ? 'За одно поручение можно закрыть только 1 ступень одного Ростка'
+        : `За одно поручение — не больше ${RULES.sproutFeedsPerAction} ступеней`);
       const used = new Set<string>();
       let labtechUsed = false;
       for (const f of a.feeds) {
