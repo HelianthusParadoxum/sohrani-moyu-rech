@@ -911,6 +911,16 @@ function GatheringPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act
 }
 
 // Пересобрать Тайник в свой ход: свободно, ход не заканчивается.
+// Жанры в опале — подсказка в окнах Тайника.
+function BannedLine({ view }: { view: PlayerView }) {
+  return (
+    <p className="banned-line">
+      <span className="muted small">В опале:</span>{' '}
+      {view.banned.length ? view.banned.map((g) => <GenreChip key={g} g={g} banned />) : <span className="muted small">ничего</span>}
+    </p>
+  );
+}
+
 function CacheModal({ view, me, close, done, title, note }: {
   view: PlayerView; me: VPlayer; close?: () => void; done: (hidden: string[]) => void; title?: string; note?: string;
 }) {
@@ -919,6 +929,7 @@ function CacheModal({ view, me, close, done, title, note }: {
   const limit = me.cache + loadCover(view, me.warehouse);
   return (
     <Modal title={title ?? 'Тайник'} wide onClose={close}>
+      <BannedLine view={view} />
       <p>Отметьте книги, которые лежат в Тайнике: их не видят соперники и не трогает облава. Мест: {limit} (из них за Нагрузку: {loadCover(view, me.warehouse)}). Отмечено: {sel.length}.</p>
       <p className="muted small">{note ?? 'Это не тратит действие. Книга, которую уже видели соперники, от того, что её спрятали, не станет для них тайной — но облава её не тронет.'}</p>
       <div className="shelf wrap">
@@ -946,6 +957,7 @@ function HidingPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (
   const exposed = cards.filter((c) => !sel.includes(c) && c !== memo && isBanned(view, c));
   return (
     <Modal title="Укрытие" wide>
+      <BannedLine view={view} />
       <p>Отметьте книги, которые прячете в Тайник. Мест в Тайнике: {me.cache}, ещё {cover} — за Нагрузку на складе (каждые 2 Нагрузки дают +1 место). Сейчас спрятано {sel.length} из {limit}.</p>
       <div className="shelf wrap">
         {cards.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} hidden={sel.includes(c)} onClick={() => setSel(toggle(sel, c))} />)}
