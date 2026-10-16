@@ -222,15 +222,15 @@ function AddressContents({ id, view, seatIndex }: { id: AddressId; view: PlayerV
       );
     }
     case 'tolkuchka':
-      return <div className="shelf wrap">{view.tolkuchka.map((c) => <Book key={c} v={view} id={c} small price={RULES.tolkuchkaBuy} />)}</div>;
+      return <div className="shelf wrap">{view.tolkuchka.map((c) => <Book key={c} v={view} id={c} small price={RULES.tolkuchkaBuy} />)}{emptySlots(RULES.displaySize - view.tolkuchka.length)}</div>;
     case 'razval':
       return <div className="shelf wrap">{view.razval.map((c, i) => c ? <Book key={i} v={view} id={c} small price={RULES.razvalPrices[i]} /> : <div key={i} className="book empty small" />)}</div>;
     case 'baraholka':
       return <div className="shelf wrap">{view.baraholka.map((has, i) => has ? <Book key={i} v={view} id={null} small /> : <div key={i} className="book empty small" />)}</div>;
     case 'knigoobmen':
-      return <div className="shelf wrap">{view.knigoobmen.map((c) => <Book key={c} v={view} id={c} small />)}</div>;
+      return <div className="shelf wrap">{view.knigoobmen.map((c) => <Book key={c} v={view} id={c} small />)}{emptySlots(RULES.displaySize - view.knigoobmen.length)}</div>;
     case 'raspredelitel':
-      return <div className="shelf wrap">{view.raspredelitel.map((c) => <Book key={c} v={view} id={c} small price={RULES.raspredelitelPrice} />)}</div>;
+      return <div className="shelf wrap">{view.raspredelitel.map((c) => <Book key={c} v={view} id={c} small price={RULES.raspredelitelPrice} />)}{emptySlots(RULES.raspredelitelSize - view.raspredelitel.length)}</div>;
     default:
       return null;
   }
@@ -998,6 +998,16 @@ function Results({ view, seatIndex, close }: { view: PlayerView; seatIndex: (id:
 
 // ---------- Игроки ----------
 
+// Пустые места полки: ряд не схлопывается, когда книги уходят.
+function emptySlots(n: number) {
+  return Array.from({ length: Math.max(0, n) }, (_, i) => <div key={`empty${i}`} className="book empty small" title="Свободное место" />);
+}
+
+// Свободные места Склада (заученный сборник места не занимает).
+function freeShelf(p: VPlayer): number {
+  return p.capacity - p.warehouse.filter((s) => !s.memorized).length;
+}
+
 function Stats({ p, view }: { p: VPlayer; view: PlayerView }) {
   const cover = loadCover(view, p.warehouse);
   return (
@@ -1031,7 +1041,7 @@ function MyPanel({ view, me, color, groupEnabled, onlyHire, onlyCopy, onGroup, o
             : <span className="muted small"> — {PASSIONS[me.passion].hint}</span>}
         </div>
       )}
-      <div className="shelf wrap">{me.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}</div>
+      <div className="shelf wrap">{me.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}{emptySlots(freeShelf(me))}</div>
       {onCache && (
         <div className="group-actions">
           <button className="small" onClick={onCache} title="Убрать книги из Тайника или спрятать туда другие — не тратит действие">Пересобрать Тайник</button>
@@ -1067,7 +1077,7 @@ function OtherPlayer({ view, p, color, active, first }: { view: PlayerView; p: V
     <div className={`player ${active ? 'active' : ''}`} style={{ borderColor: color }}>
       <div className="addr-head"><b style={{ color }}><span className="dot" style={{ background: color }} /> {p.name}</b>{first && <span className="muted small">ходит первым</span>}</div>
       <Stats p={p} view={view} />
-      <div className="shelf wrap">{p.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}</div>
+      <div className="shelf wrap">{p.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}{emptySlots(freeShelf(p))}</div>
       <Published view={view} p={p} />
       <div className="group-actions readonly" title="Действия Инициативной группы в эту Пятилетку">
         {(Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => !GROUP_ACTIONS[g].fullOnly || view.mode === 'full').map((g) => (
