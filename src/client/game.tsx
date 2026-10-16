@@ -1053,7 +1053,7 @@ function MyPanel({ view, me, color, groupEnabled, onlyHire, onlyCopy, onGroup, o
             <button key={g} className={`small ${groupBlocker(view, me, g) ? 'short' : ''}`}
               title={me.groupUsed.includes(g) ? 'Уже сделано в эту Пятилетку' : groupBlocker(view, me, g) ?? GROUP_ACTIONS[g].hint}
               disabled={!groupEnabled || me.groupUsed.includes(g) || (onlyHire && g !== 'hire') || (onlyCopy && g !== 'copyText')} onClick={() => onGroup(g)}>
-              {GROUP_ACTIONS[g].name}{groupN(me, g) && <span className="dot num inline" style={{ background: color }}>{groupN(me, g)}</span>}
+              {GROUP_ACTIONS[g].name}<GroupSlot p={me} g={g} color={color} />
             </button>
           ))}
         </div>
@@ -1072,12 +1072,19 @@ function OtherPlayer({ view, p, color, active, first }: { view: PlayerView; p: V
       <div className="group-actions readonly" title="Действия Инициативной группы в эту Пятилетку">
         {(Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => !GROUP_ACTIONS[g].fullOnly || view.mode === 'full').map((g) => (
           <span key={g} className={`gact ${p.groupUsed.includes(g) ? 'used' : ''}`} title={GROUP_ACTIONS[g].hint}>
-            {GROUP_ACTIONS[g].name}{groupN(p, g) && <span className="dot num inline" style={{ background: color }}>{groupN(p, g)}</span>}
+            {GROUP_ACTIONS[g].name}<GroupSlot p={p} g={g} color={color} />
           </span>
         ))}
       </div>
     </div>
   );
+}
+
+// Место действия Группы: пустой кружок, пока не сделано; потом — цвет игрока и номер действия.
+function GroupSlot({ p, g, color }: { p: VPlayer; g: GroupActionId; color: string }) {
+  const n = groupN(p, g);
+  if (!n && !p.groupUsed.includes(g)) return <span className="dot num inline slot-free" title="Свободно в эту Пятилетку" />;
+  return <span className="dot num inline" style={{ background: color }}>{n ?? ''}</span>;
 }
 
 // Номер действия Группы в эту Пятилетку (если делалось Единомышленником).
