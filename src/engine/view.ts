@@ -23,8 +23,14 @@ export interface PlayerView extends Omit<GameState, 'rng' | 'seed' | 'deck' | 'd
 export function viewFor(state: GameState, me: string | null, omniscient = false): PlayerView {
   const ended = state.phase === 'end' || omniscient;
   const { rng, seed, deck, discard, loadDeck, loadDiscard, baraholka, players, pending, log, spetskhran, ...rest } = state;
+  // Пока выбирают Пристрастия, стол ещё не открыт: видны только свои стартовые книги.
+  const closedTable = state.phase === 'passion' && !omniscient;
   return {
     ...rest,
+    ...(closedTable ? {
+      razval: rest.razval.map(() => null), tolkuchka: [], knigoobmen: [], raspredelitel: [],
+      sprouts: [], patrons: [], safehouses: [], banned: [],
+    } : {}),
     me,
     active: activePlayers(state),
     spetskhranCount: spetskhran.length,
@@ -32,7 +38,7 @@ export function viewFor(state: GameState, me: string | null, omniscient = false)
     discardCount: discard.length,
     loadDeckCount: loadDeck.length,
     loadDiscardCount: loadDiscard.length,
-    baraholka: baraholka.map((c) => c !== null),
+    baraholka: baraholka.map((c) => !closedTable && c !== null),
     players: players.map((p) => {
       const own = p.id === me || ended;
       // До раскладки Тайников в начале партии чужие стартовые книги не видны совсем.

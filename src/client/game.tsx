@@ -95,6 +95,9 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
         <span className="muted small">Действие сделано</span>
         <button className="primary" tabIndex={afterAction ? 0 : -1} onClick={() => act({ type: 'endTurn' })}>Закончить ход</button>
       </div>
+      {view.phase === 'passion' && me ? (
+        <p className="center muted">Стол откроется, когда все выберут Пристрастия.</p>
+      ) : (
       <main className="layout">
         <section className="board">
           <div className="addresses">
@@ -118,6 +121,7 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
           <Log view={view} seatIndex={seatIndex} />
         </aside>
       </main>
+      )}
 
       {panel?.kind === 'address' && panel.id === 'club' && RULES.clubFreeGift && me && canGift && (
         <ClubGiftModal view={view} me={me} act={act} close={() => setPanel(null)} />
@@ -132,7 +136,7 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
         <GroupPanel id={panel.id} view={view} me={me} close={() => setPanel(null)} done={(group) => { act({ type: 'group', group }); setPanel(null); }} />
       )}
       {myPending && me && <PendingPrompt view={view} me={me} act={act} nameOf={nameOf} />}
-      {!myPending && me && view.phase === 'passion' && view.active.includes(me.id) && <PassionPrompt me={me} act={act} />}
+      {!myPending && me && view.phase === 'passion' && view.active.includes(me.id) && <PassionPrompt view={view} me={me} act={act} />}
       {!myPending && me && view.phase === 'gathering' && view.active.includes(me.id) && <GatheringPrompt view={view} me={me} act={act} />}
       {!myPending && me && view.phase === 'hiding' && view.active.includes(me.id) && <HidingPrompt view={view} me={me} act={act} />}
       {!myPending && me && view.phase === 'setupCache' && view.active.includes(me.id) && (
@@ -872,10 +876,12 @@ function PendingPrompt({ view, me, act, nameOf }: { view: PlayerView; me: VPlaye
   }
 }
 
-function PassionPrompt({ me, act }: { me: VPlayer; act: (a: Action) => void }) {
+function PassionPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
   return (
-    <Modal title="Тайное Пристрастие">
-      <p>Выберите одно из двух. Второе уйдёт в коробку, никто его не увидит.</p>
+    <Modal title="Тайное Пристрастие" wide>
+      <h4>Ваши стартовые книги</h4>
+      <div className="shelf wrap">{me.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} small />)}</div>
+      <p>Выберите одно из двух Пристрастий. Второе уйдёт в коробку, никто его не увидит.</p>
       <div className="passions">
         {me.passionOptions.map((id) => (
           <button key={id} className="passion" onClick={() => act({ type: 'choosePassion', passion: id })}>

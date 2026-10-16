@@ -959,3 +959,22 @@ describe('Стартовый Тайник', () => {
     if (fav) expect(take([plain, fav])).toEqual([fav]);
   });
 });
+
+describe('Выбор Пристрастий', () => {
+  it('видны свои стартовые книги, но не стол и не чужие книги', () => {
+    const s = createGame({ players: players(3), seed: 12, mode: 'full' });
+    expect(s.phase).toBe('passion');
+    expect(s.razval.some(Boolean)).toBe(true);
+    const v = viewFor(s, 'p1');
+    const me = v.players.find((p) => p.id === 'p1')!;
+    expect(me.warehouse.every((w) => w.card)).toBe(true);
+    for (const p of v.players.filter((x) => x.id !== 'p1')) expect(p.warehouse.every((w) => w.card === null)).toBe(true);
+    expect(v.razval.every((c) => c === null)).toBe(true);
+    expect(v.baraholka.every((x) => !x)).toBe(true);
+    expect(v.tolkuchka).toEqual([]);
+    expect(v.sprouts).toEqual([]);
+    expect(v.patrons).toEqual([]);
+    // Наблюдатель-хост видит всё.
+    expect(viewFor(s, null, true).razval.some(Boolean)).toBe(true);
+  });
+});
