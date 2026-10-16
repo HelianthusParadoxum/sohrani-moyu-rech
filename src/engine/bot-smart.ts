@@ -789,8 +789,15 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       case 'baraholkaLook': return [...pend.seen.map((x) => ({ type: 'baraholkaBuy' as const, slot: x.slot })), { type: 'baraholkaBuy' }];
       case 'kvartirnikReply': return [{ type: 'kvartirnikReply', accept: true }, { type: 'kvartirnikReply', accept: false }];
       case 'naslednikiPick': {
+        // Пары — из лучших по отдельности книг (по оценке бота: для Ростков, Пристрастия, издания), а не из последних в сбросе.
+        const withCard = (c: string) => {
+          const s = { ...state, players: state.players.map((q) => (q.id === me ? { ...q, warehouse: [...q.warehouse, { card: c, hidden: false }] } : q)) };
+          return evaluate(s, me, ctx);
+        };
+        const value = new Map(pend.cards.map((c) => [c, withCard(c)]));
+        const best = [...pend.cards].sort((a, b) => value.get(b)! - value.get(a)!).slice(0, 6);
         const singles = pend.cards.map((c) => [c]);
-        return [...singles, ...subsets(pend.cards.slice(-8), 2).filter((x) => x.length === 2)].map((cards) => ({ type: 'naslednikiPick', cards }));
+        return [...singles, ...subsets(best, 2).filter((x) => x.length === 2)].map((cards) => ({ type: 'naslednikiPick', cards }));
       }
       case 'posrednichestvoKeep': {
         const need = Math.min(RULES.posrednichestvoKeep, pend.cards.length);
