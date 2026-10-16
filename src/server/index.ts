@@ -94,13 +94,18 @@ const newId = () => randomBytes(6).toString('hex');
 function roomInfo(room: Room): RoomInfo {
   return {
     code: room.code, host: room.host, mode: room.mode, started: !!room.state,
-    seats: room.seats.map((s) => ({ id: s.id, name: s.name, bot: s.bot, online: isOnline(room, s.id), preset: s.preset ?? DEFAULT_PRESET })),
+    seats: room.seats.map((s) => ({ id: s.id, name: s.name, bot: s.bot, online: isOnline(room, s.id), preset: seatPreset(room, s) })),
     canUndo: room.history.length > 0,
     hostBot: hostSeat(room)?.bot ?? false,
     botDelay: room.botDelay ?? 700,
     curator: !room.noCurator,
     outdated: room.outdated,
   };
+}
+
+// Пресет бота за местом: выбранный хостом, а если не выбран — «Одиночка» в одиночной игре и «Книжник» в остальных.
+function seatPreset(room: Room, seat: Seat): string {
+  return seat.preset ?? (room.seats.length === 1 ? 'soloist' : DEFAULT_PRESET);
 }
 
 function hostSeat(room: Room) {
@@ -138,7 +143,8 @@ function scheduleBots(room: Room) {
     botTimers.delete(room.code);
     if (!room.state) return;
     try {
-      room.state = botMove(room.state, who, Math.random, room.seats.find((s) => s.id === who)?.preset);
+      const seat = room.seats.find((s) => s.id === who);
+      room.state = botMove(room.state, who, Math.random, seat && seatPreset(room, seat));
     } catch (e) {
       console.error('Ошибка бота', e);
       return;

@@ -119,6 +119,22 @@ export const BOT_PRESETS: BotPreset[] = [
     character: { reserve: 0, caution: 0.8, randomness: 0.1, aggression: 0.3 },
   },
   {
+    id: 'soloist',
+    name: 'Одиночка',
+    description: 'Для одиночной игры («Несистемный»): прежде всего безопасность Гласности — все Ростки до III, один до IV; ищет книги на Барахолке и Завозе, издаёт только лишнее.',
+    goals: {
+      network: [7, 6, 4, 1, 0],
+      sprouts: [10, 10, 10, 10, 10],
+      sproutBooks: [10, 10, 10, 10, 8],
+      publish: [2, 2, 2, 3, 4],
+      talons: [6, 6, 5, 5, 4],
+      passion: [2, 2, 2, 3, 4],
+      storage: [4, 4, 3, 2, 0],
+      club: [4, 4, 3, 2, 1],
+    },
+    character: { reserve: 0, caution: 0.9, randomness: 0.05, aggression: 0 },
+  },
+  {
     id: 'random',
     name: 'Случайный',
     description: 'Прежний бот: ходит почти наугад. Нужен для сравнения.',
