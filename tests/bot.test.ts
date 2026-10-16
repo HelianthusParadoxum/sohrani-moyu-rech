@@ -186,9 +186,8 @@ describe('думающий бот в полном режиме', () => {
     expect(curatorStyleNote({ seed: 1 }, 'p1', 'Бот 1')).toContain(CURATOR_STYLES[curatorStyle({ seed: 1 }, 'p1')].name);
   });
 
-  it('Куратор кормит разве что I ступень (маскировка) и бережёт Пропаганду', () => {
+  it('Куратор кормит Ростки разве что один раз (маскировка) и бережёт Пропаганду', () => {
     let feeds = 0;
-    let firstSteps = 0;
     let curators = 0;
     let recycled = 0;
     for (let seed = 1; seed <= 4; seed++) {
@@ -202,17 +201,14 @@ describe('думающий бот в полном режиме', () => {
       s = playOut(s, seeded(seed), 8000, 'bookman');
       const cur = s.players[0];
       curators++;
-      const fed = s.log.filter((l) => l.text.startsWith(`${cur.name} питает Росток`));
-      firstSteps += fed.filter((l) => l.text.includes('ступень I закрыта')).length;
-      feeds += fed.length;
+      feeds += s.log.filter((l) => l.text.startsWith(`${cur.name} питает Росток`)).length;
       // Пропаганда в конце срезает Ростки — Куратор её в макулатуру не сдаёт.
       const propaganda = Object.values(s.cards).filter((c) => c.kind === 'propaganda').map((c) => `«${c.title}»`);
       recycled += s.log.filter((l) => l.text.startsWith(`${cur.name} в Красном уголке`) && propaganda.some((t) => l.text.includes(t))).length;
     }
     expect(curators).toBe(4);
-    // I ступень — не больше одной за партию; выше — почти никогда.
-    expect(firstSteps).toBeLessThanOrEqual(curators);
-    expect((feeds - firstSteps) / curators).toBeLessThan(0.5);
+    // Одна ступень для маскировки, дальше — почти никогда.
+    expect(feeds / curators).toBeLessThan(1.5);
     expect(recycled).toBe(0);
   }, 120_000);
 });

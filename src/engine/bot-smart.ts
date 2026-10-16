@@ -431,12 +431,12 @@ export function rankActions(state: GameState, me: string, preset: BotPreset, ran
     cands = cands.filter((a) => a.type === 'choosePassion' && (a.passion === 'curator') === curator);
     if (curator) return [{ a: cands[0], v: 0 }];
   }
-  // Маскировка: I ступень Ростка Куратору почти ничего не стоит (Талоны, очки, бонус), поэтому первую ступень он закрывает
-  // так же охотно, как честный книжник, — один раз за партию. Решает, как решил бы честный на его месте.
+  // Маскировка: первое кормление Куратор делает так же охотно, как честный книжник, — одну ступень за партию
+  // (самую низкую из тех, что закрыл бы честный на его месте). Ранняя ступень Куратору почти ничего не стоит.
   if (ctx.curator && state.phase === 'orders' && !player(state, me).sproutsFed.length
-    && cands.some((a) => a.type === 'place' && a.place.address === 'sprouts' && firstStepFeed(state, a.place.feeds))) {
+    && cands.some((a) => a.type === 'place' && a.place.address === 'sprouts')) {
     const top = rankActions(state, me, preset, rand, true)[0]?.a;
-    const feed = top?.type === 'place' && top.place.address === 'sprouts' ? firstStepFeed(state, top.place.feeds) : null;
+    const feed = top?.type === 'place' && top.place.address === 'sprouts' ? lowestFeed(state, top.place.feeds) : null;
     if (feed) return [{ a: { type: 'place', place: { address: 'sprouts', feeds: [feed] } }, v: 0 }];
   }
   // Дальше Куратор почти никогда не кормит Ростки: это слишком дорого (но изредка — чтобы не читался железно).
@@ -478,9 +478,11 @@ export function rankActions(state: GameState, me: string, preset: BotPreset, ran
   return rated.sort((x, y) => y.v - x.v);
 }
 
-// Первая в списке ступень I (Росток ещё не кормили).
-function firstStepFeed(state: GameState, feeds: { sprout: string; books: string[] }[]) {
-  return feeds.find((f) => state.sprouts.find((sp) => sp.id === f.sprout)?.progress === 0) ?? null;
+// Ступень у самого слабого Ростка из списка (только первые ступени каждого Ростка — их можно закрыть по отдельности).
+function lowestFeed(state: GameState, feeds: { sprout: string; books: string[] }[]) {
+  const first = feeds.filter((f, i) => feeds.findIndex((g) => g.sprout === f.sprout) === i);
+  const progress = (f: { sprout: string }) => state.sprouts.find((sp) => sp.id === f.sprout)?.progress ?? 9;
+  return first.sort((a, b) => progress(a) - progress(b))[0] ?? null;
 }
 
 export function smartMove(state: GameState, me: string, preset: BotPreset, rand: Rand): GameState | null {
