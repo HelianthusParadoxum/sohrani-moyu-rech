@@ -85,11 +85,16 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
       <div className={`status ${myTurn ? 'mine' : ''}`}>
         {status}
         {bonusTurn && <button className="small" onClick={() => act({ type: 'pass' })}>Отказаться</button>}
-        {afterAction && <button className="primary small" onClick={() => act({ type: 'endTurn' })}>Закончить ход</button>}
+        {afterAction && <button className="primary small end-turn-inline" onClick={() => act({ type: 'endTurn' })}>Закончить ход</button>}
         {view.phase === 'end' && view.result && <button className="small" onClick={() => setShowResult(true)}>Таблица счёта</button>}
         {canPlace && me.visitedRedCorner && <button className="small" onClick={() => confirm('Спасовать до конца Пятилетки? Оставшиеся Единомышленники не будут действовать.') && act({ type: 'pass' })}>Спасовать</button>}
       </div>
 
+      {/* На телефоне «Закончить ход» выезжает снизу экрана, чтобы не листать к строке статуса. */}
+      <div className={`end-turn-sheet ${afterAction ? 'show' : ''}`} aria-hidden={!afterAction}>
+        <span className="muted small">Действие сделано</span>
+        <button className="primary" tabIndex={afterAction ? 0 : -1} onClick={() => act({ type: 'endTurn' })}>Закончить ход</button>
+      </div>
       <main className="layout">
         <section className="board">
           <div className="addresses">
