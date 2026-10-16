@@ -71,6 +71,11 @@ function blockBonus(state: GameState, a: Action, ctx: Ctx): number {
 }
 const BLOCK_ADDRESSES: string[] = ['baraholka', 'spisanie', 'nasledniki', 'posrednichestvo', 'raspredelitel'];
 
+// Сколько пользы Завсегдатай даёт остальным: его сила × число связанных с ним игроков (кроме me).
+function patronWorthToOthers(pt: GameState['patrons'][number], me: string): number {
+  return (PATRON_POWER[pt.id] ?? 0.3) * pt.connections.filter((id) => id !== me).length;
+}
+
 // Согласится ли сосед на обмен на Квартирнике — догадка по открытому: получит не меньше значков, чем отдаст.
 function kvartirnikLikely(state: GameState, give: string, want: string): boolean {
   return iconsOf(state, give).length >= iconsOf(state, want).length;
@@ -245,6 +250,8 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   v -= BOT_BASE.curatorDenyFeed * feedBooksOnTable(state);
   // ...и такие же книги, открыто лежащие у честных: им нельзя их дарить (Квартирник), а отнять — хорошо.
   v -= BOT_BASE.curatorDenyHands * others.reduce((s, o) => s + o.warehouse.filter((w) => !w.hidden && feedUseful(state, w.card)).length, 0);
+  // Связи честных с Завсегдатаями — их сила; Профилактика её отнимает.
+  v -= BOT_BASE.curatorPatronDeny * state.patrons.filter((pt) => !pt.removed).reduce((s, pt) => s + patronWorthToOthers(pt, p.id), 0);
   // Связь с сильным Завсегдатаем в эту Пятилетку закрывает его для остальных до следующей.
   for (const pt of state.patrons) {
     if (pt.removed || !pt.connections.includes(p.id) || pt.since?.[p.id] !== state.round) continue;
@@ -674,13 +681,18 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
     const leader = rivals.sort((a, b) => strength(state, b, left) - strength(state, a, left))[0];
     if (leader) items.push({ signal: leader.id });
     // Профилактика: Завсегдатай, с которым связаны соперники, а бот — нет.
+    // Куратор выбивает того, кто больше всех даёт честным: сила Завсегдатая × сколько честных с ним связаны.
     const patrons = state.patrons.filter((x) => !x.removed && !x.connections.includes(me) && x.connections.length > 0)
-      .sort((a, b) => b.connections.length - a.connections.length);
+      .sort((a, b) => ctx.curator
+        ? patronWorthToOthers(b, me) - patronWorthToOthers(a, me)
+        : b.connections.length - a.connections.length);
     if (patrons[0]) items.push({ prophylaxis: patrons[0].id });
   }
   const out: KontoraChoice[] = [];
   for (const set of subsets(items, items.length)) {
     const choice = Object.assign({}, ...set) as KontoraChoice;
+    // Куратор, раз уж пошёл в Контору, Профилактику проводит всегда.
+    if (ctx.curator && items.some((x) => x.prophylaxis) && !choice.prophylaxis) continue;
     for (const seize of seizes) out.push({ ...choice, seize });
   }
   return out;
