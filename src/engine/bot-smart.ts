@@ -435,7 +435,12 @@ export function rankActions(state: GameState, me: string, preset: BotPreset, ran
   // (самую низкую из тех, что закрыл бы честный на его месте). Ранняя ступень Куратору почти ничего не стоит.
   if (ctx.curator && state.phase === 'orders' && !player(state, me).sproutsFed.length
     && cands.some((a) => a.type === 'place' && a.place.address === 'sprouts')) {
-    const top = rankActions(state, me, preset, rand, true)[0]?.a;
+    // Путь Куратора к этому ходу уже не такой, как у честного (Пропаганда, Контора), поэтому честная оценка одна даёт
+    // кормление реже, чем у честных книжников; добавка «просто покормить» выравнивает частоту (`curatorMimicFeed`).
+    const mimic = rand() < BOT_BASE.curatorMimicFeed;
+    const top = mimic
+      ? cands.find((a) => a.type === 'place' && a.place.address === 'sprouts')
+      : rankActions(state, me, preset, rand, true)[0]?.a;
     const feed = top?.type === 'place' && top.place.address === 'sprouts' ? lowestFeed(state, top.place.feeds) : null;
     if (feed) return [{ a: { type: 'place', place: { address: 'sprouts', feeds: [feed] } }, v: 0 }];
   }
