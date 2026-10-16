@@ -47,6 +47,12 @@ export function useServer(code: string | null) {
           writeToken(msg.code, msg.token);
           if (location.hash !== `#/r/${msg.code}`) location.hash = `#/r/${msg.code}`;
         } else if (msg.t === 'room') {
+          // Сервер обновился, а в браузере старая страница — перезагрузить (один раз на версию, без зацикливания).
+          if (msg.build && msg.build !== __CLIENT_BUILD__) {
+            let tried: string | null = null;
+            try { tried = sessionStorage.getItem('smr:reloaded'); sessionStorage.setItem('smr:reloaded', msg.build); } catch { /* ignore */ }
+            if (tried !== msg.build) { location.reload(); return; }
+          }
           setState((s) => ({ ...s, room: msg.room, you: msg.you, isHost: msg.isHost, view: msg.view, error: null, canStepBack: !!msg.canStepBack }));
         } else if (msg.t === 'gone') {
           setState((s) => ({ ...s, gone: true }));

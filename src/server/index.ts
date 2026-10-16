@@ -34,6 +34,9 @@ interface Room {
 const BUILD = process.env.RENDER_GIT_COMMIT
   ?? (existsSync(join(DIST, 'index.html')) ? createHash('sha1').update(readFileSync(join(DIST, 'index.html'))).digest('hex').slice(0, 12) : 'dev');
 
+// Метка собранного клиента (dist/build.txt): браузер с устаревшей страницей перезагрузит её.
+const CLIENT_BUILD = existsSync(join(DIST, 'build.txt')) ? readFileSync(join(DIST, 'build.txt'), 'utf8').trim() : undefined;
+
 const rooms = new Map<string, Room>();
 const sockets = new Map<WebSocket, { room: string; seat: string | null; host: boolean }>();
 
@@ -120,7 +123,7 @@ function broadcast(room: Room) {
     // Хост, за которого играет бот, смотрит партию со стороны и видит всё.
     const omniscient = c.host && !c.seat;
     const canStepBack = !!c.seat && room.stepBack?.player === c.seat && room.stepBack.states.length > 0;
-    send(ws, { t: 'room', room: info, you: c.seat, isHost: c.host, view: room.state ? viewFor(room.state, c.seat, omniscient) : null, canStepBack });
+    send(ws, { t: 'room', room: info, you: c.seat, isHost: c.host, view: room.state ? viewFor(room.state, c.seat, omniscient) : null, canStepBack, build: CLIENT_BUILD });
   }
 }
 
@@ -341,7 +344,10 @@ const server = createServer((req, res) => {
     res.writeHead(404).end('Клиент не собран: выполните npm run build');
     return;
   }
-  res.writeHead(200, { 'content-type': MIME[extname(file)] ?? 'application/octet-stream' });
+  // Страницу браузер каждый раз сверяет с сервером (иначе после обновления игры остаётся старая версия);
+  // файлы из assets/ с отпечатком в имени можно хранить сколько угодно.
+  const cache = file.includes(`${join(DIST, 'assets')}`) ? 'public, max-age=31536000, immutable' : 'no-cache';
+  res.writeHead(200, { 'content-type': MIME[extname(file)] ?? 'application/octet-stream', 'cache-control': cache });
   res.end(readFileSync(file));
 });
 

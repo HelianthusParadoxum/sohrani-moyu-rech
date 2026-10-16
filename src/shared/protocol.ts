@@ -34,6 +34,6 @@ export type ClientMessage =
 
 export type ServerMessage =
   | { t: 'joined'; code: string; token: string }
-  | { t: 'room'; room: RoomInfo; you: string | null; isHost: boolean; view: PlayerView | null; canStepBack?: boolean }
+  | { t: 'room'; room: RoomInfo; you: string | null; isHost: boolean; view: PlayerView | null; canStepBack?: boolean; build?: string }
   | { t: 'error'; message: string }
   | { t: 'gone'; code: string }; // комнаты нет (например, сервер обновили и сохранения пропали)
