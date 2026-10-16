@@ -162,8 +162,11 @@ function AddressCard(props: AddressProps) {
   const info = ADDRESSES[id];
   const full = addressFull(id, view, me);
   const inlineHint = id === 'club'; // у Клуба описание — в строке заголовка, справа
+  // Поручение можно дать нажатием на любое место адреса, не только на кнопку «сюда».
+  const open = enabled && !full ? props.onOpen : undefined;
   return (
-    <div className={`address addr-${id} ${info.safehouse ? 'safehouse' : ''} ${enabled && !full ? 'can' : ''}`}>
+    <div className={`address addr-${id} ${info.safehouse ? 'safehouse' : ''} ${open ? 'can' : ''}`} onClick={open}
+      role={open ? 'button' : undefined} title={open ? 'Отправить Единомышленника сюда' : undefined}>
       <AddressHead {...props} inlineHint={inlineHint} />
       {!inlineHint && <div className="hint">{info.hint}</div>}
       <AddressContents id={id} view={view} seatIndex={seatIndex} />
@@ -192,8 +195,8 @@ function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint }: A
           {!freeClub && (limit === Infinity
             ? <span className="muted small">∞</span>
             : Array.from({ length: Math.max(0, limit - here.length) }, (_, i) => <span key={`free${i}`} className="dot num slot-free" title="Свободное место" />))}
-          {enabled && freeClub && <button className="go small" onClick={onOpen} title="Свободное действие: Единомышленник не нужен">отдать книгу →</button>}
-          {enabled && !freeClub && <button className="go small" disabled={full} onClick={onOpen} title={full ? 'Мест нет' : 'Отправить Единомышленника сюда'}>{full ? 'занято' : 'сюда →'}</button>}
+          {enabled && freeClub && <button className="go small" onClick={(e) => { e.stopPropagation(); onOpen(); }} title="Свободное действие: Единомышленник не нужен">отдать книгу →</button>}
+          {enabled && !freeClub && <button className="go small" disabled={full} onClick={(e) => { e.stopPropagation(); onOpen(); }} title={full ? 'Мест нет' : 'Отправить Единомышленника сюда'}>{full ? 'занято' : 'сюда →'}</button>}
         </span>
       </div>
   );
@@ -885,13 +888,14 @@ function PassionPrompt({ me, act }: { me: VPlayer; act: (a: Action) => void }) {
 }
 
 function GatheringPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
-  const [sel, setSel] = useState<string[]>([]);
   const full = view.mode === 'full';
   const isDrama = (c: string) => full && iconsOf(view, c).includes('drama');
   const cands = [
     ...me.warehouse.map((s) => s.card!).filter((c) => c && (iconsOf(view, c).length > 0 || isEvidence(view, c)) && (isBanned(view, c) || isDrama(c))),
     ...me.published.filter(isDrama),
   ];
+  // По умолчанию к показу выбраны все опальные книги со Склада (за каждую — очко).
+  const [sel, setSel] = useState<string[]>(() => cands.filter((c) => isBanned(view, c) && !me.published.includes(c)));
   const pts = sel.reduce((s, c) => s + (isBanned(view, c) && !me.published.includes(c) ? 1 : 0) + (isDrama(c) ? 1 : 0), 0);
   return (
     <Modal title="Посиделки" wide>

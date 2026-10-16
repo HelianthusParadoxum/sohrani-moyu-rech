@@ -275,18 +275,20 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 .log .act .dot.num { margin-right: 6px; vertical-align: -3px; }
 .log .dot.num.wide { margin-right: 6px; vertical-align: -3px; }
 
-/* «Закончить ход» на телефоне: панель выезжает снизу. На широком экране — кнопка в строке статуса. */
-.end-turn-sheet { display: none; }
-@media (max-width: 1000px) {
-  .end-turn-inline { display: none; }
-  .end-turn-sheet {
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
-    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-    background: var(--paper, #f3ebdc); border-top: 1px solid rgba(0,0,0,.15); box-shadow: 0 -4px 16px rgba(0,0,0,.18);
-    transform: translateY(110%); transition: transform .25s ease-out; pointer-events: none;
-  }
-  .end-turn-sheet.show { transform: translateY(0); pointer-events: auto; }
-  .end-turn-sheet button { padding: 10px 22px; font-size: 1rem; }
-  .layout { padding-bottom: 72px; }
+/* «Закончить ход» выезжает панелью снизу экрана — видна, куда бы ни прокрутили страницу. */
+.end-turn-sheet {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: var(--paper); border-top: 1px solid rgba(0,0,0,.15); box-shadow: 0 -4px 16px rgba(0,0,0,.18);
+  transform: translateY(110%); transition: transform .25s ease-out, visibility .25s; visibility: hidden;
 }
+.end-turn-sheet.show { transform: translateY(0); visibility: visible; }
+.end-turn-sheet button { padding: 10px 22px; font-size: 1rem; }
+.layout { padding-bottom: 72px; }
+/* На широком экране — компактная плашка в правом нижнем углу. */
+@media (min-width: 1001px) {
+  .end-turn-sheet { left: auto; right: 20px; bottom: 20px; border: 1px solid rgba(0,0,0,.15); border-radius: 8px; transform: translateY(150%); }
+}
+@media (max-width: 1000px) { .end-turn-inline { display: none; } }
+.address.can { cursor: pointer; }
