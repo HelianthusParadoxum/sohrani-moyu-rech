@@ -850,3 +850,61 @@ describe('Лаборант', () => {
     expect(() => applyAction(s, me, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: a.id, books: [ka] }] } })).toThrow();
   });
 });
+
+describe('Несистемный (одиночная игра)', () => {
+  const solo = (seed: number, mode: 'beginner' | 'full' = 'full') => createGame({ players: [{ id: 'p1', name: 'Один' }], seed, mode });
+
+  it('3 Ростка, без Куратора в Пристрастиях', () => {
+    for (let seed = 1; seed <= 30; seed++) {
+      const s = solo(seed);
+      expect(s.solo).toBe(true);
+      expect(s.sprouts).toHaveLength(RULES.soloSprouts);
+      expect(s.players[0].passionOptions).not.toContain('curator');
+      expect(s.curatorPossible).toBeFalsy();
+    }
+  });
+
+  it('Цензура растёт на 1 каждую Пятилетку, со 2-й — лишний жетон бьёт по Клубу', () => {
+    const rand = seeded(5);
+    let s = solo(7);
+    const seen: number[] = [];
+    let round = 0;
+    for (let i = 0; i < 5000 && s.phase !== 'end'; i++) {
+      if (s.round !== round && s.phase === 'orders') {
+        round = s.round;
+        seen.push(s.censorship);
+        if (round >= 2) expect(s.log.some((l) => l.round === round && l.text.startsWith('Несистемный: вытянут жетон'))).toBe(true);
+      }
+      s = playOut(s, rand, 1);
+    }
+    expect(seen).toEqual([3, 4, 5, 6, 7]);
+    // За 4 Пятилетки — 4 жетона; за каждым — Профилактика или Контора (её может отвести Психиатр).
+    const after = s.log.flatMap((l, i) => (l.text.startsWith('Несистемный: вытянут жетон') ? [s.log[i + 1].text] : []));
+    expect(after).toHaveLength(4);
+    for (const t of after) expect(t).toMatch(/^Профилактика|^Контора удерживает|Психиатр/);
+  });
+
+  it('в конце вскрываются 30 Непечатных: Пропаганда срезает самый развитый Росток', () => {
+    let s = solo(3, 'beginner');
+    s = applyAction(s, 'p1', { type: 'choosePassion', passion: s.players[0].passionOptions[0] });
+    s = startOrders(s);
+    s.sprouts.forEach((sp, i) => { sp.progress = i === 0 ? 4 : 3; });
+    const prop = Object.keys(s.cards).filter((c) => s.cards[c].kind === 'propaganda');
+    const plain = s.deck.filter((c) => s.cards[c].kind !== 'propaganda');
+    // Сверху колоды две Пропаганды: первая срежет IV ступень, вторая — уже ступень III.
+    s.deck = [...plain.slice(0, 40), prop[0], prop[1]];
+    const r = finalScoring(s);
+    expect(s.sprouts.map((x) => x.progress).sort()).toEqual([2, 3, 3]);
+    expect(r.glasnost).toBe(false);
+    expect(r.winners).toEqual([]);
+  });
+
+  it('Гласность устояла — победа', () => {
+    let s = solo(4, 'beginner');
+    s = applyAction(s, 'p1', { type: 'choosePassion', passion: s.players[0].passionOptions[0] });
+    s = startOrders(s);
+    s.sprouts.forEach((sp) => { sp.progress = 4; });
+    const r = finalScoring(s);
+    expect(r.winners).toEqual(['p1']);
+  });
+});

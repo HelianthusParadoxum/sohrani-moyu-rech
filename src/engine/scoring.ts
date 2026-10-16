@@ -2,7 +2,7 @@
 import { PASSIONS, RULES, SPROUTS } from './content';
 import type { GameResult, GameState, Genre, PlayerState, ScoreLine } from './types';
 import { GENRES } from './types';
-import { iconVariants, iconsOf, isEvidence, isPropaganda, log, roman } from './util';
+import { discard, draw, iconVariants, iconsOf, isEvidence, isPropaganda, log, roman } from './util';
 
 // Коллекция для Пристрастия: склад (включая Тайник) + изданное.
 export function collection(state: GameState, p: PlayerState): string[] {
@@ -108,6 +108,8 @@ export function finalScoring(state: GameState): GameResult {
   const curator = state.players.find((p) => p.passion === 'curator');
   const sproutName = (id: string) => SPROUTS.find((s) => s.id === id)!.name;
 
+  if (state.solo) return soloResult(state, scores, sproutName);
+
   if (!glasnostReached(state)) {
     return {
       glasnost: false, scores,
@@ -169,4 +171,36 @@ export function finalScoring(state: GameState): GameResult {
   }
   const tie = steps.length ? ` ${steps.join(' → ').replace(/^./, (ch) => ch.toUpperCase())}.` : '';
   return { glasnost: true, scores, winners, note: `Гласность наступила! Победа: ${names} (${top.s.total} очков).${tie}` };
+}
+
+// Несистемный: вскрываются верхние Непечатные, каждая Пропаганда срезает ступень у самого развитого Ростка.
+// Победа — только если после этого все Ростки не ниже III ступени; дальше важны очки.
+function soloResult(state: GameState, scores: ScoreLine[], sproutName: (id: string) => string): GameResult {
+  const me = state.players[0];
+  const total = scores[0].total;
+  if (!glasnostReached(state)) {
+    return { glasnost: false, scores, winners: [], note: `Гласность не наступила — поражение (${total} очк.).` };
+  }
+  let propaganda = 0;
+  for (let i = 0; i < RULES.soloEndCards; i++) {
+    const c = draw(state);
+    if (!c) break;
+    if (isPropaganda(state, c)) {
+      propaganda++;
+      const top = [...state.sprouts].sort((a, b) => b.progress - a.progress)[0];
+      if (top.progress > 0) {
+        top.progress--;
+        log(state, `Пропаганда «${state.cards[c].title}»: Росток «${sproutName(top.id)}» — ступень ${roman(top.progress + 1)} → ${top.progress ? roman(top.progress) : '0'}.`);
+      }
+    }
+    discard(state, c);
+  }
+  log(state, `Вскрыто ${RULES.soloEndCards} Непечатных, Пропаганды среди них: ${propaganda}.`);
+  const won = glasnostReached(state);
+  return {
+    glasnost: won, scores, winners: won ? [me.id] : [],
+    note: won
+      ? `Гласность устояла (Пропаганды: ${propaganda}). Победа! Итог: ${total} очк.`
+      : `Пропаганда (${propaganda}) срезала Ростки — Гласность не устояла. Поражение (${total} очк.).`,
+  };
 }

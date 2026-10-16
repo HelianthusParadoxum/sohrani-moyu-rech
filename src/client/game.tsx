@@ -67,7 +67,7 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
     <div className="game">
       <header className="topbar">
         <div className="title">Сохрани мою речь</div>
-        <div>Пятилетка <b>{view.round}</b>/{RULES.rounds} · {PHASE_NAMES[view.phase]}</div>
+        <div>{view.solo && <>Несистемный · </>}Пятилетка <b>{view.round}</b>/{RULES.rounds} · {PHASE_NAMES[view.phase]}</div>
         <div className="banned">Цензура {view.censorship}: {view.banned.map((g) => <GenreChip key={g} g={g} banned />)}</div>
         <div className="muted small">Непечатные: {view.deckCount} (сброс {view.discardCount}) · Нагрузка: {view.loadDeckCount}</div>
         {isHost && (

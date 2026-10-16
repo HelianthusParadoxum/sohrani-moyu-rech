@@ -212,7 +212,7 @@ function handle(ws: WebSocket, msg: ClientMessage) {
     }
     case 'start': {
       if (!isHost || room.state) return;
-      if (room.seats.length < 2) return send(ws, { t: 'error', message: 'Нужно хотя бы 2 игрока (можно добавить бота)' });
+      if (room.seats.length < 1) return send(ws, { t: 'error', message: 'За столом никого нет' });
       room.state = createGame({ players: room.seats.map((s) => ({ id: s.id, name: s.name })), mode: room.mode, curator: !room.noCurator });
       room.history = [];
       break;

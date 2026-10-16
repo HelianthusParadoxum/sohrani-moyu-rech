@@ -311,12 +311,14 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
       v -= (lost + worker) * ctx.preset.character.caution;
     }
   }
-  if (ctx.full) {
-    // «Громоотвод»: запасные ступени сверх 3-й на случай срезов Куратора.
+  if (ctx.full || state.solo) {
+    // «Громоотвод»: запасные ступени сверх 3-й на случай срезов Куратора (в одиночной игре — Пропаганды из 30 вскрытых карт).
     const spare = state.sprouts.reduce((s, sp) => s + Math.max(0, sp.progress - RULES.glasnostStep), 0);
     // Подозревая Куратора (или видя угрозу Гласности), бот страхуется сильнее: срезы бьют по самым развитым Росткам.
     const cap = BOT_BASE.insuranceSteps + Math.round(BOT_BASE.coopInsuranceSteps * ctx.coop);
     v += BOT_BASE.insurance * (1 + BOT_BASE.coopInsurance * ctx.coop) * Math.min(spare, cap) * w.sprouts;
+  }
+  if (ctx.full) {
     // Общая угроза: при 7 удержанных проигрывают все.
     const held = heldTotal(state);
     v -= BOT_BASE.heldDoom * held * held * (held >= KONTORA_LOSS - 1 ? 3 : 1);

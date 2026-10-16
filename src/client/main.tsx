@@ -106,7 +106,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
               <option value="full">Полные правила</option>
             </select>
           </label>
-          {room.mode === 'full' && (
+          {room.mode === 'full' && room.seats.length > 1 && (
             <label className="row">
               <input type="checkbox" checked={room.curator} onChange={(e) => net.send({ t: 'setCurator', on: e.target.checked })} />
               Куратор в игре (агент госбезопасности среди Пристрастий)
@@ -119,8 +119,17 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
           <SpeedSelect room={room} send={net.send} />
           <div className="row">
             <button disabled={room.seats.length >= 4} onClick={() => net.send({ t: 'addBot' })}>Добавить бота</button>
-            <button className="primary" disabled={room.seats.length < 2} onClick={() => net.send({ t: 'start' })}>Начать партию</button>
+            <button className="primary" disabled={room.seats.length < 1} onClick={() => net.send({ t: 'start' })}>
+              {room.seats.length === 1 ? 'Начать одиночную партию' : 'Начать партию'}
+            </button>
           </div>
+          {room.seats.length === 1 && (
+            <p className="muted small">
+              Один игрок — режим «Несистемный»: 3 Ростка, Куратора нет, Цензура растёт на 1 каждую Пятилетку
+              {room.mode === 'full' ? ', со 2-й Пятилетки лишний жетон жанра бьёт по Клубу (Профилактика или Контора)' : ''}.
+              В конце вскрываются 30 Непечатных: каждая Пропаганда срезает ступень у самого развитого Ростка. Победа — если все Ростки устояли на III ступени.
+            </p>
+          )}
         </>
       )}
       {seated && !host && <p className="muted">Ждём, пока хост начнёт партию…</p>}

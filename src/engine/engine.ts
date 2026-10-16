@@ -7,7 +7,7 @@ import {
 import { finalScoring } from './scoring';
 import {
   afterRaid, doKontora, gaveAway, giveToPatron, holdWorker, isFull, kontoraLost, partorgFill, payPrice, price, proseBonus, purchases,
-  rescue, setupClub, startKontora, takeFromSpetskhran,
+  removePatron, rescue, setupClub, startKontora, takeFromSpetskhran,
 } from './full';
 import type {
   Action, AddressId, CopyTextAddress, GameState, Genre, GroupAction, Mode, PassionId, Pending, PlaceAction, PlayerState,
@@ -28,7 +28,8 @@ export interface NewGameOptions {
 
 export function createGame(opts: NewGameOptions): GameState {
   const n = opts.players.length;
-  check(n >= 2 && n <= 4, 'В игре участвуют от 2 до 4 игроков');
+  check(n >= 1 && n <= 4, 'В игре участвуют от 1 до 4 игроков');
+  const solo = n === 1; // «Несистемный»
   const seed = opts.seed ?? Math.floor(Math.random() * 2 ** 31);
   const mode = opts.mode ?? 'beginner';
   const cards = Object.fromEntries(CARDS.map((c) => [c.id, c]));
@@ -44,14 +45,18 @@ export function createGame(opts: NewGameOptions): GameState {
     safehouses: [], safehouseDeck: [], occupancy: {},
     sprouts: [], patrons: [], spetskhran: [], pending: [], ready: [], log: [],
   };
+  if (solo) state.solo = true;
   state.deck = shuffle(state, CARDS.filter((c) => !['load', 'loadReturnable', 'loadEvidence'].includes(c.kind)).map((c) => c.id));
   state.loadDeck = shuffle(state, CARDS.filter((c) => ['load', 'loadReturnable', 'loadEvidence'].includes(c.kind)).map((c) => c.id));
   state.safehouseDeck = shuffle(state, [...SAFEHOUSES]);
-  state.sprouts = shuffle(state, SPROUTS.map((s) => s.id)).slice(0, n + RULES.extraSprouts[mode]).map((id) => ({ id, progress: 0 }));
+  state.sprouts = shuffle(state, SPROUTS.map((s) => s.id)).slice(0, solo ? RULES.soloSprouts : n + RULES.extraSprouts[mode]).map((id) => ({ id, progress: 0 }));
 
   // Колода Пристрастий.
   let passions: PassionId[];
-  if (n >= 3) {
+  if (solo) {
+    // Одиночная игра: все Пристрастия, кроме Куратора.
+    passions = [...SPECIALS.filter((p) => p !== 'curator'), ...KEEPERS];
+  } else if (n >= 3) {
     let keepers = shuffle(state, [...KEEPERS]);
     if (n === 3) keepers = keepers.slice(3);
     const curator = mode === 'full' && opts.curator !== false;
@@ -84,7 +89,9 @@ export function createGame(opts: NewGameOptions): GameState {
   state.baraholka = Array.from({ length: RULES.displaySize }, () => draw(state));
   if (mode === 'full') setupClub(state);
   log(state, `Партия началась. Порядок хода: ${state.order.map((id) => player(state, id).name).join(', ')}.`);
-  log(state, 'Каждый игрок тайно выбирает одно из двух Пристрастий.');
+  log(state, solo
+    ? 'Несистемный: одиночная игра. Цензура растёт на 1 каждую Пятилетку; в конце вскроются 30 Непечатных — каждая Пропаганда срежет ступень Ростка.'
+    : 'Каждый игрок тайно выбирает одно из двух Пристрастий.');
   return state;
 }
 
@@ -230,6 +237,7 @@ function startRound(state: GameState) {
   state.banned = shuffle(state, [...GENRES]).slice(0, state.censorship);
   log(state, `— Пятилетка ${state.round}. Цензура: ${state.censorship}. В опале: ${state.banned.map((g) => GENRE_NAMES[g]).join(', ')}.`);
   refreshChannels(state, state.round === 1);
+  if (state.solo && isFull(state) && state.round >= 2) soloPressure(state);
   // Главлитовец: после Обстановки — в порядке, обратном порядку хода.
   if (isFull(state)) {
     for (const id of [...state.order].reverse()) {
@@ -239,6 +247,17 @@ function startRound(state: GameState) {
   state.turn = 0;
   state.turn = -1;
   advanceTurn(state);
+}
+
+// Несистемный: ещё один жетон жанра — Профилактика его Завсегдатаю, а если того уже нет, Контора удерживает Единомышленника.
+function soloPressure(state: GameState) {
+  const genre = shuffle(state, GENRES.filter((g) => !state.banned.includes(g)))[0];
+  if (!genre) return;
+  const p = state.players[0];
+  const pt = state.patrons.find((x) => x.genre === genre);
+  log(state, `Несистемный: вытянут жетон «${GENRE_NAMES[genre]}».`);
+  if (pt && !pt.removed) removePatron(state, pt.id);
+  else holdWorker(state, p, `Завсегдатая жанра «${GENRE_NAMES[genre]}» уже нет в Клубе`);
 }
 
 function refreshChannels(state: GameState, first: boolean) {
@@ -476,10 +495,10 @@ function changeRound(state: GameState) {
     state.safehouses.push(safe);
     log(state, `Открылся новый явочный адрес: ${ADDRESSES[safe].name}.`);
   }
-  // Масштаб цензуры: прежний жетон и жетон на 1 больше — случайный из двух.
+  // Масштаб цензуры: прежний жетон и жетон на 1 больше — случайный из двух (в одиночной игре — всегда больший).
   const next = state.censorshipPool.find((t) => t === state.censorship + 1);
   if (next !== undefined) {
-    const pick = random(state) < 0.5 ? state.censorship : next;
+    const pick = state.solo ? next : random(state) < 0.5 ? state.censorship : next;
     if (pick === next) {
       state.censorshipPool = state.censorshipPool.filter((t) => t !== next).concat(state.censorship);
       state.censorship = next;
