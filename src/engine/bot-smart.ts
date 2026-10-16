@@ -71,6 +71,11 @@ function blockBonus(state: GameState, a: Action, ctx: Ctx): number {
 }
 const BLOCK_ADDRESSES: string[] = ['baraholka', 'spisanie', 'nasledniki', 'posrednichestvo', 'raspredelitel'];
 
+// Согласится ли сосед на обмен на Квартирнике — догадка по открытому: получит не меньше значков, чем отдаст.
+function kvartirnikLikely(state: GameState, give: string, want: string): boolean {
+  return iconsOf(state, give).length >= iconsOf(state, want).length;
+}
+
 // Открытые книги на столе, годные для ближайшей ступени какого-нибудь Ростка до порога Гласности (основной жанр).
 function feedBooksOnTable(state: GameState): number {
   const need = new Set<Genre>();
@@ -367,6 +372,11 @@ function score(state: GameState, me: string, a: Action, ctx: Ctx, depth: number)
     const hidden = o.warehouse.filter((x) => !x.memorized && isBanned(next!, x.card)).map((x) => x.card)
       .sort((x, y) => iconsOf(next!, y).length - iconsOf(next!, x).length).slice(0, limit);
     next = tryApply(next, o.id, { type: 'kontoraHide', hidden });
+  }
+  // Квартирник: ответ соседа угадываем по открытому — согласится, если получит не меньше значков, чем отдаст.
+  while (next && next.pending[0]?.kind === 'kvartirnikReply' && next.pending[0].player !== me) {
+    const pr = next.pending[0];
+    next = tryApply(next, pr.player, { type: 'kvartirnikReply', accept: kvartirnikLikely(next, pr.give, pr.want) });
   }
   if (!next) return null;
   const pend = next.pending[0];
@@ -868,7 +878,20 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
             if (!changedMind && kontoraTargets(state).length) out.push({ type: 'place', place: { address: 'kontora' } });
             break;
           }
-          // Квартирник (нужно угадать ответ соседа) пока не используется.
+          case 'kvartirnik': {
+            // Отдаём одну из двух самых ненужных книг за открытую книгу соседа, на которую он, вероятно, согласится.
+            const give = byValue(keepMap(), genreBooks).slice(0, 2);
+            const offers: Action[] = [];
+            for (const o of state.players) {
+              if (o.id === me) continue;
+              for (const w of o.warehouse) {
+                if (w.hidden || w.memorized || !isGenreBook(state, w.card)) continue;
+                for (const g of give) if (kvartirnikLikely(state, g, w.card)) offers.push({ type: 'place', place: { address: 'kvartirnik', to: o.id, give: g, want: w.card } });
+              }
+            }
+            out.push(...offers.slice(0, 12));
+            break;
+          }
         }
       }
       return out;

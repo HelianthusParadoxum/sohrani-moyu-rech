@@ -863,7 +863,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     }
     case 'posrednichestvo': {
       check(freeSlots(p) > 0, 'На складе нет места');
-      payPrice(state, p, RULES.safehousePrice);
+      payPrice(state, p, RULES.posrednichestvoPrice);
       const cards = Array.from({ length: RULES.posrednichestvoDraw }, () => draw(state)).filter((c): c is string => !!c);
       check(cards.length > 0, 'Стопка Непечатных пуста');
       state.pending.push({ kind: 'posrednichestvoKeep', player: p.id, cards });

@@ -251,10 +251,10 @@ describe('Посредничество авторам и Библиотечно�
     expect(pend.cards).toHaveLength(RULES.spisanieDraw);
     // Чужим не видно, что взято.
     expect(viewFor(s, s.players.find((x) => x.id !== p.id)!.id).pending[0]).toMatchObject({ kind: 'spisanieKeep', secret: true });
-    const keep = pend.cards.slice(0, 3);
+    const keep = pend.cards.slice(0, pend.cards.length - 1);
     s = applyAction(s, p.id, { type: 'spisanieKeep', keep });
     expect(byId(s, p.id).warehouse.map((w) => w.card)).toEqual(expect.arrayContaining(keep));
-    expect(s.discard).toContain(pend.cards[3]);
+    expect(s.discard).toContain(pend.cards[pend.cards.length - 1]);
   });
 });
 

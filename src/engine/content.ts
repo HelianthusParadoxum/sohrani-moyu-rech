@@ -38,11 +38,12 @@ export const RULES = {
   zavozIncome: 2,
   baraholkaPrice: 1,
   baraholkaLook: 2, // Барахолка: сколько книг тайно посмотреть (купить можно одну из них)
-  safehousePrice: 3, // Наследники, Посредничество авторам
+  safehousePrice: 3, // Наследники
+  posrednichestvoPrice: 2, // Посредничество авторам
   raspredelitelPrice: 2, // книга Распределителя
   spisaniePrice: 1, // Библиотечное списание
-  spisanieDraw: 4, // Библиотечное списание: сколько книг тайно взять сверху стопки (оставить — сколько угодно)
-  posrednichestvoDraw: 2, // Посредничество авторам: сколько книг тайно вытянуть
+  spisanieDraw: 3, // Библиотечное списание: сколько книг тайно взять сверху стопки (оставить — сколько угодно)
+  posrednichestvoDraw: 3, // Посредничество авторам: сколько книг тайно вытянуть
   posrednichestvoKeep: 1, // ...и сколько из них оставить (остальные — в сброс)
   samizdatTalons: 2, // Самиздат: Талонов за значок
   tamizdatTalons: 1, // Тамиздат: Талонов за значок
@@ -107,7 +108,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   kvartirnik: { id: 'kvartirnik', name: 'Квартирник', limits: [1, 1, 1], safehouse: true, hint: 'Обмен книгами с другим игроком по согласию' },
   raspredelitel: { id: 'raspredelitel', name: 'Распределитель', limits: [1, 1, 1], safehouse: true, hint: `Купить 1 выдающуюся книгу за ${RULES.raspredelitelPrice}т` },
   nasledniki: { id: 'nasledniki', name: 'Наследники', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.safehousePrice}т: тайно взять 2 книги из сброса Непечатных` },
-  posrednichestvo: { id: 'posrednichestvo', name: 'Посредничество авторам', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.safehousePrice}т: тайно вытянуть ${RULES.posrednichestvoDraw}, оставить ${RULES.posrednichestvoKeep}, затем 1 любое действие Группы (даже уже сделанное)` },
+  posrednichestvo: { id: 'posrednichestvo', name: 'Посредничество авторам', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.posrednichestvoPrice}т: тайно вытянуть ${RULES.posrednichestvoDraw}, оставить ${RULES.posrednichestvoKeep}, затем 1 любое действие Группы (даже уже сделанное)` },
   spisanie: { id: 'spisanie', name: 'Библиотечное списание', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.spisaniePrice}т: тайно взять ${RULES.spisanieDraw} книги сверху стопки Непечатных, оставить сколько угодно, остальные — в сброс` },
   club: { id: 'club', name: 'Клуб книголюбов', limits: [2, 3, 4], fullOnly: true, hint: RULES.clubFreeGift
     ? 'Без Единомышленника: за свой ход отдайте 1 книгу 1 Завсегдатаю (его жанра или Альбом) — завяжите связь'
@@ -122,6 +123,7 @@ export const COPY_TEXT_ADDRESSES = ['razval', 'tolkuchka', 'raspredelitel', 'kni
 export function safehouseCost(id: AddressId): number {
   if (id === 'raspredelitel') return RULES.raspredelitelPrice;
   if (id === 'spisanie') return RULES.spisaniePrice;
+  if (id === 'posrednichestvo') return RULES.posrednichestvoPrice;
   return RULES.safehousePrice;
 }
 
