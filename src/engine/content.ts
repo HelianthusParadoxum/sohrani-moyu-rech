@@ -30,7 +30,7 @@ export const RULES = {
   displaySize: 4,
   raspredelitelSize: 4,
   hireCost: 6,
-  restoreCost: 1, // Возвращение смыслов (до правки баланса — бесплатно, см. docs/questions.md)
+  restoreCost: 0, // Возвращение смыслов: цена в Талонах (0 — бесплатно)
   tolkuchkaBuy: 2, // за книгу
   tolkuchkaSellBanned: 2, // книга с опальным жанром
   tolkuchkaSellFree: 1, // книга без опального жанра
@@ -191,7 +191,7 @@ export const PASSIONS: Record<PassionId, PassionInfo> = {
   keeper_golden: { id: 'keeper_golden', name: 'Золотая полка', genres: ['prose', 'poetry'], hint: `${RULES.passionKeeper} очка за значок Прозы и Поэзии` },
   keeper_silver: { id: 'keeper_silver', name: 'Серебряный век', genres: ['poetry', 'album'], hint: `${RULES.passionKeeper} очка за значок Поэзии и Альбома` },
   keeper_antiquary: { id: 'keeper_antiquary', name: 'Антиквар', genres: ['album', 'testimony'], hint: `${RULES.passionKeeper} очка за значок Альбома и Свидетельств` },
-  keeper_memoirist: { id: 'keeper_memoirist', name: 'Мемуарист', genres: ['testimony', 'foreign'], hint: `${RULES.passionKeeper} очка за значок Свидетельств и Иностранной` },
+  keeper_memoirist: { id: 'keeper_memoirist', name: 'Правозащитник', genres: ['testimony', 'foreign'], hint: `${RULES.passionKeeper} очка за значок Свидетельств и Иностранной` },
   keeper_polyglot: { id: 'keeper_polyglot', name: 'Полиглот', genres: ['foreign', 'scifi'], hint: `${RULES.passionKeeper} очка за значок Иностранной и Фантастики` },
   keeper_dreamer: { id: 'keeper_dreamer', name: 'Мечтатель', genres: ['scifi', 'irony'], hint: `${RULES.passionKeeper} очка за значок Фантастики и Иронии` },
   keeper_skit: { id: 'keeper_skit', name: 'Капустник', genres: ['irony', 'drama'], hint: `${RULES.passionKeeper} очка за значок Иронии и Драматургии` },
