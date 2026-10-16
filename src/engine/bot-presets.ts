@@ -35,6 +35,7 @@ export interface BotPreset {
   random?: boolean; // старый случайный бот
   goals: Record<BotGoal, [number, number, number, number, number]>; // вес по Пятилеткам 1..5
   character: BotCharacter;
+  soloGoal?: number; // одиночная игра: множитель цели «все Ростки до III, один до IV» (1 — как у всех)
 }
 
 export const BOT_PRESETS: BotPreset[] = [
