@@ -96,9 +96,10 @@ export function scoreLine(state: GameState, p: PlayerState): ScoreLine {
   const evidence = RULES.evidencePoints * [...stash, ...p.tamizdat].filter((id) => isEvidence(state, id)).length;
   const icons = collection(state, p).reduce((s, id) => s + iconsOf(state, id).length, 0);
   const connections = state.patrons.filter((x) => !x.removed && x.connections.includes(p.id)).length;
+  const talonPoints = Math.floor(p.talons / RULES.talonsPerPoint);
   return {
-    player: p.id, during: p.points, duringBy: { ...p.pointsBy }, passion, propaganda, evidence, connections,
-    total: p.points + passion + propaganda + evidence + connections, icons,
+    player: p.id, during: p.points, duringBy: { ...p.pointsBy }, passion, propaganda, evidence, connections, talonPoints,
+    total: p.points + passion + propaganda + evidence + connections + talonPoints, icons,
   };
 }
 
@@ -137,17 +138,18 @@ export function finalScoring(state: GameState): GameResult {
   const ranked = scores
     .filter((s) => s.player !== curator?.id)
     .map((s) => ({ s, talons: state.players.find((p) => p.id === s.player)!.talons }))
-    .sort((a, b) => b.s.total - a.s.total || b.s.icons - a.s.icons || b.s.connections - a.s.connections || b.talons - a.talons);
+    // Ничья: больше связей → больше значков → больше Талонов.
+    .sort((a, b) => b.s.total - a.s.total || b.s.connections - a.s.connections || b.s.icons - a.s.icons || b.talons - a.talons);
   const top = ranked[0];
   const winners = ranked
-    .filter((r) => r.s.total === top.s.total && r.s.icons === top.s.icons && r.s.connections === top.s.connections && r.talons === top.talons)
+    .filter((r) => r.s.total === top.s.total && r.s.connections === top.s.connections && r.s.icons === top.s.icons && r.talons === top.talons)
     .map((r) => r.s.player);
   const name = (id: string) => state.players.find((p) => p.id === id)!.name;
   const names = winners.map(name).join(', ');
-  // При ничьей по очкам — по очереди: значки → связи (полный режим) → Талоны.
+  // При ничьей по очкам — по очереди: связи (полный режим) → значки → Талоны.
   const crit: { by: string; get: (r: (typeof ranked)[number]) => number }[] = [
-    { by: 'значкам', get: (r) => r.s.icons },
     ...(state.mode === 'full' ? [{ by: 'связям', get: (r: (typeof ranked)[number]) => r.s.connections }] : []),
+    { by: 'значкам', get: (r) => r.s.icons },
     { by: 'Талонам', get: (r) => r.talons },
   ];
   let contenders = ranked.filter((r) => r.s.total === top.s.total);

@@ -658,14 +658,16 @@ describe('Срезы Куратора', () => {
 });
 
 describe('Ничья', () => {
-  it('при равенстве очков в итоге расписано: значки → связи → Талоны', () => {
+  it('при равенстве очков в итоге расписано: связи → значки → Талоны', () => {
     const s = createGame({ players: players(2), seed: 4, mode: 'full', curator: false });
     for (const sp of s.sprouts) sp.progress = 3;
     for (const p of s.players) { p.warehouse = []; p.points = 10; p.talons = 3; }
     s.players[1].talons = 5;
     const r = finalScoring(s);
     expect(r.winners).toEqual([s.players[1].id]);
-    expect(r.note).toContain('Ничья по очкам (10) → ничья по значкам (0) → ничья по связям (0) → победа по Талонам');
+    // 3 и 5 Талонов — по 1 очку за Талоны каждому, итог поровну.
+    expect(r.note).toContain('Ничья по очкам (11) → ничья по связям (0) → ничья по значкам (0) → победа по Талонам');
+    expect(r.scores.map((x) => x.talonPoints)).toEqual([1, 1]);
   });
 });
 
@@ -750,5 +752,23 @@ describe('Тиражирование вдогонку', () => {
     expect(() => applyAction(s, me, { type: 'group', group: { action: 'copyText', address: 'razval', card: s.razval.find(Boolean)! } })).toThrow(RuleError);
     s = applyAction(s, me, { type: 'endTurn' });
     expect(s.order[s.turn]).not.toBe(me);
+  });
+});
+
+describe('Посиделки и Улики', () => {
+  it('на Посиделках можно показать Улику: +1 очко', () => {
+    let s = createGame({ players: players(2), seed: 3 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const p = s.players[0];
+    const ev = s.deck.find((c) => s.cards[c].kind === 'evidence')!;
+    p.capacity = 10;
+    p.warehouse.push({ card: ev, hidden: false });
+    s.phase = 'gathering';
+    s.ready = [];
+    s.pending = [];
+    const before = p.points;
+    s = applyAction(s, p.id, { type: 'gathering', show: [ev] });
+    expect(s.players[0].points).toBe(before + 1);
   });
 });

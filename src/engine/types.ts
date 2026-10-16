@@ -197,6 +197,7 @@ export interface ScoreLine {
   propaganda: number;
   evidence: number;
   connections: number;
+  talonPoints: number; // очки за оставшиеся Талоны
   duringBy: Partial<Record<PointSource, number>>;
   total: number;
   icons: number;

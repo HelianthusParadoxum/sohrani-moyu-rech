@@ -873,13 +873,13 @@ function GatheringPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act
   const full = view.mode === 'full';
   const isDrama = (c: string) => full && iconsOf(view, c).includes('drama');
   const cands = [
-    ...me.warehouse.map((s) => s.card!).filter((c) => c && iconsOf(view, c).length > 0 && (isBanned(view, c) || isDrama(c))),
+    ...me.warehouse.map((s) => s.card!).filter((c) => c && (iconsOf(view, c).length > 0 || isEvidence(view, c)) && (isBanned(view, c) || isDrama(c))),
     ...me.published.filter(isDrama),
   ];
   const pts = sel.reduce((s, c) => s + (isBanned(view, c) && !me.published.includes(c) ? 1 : 0) + (isDrama(c) ? 1 : 0), 0);
   return (
     <Modal title="Посиделки" wide>
-      <p>Покажите опальные жанровые книги: +1 очко за каждую книгу опального жанра. Показанные книги остаются на складе — не забудьте укрыть их перед облавой.
+      <p>Покажите опальные жанровые книги и Улики: +1 очко за каждую. Показанные книги остаются на складе — не забудьте укрыть их перед облавой.
         {full && ' Драматургию можно показывать и неопальную, и из изданного: +1 очко за каждую («Разыграть»).'}</p>
       <div className="shelf wrap">
         {cands.length === 0 && <span className="muted">Опальных жанровых книг нет</span>}
@@ -962,7 +962,7 @@ function Results({ view, seatIndex, close }: { view: PlayerView; seatIndex: (id:
     <Modal title="Конец Застоя" onClose={close} wide>
       <p><b>{r.note}</b></p>
       <div className="scores-wrap"><table className="scores">
-        <thead><tr><th>Игрок</th><th>Пристрастие</th><th>По ходу</th><th>За Пристрастие</th>{full && <th>Связи</th>}<th>Улики</th><th>Пропаганда</th><th>Итого</th></tr></thead>
+        <thead><tr><th>Игрок</th><th>Пристрастие</th><th>По ходу</th>{full && <th>Связи</th>}<th>За Пристрастие</th><th>Улики</th><th title={`1 очко за каждые ${RULES.talonsPerPoint} Талона`}>За Талоны</th><th>Пропаганда</th><th>Итого</th></tr></thead>
         <tbody>
           {r.scores.map((s) => {
             const p = view.players.find((x) => x.id === s.player)!;
@@ -971,11 +971,11 @@ function Results({ view, seatIndex, close }: { view: PlayerView; seatIndex: (id:
               <Fragment key={s.player}>
                 <tr className={r.winners.includes(s.player) ? 'winner' : ''}>
                   <td><span className="dot" style={{ background: PLAYER_COLORS[seatIndex(s.player)] }} /> {name(s.player)}</td><td>{p.passion ? passionLabel(p.passion) : '—'}</td>
-                  <td>{s.during}</td><td>{s.passion}</td>{full && <td>{s.connections ?? 0}</td>}<td>{s.evidence}</td><td>{s.propaganda}</td><td><b>{s.total}</b></td>
+                  <td>{s.during}</td>{full && <td>{s.connections ?? 0}</td>}<td>{s.passion}</td><td>{s.evidence}</td><td>{s.talonPoints ?? 0}</td><td>{s.propaganda}</td><td><b>{s.total}</b></td>
                 </tr>
                 {by.length > 0 && (
                   <tr className="score-detail">
-                    <td colSpan={full ? 8 : 7}>
+                    <td colSpan={full ? 9 : 8}>
                       По ходу игры: {by.map(([k, n]) => <span key={k} className="src">{POINT_SOURCES[k]} <b>{n}</b></span>)}
                     </td>
                   </tr>

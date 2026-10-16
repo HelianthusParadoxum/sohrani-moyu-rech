@@ -336,7 +336,7 @@ function endOrders(state: GameState) {
   }
   state.phase = 'gathering';
   state.ready = [];
-  log(state, 'Посиделки: можно показать опальные книги со склада — по 1 очку за каждую книгу опального жанра.');
+  log(state, 'Посиделки: можно показать опальные книги и Улики со склада — по 1 очку за каждую.');
 }
 
 function doGathering(state: GameState, p: PlayerState, show: string[]) {
@@ -347,9 +347,10 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
   for (const id of show) {
     // Драматургия «Разыграть»: можно показывать и неопальную, и из изданного — +1 очко.
     const drama = isFull(state) && iconsOf(state, id).includes('drama');
-    const banned = isGenreBook(state, id) && isBanned(state, id);
+    // Опальная жанровая книга или Улика (Улики тоже можно показывать).
+    const banned = (isGenreBook(state, id) || isEvidence(state, id)) && isBanned(state, id);
     check(hasBook(p, id) || (drama && p.published.includes(id)), 'Показывать можно только книги со своего склада');
-    check(banned || drama, `${title(state, id)} — не опальная жанровая книга`);
+    check(banned || drama, `${title(state, id)} — не опальная жанровая книга и не Улика`);
     if (banned && hasBook(p, id)) {
       pts += 1;
       if (hasPatron(state, p.id, 'geologist')) geo++;

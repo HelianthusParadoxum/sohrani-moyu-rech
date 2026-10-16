@@ -61,6 +61,7 @@ export const RULES = {
   innovatorSingle: -1, // Новатор: очков за каждую книгу с одним жанром (на складе и в изданном)
   propagandaPoints: -5,
   evidencePoints: 5,
+  talonsPerPoint: 3, // в конце: 1 очко Гласности за каждые столько Талонов
   // Клуб книголюбов: true — свободное действие (за свой ход можно отдать 1 книгу 1 Завсегдатаю, Единомышленник не нужен);
   // false — адрес, куда ставят Единомышленника, и можно завязать несколько связей за приход.
   clubFreeGift: true,
@@ -99,7 +100,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   razval: { id: 'razval', name: 'Развал', limits: [2, 3, 4], hint: 'Купить 1 книгу: −2/−2/−1/−1т по свежести' },
   zavoz: { id: 'zavoz', name: 'Завоз', limits: [1, 1, 2], hint: '+2т, Развал полностью обновляется' },
   baraholka: { id: 'baraholka', name: 'Барахолка', limits: [4, 4, 4], hint: 'Тайно посмотреть 2 из 4 закрытых книг и купить одну из них за 1т' },
-  podpiska: { id: 'podpiska', name: 'Подписка', limits: [1, 1, 2], safehouse: true, hint: 'Заказать жанр: −1т за каждую Пятилетку доставки' },
+  podpiska: { id: 'podpiska', name: 'Подписка', limits: [1, 1, 1], safehouse: true, hint: 'Заказать жанр: −1т за каждую Пятилетку доставки' },
   sprouts: { id: 'sprouts', name: 'Ростки Гласности', limits: [3, 4, 5], hint: 'Закрыть любое число ступеней Ростков' },
   samizdat: { id: 'samizdat', name: 'Самиздат', limits: [2, 2, 3], hint: `Издать книгу: +${RULES.samizdatTalons}т/значок` },
   tamizdat: { id: 'tamizdat', name: 'Тамиздат', limits: [1, 1, 2], hint: `Издать книгу: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка/значок` },

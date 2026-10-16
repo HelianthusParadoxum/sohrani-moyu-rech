@@ -62,7 +62,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
     case 'passion':
       return p.passionOptions.map((x) => ({ type: 'choosePassion', passion: x }));
     case 'gathering':
-      return [{ type: 'gathering', show: books.filter((b) => iconsOf(state, b).length > 0 && isBanned(state, b) && rand() < 0.6) }];
+      return [{ type: 'gathering', show: books.filter((b) => (iconsOf(state, b).length > 0 || state.cards[b].kind === 'evidence' || (state.cards[b].kind === 'loadEvidence' && state.restored[b])) && isBanned(state, b) && rand() < 0.6) }];
     case 'setupCache':
     case 'hiding': {
       const limit = cacheLimit(state, { ...p, warehouse: p.warehouse.map((s) => ({ ...s, hidden: false })) });

@@ -774,7 +774,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       const full = state.mode === 'full';
       const show = [...new Set([...books, ...(full ? p.published : [])])].filter((c) => {
         const drama = full && iconsOf(state, c).includes('drama');
-        return drama || (books.includes(c) && isGenreBook(state, c) && isBanned(state, c));
+        return drama || (books.includes(c) && (isGenreBook(state, c) || isEvidence(state, c)) && isBanned(state, c));
       });
       return [{ type: 'gathering', show }];
     }
