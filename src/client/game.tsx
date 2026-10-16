@@ -507,7 +507,7 @@ function Sprouts({ view, beside, seatIndex, head }: { view: PlayerView; beside: 
 }
 
 function SproutFeeder({ view, me, place }: { view: PlayerView; me: VPlayer; place: (p: PlaceAction) => void }) {
-  const [feeds, setFeeds] = useState<{ sprout: string; books: string[] }[]>([]);
+  const [feeds, setFeeds] = useState<{ sprout: string; books: string[]; labtech?: boolean }[]>([]);
   const [sprout, setSprout] = useState<string>('');
   const [books, setBooks] = useState<string[]>([]);
   const used = feeds.flatMap((f) => f.books);
@@ -515,7 +515,12 @@ function SproutFeeder({ view, me, place }: { view: PlayerView; me: VPlayer; plac
   const progressOf = (id: string) => view.sprouts.find((s) => s.id === id)!.progress + feeds.filter((f) => f.sprout === id).length;
   const info = SPROUTS.find((s) => s.id === sprout);
   const step = info && info.steps[progressOf(sprout)];
-  const ok = !!info && !!step && coversStep(view, books, info.main, step.main, step.support, { wildScifi: view.mode === 'full', labtech: hasPatron(view, me.id, 'labtech') });
+  const wildScifi = view.mode === 'full';
+  const plain = !!info && !!step && coversStep(view, books, info.main, step.main, step.support, { wildScifi });
+  // Лаборант: скидка в 1 значок — один раз за поручение.
+  const discount = !plain && !!info && !!step && hasPatron(view, me.id, 'labtech') && !feeds.some((f) => f.labtech)
+    && coversStep(view, books, info.main, step.main, step.support, { wildScifi, labtech: true });
+  const ok = plain || discount;
   return (
     <>
       <p>Закройте ступени: одним действием отдайте книги, на которых есть все значки ступени. Можно закрыть несколько ступеней у разных Ростков.</p>
@@ -536,7 +541,7 @@ function SproutFeeder({ view, me, place }: { view: PlayerView; me: VPlayer; plac
           <div className="shelf wrap">
             {mine.map((c) => <Book key={c} v={view} id={c} selected={books.includes(c)} onClick={() => setBooks(toggle(books, c))} />)}
           </div>
-          <button disabled={!ok} onClick={() => { setFeeds([...feeds, { sprout, books }]); setBooks([]); }}>Добавить ступень</button>
+          <button disabled={!ok} onClick={() => { setFeeds([...feeds, { sprout, books, labtech: discount }]); setBooks([]); }}>Добавить ступень{discount ? ' (скидка Лаборанта)' : ''}</button>
         </>
       )}
       {feeds.length > 0 && (

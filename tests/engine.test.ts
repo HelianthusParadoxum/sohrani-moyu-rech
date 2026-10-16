@@ -4,7 +4,7 @@ import { playOut } from '../src/engine/bot';
 import { viewFor } from '../src/engine/view';
 import { RuleError, cacheLimit, coversStep, iconsOf, isBanned, isEvidence, isLoad } from '../src/engine/util';
 import { finalScoring, passionPoints } from '../src/engine/scoring';
-import { RULES } from '../src/engine/content';
+import { RULES, SPROUTS } from '../src/engine/content';
 import type { GameState, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
 import { removePatron } from '../src/engine/full';
@@ -806,5 +806,47 @@ describe('Журнал поручений', () => {
     const entry = s.log.find((l) => l.act);
     expect(entry).toMatchObject({ act: { player: me, n: 1 } });
     expect(entry!.text).toContain('Завозе');
+  });
+});
+
+describe('Лаборант', () => {
+  it('скидка в 1 значок — одна на всё поручение', () => {
+    let s = createGame({ players: players(2), seed: 33, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    s.patrons[0] = { id: 'labtech', genre: s.patrons[0].genre, connections: [me], turned: false, removed: false };
+    // Два Ростка на II ступени (нужен 1 значок основного жанра и значок поддержки). Со скидкой хватит одного значка поддержки.
+    const supOf = (id: string) => {
+      const info = SPROUTS.find((x) => x.id === id)!;
+      return { main: info.main as string, support: info.steps[1].support! as string };
+    };
+    const single = (genre: string, bad: string[], not = '') => Object.keys(s.cards).find((c) => {
+      const icons = iconsOf(s, c);
+      return c !== not && icons.length === 1 && icons[0] === genre && !bad.includes(genre);
+    });
+    let a = s.sprouts[0], b = s.sprouts[1], ka = '', kb = '';
+    for (const x of s.sprouts) for (const y of s.sprouts) {
+      if (x === y || ka) continue;
+      const bad = [supOf(x.id).main, supOf(y.id).main, 'scifi'];
+      const k1 = single(supOf(x.id).support, bad);
+      const k2 = k1 && single(supOf(y.id).support, bad, k1);
+      if (k1 && k2) { a = x; b = y; ka = k1; kb = k2; }
+    }
+    a.progress = 1;
+    b.progress = 1;
+    expect(ka && kb).toBeTruthy();
+    for (const zone of [s.deck, s.discard, s.tolkuchka, s.knigoobmen, s.raspredelitel]) {
+      for (const c of [ka, kb]) { const i = zone.indexOf(c); if (i >= 0) zone.splice(i, 1, null as never); }
+    }
+    const p = s.players.find((x) => x.id === me)!;
+    p.warehouse = [{ card: ka, hidden: false }, { card: kb, hidden: false }];
+    expect(() => applyAction(s, me, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: a.id, books: [ka] }, { sprout: b.id, books: [kb] }] } }))
+      .toThrow(/один раз/);
+    const t = applyAction(s, me, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: a.id, books: [ka] }] } });
+    expect(t.sprouts.find((x) => x.id === a.id)!.progress).toBe(2);
+    // Без Лаборанта одного значка поддержки мало.
+    s.patrons[0] = { ...s.patrons[0], connections: [] };
+    expect(() => applyAction(s, me, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: a.id, books: [ka] }] } })).toThrow();
   });
 });

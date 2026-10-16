@@ -498,11 +498,12 @@ function subsets<T>(arr: T[], max: number): T[][] {
 }
 
 // Самый дешёвый набор книг, закрывающий ступень Ростка.
-function cheapestFeed(state: GameState, me: string, books: string[], sproutId: string, progress: number, keep: Map<string, number>): string[] | null {
+// discount = false — скидка Лаборанта в этом поручении уже потрачена.
+function cheapestFeed(state: GameState, me: string, books: string[], sproutId: string, progress: number, keep: Map<string, number>, discount = true): string[] | null {
   const info = SPROUTS.find((s) => s.id === sproutId)!;
   const step = info.steps[progress];
   if (!step) return null;
-  const opts = stepOpts(state, me);
+  const opts = { ...stepOpts(state, me), ...(discount ? {} : { labtech: false }) };
   const useful = books.filter((b) => {
     const icons = iconsOf(state, b);
     return icons.includes(info.main) || (step.support && icons.includes(step.support)) || (opts.wildScifi && icons.includes('scifi'));
@@ -529,16 +530,20 @@ function sproutCandidates(state: GameState, me: string, keep: Map<string, number
   // Жадно: закрыть за одно действие всё, что получается.
   const progress = new Map(state.sprouts.map((s) => [s.id, s.progress]));
   let left = [...books];
+  let discount = true;
   const feeds: { sprout: string; books: string[] }[] = [];
   for (let changed = true; changed;) {
     changed = false;
     const options = state.sprouts
-      .map((sp) => ({ sp, feed: cheapestFeed(state, me, left, sp.id, progress.get(sp.id)!, keep) }))
+      .map((sp) => ({ sp, feed: cheapestFeed(state, me, left, sp.id, progress.get(sp.id)!, keep, discount) }))
       .filter((x): x is { sp: typeof x.sp; feed: string[] } => !!x.feed)
       .sort((a, b) => progress.get(a.sp.id)! - progress.get(b.sp.id)!);
     const first = options[0];
     if (first) {
       feeds.push({ sprout: first.sp.id, books: first.feed });
+      const info = SPROUTS.find((s) => s.id === first.sp.id)!;
+      const step = info.steps[progress.get(first.sp.id)!];
+      if (!coversStep(state, first.feed, info.main, step.main, step.support, { wildScifi: state.mode === 'full' })) discount = false;
       progress.set(first.sp.id, progress.get(first.sp.id)! + 1);
       left = left.filter((b) => !first.feed.includes(b));
       changed = true;
@@ -682,10 +687,13 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
     if (leader) items.push({ signal: leader.id });
     // Профилактика: Завсегдатай, с которым связаны соперники, а бот — нет.
     // Куратор выбивает того, кто больше всех даёт честным: сила Завсегдатая × сколько честных с ним связаны.
-    const patrons = state.patrons.filter((x) => !x.removed && !x.connections.includes(me) && x.connections.length > 0)
-      .sort((a, b) => ctx.curator
-        ? patronWorthToOthers(b, me) - patronWorthToOthers(a, me)
-        : b.connections.length - a.connections.length);
+    // Своей связью он тоже может пожертвовать, если честным этот Завсегдатай полезнее, чем ему.
+    const net = (x: GameState['patrons'][number]) => patronWorthToOthers(x, me)
+      - (x.connections.includes(me) ? BOT_BASE.curatorOwnPatron * (PATRON_POWER[x.id] ?? 0.3) : 0);
+    const patrons = ctx.curator
+      ? state.patrons.filter((x) => !x.removed && net(x) > 0).sort((a, b) => net(b) - net(a))
+      : state.patrons.filter((x) => !x.removed && !x.connections.includes(me) && x.connections.length > 0)
+        .sort((a, b) => b.connections.length - a.connections.length);
     if (patrons[0]) items.push({ prophylaxis: patrons[0].id });
   }
   const out: KontoraChoice[] = [];

@@ -734,6 +734,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     case 'sprouts': {
       check(a.feeds.length > 0, 'Выберите, какие ступени закрыть');
       const used = new Set<string>();
+      let labtechUsed = false;
       for (const f of a.feeds) {
         const sp = state.sprouts.find((s) => s.id === f.sprout);
         check(sp, 'Этого Ростка нет в игре');
@@ -745,13 +746,13 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
           check(hasBook(p, b), 'Отдавать можно только книги со своего склада');
           used.add(b);
         }
-        check(
-          coversStep(state, f.books, info.main, step.main, step.support, {
-            wildScifi: isFull(state),
-            labtech: hasPatron(state, p.id, 'labtech'),
-          }),
-          `${info.name}: нужно значков «${GENRE_NAMES[info.main]}»: ${step.main}` + (step.support ? ` и значок поддержки «${GENRE_NAMES[step.support]}»` : ''),
-        );
+        const need = `${info.name}: нужно значков «${GENRE_NAMES[info.main]}»: ${step.main}` + (step.support ? ` и значок поддержки «${GENRE_NAMES[step.support]}»` : '');
+        if (!coversStep(state, f.books, info.main, step.main, step.support, { wildScifi: isFull(state) })) {
+          // Лаборант: скидка в 1 значок — одна на всё поручение, а не на каждую ступень.
+          check(hasPatron(state, p.id, 'labtech') && coversStep(state, f.books, info.main, step.main, step.support, { wildScifi: isFull(state), labtech: true }), need);
+          check(!labtechUsed, 'Лаборант даёт скидку в 1 значок только один раз за поручение');
+          labtechUsed = true;
+        }
         for (const b of f.books) { removeBook(p, b); discard(state, b); gaveAway(state, p, b); }
         const reward = STEP_REWARDS[sp.progress];
         sp.progress++;
