@@ -14,7 +14,7 @@ import type {
 } from './types';
 import { GENRES } from './types';
 import {
-  addBook, addOpenBook, addSecretBook, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
+  addBook, addOpenBook, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
   talonsText, title,
 } from './util';
@@ -1069,6 +1069,8 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         removeBook(p, pend.want);
         addBook(from, pend.want);
         addBook(p, pend.give);
+        autoHide(state, from, pend.want);
+        autoHide(state, p, pend.give);
         gaveAway(state, from, pend.give);
         gaveAway(state, p, pend.want);
         log(state, `${p.name} соглашается на обмен с ${from.name}.`);
@@ -1175,6 +1177,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         check(freeSlots(p) > 0, 'На Складе нет места');
         state.discard = state.discard.filter((c) => c !== action.card);
         addBook(p, action.card);
+        autoHide(state, p, action.card);
         log(state, `${p.name}: Лейтенант приносит изъятую книгу ${title(state, action.card)}.`);
       }
       state.pending.shift();

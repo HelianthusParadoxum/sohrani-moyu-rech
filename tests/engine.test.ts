@@ -772,3 +772,25 @@ describe('Посиделки и Улики', () => {
     expect(s.players[0].points).toBe(before + 1);
   });
 });
+
+describe('Опальное — сразу в Тайник', () => {
+  it('купленная открыто опальная книга ложится в Тайник, если есть место; неопальная — нет', () => {
+    let s = createGame({ players: players(2), seed: 21 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    p.capacity = 10;
+    p.talons = 10;
+    p.cache = 1;
+    for (const w of p.warehouse) w.hidden = false;
+    const banned = s.deck.find((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.some((g) => s.banned.includes(g)))!;
+    const free = s.deck.find((c) => s.cards[c].kind === 'genre' && !s.cards[c].icons.some((g) => s.banned.includes(g)))!;
+    s.deck = s.deck.filter((c) => c !== banned && c !== free);
+    s.tolkuchka = [banned, free];
+    s = applyAction(s, me, { type: 'place', place: { address: 'tolkuchka', ops: [{ op: 'buy', card: free }, { op: 'buy', card: banned }] } });
+    const w = s.players.find((x) => x.id === me)!.warehouse;
+    expect(w.find((x) => x.card === banned)!.hidden).toBe(true);
+    expect(w.find((x) => x.card === free)!.hidden).toBe(false);
+  });
+});

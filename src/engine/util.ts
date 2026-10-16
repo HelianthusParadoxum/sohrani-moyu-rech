@@ -209,6 +209,15 @@ export function addSecretBook(state: GameState, p: PlayerState, id: string) {
 export function addOpenBook(state: GameState, p: PlayerState, id: string) {
   addBook(p, id);
   if (isPropaganda(state, id)) p.propagandaTaken = (p.propagandaTaken ?? 0) + 1;
+  autoHide(state, p, id);
+}
+
+// По умолчанию: опальная книга (не Пропаганда — её изъятие обычному игроку на руку) сразу ложится в Тайник, если там есть место.
+// Тайник можно пересобрать в свой ход. Соперники и так видели, что это за книга, — прячем от облавы и Конторы.
+export function autoHide(state: GameState, p: PlayerState, id: string) {
+  const slot = p.warehouse.find((s) => s.card === id);
+  if (!slot || slot.hidden || slot.memorized || !isBanned(state, id) || isPropaganda(state, id)) return;
+  if (p.warehouse.filter((s) => s.hidden).length < cacheLimit(state, p)) slot.hidden = true;
 }
 
 export function hasBook(p: PlayerState, id: string): boolean {
