@@ -311,6 +311,11 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
       v -= (lost + worker) * ctx.preset.character.caution;
     }
   }
+  if (state.solo) {
+    // Одиночная игра: прямая цель — все Ростки до III ступени, а самый развитый — до IV (запас против Пропаганды при вскрытии).
+    const prog = state.sprouts.map((sp) => sp.progress).sort((a, b) => b - a);
+    v += BOT_BASE.soloGoal * prog.reduce((s, x, i) => s + Math.min(x, i === 0 ? 4 : RULES.glasnostStep), 0);
+  }
   if (ctx.full || state.solo) {
     // «Громоотвод»: запасные ступени сверх 3-й на случай срезов Куратора (в одиночной игре — Пропаганды из 30 вскрытых карт).
     const spare = state.sprouts.reduce((s, sp) => s + Math.max(0, sp.progress - RULES.glasnostStep), 0);
