@@ -214,7 +214,7 @@ function AddressContents({ id, view, seatIndex }: { id: AddressId; view: PlayerV
             ))}
             {rest.map((pid) => (
               <li key={pid} className="pending" title="Ещё не был(а) в Красном уголке: встанет после всех, кто был">
-                <span className="dot" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} /> {name(pid)} <span className="muted small">— ещё не был(а)</span>
+                <span className="dot" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} /> {name(pid)} <span className="muted small">— ждём</span>
               </li>
             ))}
           </ol>

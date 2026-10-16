@@ -222,7 +222,7 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 .patrons li { font-size: 0.85rem; line-height: 1.2; }
 .patrons .muted.small { font-size: 0.72rem; }
 
-.queue ol { display: flex; flex-wrap: wrap; gap: 2px 10px; padding-left: 0; list-style-position: inside; }
+.queue ol { display: flex; flex-direction: column; gap: 2px; padding-left: 0; list-style-position: inside; }
 .queue li { font-size: 0.75rem; }
 .sprouts-panel .sprout { font-size: 0.78rem; }
 .sprouts-panel .sprout .addr-head b { font-size: 0.82rem; line-height: 1.15; }
