@@ -22,7 +22,7 @@ const PHASE_NAMES: Record<string, string> = {
   passion: 'Выбор Пристрастий', setupCache: 'Тайники перед началом', orders: 'Поручения', gathering: 'Посиделки', hiding: 'Укрытие', end: 'Конец Застоя',
 };
 
-export function Game({ view, room, you, isHost, send }: { view: PlayerView; room: RoomInfo; you: string | null; isHost: boolean; send: Send }) {
+export function Game({ view, room, you, isHost, send, canStepBack }: { view: PlayerView; room: RoomInfo; you: string | null; isHost: boolean; send: Send; canStepBack?: boolean }) {
   const me = view.players.find((p) => p.id === you) ?? null;
   const act = (action: Action) => send({ t: 'action', action });
   const [panel, setPanel] = useState<Panel>(null);
@@ -92,7 +92,9 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
 
       {/* На телефоне «Закончить ход» выезжает снизу экрана, чтобы не листать к строке статуса. */}
       <div className={`end-turn-sheet ${afterAction ? 'show' : ''}`} aria-hidden={!afterAction}>
-        <span className="muted small">Действие сделано</span>
+        {canStepBack
+          ? <button tabIndex={afterAction ? 0 : -1} onClick={() => send({ t: 'stepBack' })} title="Отменить действия этого хода — до момента, когда вы узнали что-то новое">← Назад</button>
+          : <span className="muted small" title="Вы уже узнали новое (например, увидели закрытые книги) — отменить ход нельзя">Действие сделано</span>}
         <button className="primary" tabIndex={afterAction ? 0 : -1} onClick={() => act({ type: 'endTurn' })}>Закончить ход</button>
       </div>
       {view.phase === 'passion' && me ? (

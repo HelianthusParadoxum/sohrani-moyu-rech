@@ -55,3 +55,22 @@ export function viewFor(state: GameState, me: string | null, omniscient = false)
     log: log.filter((l) => omniscient || !l.only || (me !== null && l.only.includes(me))),
   };
 }
+
+// Карты, которые игрок видит (по виду партии для него), и тайные записи журнала только для него.
+function seenBy(state: GameState, me: string): { cards: Set<string>; notes: number } {
+  const { cards: _all, ...v } = viewFor(state, me);
+  return {
+    cards: new Set(JSON.stringify(v).match(/c\d{3}/g) ?? []),
+    notes: state.log.filter((l) => l.only?.includes(me)).length,
+  };
+}
+
+// Узнал ли игрок что-то новое между двумя состояниями: увидел карту, которой раньше не видел, или получил тайную запись.
+// Ход, после которого игрок узнал новое, отменять нельзя — знание уже не забыть.
+export function gainedInfo(prev: GameState, next: GameState, me: string): boolean {
+  const a = seenBy(prev, me);
+  const b = seenBy(next, me);
+  if (b.notes > a.notes) return true;
+  for (const c of b.cards) if (!a.cards.has(c)) return true;
+  return false;
+}

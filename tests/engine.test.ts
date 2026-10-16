@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction, createGame, startHide } from '../src/engine/engine';
 import { playOut } from '../src/engine/bot';
-import { viewFor } from '../src/engine/view';
+import { gainedInfo, viewFor } from '../src/engine/view';
 import { RuleError, cacheLimit, coversStep, iconsOf, isBanned, isEvidence, isLoad } from '../src/engine/util';
 import { finalScoring, passionPoints } from '../src/engine/scoring';
 import { PASSIONS, RULES, SPROUTS } from '../src/engine/content';
@@ -976,5 +976,43 @@ describe('Выбор Пристрастий', () => {
     expect(v.patrons).toEqual([]);
     // Наблюдатель-хост видит всё.
     expect(viewFor(s, null, true).razval.some(Boolean)).toBe(true);
+  });
+});
+
+describe('«Назад» в своём ходу: узнал ли игрок новое', () => {
+  const start = () => {
+    let s = createGame({ players: players(2), seed: 21 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    return startOrders(s);
+  };
+
+  it('Барахолка: увидел закрытые книги — новое', () => {
+    const s = start();
+    const me = s.order[s.turn];
+    const next = applyAction(s, me, { type: 'place', place: { address: 'baraholka', slots: [0, 1] } });
+    expect(gainedInfo(s, next, me)).toBe(true);
+  });
+
+  it('Завоз: Развал обновился новыми книгами — новое', () => {
+    const s = start();
+    const me = s.order[s.turn];
+    const next = applyAction(s, me, { type: 'place', place: { address: 'zavoz' } });
+    expect(gainedInfo(s, next, me)).toBe(true);
+  });
+
+  it('Закладка Тайника — ничего нового, можно вернуться', () => {
+    const s = start();
+    const me = s.order[s.turn];
+    const next = applyAction(s, me, { type: 'group', group: { action: 'expandCache' } });
+    expect(next.turnDone).toBe(me);
+    expect(gainedInfo(s, next, me)).toBe(false);
+  });
+
+  it('Тайник переложен — ничего нового', () => {
+    const s = start();
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    const next = applyAction(s, me, { type: 'hiding', hidden: p.warehouse.slice(0, 1).map((w) => w.card) });
+    expect(gainedInfo(s, next, me)).toBe(false);
   });
 });

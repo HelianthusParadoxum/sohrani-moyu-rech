@@ -26,6 +26,7 @@ export type ClientMessage =
   | { t: 'start' }
   | { t: 'action'; action: Action }
   | { t: 'undo' }
+  | { t: 'stepBack' } // «Назад»: отменить свои действия в этом ходу (до момента, когда узнал новое)
   | { t: 'restart' }
   | { t: 'hostBot'; on: boolean }
   | { t: 'botDelay'; ms: number }
@@ -33,6 +34,6 @@ export type ClientMessage =
 
 export type ServerMessage =
   | { t: 'joined'; code: string; token: string }
-  | { t: 'room'; room: RoomInfo; you: string | null; isHost: boolean; view: PlayerView | null }
+  | { t: 'room'; room: RoomInfo; you: string | null; isHost: boolean; view: PlayerView | null; canStepBack?: boolean }
   | { t: 'error'; message: string }
   | { t: 'gone'; code: string }; // комнаты нет (например, сервер обновили и сохранения пропали)

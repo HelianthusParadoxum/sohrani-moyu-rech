@@ -9,7 +9,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { applyAction, createGame, activePlayers, migrate } from '../engine/engine';
 import { botMove } from '../engine/bot';
 import { BOT_PRESETS, DEFAULT_PRESET, curatorStyleNote, presetById } from '../engine/bot-presets';
-import { viewFor } from '../engine/view';
+import { gainedInfo, viewFor } from '../engine/view';
 import { RuleError } from '../engine/util';
 import type { Action, GameState, Mode } from '../engine/types';
 import type { ClientMessage, RoomInfo, ServerMessage } from '../shared/protocol';
@@ -26,6 +26,7 @@ interface Room {
   noCurator?: boolean; // настройка: без Куратора в колоде Пристрастий
   build?: string; // версия игры, в которой начата партия
   outdated?: boolean; // партию сбросили из-за обновления игры — показать игрокам извинение
+  stepBack?: { player: string; states: GameState[] }; // «Назад» в своём ходу: состояния, к которым можно вернуться
 }
 
 // Версия игры: коммит, из которого собран сервер (Render), иначе — отпечаток собранного клиента
@@ -118,7 +119,8 @@ function broadcast(room: Room) {
     if (c.room !== room.code) continue;
     // Хост, за которого играет бот, смотрит партию со стороны и видит всё.
     const omniscient = c.host && !c.seat;
-    send(ws, { t: 'room', room: info, you: c.seat, isHost: c.host, view: room.state ? viewFor(room.state, c.seat, omniscient) : null });
+    const canStepBack = !!c.seat && room.stepBack?.player === c.seat && room.stepBack.states.length > 0;
+    send(ws, { t: 'room', room: info, you: c.seat, isHost: c.host, view: room.state ? viewFor(room.state, c.seat, omniscient) : null, canStepBack });
   }
 }
 
@@ -138,6 +140,7 @@ function scheduleBots(room: Room) {
       console.error('Ошибка бота', e);
       return;
     }
+    delete room.stepBack;
     save(room);
     broadcast(room);
     scheduleBots(room);
@@ -159,6 +162,18 @@ function renameBots(room: Room) {
     const p = room.state?.players.find((x) => x.id === s.id);
     if (p) p.name = s.name;
   }
+}
+
+// «Назад» в своём ходу. Можно вернуться только к состояниям после последнего момента, когда игрок узнал новое
+// (увидел закрытые карты и т. п.), и только пока ход не перешёл к другому и никто другой не действовал.
+function trackStepBack(room: Room, who: string, prev: GameState, next: GameState) {
+  const turnOf = (s: GameState) => (s.phase === 'orders' ? s.order[s.turn] : null);
+  if (turnOf(prev) !== who) { delete room.stepBack; return; }
+  if (room.stepBack?.player !== who) room.stepBack = { player: who, states: [] };
+  if (gainedInfo(prev, next, who)) room.stepBack.states = [];
+  else room.stepBack.states.push(prev);
+  // Ход перешёл к другому (или кончилась фаза поручений) — откатывать больше нечего.
+  if (turnOf(next) !== who) delete room.stepBack;
 }
 
 function handle(ws: WebSocket, msg: ClientMessage) {
@@ -242,10 +257,12 @@ function handle(ws: WebSocket, msg: ClientMessage) {
     case 'action': {
       if (!room.state || !conn.seat) return;
       try {
-        const next = applyAction(room.state, conn.seat, msg.action as Action);
-        room.history.push(room.state);
+        const prev = room.state;
+        const next = applyAction(prev, conn.seat, msg.action as Action);
+        room.history.push(prev);
         if (room.history.length > 50) room.history.shift();
         room.state = next;
+        trackStepBack(room, conn.seat, prev, next);
       } catch (e) {
         if (e instanceof RuleError) return send(ws, { t: 'error', message: e.message });
         console.error(e);
@@ -253,10 +270,22 @@ function handle(ws: WebSocket, msg: ClientMessage) {
       }
       break;
     }
+    case 'stepBack': {
+      const sb = room.stepBack;
+      if (!sb || sb.player !== conn.seat || !sb.states.length) return;
+      // Назад — к началу хода или к моменту, когда игрок последний раз узнал новое.
+      const target = sb.states[0];
+      const i = room.history.lastIndexOf(target);
+      if (i >= 0) room.history.length = i;
+      room.state = target;
+      sb.states = [];
+      break;
+    }
     case 'undo': {
       // Отмена последнего действия — для плейтестов, доступна хосту.
       if (!isHost || !room.history.length) return;
       room.state = room.history.pop()!;
+      delete room.stepBack;
       break;
     }
     case 'hostBot': {
@@ -281,6 +310,7 @@ function handle(ws: WebSocket, msg: ClientMessage) {
     }
     case 'restart': {
       if (!isHost) return;
+      delete room.stepBack;
       room.state = null;
       room.history = [];
       break;

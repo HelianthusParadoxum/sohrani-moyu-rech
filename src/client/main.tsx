@@ -48,7 +48,7 @@ function App() {
   } else if (!net.room) {
     body = <p className="center muted">{net.connected ? 'Загрузка комнаты…' : 'Подключение к серверу…'}</p>;
   } else if (net.room.started && net.view) {
-    body = <Game view={net.view} room={net.room} you={net.you} isHost={net.isHost} send={net.send} />;
+    body = <Game view={net.view} room={net.room} you={net.you} isHost={net.isHost} send={net.send} canStepBack={net.canStepBack} />;
   } else {
     body = <Lobby net={net} name={name} setName={setName} onJoin={() => join({ t: 'join', code })} />;
   }
