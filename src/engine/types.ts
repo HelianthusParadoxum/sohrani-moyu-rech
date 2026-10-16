@@ -145,6 +145,7 @@ export interface LogEntry {
   // Если задано — запись видят только эти игроки (тайная информация).
   only?: string[];
   act?: { player: string; n: number }; // запись о поручении игрока: его номер в Пятилетке (кружок в журнале)
+  club?: { player: string; round: number }; // связь в Клубе: жетон «П<Пятилетка>», как у Завсегдатая
 }
 
 export interface GameState {

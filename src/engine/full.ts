@@ -81,6 +81,7 @@ export function giveToPatron(state: GameState, p: PlayerState, gift: ClubGift) {
   patron.since = { ...patron.since, [p.id]: state.round };
   patron.turned = true;
   log(state, `${p.name} заводит связь в Клубе: ${name} (отдана ${title(state, gift.card)}).`);
+  state.log[state.log.length - 1].club = { player: p.id, round: state.round };
   onConnect(state, p, patron.id);
   // Маклер: каждая новая связь (включая с ним самим) — Талоны.
   if (hasPatron(state, p.id, 'broker')) {

@@ -1094,6 +1094,7 @@ function Log({ view, seatIndex }: { view: PlayerView; seatIndex: (id: string) =>
       {entries.map((l, i) => (
         <div key={i} className={`${l.only ? 'secret' : ''} ${l.act ? 'act' : ''}`}>
           {l.act && <span className="dot num" style={{ background: PLAYER_COLORS[seatIndex(l.act.player)] }} title={`${l.act.n}-е действие игрока в Пятилетке`}>{l.act.n}</span>}
+          {l.club && <span className="dot num wide" style={{ background: PLAYER_COLORS[seatIndex(l.club.player)] }} title={`Связь с ${l.club.round}-й Пятилетки`}>П{l.club.round}</span>}
           {l.text}
         </div>
       ))}

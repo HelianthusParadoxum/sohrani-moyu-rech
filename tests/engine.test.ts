@@ -235,6 +235,7 @@ describe('полный режим', () => {
     s.players.forEach((x) => (x.capacity = 10));
     s = applyAction(s, a, { type: 'clubGift', gift: give(a) });
     expect(s.patrons[0].since?.[a]).toBe(1);
+    expect(s.log.find((l) => l.club)).toMatchObject({ club: { player: a, round: 1 } });
     s = act(s, a, { type: 'place', place: { address: 'zavoz' } });
     expect(s.order[s.turn]).toBe(b);
     expect(() => applyAction(s, b, { type: 'clubGift', gift: give(b) })).toThrow('связь в эту Пятилетку уже завязана');

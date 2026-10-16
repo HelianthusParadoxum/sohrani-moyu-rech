@@ -271,3 +271,4 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 /* Журнал: поручения игроков — с кружком номера действия */
 .log .act { font-weight: 600; }
 .log .act .dot.num { margin-right: 6px; vertical-align: -3px; }
+.log .dot.num.wide { margin-right: 6px; vertical-align: -3px; }
