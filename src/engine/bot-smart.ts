@@ -171,6 +171,29 @@ function feedPotential(state: GameState, p: PlayerState, ctx: Ctx): number {
   return v;
 }
 
+// Что ещё можно купить на открытых адресах в эту Пятилетку. Ценится, только пока у бота остались свободные поручения
+// (обязательный Красный уголок не в счёт): Завоз последним действием уже ничего не даёт, кроме Талонов, —
+// к следующей Пятилетке Развал всё равно обновится.
+function shopValue(state: GameState, p: PlayerState, ctx: Ctx): number {
+  if (state.phase !== 'orders') return 0;
+  const free = p.available + p.bonusGroupTurns - (p.visitedRedCorner || hasPatron(state, p.id, 'doctor') ? 0 : 1);
+  if (free <= 0 || freeSlots(p) <= 0) return 0;
+  const offers: { card: string; price: number }[] = [
+    ...state.razval.flatMap((c, i) => (c ? [{ card: c, price: RULES.razvalPrices[i] }] : [])),
+    ...state.tolkuchka.map((c) => ({ card: c, price: RULES.tolkuchkaBuy })),
+    ...(state.safehouses.includes('raspredelitel') ? state.raspredelitel.map((c) => ({ card: c, price: RULES.raspredelitelPrice })) : []),
+  ].filter((o) => o.price <= p.talons && isGenreBook(state, o.card));
+  if (!offers.length) return 0;
+  const base = feedPotential(state, p, ctx);
+  let best = 0;
+  for (const o of offers) {
+    const q = { ...p, warehouse: [...p.warehouse, { card: o.card, hidden: false }] };
+    const gain = (feedPotential(state, q, ctx) - base) * ctx.w.sproutBooks + iconsOf(state, o.card).length * BOT_BASE.bookLatent * ctx.w.publish;
+    best = Math.max(best, gain - o.price * ctx.talon * ctx.w.talons);
+  }
+  return best * BOT_BASE.shopReach;
+}
+
 // Чем ценна для бота книга одного жанра (для Подписки).
 function genreValue(state: GameState, p: PlayerState, g: Genre, ctx: Ctx): number {
   const info = p.passion ? PASSIONS[p.passion] : null;
@@ -294,6 +317,7 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   for (const c of cards) v += iconsOf(state, c).length * BOT_BASE.bookLatent * w.publish;
   v += p.published.reduce((s, c) => s + iconsOf(state, c).length, 0) * BOT_BASE.published * w.publish;
   v += feedPotential(state, p, ctx) * w.sproutBooks;
+  v += shopValue(state, p, ctx);
   // Ростки — общее дело: без Гласности проигрывают все.
   for (const sp of state.sprouts) {
     for (let k = 0; k < Math.min(sp.progress, RULES.glasnostStep); k++) v += ctx.glasnost * w.sprouts * (BOT_BASE.glasnostLag[k] ?? 1);
