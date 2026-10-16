@@ -149,7 +149,15 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
         return done(state);
       }
       case 'orders':
-        doOrder(state, p, action);
+        {
+          // Пометить в журнале поручение: первая открытая запись этого действия получает кружок с его номером.
+          const logFrom = state.log.length;
+          const actsFrom = p.actions.length;
+          doOrder(state, p, action);
+          const first = p.actions[actsFrom];
+          const entry = first && state.log.slice(logFrom).find((l) => !l.only);
+          if (entry) entry.act = { player: p.id, n: first.n };
+        }
         break;
       case 'gathering':
         check(action.type === 'gathering', 'Сейчас Посиделки');
@@ -1218,6 +1226,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       track(p, 'kontora');
       p.available--;
       log(state, `${p.name} идёт в Контору.`);
+      state.log[state.log.length - 1].act = { player: p.id, n: p.actions[p.actions.length - 1].n };
       doKontora(state, p, action.choice);
       return;
     }

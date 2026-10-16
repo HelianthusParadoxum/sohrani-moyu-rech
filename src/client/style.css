@@ -267,3 +267,7 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
   .side { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
   .side > :not(.player) { grid-column: 1 / -1; }
 }
+
+/* Журнал: поручения игроков — с кружком номера действия */
+.log .act { font-weight: 600; }
+.log .act .dot.num { margin-right: 6px; vertical-align: -3px; }

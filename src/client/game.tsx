@@ -110,7 +110,7 @@ export function Game({ view, room, you, isHost, send }: { view: PlayerView; room
           {view.players.filter((p) => p.id !== you).map((p) => (
             <OtherPlayer key={p.id} view={view} p={p} color={PLAYER_COLORS[seatIndex(p.id)]} active={view.active.includes(p.id)} first={view.order[0] === p.id} />
           ))}
-          <Log view={view} />
+          <Log view={view} seatIndex={seatIndex} />
         </aside>
       </main>
 
@@ -1078,7 +1078,7 @@ function groupN(p: VPlayer, g: GroupActionId): number | undefined {
   return p.actions?.find((a) => a.target === `group:${g}`)?.n;
 }
 
-function Log({ view }: { view: PlayerView }) {
+function Log({ view, seatIndex }: { view: PlayerView; seatIndex: (id: string) => number }) {
   const entries = useMemo(() => [...view.log].reverse(), [view.log]);
   const download = () => {
     const text = view.log.map((l) => `[Пятилетка ${l.round}] ${l.text}`).join('\n');
@@ -1091,7 +1091,12 @@ function Log({ view }: { view: PlayerView }) {
   return (
     <div className="log">
       <div className="addr-head"><h3>Журнал</h3><button className="small" onClick={download}>Скачать .txt</button></div>
-      {entries.map((l, i) => <div key={i} className={l.only ? 'secret' : ''}>{l.text}</div>)}
+      {entries.map((l, i) => (
+        <div key={i} className={`${l.only ? 'secret' : ''} ${l.act ? 'act' : ''}`}>
+          {l.act && <span className="dot num" style={{ background: PLAYER_COLORS[seatIndex(l.act.player)] }} title={`${l.act.n}-е действие игрока в Пятилетке`}>{l.act.n}</span>}
+          {l.text}
+        </div>
+      ))}
     </div>
   );
 }

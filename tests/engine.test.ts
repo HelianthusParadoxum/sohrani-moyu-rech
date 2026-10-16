@@ -794,3 +794,16 @@ describe('Опальное — сразу в Тайник', () => {
     expect(w.find((x) => x.card === free)!.hidden).toBe(false);
   });
 });
+
+describe('Журнал поручений', () => {
+  it('запись о поручении помечена номером действия игрока', () => {
+    let s = createGame({ players: players(2), seed: 5 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    s = applyAction(s, me, { type: 'place', place: { address: 'zavoz' } });
+    const entry = s.log.find((l) => l.act);
+    expect(entry).toMatchObject({ act: { player: me, n: 1 } });
+    expect(entry!.text).toContain('Завозе');
+  });
+});

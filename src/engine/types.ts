@@ -144,6 +144,7 @@ export interface LogEntry {
   text: string;
   // Если задано — запись видят только эти игроки (тайная информация).
   only?: string[];
+  act?: { player: string; n: number }; // запись о поручении игрока: его номер в Пятилетке (кружок в журнале)
 }
 
 export interface GameState {
