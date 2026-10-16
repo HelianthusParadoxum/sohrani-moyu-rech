@@ -947,7 +947,7 @@ function HidingPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (
 }
 
 // Источники очков «по ходу», возможные в этом режиме.
-const BEGINNER_SOURCES: PointSource[] = ['gathering', 'sprouts', 'firstFeed', 'tamizdat'];
+const BEGINNER_SOURCES: PointSource[] = ['sprouts', 'firstFeed', 'gathering', 'tamizdat'];
 
 function Results({ view, seatIndex, close }: { view: PlayerView; seatIndex: (id: string) => number; close: () => void }) {
   const full = view.mode === 'full';
