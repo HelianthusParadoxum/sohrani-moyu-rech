@@ -202,7 +202,8 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
           const actsFrom = p.actions.length;
           doOrder(state, p, action);
           const first = p.actions[actsFrom];
-          const entry = first && state.log.slice(logFrom).find((l) => !l.only);
+          // Следствия («↳ …») пропускаем: кружок — на строке самого действия.
+          const entry = first && state.log.slice(logFrom).find((l) => !l.only && !l.after);
           if (entry) entry.act = { player: p.id, n: first.n };
         }
         break;
@@ -264,6 +265,11 @@ function finishAction(state: GameState, p: PlayerState, pointsBefore: number, lo
     let at = main.map((l) => l.text.startsWith(`${p.name} `)).lastIndexOf(true);
     if (at < 0) at = main.length - 1;
     const tail = fresh.filter((l) => l.after);
+    // Кружок с номером действия — на строке самого действия, а не на следствии.
+    for (const l of tail) {
+      if (l.act && main[at] && !main[at].act) main[at].act = l.act;
+      delete l.act;
+    }
     state.log = [...state.log.slice(0, logStart), ...main.slice(0, at + 1), ...tail, ...main.slice(at + 1)];
     for (const l of fresh) delete l.after;
   }

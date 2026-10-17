@@ -743,6 +743,27 @@ describe('Нагрузка-улика', () => {
   });
 });
 
+describe('Журнал: кружок действия', () => {
+  it('кружок с номером действия — на строке действия, а не на следствии («↳ Ирония …»)', () => {
+    let s = createGame({ players: players(2), seed: 21, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const irony = s.deck.find((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.includes('irony'))!;
+    s.deck = s.deck.filter((c) => c !== irony);
+    const p = s.players.find((x) => x.id === me)!;
+    p.capacity = 10;
+    p.warehouse.push({ card: irony, hidden: false });
+    const start = s.log.length;
+    s = applyAction(s, me, { type: 'place', place: { address: 'samizdat', card: irony } });
+    const fresh = s.log.slice(start);
+    const marked = fresh.filter((l) => l.act);
+    expect(marked).toHaveLength(1);
+    expect(marked[0].text.startsWith(p.name)).toBe(true);
+    expect(fresh.find((l) => l.text.startsWith('↳ Ирония'))?.act).toBeUndefined();
+  });
+});
+
 describe('Посиделки: почитать на ночь', () => {
   it('непоказанные книги из Тайника дают Талоны, показанные опальные — очки', () => {
     let s = createGame({ players: players(2), seed: 6 });
