@@ -144,7 +144,7 @@ export function isExposed(state: CardsInfo, id: string): boolean {
 
 // Опальная книга: Пропаганда, Улики и книги со значком опального жанра.
 export function isBanned(state: CardsInfo & Pick<GameState, 'banned'>, id: string): boolean {
-  if (isPropaganda(state, id) || isEvidence(state, id)) return true;
+  if (isPropaganda(state, id) || isEvidence(state, id) || isExposed(state, id)) return true;
   return iconsOf(state, id).some((g) => state.banned.includes(g));
 }
 
