@@ -302,7 +302,8 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   // Жанровые книги — разменная монета: Книгообмен на Пропаганду, Главлит «прокруткой», оплата Конторы своей книгой.
   for (const s of p.warehouse) {
     if (!isGenreBook(state, s.card)) continue;
-    v += BOT_BASE.curatorBook + (isBanned(state, s.card) ? BOT_BASE.curatorBannedBook : 0);
+    // К концу партии книги как «разменная монета» обесцениваются: в последнем действии важна только Пропаганда.
+    v += (BOT_BASE.curatorBook + (isBanned(state, s.card) ? BOT_BASE.curatorBannedBook : 0)) * (BOT_BASE.curatorBookByRound[ctx.round - 1] ?? 1);
   }
   // Книги на столе, которыми честные закроют ближайшие ступени, — лучше забрать себе.
   v -= BOT_BASE.curatorDenyFeed * feedBooksOnTable(state);
@@ -779,7 +780,7 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
   const items: KontoraChoice[] = [];
   const held = state.players.filter((o) => o.held > 0).sort((a, b) => (a.id === me ? -1 : b.id === me ? 1 : 0));
   const free = united ? held.filter((o) => o.id !== enemy[0]) : held; // Куратора из Конторы не вызволяют
-  if (free.length) items.push({ petition: free.slice(0, 2).map((o) => o.id) });
+  if (free.length) items.push({ petition: free.slice(0, RULES.petitionMax).map((o) => o.id) });
   if (state.spetskhran.length && freeSlots(p) > 0) items.push({ handout: true });
   // Подозреваемый Куратор: Сигнал — ему, Профилактика — только Завсегдатаю, с которым связан лишь он.
   if (united) {

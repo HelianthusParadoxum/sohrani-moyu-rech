@@ -161,7 +161,7 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
   check(chosen >= 1, 'Выберите от 1 до 4 пунктов');
   check(c.seize, 'Выберите открытую опальную книгу, которая уйдёт в Спецхран — это цена похода в Контору');
   if (c.petition?.length) {
-    check(c.petition.length <= 2, 'Ходатайство возвращает до 2 Единомышленников');
+    check(c.petition.length <= RULES.petitionMax, RULES.petitionMax === 1 ? 'Ходатайство возвращает 1 Единомышленника' : `Ходатайство возвращает до ${RULES.petitionMax} Единомышленников`);
     for (const id of c.petition) {
       const o = player(state, id);
       check(o.held > 0, `У ${o.name} нет удержанных Единомышленников`);

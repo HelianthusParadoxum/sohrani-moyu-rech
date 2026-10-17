@@ -1,6 +1,6 @@
 // Интерфейс полного режима: Клуб книголюбов, Контора.
 import { useState } from 'react';
-import { GENRE_NAMES, PATRONS } from '../engine/content';
+import { GENRE_NAMES, PATRONS, RULES } from '../engine/content';
 import type { Action, ClubGift, Genre, GroupAction, KontoraChoice, PatronId, PlaceAction } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import { cacheLimit } from '../engine/util';
@@ -114,7 +114,7 @@ export function KontoraPanel({ view, place }: { view: PlayerView; place: (p: Pla
         : <TargetShelf view={view} targets={targets} />}
       <p>Соперники уже не успеют перепрятать книги. Дальше вы выберете от 1 до 4 пунктов и книгу для Спецхрана:</p>
       <ul>
-        <li><b>Ходатайство</b> — вернуть из Конторы до 2 удержанных Единомышленников любых игроков.</li>
+        <li><b>Ходатайство</b> — вернуть из Конторы {RULES.petitionMax === 1 ? 'одного удержанного Единомышленника' : `до ${RULES.petitionMax} удержанных Единомышленников`} любого игрока.</li>
         <li><b>Выдача на руки</b> — посмотреть Спецхран и взять оттуда одну книгу.</li>
         <li><b>Сигнал</b> — удержать в Конторе Единомышленника любого игрока.</li>
         <li><b>Профилактика</b> — удалить одного Завсегдатая Клуба.</li>
@@ -174,13 +174,13 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
   return (
     <Modal title="Контора" wide>
       <p>Выберите от 1 до 4 пунктов (без повторов).</p>
-      <h4>Ходатайство (до 2 Единомышленников)</h4>
+      <h4>Ходатайство ({RULES.petitionMax === 1 ? '1 Единомышленник' : `до ${RULES.petitionMax} Единомышленников`})</h4>
       <div className="genres">
         {held.length === 0 && <span className="muted">Никто не удержан</span>}
         {held.map((p) => (
           <span key={p.id}>
             {p.name} ({p.held}):{' '}
-            <button className="small" disabled={petition.length >= 2 || petition.filter((x) => x === p.id).length >= p.held} onClick={() => setPetition([...petition, p.id])}>+1</button>
+            <button className="small" disabled={petition.length >= RULES.petitionMax || petition.filter((x) => x === p.id).length >= p.held} onClick={() => setPetition([...petition, p.id])}>+1</button>
           </span>
         ))}
         {petition.length > 0 && <button className="small" onClick={() => setPetition([])}>сбросить ({petition.length})</button>}

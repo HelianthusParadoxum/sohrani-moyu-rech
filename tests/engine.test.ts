@@ -306,6 +306,8 @@ describe('полный режим', () => {
     s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: other, seize: { player: other, card: book } } });
     const o = s.players.find((x) => x.id === other)!;
     expect(o.held).toBe(1);
+    // Ходатайство возвращает только 1 Единомышленника.
+    expect(RULES.petitionMax).toBe(1);
     expect(o.available).toBe(before - 1);
     expect(s.spetskhran).toContain(book);
   });
@@ -1106,5 +1108,24 @@ describe('Спецхран и Проза', () => {
     const prose = Object.keys(s.cards).filter((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.includes('prose')).slice(0, 3);
     p.warehouse = prose.map((card) => ({ card, hidden: false }));
     expect(proseBonus(s, p)).toBe(1);
+  });
+});
+
+describe('Ходатайство', () => {
+  it('возвращает не больше 1 Единомышленника', () => {
+    let s = createGame({ players: players(3), seed: 15, mode: 'full', curator: false });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const [a, b] = s.order.filter((x) => x !== me);
+    for (const id of [a, b]) { const q = s.players.find((x) => x.id === id)!; q.held = 1; q.available--; }
+    const book = s.deck.find((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.some((g) => s.banned.includes(g)))!;
+    s.deck = s.deck.filter((c) => c !== book);
+    s.players.find((x) => x.id === a)!.warehouse.push({ card: book, hidden: false });
+    s = applyAction(s, me, { type: 'place', place: { address: 'kontora' } });
+    expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { petition: [a, b], seize: { player: a, card: book } } }))
+      .toThrow(/1 Единомышленника/);
+    s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { petition: [b], seize: { player: a, card: book } } });
+    expect(s.players.find((x) => x.id === b)!.held).toBe(0);
   });
 });
