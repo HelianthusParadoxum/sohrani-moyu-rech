@@ -1209,6 +1209,34 @@ describe('Спецхран и Проза', () => {
   });
 });
 
+describe('Контора: донос', () => {
+  it('донос — только на чужую книгу; Профилактика — только Завсегдатаю, связанному с тем, на кого донос', () => {
+    let s = createGame({ players: players(3), seed: 15, mode: 'full', curator: false });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const [a, b] = s.order.filter((x) => x !== me);
+    for (const q of s.players) q.warehouse = q.warehouse.filter((w) => !isBanned(s, w.card));
+    const banned = s.deck.filter((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.some((g) => s.banned.includes(g))).slice(0, 2);
+    s.deck = s.deck.filter((c) => !banned.includes(c));
+    // Опальная книга только у себя — в Контору не пойти.
+    s.players.find((x) => x.id === me)!.warehouse.push({ card: banned[0], hidden: false });
+    expect(() => applyAction(s, me, { type: 'place', place: { address: 'kontora' } })).toThrow(/доносить не на что/);
+    s.players.find((x) => x.id === a)!.warehouse.push({ card: banned[1], hidden: false });
+    s = applyAction(s, me, { type: 'place', place: { address: 'kontora' } });
+    expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { handout: true, denounce: { player: me, card: banned[0] } } }))
+      .toThrow(/другого игрока/);
+    const pa = s.patrons.find((x) => !x.removed)!;
+    const pb = s.patrons.find((x) => !x.removed && x.id !== pa.id)!;
+    pa.connections = [a];
+    pb.connections = [b];
+    expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { prophylaxis: pb.id, denounce: { player: a, card: banned[1] } } }))
+      .toThrow(/Профилактика/);
+    s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { prophylaxis: pa.id, denounce: { player: a, card: banned[1] } } });
+    expect(s.patrons.find((x) => x.id === pa.id)!.removed).toBe(true);
+  });
+});
+
 describe('Ходатайство', () => {
   it('возвращает не больше 1 Единомышленника', () => {
     let s = createGame({ players: players(3), seed: 15, mode: 'full', curator: false });

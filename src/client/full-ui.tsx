@@ -105,10 +105,10 @@ export function ClubGiftModal({ view, me, act, close }: { view: PlayerView; me: 
 }
 
 export function KontoraPanel({ view, place }: { view: PlayerView; place: (p: PlaceAction) => void }) {
-  const targets = kontoraTargets(view);
+  const targets = kontoraTargets(view, view.me);
   return (
     <>
-      <h4>Цена похода — донос: указать на открыто лежащую на чьём-то Складе книгу опального жанра (сама она остаётся у владельца)</h4>
+      <h4>Цена похода — донос: указать на открыто лежащую на Складе соперника книгу опального жанра (сама она остаётся у владельца)</h4>
       {targets.length === 0
         ? <p className="warn-text">Сейчас в Контору не пойти: ни у кого на Складе нет открытой опальной книги — доносить не на что.</p>
         : <TargetShelf view={view} targets={targets} />}
@@ -117,7 +117,7 @@ export function KontoraPanel({ view, place }: { view: PlayerView; place: (p: Pla
         <li><b>Ходатайство</b> — вернуть из Конторы {RULES.petitionMax === 1 ? 'одного удержанного Единомышленника' : `до ${RULES.petitionMax} удержанных Единомышленников`} любого игрока.</li>
         <li><b>Выдача на руки</b> — посмотреть Спецхран и взять оттуда одну книгу.</li>
         <li><b>Сигнал</b> — удержать в Конторе Единомышленника любого игрока.</li>
-        <li><b>Профилактика</b> — удалить одного Завсегдатая Клуба.</li>
+        <li><b>Профилактика</b> — удалить Завсегдатая Клуба, с которым связан тот, на кого вы донесли.</li>
         <li><b>Изъятие</b> — книга из доноса уходит в Спецхран.</li>
       </ul>
       <div className="modal-foot"><button className="primary" disabled={!targets.length} onClick={() => place({ address: 'kontora' })}>Дальше</button></div>
@@ -162,10 +162,11 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
   const [seize, setSeize] = useState(false);
   const [denounce, setDenounce] = useState<{ player: string; card: string } | null>(null);
   const held = view.players.filter((p) => p.held > 0);
-  const targets = kontoraTargets(view);
+  const targets = kontoraTargets(view, view.me);
   const count = [petition.length > 0, handout, !!signal, !!prophylaxis, seize].filter(Boolean).length;
   // Повод для Сигнала проверяется до Изъятия: книга из доноса ещё лежит у владельца.
   const signalOk = !signal || signalable(view, signal);
+  const prophOk = !prophylaxis || !denounce || view.patrons.some((x) => x.id === prophylaxis && x.connections.includes(denounce.player));
   const choice: KontoraChoice = {
     ...(petition.length ? { petition } : {}), ...(handout ? { handout } : {}), ...(signal ? { signal } : {}),
     ...(prophylaxis ? { prophylaxis } : {}), ...(seize ? { seize } : {}), ...(denounce ? { denounce } : {}),
@@ -193,10 +194,10 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
         <span className="muted small"> (только на тех, у кого открыто лежит опальная книга или Пропаганда)</span>
         {!signalOk && <div className="small" style={{ color: 'var(--red)' }}>У этого игрока нет повода для Сигнала.</div>}
       </label>
-      <label>Профилактика — удалить Завсегдатая:
+      <label>Профилактика — удалить Завсегдатая, с которым связан тот, на кого донос:
         <select value={prophylaxis} onChange={(e) => setProphylaxis(e.target.value as PatronId)}>
           <option value="">— нет —</option>
-          {view.patrons.filter((x) => !x.removed).map((x) => <option key={x.id} value={x.id}>{PATRONS[x.id].name}</option>)}
+          {view.patrons.filter((x) => !x.removed && (!denounce || x.connections.includes(denounce.player))).map((x) => <option key={x.id} value={x.id}>{PATRONS[x.id].name}</option>)}
         </select>
       </label>
       <label className="row"><input type="checkbox" checked={seize} onChange={(e) => setSeize(e.target.checked)} /> Изъятие — книга из доноса уходит в Спецхран</label>
@@ -206,7 +207,7 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
         : <TargetShelf view={view} targets={targets} selected={denounce?.card} onPick={(t) => setDenounce(denounce?.card === t.card ? null : t)} />}
       <div className="modal-foot">
         <button onClick={() => act({ type: 'kontoraDecide', go: false })}>Передумать</button>
-        <button className="primary" disabled={count < 1 || !denounce || !signalOk} title={!denounce ? 'Укажите книгу для доноса' : count < 1 ? 'Выберите хотя бы один пункт' : !signalOk ? 'Сигналу нет повода' : ''}
+        <button className="primary" disabled={count < 1 || !denounce || !signalOk || !prophOk} title={!denounce ? 'Укажите книгу для доноса' : count < 1 ? 'Выберите хотя бы один пункт' : !signalOk ? 'Сигналу нет повода' : !prophOk ? 'Этот Завсегдатай не связан с тем, на кого донос' : ''}
           onClick={() => act({ type: 'kontoraDecide', go: true, choice })}>Пойти в Контору ({count})</button>
       </div>
     </Modal>

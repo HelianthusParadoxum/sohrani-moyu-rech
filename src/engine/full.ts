@@ -138,8 +138,9 @@ type TargetsInfo = Pick<GameState, 'cards' | 'restored' | 'banned'> & {
   players: { id: string; warehouse: { card: string | null; hidden: boolean; memorized?: boolean }[] }[];
 };
 
-export function kontoraTargets(state: TargetsInfo): { player: string; card: string }[] {
-  return state.players.flatMap((o) => o.warehouse
+// exclude — кто идёт в Контору: на свою книгу доносить нельзя.
+export function kontoraTargets(state: TargetsInfo, exclude?: string | null): { player: string; card: string }[] {
+  return state.players.filter((o) => o.id !== exclude).flatMap((o) => o.warehouse
     .filter((s) => s.card && !s.hidden && !s.memorized && isGenreBook(state, s.card) && isBanned(state, s.card))
     .map((s) => ({ player: o.id, card: s.card! })));
 }
@@ -152,7 +153,7 @@ export function signalable(state: TargetsInfo, playerId: string): boolean {
 }
 
 export function startKontora(state: GameState, p: PlayerState) {
-  check(kontoraTargets(state).length > 0, 'В Контору сейчас не пойти: ни у кого на Складе нет открытой опальной книги — нечем заплатить');
+  check(kontoraTargets(state, p.id).length > 0, 'В Контору сейчас не пойти: ни у кого из соперников на Складе нет открытой опальной книги — доносить не на что');
   // Перепрятать книги соперники уже не успеют: перепрятывают только в свой ход. Игрок сразу выбирает пункты и цену.
   state.pending.push({ kind: 'kontoraDecide', player: p.id });
 }
@@ -161,6 +162,7 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
   const chosen = [c.petition?.length, c.handout, c.signal, c.prophylaxis, c.seize].filter(Boolean).length;
   check(chosen >= 1, 'Выберите от 1 до 5 пунктов');
   check(c.denounce, 'Укажите открытую опальную книгу — донос, цена похода в Контору');
+  check(c.denounce.player !== p.id, 'Доносить можно только на книгу другого игрока');
   const target = player(state, c.denounce.player);
   const slot = target.warehouse.find((x) => x.card === c.denounce!.card);
   check(slot && !slot.hidden && !slot.memorized, 'Донос — только на открыто лежащую на складе книгу');
@@ -175,7 +177,12 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
       log(state, `Ходатайство: ${o.name} получает Единомышленника обратно.`);
     }
   }
-  if (c.prophylaxis) removePatron(state, c.prophylaxis);
+  if (c.prophylaxis) {
+    // Профилактика — только Завсегдатаю, с которым связан тот, на кого донесли.
+    check(state.patrons.some((x) => x.id === c.prophylaxis && x.connections.includes(target.id)),
+      `Профилактика — только Завсегдатаю, с которым связан ${target.name} (на него донос)`);
+    removePatron(state, c.prophylaxis);
+  }
   // Сигнал — до Изъятия: книга, на которую донесли, ещё лежит у владельца и сама служит поводом.
   if (c.signal) {
     const o = player(state, c.signal);

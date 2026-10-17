@@ -787,21 +787,21 @@ function clubCandidates(state: GameState, me: string, keep: Map<string, number>)
 function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string, number>): KontoraChoice[] {
   const p = player(state, me);
   const left = RULES.rounds - ctx.round;
-  const targets = kontoraTargets(state);
+  void keep;
+  const targets = kontoraTargets(state, me);
   const seizes: { player: string; card: string }[] = [];
-  // У каждого соперника — самую «значкастую» книгу; у себя — самую ненужную.
+  // Донос — на самую «значкастую» книгу каждого соперника (на свою доносить нельзя).
   for (const o of state.players) {
     const mine = targets.filter((t) => t.player === o.id);
     if (!mine.length) continue;
-    const pick = o.id === me
-      ? [...mine].sort((a, b) => (keep.get(a.card) ?? 0) - (keep.get(b.card) ?? 0))[0]
-      : [...mine].sort((a, b) => iconsOf(state, b.card).length - iconsOf(state, a.card).length)[0];
-    seizes.push(pick);
+    seizes.push([...mine].sort((a, b) => iconsOf(state, b.card).length - iconsOf(state, a.card).length)[0]);
   }
-  // Против подозреваемого Куратора своих не сдают: платят его книгой или своей.
+  // Против подозреваемого Куратора на своих не доносят.
   const enemy = Object.entries(ctx.suspect).sort((a, b) => b[1] - a[1])[0];
   const united = !!enemy && enemy[1] >= BOT_BASE.suspectAct;
-  if (united) for (let i = seizes.length - 1; i >= 0; i--) if (seizes[i].player !== me && seizes[i].player !== enemy[0]) seizes.splice(i, 1);
+  if (united) for (let i = seizes.length - 1; i >= 0; i--) if (seizes[i].player !== enemy[0]) seizes.splice(i, 1);
+  // Профилактика возможна только Завсегдатаю, связанному с тем, на кого донос: кандидаты по убыванию желания.
+  let patronRank: GameState['patrons'] = [];
   const items: KontoraChoice[] = [];
   const held = state.players.filter((o) => o.held > 0).sort((a, b) => (a.id === me ? -1 : b.id === me ? 1 : 0));
   const free = united ? held.filter((o) => o.id !== enemy[0]) : held; // Куратора из Конторы не вызволяют
@@ -811,8 +811,8 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
   if (united) {
     const o = player(state, enemy[0]);
     if (o.held < o.workers && signalable(state, o.id)) items.push({ signal: o.id });
-    const only = state.patrons.find((x) => !x.removed && x.connections.length > 0 && x.connections.every((id) => id === o.id));
-    if (only) items.push({ prophylaxis: only.id });
+    patronRank = state.patrons.filter((x) => !x.removed && x.connections.length > 0 && x.connections.every((id) => id === o.id));
+    if (patronRank[0]) items.push({ prophylaxis: patronRank[0].id });
   } else if (ctx.aggression > 0 || ctx.curator) {
     const rivals = state.players.filter((o) => o.id !== me && o.held < o.workers && signalable(state, o.id));
     const leader = rivals.sort((a, b) => strength(state, b, left) - strength(state, a, left))[0];
@@ -826,6 +826,7 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
       ? state.patrons.filter((x) => !x.removed && net(x) > 0).sort((a, b) => net(b) - net(a))
       : state.patrons.filter((x) => !x.removed && !x.connections.includes(me) && x.connections.length > 0)
         .sort((a, b) => b.connections.length - a.connections.length);
+    patronRank = patrons;
     if (patrons[0]) items.push({ prophylaxis: patrons[0].id });
   }
   const out: KontoraChoice[] = [];
@@ -835,11 +836,18 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
     if (ctx.curator && items.some((x) => x.prophylaxis) && !choice.prophylaxis) continue;
     // Донос — цена; Изъятие той же книги — отдельный пункт (свою книгу бот не изымает).
     for (const denounce of seizes) {
-      if (set.length) out.push({ ...choice, denounce });
-      if (denounce.player !== me) out.push({ ...choice, denounce, seize: true });
+      let c = choice;
+      if (c.prophylaxis) {
+        const pt = patronRank.find((x) => x.connections.includes(denounce.player));
+        const { prophylaxis: _, ...rest } = c;
+        void _;
+        c = pt ? { ...rest, prophylaxis: pt.id } : rest;
+      }
+      if (Object.keys(c).length) out.push({ ...c, denounce });
+      out.push({ ...c, denounce, seize: true });
     }
   }
-  return out;
+  return [...new Map(out.map((c) => [JSON.stringify(c), c])).values()];
 }
 
 function byValue(keep: Map<string, number>, cards: string[]): string[] {
@@ -1062,7 +1070,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
             // Только что передумал идти (соперники перепрятали книги) — второй раз за ход не объявляет.
             const mine = state.log.filter((l) => l.text.startsWith(p.name + ' ')).pop();
             const changedMind = mine?.text === `${p.name} передумывает идти в Контору.`;
-            if (!changedMind && kontoraTargets(state).length) out.push({ type: 'place', place: { address: 'kontora' } });
+            if (!changedMind && kontoraTargets(state, me).length) out.push({ type: 'place', place: { address: 'kontora' } });
             break;
           }
           case 'kvartirnik': {
