@@ -105,7 +105,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   zavoz: { id: 'zavoz', name: 'Завоз', limits: [1, 1, 2], hint: '+2т, Развал полностью обновляется' },
   baraholka: { id: 'baraholka', name: 'Барахолка', limits: [4, 4, 4], hint: 'Тайно посмотреть 2 из 4 закрытых книг и купить одну из них за 1т' },
   podpiska: { id: 'podpiska', name: 'Подписка', limits: [1, 1, 1], safehouse: true, hint: 'Заказать жанр: −1т за каждую Пятилетку доставки' },
-  sprouts: { id: 'sprouts', name: 'Ростки Гласности', limits: [3, 4, 5], hint: RULES.sproutFeedsPerAction === 1 ? 'Закрыть 1 ступень одного Ростка' : `Закрыть до ${RULES.sproutFeedsPerAction} ступеней Ростков` },
+  sprouts: { id: 'sprouts', name: 'Ростки Гласности', limits: [INF, INF, INF], hint: RULES.sproutFeedsPerAction === 1 ? 'Закрыть 1 ступень одного Ростка' : `Закрыть до ${RULES.sproutFeedsPerAction} ступеней Ростков` },
   samizdat: { id: 'samizdat', name: 'Самиздат', limits: [2, 2, 3], hint: `Издать книгу: +${RULES.samizdatTalons}т/значок` },
   tamizdat: { id: 'tamizdat', name: 'Тамиздат', limits: [1, 1, 2], hint: `Издать книгу: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка/значок` },
   glavlit: { id: 'glavlit', name: 'Главлит', limits: [1, 1, 2], hint: `Отдать любое число подцензурных книг (+${RULES.glavlitTalons}т за каждую) и взять столько же из стопок Непечатных и Нагрузки на выбор` },

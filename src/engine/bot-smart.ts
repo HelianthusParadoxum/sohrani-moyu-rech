@@ -333,6 +333,8 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   if (ctx.curator) return evaluateCurator(state, p, ctx);
   // Контора удержала слишком многих — проиграли все (кроме Куратора).
   if (state.result && !state.result.scores.length) return -BOT_BASE.loss;
+  // Гласность — всё или ничего: не наступила (или её срезал Куратор) — честные проиграли, очки не важны.
+  if (state.result && !state.result.glasnost && !state.solo) return -BOT_BASE.loss;
   const left = RULES.rounds - ctx.round; // Пятилеток после текущей
   const w = ctx.w;
   const cards = p.warehouse.map((s) => s.card);
@@ -356,9 +358,18 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   v += feedPotential(state, p, ctx) * w.sproutBooks;
   v += shopValue(state, p, ctx);
   // Ростки — общее дело: без Гласности проигрывают все.
+  const missing = state.sprouts.reduce((s, sp) => s + Math.max(0, RULES.glasnostStep - sp.progress), 0);
   for (const sp of state.sprouts) {
     for (let k = 0; k < Math.min(sp.progress, RULES.glasnostStep); k++) v += ctx.glasnost * w.sprouts * (BOT_BASE.glasnostLag[k] ?? 1);
-    v += Math.max(0, sp.progress - RULES.glasnostStep) * BOT_BASE.lateStep;
+    // Ступени сверх III — запас, но только когда Гласность уже набрана (иначе эта ступень нужнее отстающему Ростку).
+    if (missing === 0 || state.solo) v += Math.max(0, sp.progress - RULES.glasnostStep) * BOT_BASE.lateStep;
+  }
+  if (!state.solo) {
+    // Отстающий Росток важнее всех: Гласность наступает, только когда до III дорастут все.
+    const weakest = Math.min(...state.sprouts.map((sp) => Math.min(sp.progress, RULES.glasnostStep)));
+    v += (BOT_BASE.glasnostWeakest[ctx.round - 1] ?? 0) * weakest * w.sprouts;
+    // Гласность набрана — это почти победа (ближе к концу — тем ценнее).
+    if (missing === 0) v += BOT_BASE.glasnostDone[ctx.round - 1] ?? 0;
   }
   // Облава: книги сверх Тайника пропадут.
   if (state.phase !== 'end' && state.phase !== 'passion') {
@@ -379,7 +390,7 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   }
   if (ctx.full || state.solo) {
     // «Громоотвод»: запасные ступени сверх 3-й на случай срезов Куратора (в одиночной игре — Пропаганды из 30 вскрытых карт).
-    const spare = state.sprouts.reduce((s, sp) => s + Math.max(0, sp.progress - RULES.glasnostStep), 0);
+    const spare = missing === 0 || state.solo ? state.sprouts.reduce((s, sp) => s + Math.max(0, sp.progress - RULES.glasnostStep), 0) : 0;
     // Подозревая Куратора (или видя угрозу Гласности), бот страхуется сильнее: срезы бьют по самым развитым Росткам.
     const cap = BOT_BASE.insuranceSteps + Math.round(BOT_BASE.coopInsuranceSteps * ctx.coop);
     v += BOT_BASE.insurance * (1 + BOT_BASE.coopInsurance * ctx.coop) * Math.min(spare, cap) * w.sprouts;
