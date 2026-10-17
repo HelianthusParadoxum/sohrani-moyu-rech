@@ -28,7 +28,7 @@ export function price(state: GameState, p: PlayerState, cost: number): number {
 // Ирония «Пустить в народ»: +1 Талон, когда игрок отдаёт ироническую книгу куда-либо.
 export function gaveAway(state: GameState, p: PlayerState, card: string) {
   if (isFull(state) && iconsOf(state, card).includes('irony')) {
-    log(state, `${p.name}: ирония «пущена в народ» — +1 Талон.`);
+    log(state, `↳ Ирония «пущена в народ»: +1 Талон.`);
     state.log[state.log.length - 1].after = true;
     earn(state, p, 1);
   }
