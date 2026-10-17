@@ -452,6 +452,18 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
     // Запас Тайника на стык Пятилеток: место сверх опальных книг — чтобы спрятать впрок то, что может попасть в опалу.
     const bannedHere = p.warehouse.filter((s) => !s.memorized && isBanned(state, s.card)).length;
     if (cacheLimit(state, p) > bannedHere) v += BOT_BASE.cacheSpare[ctx.round - 1] ?? 0;
+    // Открыто лежащая опальная книга посреди Пятилетки — готовый донос: Контора её изымет и удержит Единомышленника.
+    // Чем сильнее подозрение на Куратора, тем вероятнее (а он ходит в Контору охотно).
+    if (state.phase === 'orders') {
+      const exposed = p.warehouse.filter((s) => !s.hidden && !s.memorized && isGenreBook(state, s.card) && isBanned(state, s.card));
+      if (exposed.length && state.players.some((o) => o.id !== me && o.available > 0)) {
+        const sus = Math.max(0, ...Object.values(ctx.suspect));
+        const risk = Math.min(1, BOT_BASE.exposeRisk + BOT_BASE.exposeRiskSuspect * sus);
+        const book = Math.max(...exposed.map((s) => Math.max(0, ownBookValue(state, p, s.card, ctx))));
+        const worker = hasPatron(state, me, 'psychiatrist') ? 0 : (left + 1) * BOT_BASE.action;
+        v -= risk * (book + worker) * ctx.preset.character.caution;
+      }
+    }
   }
   if (ctx.full) {
     // Общая угроза: при 7 удержанных проигрывают все.

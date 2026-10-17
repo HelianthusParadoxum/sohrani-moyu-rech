@@ -63,12 +63,12 @@ function noteForSpectator(room: Room) {
   const cur = s.players.find((p) => p.passion === 'curator' && bots.has(p.id));
   if (cur) {
     const text = `Для зрителя. ${curatorStyleNote({ seed: s.seed }, cur.id, cur.name)}`;
-    if (!s.log.some((l) => l.text === text)) s.log.push({ round: s.round, text, only: [] });
+    if (!s.log.some((l) => l.text === text)) s.log.push({ round: s.round, text, only: [], em: true });
   }
   if (s.phase !== 'orders' || !s.curatorPossible) return;
   const head = `Для зрителя. Подозрения ботов в начале Пятилетки ${s.round} (насколько каждый считает другого Куратором):`;
   if (s.log.some((l) => l.text === head)) return;
-  s.log.push({ round: s.round, text: head, only: [] });
+  s.log.push({ round: s.round, text: head, only: [], em: true });
   for (const p of s.players) {
     if (!bots.has(p.id) || p.passion === 'curator') continue;
     const sus = curatorSuspicionDetail(s, p.id);

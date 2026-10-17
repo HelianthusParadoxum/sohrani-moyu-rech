@@ -16,7 +16,7 @@ import { GENRES } from './types';
 import {
   addBook, addOpenBook, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
-  talonsText, title, titles, logEvent, toSpetskhranPublic, isExposed,
+  talonsText, title, titles, logEvent, logNote, toSpetskhranPublic, isExposed,
 } from './util';
 
 export interface NewGameOptions {
@@ -100,7 +100,7 @@ export function createGame(opts: NewGameOptions): GameState {
   log(state, `Партия началась. Порядок хода: ${state.order.map((id) => player(state, id).name).join(', ')}.`);
   // Опала первой Пятилетки известна до выбора Пристрастий (остальной стол откроется после выбора).
   state.banned = shuffle(state, [...GENRES]).slice(0, state.censorship);
-  log(state, solo
+  logNote(state, solo
     ? `Несистемный: одиночная игра. Цензура растёт на 1 каждую Пятилетку; в конце вскроются ${RULES.soloEndCards[mode]} Непечатных — каждая Пропаганда срежет ступень Ростка.`
     : 'Каждый игрок тайно выбирает одно из двух Пристрастий.');
   return state;
@@ -167,7 +167,7 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
             state.ready = [];
             // Опальные стартовые книги сразу предложены в Тайник (если есть место) — игрок может переложить.
             for (const q of state.players) startHide(state, q);
-            log(state, 'Все раскладывают стартовые книги: что спрятать в Тайник, что оставить на виду.');
+            logNote(state, 'Все раскладывают стартовые книги: что спрятать в Тайник, что оставить на виду.');
           }
         }
         return done(state);
@@ -440,7 +440,7 @@ function endOrders(state: GameState) {
   state.phase = 'gathering';
   state.ready = [];
   logEvent(state, 'Посиделки.');
-  log(state, 'Можно показать опальные книги и Улики со склада — по 1 очку за каждую.');
+  logNote(state, 'Можно показать опальные книги и Улики со склада — по 1 очку за каждую.');
 }
 
 function doGathering(state: GameState, p: PlayerState, show: string[]) {
@@ -482,7 +482,7 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
     state.phase = 'hiding';
     state.ready = [];
     logEvent(state, 'Укрытие.');
-    log(state, 'Прячьте опальные книги в Тайник (каждые 2 Нагрузки на складе дают +1 место).');
+    logNote(state, 'Прячьте опальные книги в Тайник (каждые 2 Нагрузки на складе дают +1 место).');
   }
 }
 

@@ -51,6 +51,12 @@ export function logEvent(state: GameState, text: string) {
   state.log[state.log.length - 1].strong = true;
 }
 
+// Пояснение (что сейчас происходит, что можно сделать) — курсивом.
+export function logNote(state: GameState, text: string) {
+  log(state, text);
+  state.log[state.log.length - 1].em = true;
+}
+
 export function player(state: GameState, id: string): PlayerState {
   const p = state.players.find((x) => x.id === id);
   check(p, 'Нет такого игрока');
