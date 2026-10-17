@@ -325,17 +325,14 @@ describe('полный режим', () => {
     expect(s.pending).toHaveLength(1);
     expect(s.pending[0]).toMatchObject({ kind: 'kontoraDecide', player: me });
     expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: other } })).toThrow(RuleError);
-    // Сигнал — только на того, у кого открыто лежит опальная книга или Пропаганда: у третьего игрока (или у самого себя) таких нет.
-    const clean = s.order.find((x) => x !== me && x !== other) ?? me;
-    for (const w of s.players.find((x) => x.id === clean)!.warehouse) if (s.cards[w.card].kind === 'propaganda') w.hidden = true;
+    // Сигнал — только на того, на кого донос: даже с открытой Пропагандой другой игрок не годится.
+    const clean = s.order.find((x) => x !== me && x !== other);
     if (clean) {
-      expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: clean, denounce: { player: other, card: book } } }))
-        .toThrow(/опальная книга/);
-      // Открыто лежащая Пропаганда — тоже повод для Сигнала.
       const prop = Object.keys(s.cards).find((c) => s.cards[c].kind === 'propaganda' && !s.players.some((p) => p.warehouse.some((w) => w.card === c)))!;
       const t = structuredClone(s);
       t.players.find((x) => x.id === clean)!.warehouse.push({ card: prop, hidden: false });
-      expect(() => applyAction(t, me, { type: 'kontoraDecide', go: true, choice: { signal: clean, denounce: { player: other, card: book } } })).not.toThrow();
+      expect(() => applyAction(t, me, { type: 'kontoraDecide', go: true, choice: { signal: clean, denounce: { player: other, card: book } } }))
+        .toThrow(/на кого донос/);
     }
     // Донос — только указание: книга остаётся у владельца и сама служит поводом для Сигнала.
     // Изъятие той же книги — отдельный пункт; Сигнал проверяется до него.

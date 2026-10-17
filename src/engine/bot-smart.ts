@@ -810,13 +810,12 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
   // Подозреваемый Куратор: Сигнал — ему, Профилактика — только Завсегдатаю, с которым связан лишь он.
   if (united) {
     const o = player(state, enemy[0]);
-    if (o.held < o.workers && signalable(state, o.id)) items.push({ signal: o.id });
+    if (o.held < o.workers && signalable(state, o.id)) items.push({ signal: '*' });
     patronRank = state.patrons.filter((x) => !x.removed && x.connections.length > 0 && x.connections.every((id) => id === o.id));
     if (patronRank[0]) items.push({ prophylaxis: patronRank[0].id });
   } else if (ctx.aggression > 0 || ctx.curator) {
-    const rivals = state.players.filter((o) => o.id !== me && o.held < o.workers && signalable(state, o.id));
-    const leader = rivals.sort((a, b) => strength(state, b, left) - strength(state, a, left))[0];
-    if (leader) items.push({ signal: leader.id });
+    // Сигнал — только на того, на кого донос: цель подставляется ниже, для каждого варианта доноса.
+    if (seizes.some((d) => { const o = player(state, d.player); return o.held < o.workers; })) items.push({ signal: '*' });
     // Профилактика: Завсегдатай, с которым связаны соперники, а бот — нет.
     // Куратор выбивает того, кто больше всех даёт честным: сила Завсегдатая × сколько честных с ним связаны.
     // Своей связью он тоже может пожертвовать, если честным этот Завсегдатай полезнее, чем ему.
@@ -837,6 +836,12 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
     // Донос — цена; Изъятие той же книги — отдельный пункт (свою книгу бот не изымает).
     for (const denounce of seizes) {
       let c = choice;
+      if (c.signal) {
+        const o = player(state, denounce.player);
+        const { signal: _s, ...rest } = c;
+        void _s;
+        c = o.held < o.workers ? { ...rest, signal: o.id } : rest;
+      }
       if (c.prophylaxis) {
         const pt = patronRank.find((x) => x.connections.includes(denounce.player));
         const { prophylaxis: _, ...rest } = c;

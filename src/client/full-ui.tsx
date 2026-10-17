@@ -116,7 +116,7 @@ export function KontoraPanel({ view, place }: { view: PlayerView; place: (p: Pla
       <ul>
         <li><b>Ходатайство</b> — вернуть из Конторы {RULES.petitionMax === 1 ? 'одного удержанного Единомышленника' : `до ${RULES.petitionMax} удержанных Единомышленников`} любого игрока.</li>
         <li><b>Выдача на руки</b> — посмотреть Спецхран и взять оттуда одну книгу.</li>
-        <li><b>Сигнал</b> — удержать в Конторе Единомышленника любого игрока.</li>
+        <li><b>Сигнал</b> — удержать в Конторе Единомышленника того, на кого вы донесли.</li>
         <li><b>Профилактика</b> — удалить Завсегдатая Клуба, с которым связан тот, на кого вы донесли.</li>
         <li><b>Изъятие</b> — книга из доноса уходит в Спецхран.</li>
       </ul>
@@ -157,15 +157,18 @@ export function KontoraWarningPrompt({ view, me, from, act }: { view: PlayerView
 export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
   const [petition, setPetition] = useState<string[]>([]);
   const [handout, setHandout] = useState(false);
-  const [signal, setSignal] = useState('');
+  const [signalOn, setSignalOn] = useState(false);
   const [prophylaxis, setProphylaxis] = useState<PatronId | ''>('');
   const [seize, setSeize] = useState(false);
   const [denounce, setDenounce] = useState<{ player: string; card: string } | null>(null);
   const held = view.players.filter((p) => p.held > 0);
   const targets = kontoraTargets(view, view.me);
-  const count = [petition.length > 0, handout, !!signal, !!prophylaxis, seize].filter(Boolean).length;
+  // Сигнал — только на того, на кого донос.
+  const signal = signalOn && denounce ? denounce.player : '';
+  const count = [petition.length > 0, handout, signalOn, !!prophylaxis, seize].filter(Boolean).length;
   // Повод для Сигнала проверяется до Изъятия: книга из доноса ещё лежит у владельца.
-  const signalOk = !signal || signalable(view, signal);
+  const target = denounce ? view.players.find((p) => p.id === denounce.player) : null;
+  const signalOk = !signalOn || !target || (target.held < target.workers && signalable(view, target.id));
   const prophOk = !prophylaxis || !denounce || view.patrons.some((x) => x.id === prophylaxis && x.connections.includes(denounce.player));
   const choice: KontoraChoice = {
     ...(petition.length ? { petition } : {}), ...(handout ? { handout } : {}), ...(signal ? { signal } : {}),
@@ -186,14 +189,8 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
         {petition.length > 0 && <button className="small" onClick={() => setPetition([])}>сбросить ({petition.length})</button>}
       </div>
       <label className="row"><input type="checkbox" checked={handout} onChange={(e) => setHandout(e.target.checked)} /> Выдача на руки — взять книгу из Спецхрана</label>
-      <label>Сигнал — удержать Единомышленника игрока:
-        <select value={signal} onChange={(e) => setSignal(e.target.value)}>
-          <option value="">— нет —</option>
-          {view.players.filter((p) => signalable(view, p.id) || p.id === signal).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
-        <span className="muted small"> (только на тех, у кого открыто лежит опальная книга или Пропаганда)</span>
-        {!signalOk && <div className="small" style={{ color: 'var(--red)' }}>У этого игрока нет повода для Сигнала.</div>}
-      </label>
+      <label className="row"><input type="checkbox" checked={signalOn} onChange={(e) => setSignalOn(e.target.checked)} /> Сигнал — удержать Единомышленника того, на кого донос{target ? ` (${target.name})` : ''}</label>
+      {!signalOk && <div className="small" style={{ color: 'var(--red)' }}>У {target?.name} не осталось свободных Единомышленников.</div>}
       <label>Профилактика — удалить Завсегдатая, с которым связан тот, на кого донос:
         <select value={prophylaxis} onChange={(e) => setProphylaxis(e.target.value as PatronId)}>
           <option value="">— нет —</option>
@@ -207,7 +204,7 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
         : <TargetShelf view={view} targets={targets} selected={denounce?.card} onPick={(t) => setDenounce(denounce?.card === t.card ? null : t)} />}
       <div className="modal-foot">
         <button onClick={() => act({ type: 'kontoraDecide', go: false })}>Передумать</button>
-        <button className="primary" disabled={count < 1 || !denounce || !signalOk || !prophOk} title={!denounce ? 'Укажите книгу для доноса' : count < 1 ? 'Выберите хотя бы один пункт' : !signalOk ? 'Сигналу нет повода' : !prophOk ? 'Этот Завсегдатай не связан с тем, на кого донос' : ''}
+        <button className="primary" disabled={count < 1 || !denounce || !signalOk || !prophOk} title={!denounce ? 'Укажите книгу для доноса' : count < 1 ? 'Выберите хотя бы один пункт' : !signalOk ? 'Сигнал сейчас невозможен' : !prophOk ? 'Этот Завсегдатай не связан с тем, на кого донос' : ''}
           onClick={() => act({ type: 'kontoraDecide', go: true, choice })}>Пойти в Контору ({count})</button>
       </div>
     </Modal>

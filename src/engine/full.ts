@@ -186,6 +186,7 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
   // Сигнал — до Изъятия: книга, на которую донесли, ещё лежит у владельца и сама служит поводом.
   if (c.signal) {
     const o = player(state, c.signal);
+    check(o.id === target.id, 'Сигнал — только на того, на кого донос');
     check(signalable(state, o.id), `Сигнал — только на того, у кого открыто лежит опальная книга или Пропаганда: у ${o.name} таких нет`);
     holdWorker(state, o, `сигнал от ${p.name}`);
   }
