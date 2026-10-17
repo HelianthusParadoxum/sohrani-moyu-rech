@@ -359,10 +359,14 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   v += shopValue(state, p, ctx);
   // Ростки — общее дело: без Гласности проигрывают все.
   const missing = state.sprouts.reduce((s, sp) => s + Math.max(0, RULES.glasnostStep - sp.progress), 0);
+  // Запас (ступени сверх III) ценен, когда Гласность набрана; при подозрении на Куратора — уже раньше
+  // (срезы бьют по самым развитым Росткам), тем сильнее, чем крепче подозрение.
+  const suspicion = Math.max(0, ...Object.values(ctx.suspect));
+  const spareWeight = missing === 0 || state.solo ? 1 : suspicion >= BOT_BASE.suspectSpareFrom ? suspicion : 0;
   for (const sp of state.sprouts) {
     for (let k = 0; k < Math.min(sp.progress, RULES.glasnostStep); k++) v += ctx.glasnost * w.sprouts * (BOT_BASE.glasnostLag[k] ?? 1);
     // Ступени сверх III — запас, но только когда Гласность уже набрана (иначе эта ступень нужнее отстающему Ростку).
-    if (missing === 0 || state.solo) v += Math.max(0, sp.progress - RULES.glasnostStep) * BOT_BASE.lateStep;
+    v += spareWeight * Math.max(0, sp.progress - RULES.glasnostStep) * BOT_BASE.lateStep;
   }
   if (!state.solo) {
     // Отстающий Росток важнее всех: Гласность наступает, только когда до III дорастут все.
@@ -390,7 +394,7 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   }
   if (ctx.full || state.solo) {
     // «Громоотвод»: запасные ступени сверх 3-й на случай срезов Куратора (в одиночной игре — Пропаганды из 30 вскрытых карт).
-    const spare = missing === 0 || state.solo ? state.sprouts.reduce((s, sp) => s + Math.max(0, sp.progress - RULES.glasnostStep), 0) : 0;
+    const spare = spareWeight * state.sprouts.reduce((s, sp) => s + Math.max(0, sp.progress - RULES.glasnostStep), 0);
     // Подозревая Куратора (или видя угрозу Гласности), бот страхуется сильнее: срезы бьют по самым развитым Росткам.
     const cap = BOT_BASE.insuranceSteps + Math.round(BOT_BASE.coopInsuranceSteps * ctx.coop);
     v += BOT_BASE.insurance * (1 + BOT_BASE.coopInsurance * ctx.coop) * Math.min(spare, cap) * w.sprouts;
