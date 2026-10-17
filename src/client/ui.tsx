@@ -1,15 +1,13 @@
 // Общие элементы интерфейса: карты книг, окна, жанры.
 import type { ReactNode } from 'react';
-import { GENRE_NAMES, PASSIONS } from '../engine/content';
+import { GENRE_NAMES, GENRE_SHORT, PASSIONS } from '../engine/content';
 import { BOT_PRESETS, presetById } from '../engine/bot-presets';
 import type { Genre } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
 import { flexGenres, iconsOf, isBanned as isBannedBook } from '../engine/util';
 
-export const GENRE_SHORT: Record<Genre, string> = {
-  prose: 'ПР', scifi: 'ФА', poetry: 'ПО', foreign: 'ИН', testimony: 'СВ', drama: 'ДР', album: 'АЛ', irony: 'ИР',
-};
+export { GENRE_SHORT } from '../engine/content';
 
 export const PLAYER_COLORS = ['#b03a2e', '#1f618d', '#1e8449', '#7d3c98'];
 

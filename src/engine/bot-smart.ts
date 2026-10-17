@@ -136,23 +136,44 @@ function avgCapacity(state: GameState, id: string): number {
 
 export function curatorSuspicion(state: GameState, me: string): Record<string, number> {
   const out: Record<string, number> = {};
+  for (const [id, d] of Object.entries(curatorSuspicionDetail(state, me))) out[id] = d.value;
+  return out;
+}
+
+// Подозрение с расшифровкой: из чего оно сложилось (для журнала зрителя). Слагаемые — в процентных пунктах.
+export function curatorSuspicionDetail(state: GameState, me: string): Record<string, { value: number; parts: string[] }> {
+  const out: Record<string, { value: number; parts: string[] }> = {};
   if (state.mode !== 'full' || !state.curatorPossible) return out;
   for (const o of state.players) {
     if (o.id === me) continue;
+    const parts: string[] = [];
+    let v = 0;
+    const add = (x: number, label: string) => {
+      if (!x) return;
+      v += x;
+      parts.push(`${label} ${x > 0 ? '+' : '−'}${Math.round(Math.abs(x) * 100)}`);
+    };
     const open = o.warehouse.filter((s) => !s.hidden && isPropaganda(state, s.card)).length;
     // Кто кормит Ростки, тот, скорее всего, забирает Пропаганду, чтобы она не досталась Куратору.
     const trust = o.sproutsFed.length ? BOT_BASE.suspectFedDiscount : 1;
-    let v = trust * (BOT_BASE.suspectTaken * (o.propagandaTaken ?? 0) + BOT_BASE.suspectHolds * open
-      + BOT_BASE.suspectCacheUnshown * (o.cacheUnshown ?? 0)
-      + BOT_BASE.suspectRedEager * (o.redEager ?? 0) + BOT_BASE.suspectRedEmpty * (o.redEmpty ?? 0)
-      + BOT_BASE.suspectWarehouse * Math.max(0, o.capacity - avgCapacity(state, o.id) - BOT_BASE.suspectWarehouseFrom))
-      - BOT_BASE.suspectDumped * (o.propagandaDumped ?? 0);
+    const times = (n: number) => (n > 1 ? ` ×${n}` : '');
+    add(trust * BOT_BASE.suspectTaken * (o.propagandaTaken ?? 0), `взял Пропаганду со стола${times(o.propagandaTaken ?? 0)}`);
+    add(trust * BOT_BASE.suspectHolds * open, `Пропаганда на виду${times(open)}`);
+    add(trust * BOT_BASE.suspectCacheUnshown * (o.cacheUnshown ?? 0), `не показал опальное из Тайника${times(o.cacheUnshown ?? 0)}`);
+    add(trust * BOT_BASE.suspectRedEager * (o.redEager ?? 0), `рано и первым в Красном уголке${times(o.redEager ?? 0)}`);
+    add(trust * BOT_BASE.suspectRedEmpty * (o.redEmpty ?? 0), `...ничего не сдав${times(o.redEmpty ?? 0)}`);
+    const extra = Math.max(0, o.capacity - avgCapacity(state, o.id) - BOT_BASE.suspectWarehouseFrom);
+    add(trust * BOT_BASE.suspectWarehouse * extra, `склад больше, чем у других (${o.capacity} мест)`);
+    add(-BOT_BASE.suspectDumped * (o.propagandaDumped ?? 0), `сдал Пропаганду${times(o.propagandaDumped ?? 0)}`);
     if (!o.sproutsFed.length) {
-      v += BOT_BASE.suspectNoFeed[Math.min(state.round, 5)] ?? 0;
+      add(BOT_BASE.suspectNoFeed[Math.min(state.round, 5)] ?? 0, 'не кормил Ростки');
       // Единственный, кто так и не кормил Ростки, — особенно подозрителен.
-      if (state.round >= 3 && state.players.filter((x) => x.id !== o.id && !x.sproutsFed.length).length === 0) v += BOT_BASE.suspectOnlyNoFeed;
-    } else v -= BOT_BASE.suspectFeeds * o.sproutsFed.length;
-    out[o.id] = Math.min(1, Math.max(0, v));
+      if (state.round >= 3 && state.players.filter((x) => x.id !== o.id && !x.sproutsFed.length).length === 0) add(BOT_BASE.suspectOnlyNoFeed, '...единственный за столом');
+    } else {
+      add(-BOT_BASE.suspectFeeds * o.sproutsFed.length, `кормил Ростки (${o.sproutsFed.length})`);
+      if (trust < 1 && parts.some((x) => x.includes('+'))) parts.push(`(у кормившего Ростки улики весят ${Math.round(trust * 100)}%)`);
+    }
+    out[o.id] = { value: Math.min(1, Math.max(0, v)), parts };
   }
   return out;
 }

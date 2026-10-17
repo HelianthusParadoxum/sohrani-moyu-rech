@@ -1,5 +1,5 @@
 // Вспомогательные функции: случайность, карты, игроки.
-import { RULES } from './content';
+import { GENRE_SHORT, RULES } from './content';
 import type { GameState, Genre, PatronId, PlayerState, PointSource } from './types';
 
 export class RuleError extends Error {}
@@ -45,14 +45,32 @@ export function log(state: GameState, text: string, only?: string[]) {
   state.log.push(only ? { round: state.round, text, only } : { round: state.round, text });
 }
 
+// Событие партии отдельной жирной строкой (начало Пятилетки, Посиделки, Укрытие, Облава).
+export function logEvent(state: GameState, text: string) {
+  log(state, text);
+  state.log[state.log.length - 1].strong = true;
+}
+
 export function player(state: GameState, id: string): PlayerState {
   const p = state.players.find((x) => x.id === id);
   check(p, 'Нет такого игрока');
   return p;
 }
 
+// Название книги для журнала — со значками: «[ПР ФА] «Название»» (у Пропаганды, Улик и Нагрузки — их вид).
 export function title(state: GameState, id: string): string {
-  return `«${state.cards[id].title}»`;
+  const c = state.cards[id];
+  const icons = iconsOf(state, id);
+  const kind = isPropaganda(state, id) ? 'Пропаганда' : isExposed(state, id) ? 'Разоблачение' : isEvidence(state, id) ? 'Улика'
+    : isLoad(state, id) ? 'Нагрузка' : '';
+  const tag = icons.length ? icons.map((g) => GENRE_SHORT[g]).join(' ') : kind;
+  return `${tag ? `[${tag}] ` : ''}«${c.title}»`;
+}
+
+// Несколько книг: до двух — через запятую, больше — списком, каждая с новой строки.
+export function titles(state: GameState, ids: string[]): string {
+  if (ids.length < 3) return ids.map((c) => title(state, c)).join(', ');
+  return '\n' + ids.map((c) => `• ${title(state, c)}`).join('\n');
 }
 
 // ---------- Свойства карт ----------

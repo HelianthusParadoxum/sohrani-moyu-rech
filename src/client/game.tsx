@@ -1165,7 +1165,7 @@ function Log({ view, seatIndex }: { view: PlayerView; seatIndex: (id: string) =>
     <div className="log">
       <div className="addr-head"><h3>Журнал</h3><button className="small" onClick={download}>Скачать .txt</button></div>
       {entries.map((l, i) => (
-        <div key={i} className={`${l.only ? 'secret' : ''} ${l.act ? 'act' : ''}`} style={l.strong ? { fontWeight: 700 } : undefined}>
+        <div key={i} className={`${l.only ? 'secret' : ''} ${l.act ? 'act' : ''}`} style={{ whiteSpace: 'pre-line', ...(l.strong ? { fontWeight: 700 } : {}) }}>
           {l.act && <span className="dot num" style={{ background: PLAYER_COLORS[seatIndex(l.act.player)] }} title={`${l.act.n}-е действие игрока в Пятилетке`}>{l.act.n}</span>}
           {l.who && !l.act && <span className="dot" style={{ background: PLAYER_COLORS[seatIndex(l.who)] }} />}
           {l.club && <span className="dot num wide" style={{ background: PLAYER_COLORS[seatIndex(l.club.player)] }} title={`Связь с ${l.club.round}-й Пятилетки`}>П{l.club.round}</span>}

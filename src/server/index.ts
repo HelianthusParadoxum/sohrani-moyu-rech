@@ -8,7 +8,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
 import { applyAction, createGame, activePlayers, migrate } from '../engine/engine';
 import { botMove } from '../engine/bot';
-import { curatorSuspicion, effectiveCuratorStyle } from '../engine/bot-smart';
+import { curatorSuspicionDetail, effectiveCuratorStyle } from '../engine/bot-smart';
 import { BOT_PRESETS, DEFAULT_PRESET, curatorStyleNote, presetById } from '../engine/bot-presets';
 import { gainedInfo, viewFor } from '../engine/view';
 import { RuleError } from '../engine/util';
@@ -71,9 +71,12 @@ function noteForSpectator(room: Room) {
   s.log.push({ round: s.round, text: head, only: [] });
   for (const p of s.players) {
     if (!bots.has(p.id) || p.passion === 'curator') continue;
-    const sus = curatorSuspicion(s, p.id);
-    const parts = s.players.filter((o) => o.id !== p.id).map((o) => `${o.name} ${Math.round((sus[o.id] ?? 0) * 100)}%`);
-    s.log.push({ round: s.round, text: `— ${p.name}: ${parts.join(', ')}.`, only: [], who: p.id });
+    const sus = curatorSuspicionDetail(s, p.id);
+    const lines = s.players.filter((o) => o.id !== p.id).map((o) => {
+      const d = sus[o.id];
+      return `• ${o.name} — ${Math.round((d?.value ?? 0) * 100)}%${d?.parts.length ? ` (${d.parts.join('; ')})` : ''}`;
+    });
+    s.log.push({ round: s.round, text: `${p.name} подозревает:\n${lines.join('\n')}`, only: [], who: p.id });
   }
 }
 

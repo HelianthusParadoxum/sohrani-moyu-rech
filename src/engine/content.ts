@@ -16,6 +16,11 @@ export const GENRE_NAMES: Record<Genre, string> = {
   irony: 'Ирония',
 };
 
+// Короткие обозначения значков жанров (на книгах в интерфейсе и в журнале).
+export const GENRE_SHORT: Record<Genre, string> = {
+  prose: 'ПР', scifi: 'ФА', poetry: 'ПО', foreign: 'ИН', testimony: 'СВ', drama: 'ДР', album: 'АЛ', irony: 'ИР',
+};
+
 // Настраиваемые числа правил — всё, что может поменяться при балансировке.
 export const RULES = {
   rounds: 5,

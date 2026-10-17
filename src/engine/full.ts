@@ -4,7 +4,7 @@ import type { ClubGift, GameState, KontoraChoice, PatronId, PlayerState } from '
 import { GENRES } from './types';
 import {
   addBook, addSecretBook, check, discard, drawLoad, earn, freeSlots, hasBook, hasPatron, iconsOf, isBanned, isGenreBook, isPropaganda, log, pay, player,
-  removeBook, shuffle, talonsText, title,
+  removeBook, shuffle, talonsText, title, titles,
   forgetSpetskhran, seeSpetskhran, toSpetskhranPublic,
 } from './util';
 
@@ -29,6 +29,7 @@ export function price(state: GameState, p: PlayerState, cost: number): number {
 export function gaveAway(state: GameState, p: PlayerState, card: string) {
   if (isFull(state) && iconsOf(state, card).includes('irony')) {
     log(state, `${p.name}: ирония «пущена в народ» — +1 Талон.`);
+    state.log[state.log.length - 1].after = true;
     earn(state, p, 1);
   }
 }
