@@ -1135,6 +1135,9 @@ describe('Ходатайство', () => {
 
 describe('Инерция цензуры', () => {
   it('со 2-й Пятилетки из опалы выходит самый старый жанр, взамен приходят новые', () => {
+    const was = RULES.censorshipShift;
+    RULES.censorshipShift = 'inertia';
+    try {
     for (let seed = 1; seed <= 6; seed++) {
       let s = createGame({ players: players(2), seed });
       const first = [...s.banned];
@@ -1146,6 +1149,9 @@ describe('Инерция цензуры', () => {
       expect(s.banned).not.toContain(first[0]); // самый старый вышел
       for (const g of first.slice(1)) expect(s.banned).toContain(g); // остальные остались
       expect(s.banned.slice(0, first.length - 1)).toEqual(first.slice(1)); // и стали старшими
+    }
+    } finally {
+      RULES.censorshipShift = was;
     }
   });
 });
