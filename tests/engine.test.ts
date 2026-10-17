@@ -755,7 +755,7 @@ describe('Нагрузка-улика', () => {
 });
 
 describe('Разоблачение', () => {
-  // Опция пока выключена в игре — в тестах включаем её на время.
+  // Опцию в тестах включаем явно: в игре её можно выключить.
   const was = RULES.exposePropaganda;
   beforeEach(() => { (RULES as { exposePropaganda: boolean }).exposePropaganda = true; });
   afterEach(() => { (RULES as { exposePropaganda: boolean }).exposePropaganda = was; });
