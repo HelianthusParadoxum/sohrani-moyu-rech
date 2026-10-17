@@ -44,7 +44,7 @@ export const BOT_PRESETS: BotPreset[] = [
     name: 'Книжник',
     description: 'Сбалансированный: растит сеть в начале, питает Ростки, к концу собирает книги под Пристрастие.',
     goals: {
-      network: [7, 6, 4, 1, 0],
+      network: [7, 6, 5, 4, 3],
       sprouts: [6, 6, 7, 8, 9],
       sproutBooks: [6, 6, 6, 5, 3],
       publish: [5, 5, 5, 5, 5],
@@ -60,7 +60,7 @@ export const BOT_PRESETS: BotPreset[] = [
     name: 'Сетевик',
     description: 'Сначала расширяет сеть до предела, потом пользуется лишними руками.',
     goals: {
-      network: [10, 9, 6, 1, 0],
+      network: [10, 9, 7, 5, 4],
       sprouts: [5, 5, 6, 8, 9],
       sproutBooks: [5, 5, 6, 5, 3],
       publish: [5, 5, 5, 5, 5],
@@ -76,7 +76,7 @@ export const BOT_PRESETS: BotPreset[] = [
     name: 'Садовник',
     description: 'Главное — Ростки Гласности: копит под них книги и закрывает ступени.',
     goals: {
-      network: [6, 5, 3, 1, 0],
+      network: [6, 5, 4, 3, 3],
       sprouts: [9, 9, 10, 10, 10],
       sproutBooks: [9, 9, 9, 7, 4],
       publish: [4, 4, 4, 4, 4],
@@ -92,7 +92,7 @@ export const BOT_PRESETS: BotPreset[] = [
     name: 'Коллекционер',
     description: 'Собирает книги под Пристрастие, бережёт их от облав, Ростки — по остаточному принципу.',
     goals: {
-      network: [6, 5, 3, 0, 0],
+      network: [6, 5, 4, 2, 2],
       sprouts: [4, 4, 5, 6, 7],
       sproutBooks: [4, 4, 4, 3, 2],
       publish: [4, 4, 5, 6, 6],
@@ -108,7 +108,7 @@ export const BOT_PRESETS: BotPreset[] = [
     name: 'Издатель',
     description: 'Издаёт всё, что можно, ради Талонов и очков Тамиздата.',
     goals: {
-      network: [7, 6, 4, 1, 0],
+      network: [7, 6, 5, 4, 3],
       sprouts: [5, 5, 6, 7, 8],
       sproutBooks: [4, 4, 4, 4, 3],
       publish: [9, 9, 9, 9, 9],
@@ -124,7 +124,7 @@ export const BOT_PRESETS: BotPreset[] = [
     name: 'Одиночка',
     description: 'Для одиночной игры («Несистемный»): прежде всего безопасность Гласности — все Ростки до III, один до IV; ищет книги на Барахолке и Завозе, издаёт только лишнее.',
     goals: {
-      network: [7, 6, 4, 1, 0],
+      network: [7, 6, 5, 4, 3],
       sprouts: [8, 8, 8, 8, 8],
       sproutBooks: [6, 6, 6, 6, 6],
       publish: [3, 3, 3, 3, 3],
