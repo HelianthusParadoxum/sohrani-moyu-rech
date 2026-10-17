@@ -1149,3 +1149,23 @@ describe('Инерция цензуры', () => {
     }
   });
 });
+
+describe('Окостенение цензуры', () => {
+  it('выходит самый свежий опальный жанр, старые остаются', () => {
+    const was = RULES.censorshipShift;
+    RULES.censorshipShift = 'ossified';
+    try {
+      for (let seed = 1; seed <= 6; seed++) {
+        let s = createGame({ players: players(2), seed });
+        const first = [...s.banned];
+        const rand = seeded(seed);
+        while (s.round === 1 && s.phase !== 'end') s = playOut(s, rand, 1);
+        while (s.phase !== 'orders') s = playOut(s, rand, 1);
+        expect(s.banned).toHaveLength(s.censorship);
+        expect(s.banned.slice(0, first.length - 1)).toEqual(first.slice(0, -1)); // старые на месте
+      }
+    } finally {
+      RULES.censorshipShift = was;
+    }
+  });
+});

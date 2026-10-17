@@ -260,13 +260,19 @@ function startRound(state: GameState) {
   // Обстановка: опала и обновление каналов.
   let change = '';
   if (state.round > 1) {
-    // Инерция цензуры: самый старый опальный жанр выходит из опалы, взамен (и при росте Цензуры — сверх того)
-    // в опалу попадают новые. Только что освобождённый жанр в ту же Пятилетку не возвращается.
-    const kept = state.banned.slice(1);
-    const released = state.banned[0];
-    const fresh = shuffle(state, GENRES.filter((g) => !kept.includes(g) && g !== released)).slice(0, Math.max(0, state.censorship - kept.length));
+    // Инерция: самый старый опальный жанр выходит из опалы, взамен (и при росте Цензуры — сверх того) в опалу попадают
+    // новые, только что освобождённый в ту же Пятилетку не возвращается. Окостенение: давно ненавистное так и остаётся —
+    // выходит самый свежий жанр, опала добирается из всех свободных (он может тут же вернуться).
+    const ossified = RULES.censorshipShift === 'ossified';
+    const kept = ossified ? state.banned.slice(0, -1) : state.banned.slice(1);
+    const released = ossified ? state.banned[state.banned.length - 1] : state.banned[0];
+    const fresh = shuffle(state, GENRES.filter((g) => !kept.includes(g) && (ossified || g !== released))).slice(0, Math.max(0, state.censorship - kept.length));
     state.banned = [...kept, ...fresh].slice(-state.censorship);
-    change = ` Из опалы выходит: ${released ? GENRE_NAMES[released] : '—'}; в опалу попадает: ${fresh.map((g) => GENRE_NAMES[g]).join(', ') || '—'}.`;
+    const back = released && fresh.includes(released);
+    const out = fresh.filter((g) => g !== released);
+    change = back
+      ? ` Опала остаётся: ${GENRE_NAMES[released]}${out.length ? `; в опалу попадает: ${out.map((g) => GENRE_NAMES[g]).join(', ')}` : ''}.`
+      : ` Из опалы выходит: ${released ? GENRE_NAMES[released] : '—'}; в опалу попадает: ${fresh.map((g) => GENRE_NAMES[g]).join(', ') || '—'}.`;
   } else if (!state.banned.length) {
     state.banned = shuffle(state, [...GENRES]).slice(0, state.censorship);
   }
