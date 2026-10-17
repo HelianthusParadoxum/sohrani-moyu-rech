@@ -234,6 +234,7 @@ function startRound(state: GameState) {
   state.phase = 'orders';
   state.ready = [];
   state.occupancy = {};
+  state.sproutRound = {};
   state.nextOrder = [];
   delete state.turnDone;
   delete state.lastBuy;
@@ -776,6 +777,10 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         check(sp, 'Этого Ростка нет в игре');
         const info = SPROUTS.find((s) => s.id === sp.id)!;
         check(sp.progress < 4, `${info.name}: все ступени уже закрыты`);
+        // Росток растёт постепенно: за Пятилетку — не больше RULES.sproutSlotsPerRound ступеней.
+        const fedNow = (state.sproutRound ??= {})[sp.id] ?? [];
+        check(fedNow.length < RULES.sproutSlotsPerRound, `${info.name}: в эту Пятилетку на этом Ростке уже закрыто ${RULES.sproutSlotsPerRound} ступени — ждите следующей`);
+        state.sproutRound[sp.id] = [...fedNow, p.id];
         const step = info.steps[sp.progress];
         for (const b of f.books) {
           check(!used.has(b), 'Одна книга не может пойти дважды');

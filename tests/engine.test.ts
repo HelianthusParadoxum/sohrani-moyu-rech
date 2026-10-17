@@ -4,8 +4,8 @@ import { playOut } from '../src/engine/bot';
 import { gainedInfo, viewFor } from '../src/engine/view';
 import { RuleError, cacheLimit, coversStep, iconsOf, isBanned, isEvidence, isLoad } from '../src/engine/util';
 import { finalScoring, passionPoints } from '../src/engine/scoring';
-import { PASSIONS, RULES, SPROUTS } from '../src/engine/content';
-import type { GameState, PatronId } from '../src/engine/types';
+import { PASSIONS, RULES, SPROUTS, limitFor } from '../src/engine/content';
+import type { GameState, Genre, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
 import { removePatron } from '../src/engine/full';
 
@@ -1038,5 +1038,37 @@ describe('Заповедник', () => {
     const end = playOut(s, seeded(5), 6000);
     expect(end.phase).toBe('end');
     expect(end.players.every((p) => p.held === 0)).toBe(true);
+  });
+});
+
+describe('Ростки: места', () => {
+  it('у адреса мест сколько угодно, но у одного Ростка — не больше 2 ступеней за Пятилетку', () => {
+    let s = createGame({ players: players(2), seed: 8 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const sp = s.sprouts[0];
+    const info = SPROUTS.find((x) => x.id === sp.id)!;
+    // «Волшебные» книги: значки основного жанра и всех жанров поддержки — закрывают любую из первых ступеней.
+    const magic = Object.keys(s.cards).filter((c) => s.cards[c].kind === 'genre').slice(0, 3);
+    for (const c of magic) s.cards[c] = { ...s.cards[c], icons: [info.main, info.main, ...info.steps.map((st) => st.support).filter(Boolean)] as Genre[] };
+    for (const p of s.players) p.warehouse = magic.map((card) => ({ card, hidden: false }));
+    const feed = (st: GameState, card: string) => {
+      const who = st.order[st.turn];
+      st = applyAction(st, who, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: [card] }] } });
+      // Бонус Ростка: берём первый, который не требует дополнительного выбора.
+      const pend = st.pending[0] as { kind: string; options: string[] } | undefined;
+      if (pend?.kind === 'sproutBonus') {
+        const next = pend.options.map((bonus) => { try { return applyAction(st, who, { type: 'sproutBonus', bonus } as never); } catch { return null; } }).find(Boolean);
+        st = next ?? applyAction(st, who, { type: 'pass' });
+      }
+      return st.turnDone === who ? applyAction(st, who, { type: 'endTurn' }) : st;
+    };
+    s = feed(s, magic[0]);
+    s = feed(s, magic[1]);
+    expect(s.sprouts[0].progress).toBe(2);
+    const who = s.order[s.turn];
+    expect(() => applyAction(s, who, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: [magic[2]] }] } }))
+      .toThrow(/ждите следующей/);
+    expect(limitFor('sprouts', 4)).toBe(Infinity);
   });
 });

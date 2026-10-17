@@ -76,6 +76,7 @@ export const RULES = {
   foreignPoints: 3, // Иностранная «Перевести»: очков за издание через Самиздат (полный режим)
   extraSprouts: { beginner: 0, full: 1 }, // Ростков на партию: число игроков + это число
   glasnostStep: 3, // до какой ступени должны дорасти Ростки
+  sproutSlotsPerRound: 2, // сколько ступеней одного Ростка можно закрыть за Пятилетку (всеми игроками вместе)
   sproutFeedsPerAction: 1, // сколько ступеней (у разных Ростков) можно закрыть одним поручением «Ростки Гласности»
   // «Несистемный» — одиночная игра.
   soloSprouts: { beginner: 2, full: 3 }, // Ростков на партию
@@ -105,7 +106,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   zavoz: { id: 'zavoz', name: 'Завоз', limits: [1, 1, 2], hint: '+2т, Развал полностью обновляется' },
   baraholka: { id: 'baraholka', name: 'Барахолка', limits: [4, 4, 4], hint: 'Тайно посмотреть 2 из 4 закрытых книг и купить одну из них за 1т' },
   podpiska: { id: 'podpiska', name: 'Подписка', limits: [1, 1, 1], safehouse: true, hint: 'Заказать жанр: −1т за каждую Пятилетку доставки' },
-  sprouts: { id: 'sprouts', name: 'Ростки Гласности', limits: [INF, INF, INF], hint: RULES.sproutFeedsPerAction === 1 ? 'Закрыть 1 ступень одного Ростка' : `Закрыть до ${RULES.sproutFeedsPerAction} ступеней Ростков` },
+  sprouts: { id: 'sprouts', name: 'Ростки Гласности', limits: [INF, INF, INF], hint: (RULES.sproutFeedsPerAction === 1 ? 'Закрыть 1 ступень одного Ростка' : `Закрыть до ${RULES.sproutFeedsPerAction} ступеней Ростков`) + `; у каждого Ростка — не больше ${RULES.sproutSlotsPerRound} ступеней за Пятилетку` },
   samizdat: { id: 'samizdat', name: 'Самиздат', limits: [2, 2, 3], hint: `Издать книгу: +${RULES.samizdatTalons}т/значок` },
   tamizdat: { id: 'tamizdat', name: 'Тамиздат', limits: [1, 1, 2], hint: `Издать книгу: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка/значок` },
   glavlit: { id: 'glavlit', name: 'Главлит', limits: [1, 1, 2], hint: `Отдать любое число подцензурных книг (+${RULES.glavlitTalons}т за каждую) и взять столько же из стопок Непечатных и Нагрузки на выбор` },

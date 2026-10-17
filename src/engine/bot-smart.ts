@@ -624,6 +624,7 @@ function sproutCandidates(state: GameState, me: string, keep: Map<string, number
   const books = p.warehouse.map((s) => s.card).filter((c) => isGenreBook(state, c));
   const out: Action[] = [];
   for (const sp of state.sprouts) {
+    if ((state.sproutRound?.[sp.id]?.length ?? 0) >= RULES.sproutSlotsPerRound) continue; // места Ростка в эту Пятилетку заняты
     const feed = cheapestFeed(state, me, books, sp.id, sp.progress, keep);
     if (feed) out.push({ type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: feed }] } });
   }

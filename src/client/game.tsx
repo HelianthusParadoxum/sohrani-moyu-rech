@@ -497,7 +497,17 @@ function Sprouts({ view, beside, seatIndex, head }: { view: PlayerView; beside: 
         const info = SPROUTS.find((s) => s.id === sp.id)!;
         return (
           <div key={sp.id} className={`sprout ${sp.progress >= RULES.glasnostStep ? 'grown' : ''}`}>
-            <div className="addr-head"><b>{info.name}</b><span title="Закрыто ступеней" className="nowrap">{sp.progress ? roman(sp.progress) : '0'} / {roman(info.steps.length)}</span></div>
+            <div className="addr-head"><b>{info.name}</b>
+              <span className="workers" title={`Места в эту Пятилетку: не больше ${RULES.sproutSlotsPerRound} ступеней`}>
+                {Array.from({ length: RULES.sproutSlotsPerRound }, (_, i) => {
+                  const pid = view.sproutRound?.[sp.id]?.[i];
+                  return pid
+                    ? <span key={i} className="dot num" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} />
+                    : <span key={i} className="dot num slot-free" />;
+                })}
+                <span title="Закрыто ступеней" className="nowrap">{sp.progress ? roman(sp.progress) : '0'} / {roman(info.steps.length)}</span>
+              </span>
+            </div>
             {/* Жетоны игроков, которые хоть раз питали этот Росток (+2 очка за первое питание) */}
             {view.players.some((p) => p.sproutsFed.includes(sp.id)) && (
               <div className="workers" title="Питали этот Росток (получили +2 очка за первое питание)">
@@ -546,7 +556,7 @@ function SproutFeeder({ view, me, place }: { view: PlayerView; me: VPlayer; plac
           const inf = SPROUTS.find((s) => s.id === sp.id)!;
           const pr = progressOf(sp.id);
           return (
-            <button key={sp.id} disabled={pr >= 4} className={sprout === sp.id ? 'selected' : ''} onClick={() => { setSprout(sp.id); setBooks([]); }}>
+            <button key={sp.id} disabled={pr >= 4 || (view.sproutRound?.[sp.id]?.length ?? 0) >= RULES.sproutSlotsPerRound} className={sprout === sp.id ? 'selected' : ''} onClick={() => { setSprout(sp.id); setBooks([]); }}>
               {inf.name} · ступень {roman(pr + 1)}: {pr < 4 ? stepText(inf.main, inf.steps[pr]) : '—'}
             </button>
           );
