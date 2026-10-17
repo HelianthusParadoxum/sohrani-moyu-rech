@@ -284,6 +284,12 @@ describe('полный режим', () => {
     expect(s.pending).toHaveLength(1);
     expect(s.pending[0]).toMatchObject({ kind: 'kontoraDecide', player: me });
     expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: other } })).toThrow(RuleError);
+    // Сигнал — только на того, у кого открыто лежит опальная книга: у третьего игрока (или у самого себя) таких нет.
+    const clean = s.order.find((x) => x !== me && x !== other) ?? me;
+    if (clean) {
+      expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: clean, seize: { player: other, card: book } } }))
+        .toThrow(/опальная книга/);
+    }
     const before = s.players.find((x) => x.id === other)!.available;
     s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: other, seize: { player: other, card: book } } });
     const o = s.players.find((x) => x.id === other)!;

@@ -6,7 +6,7 @@
 import { applyAction, mustVisitRedCorner } from './engine';
 import { BOT_BASE, CURATOR_STYLES, PATRON_POWER, curatorStyle, type BotGoal, type BotPreset, type CuratorStyle } from './bot-presets';
 import { PERMANENT_ADDRESSES, addressInGame, PASSIONS, RULES, SPROUTS, STEP_REWARDS, FIRST_FEED_POINTS, ADDRESSES, KONTORA_LOSS, limitFor } from './content';
-import { heldTotal, kontoraTargets } from './full';
+import { heldTotal, kontoraTargets, signalable } from './full';
 import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
@@ -779,11 +779,11 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
   // Подозреваемый Куратор: Сигнал — ему, Профилактика — только Завсегдатаю, с которым связан лишь он.
   if (united) {
     const o = player(state, enemy[0]);
-    if (o.held < o.workers) items.push({ signal: o.id });
+    if (o.held < o.workers && signalable(state, o.id)) items.push({ signal: o.id });
     const only = state.patrons.find((x) => !x.removed && x.connections.length > 0 && x.connections.every((id) => id === o.id));
     if (only) items.push({ prophylaxis: only.id });
   } else if (ctx.aggression > 0 || ctx.curator) {
-    const rivals = state.players.filter((o) => o.id !== me && o.held < o.workers);
+    const rivals = state.players.filter((o) => o.id !== me && o.held < o.workers && signalable(state, o.id));
     const leader = rivals.sort((a, b) => strength(state, b, left) - strength(state, a, left))[0];
     if (leader) items.push({ signal: leader.id });
     // Профилактика: Завсегдатай, с которым связаны соперники, а бот — нет.

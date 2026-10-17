@@ -4,7 +4,7 @@ import { GENRE_NAMES, PATRONS } from '../engine/content';
 import type { Action, ClubGift, Genre, GroupAction, KontoraChoice, PatronId, PlaceAction } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import { cacheLimit } from '../engine/util';
-import { kontoraTargets } from '../engine/full';
+import { kontoraTargets, signalable } from '../engine/full';
 import { Book, GenreChip, Modal, PLAYER_COLORS, iconsOf, isBanned, toggle } from './ui';
 
 type VPlayer = PlayerView['players'][number];
@@ -184,8 +184,9 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
       <label>Сигнал — удержать Единомышленника игрока:
         <select value={signal} onChange={(e) => setSignal(e.target.value)}>
           <option value="">— нет —</option>
-          {view.players.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          {view.players.filter((p) => signalable(view, p.id)).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
+        <span className="muted small"> (только на тех, у кого открыто лежит опальная книга)</span>
       </label>
       <label>Профилактика — удалить Завсегдатая:
         <select value={prophylaxis} onChange={(e) => setProphylaxis(e.target.value as PatronId)}>

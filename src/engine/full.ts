@@ -3,7 +3,7 @@ import { CLUB_SIZE, GENRE_NAMES, KONTORA_LOSS, KONTORA_PATRONS, PATRONS, RULES }
 import type { ClubGift, GameState, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
-  addBook, addSecretBook, check, discard, drawLoad, earn, freeSlots, hasBook, hasPatron, iconsOf, isBanned, isGenreBook, log, pay, player,
+  addBook, addSecretBook, check, discard, drawLoad, earn, freeSlots, hasBook, hasPatron, iconsOf, isBanned, isGenreBook, isPropaganda, log, pay, player,
   removeBook, shuffle, talonsText, title,
 } from './util';
 
@@ -142,6 +142,12 @@ export function kontoraTargets(state: TargetsInfo): { player: string; card: stri
     .map((s) => ({ player: o.id, card: s.card! })));
 }
 
+// Сигнал — только на того, кто видимо нарушает: у него на Складе открыто лежит хотя бы одна опальная книга (или Улика).
+export function signalable(state: TargetsInfo, playerId: string): boolean {
+  const o = state.players.find((x) => x.id === playerId);
+  return !!o && o.warehouse.some((s) => s.card && !s.hidden && !s.memorized && isBanned(state, s.card) && !isPropaganda(state, s.card));
+}
+
 export function startKontora(state: GameState, p: PlayerState) {
   check(kontoraTargets(state).length > 0, 'В Контору сейчас не пойти: ни у кого на Складе нет открытой опальной книги — нечем заплатить');
   // Перепрятать книги соперники уже не успеют: перепрятывают только в свой ход. Игрок сразу выбирает пункты и цену.
@@ -163,6 +169,7 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
   }
   if (c.signal) {
     const o = player(state, c.signal);
+    check(signalable(state, o.id), `Сигнал — только на того, у кого открыто лежит опальная книга: у ${o.name} таких нет`);
     holdWorker(state, o, `сигнал от ${p.name}`);
   }
   if (c.prophylaxis) removePatron(state, c.prophylaxis);
