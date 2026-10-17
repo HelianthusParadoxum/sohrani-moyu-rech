@@ -153,7 +153,9 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
         p.passion = action.passion;
         state.ready.push(p.id);
         log(state, `${p.name} выбрал(а) Пристрастие.`);
-        log(state, `Ваше Пристрастие: ${PASSIONS[action.passion].name}.`, [p.id]);
+        state.log[state.log.length - 1].who = p.id;
+        log(state, `Ваше Пристрастие (${p.name}): ${PASSIONS[action.passion].name}.`, [p.id]);
+        state.log[state.log.length - 1].who = p.id;
         if (state.ready.length === state.players.length) {
           startRound(state);
           // Перед первым действием партии все раскладывают стартовые книги по Тайникам.
