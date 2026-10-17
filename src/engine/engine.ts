@@ -464,7 +464,7 @@ function endOrders(state: GameState) {
   state.ready = [];
   logEvent(state, 'Посиделки.');
   logNote(state, RULES.nightReadTalons
-    ? `Опальные книги и Улики со склада можно дать почитать — по 1 очку Гласности за каждую; книги из Тайника, которые не показали, можно дать размножить за плату — по ${RULES.nightReadTalons} Талона.`
+    ? `Можно показать опальные книги и Улики со склада — по 1 очку за каждую; книги из Тайника, которые не показали, дают почитать на ночь — по ${RULES.nightReadTalons} Талона.`
     : 'Можно показать опальные книги и Улики со склада — по 1 очку за каждую.');
 }
 
@@ -501,13 +501,13 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
   }
   state.ready.push(p.id);
   if (show.length) {
-    log(state, `${p.name} даёт почитать на Посиделках: ${titles(state, show)} — +${pointsText(pts)}.`);
+    log(state, `${p.name} показывает на Посиделках: ${titles(state, show)} — +${pointsText(pts)}.`);
   } else {
-    log(state, `${p.name} ничего не даёт почитать на Посиделках.`);
+    log(state, `${p.name} ничего не показывает на Посиделках.`);
   }
   if (night) {
     earn(state, p, night);
-    logAfter(state, `↳ Книги из Тайника дали размножить за плату: +${talonsText(night)}.`);
+    logAfter(state, `↳ Книги из Тайника дали почитать на ночь: +${talonsText(night)}.`);
   }
   if (state.ready.length === state.players.length) {
     state.phase = 'hiding';
