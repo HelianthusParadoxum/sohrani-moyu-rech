@@ -159,8 +159,8 @@ export function startKontora(state: GameState, p: PlayerState) {
 }
 
 export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
-  const chosen = [c.petition?.length, c.handout, c.signal, c.prophylaxis, c.seize].filter(Boolean).length;
-  check(chosen >= 1, 'Выберите от 1 до 5 пунктов');
+  const chosen = [c.petition?.length, c.handout, c.signal, c.prophylaxis].filter(Boolean).length;
+  check(chosen >= 1, 'Выберите от 1 до 4 пунктов');
   check(c.denounce, 'Укажите открытую опальную книгу — донос, цена похода в Контору');
   check(c.denounce.player !== p.id, 'Доносить можно только на книгу другого игрока');
   const target = player(state, c.denounce.player);
@@ -190,19 +190,28 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
     check(signalable(state, o.id), `Сигнал — только на того, у кого открыто лежит опальная книга или Пропаганда: у ${o.name} таких нет`);
     holdWorker(state, o, `сигнал от ${p.name}`);
   }
-  if (c.seize) {
-    removeBook(target, slot.card);
-    toSpetskhranPublic(state, [slot.card]);
-    log(state, `Изъятие: у ${target.name} изъята в Спецхран ${title(state, slot.card)}.`);
-  }
+  // Изъятие книги из доноса — обязательно и в самом конце, после всех пунктов (и после Выдачи на руки).
+  const seize = { player: target.id, card: slot.card };
   if (c.handout) {
     const cards = [...state.spetskhran];
     if (cards.length && freeSlots(p) > 0) {
-      state.pending.push({ kind: 'kontoraHandout', player: p.id, cards });
+      state.pending.push({ kind: 'kontoraHandout', player: p.id, cards, seize });
       seeSpetskhran(state, p.id, cards);
+      return;
     }
-    else log(state, `${p.name}: Выдача на руки — брать нечего или некуда.`);
+    log(state, `${p.name}: Выдача на руки — брать нечего или некуда.`);
   }
+  seizeDenounced(state, seize);
+}
+
+// Изъятие: книга из доноса уходит в Спецхран (если она всё ещё лежит открыто у владельца).
+export function seizeDenounced(state: GameState, seize: { player: string; card: string }) {
+  const o = player(state, seize.player);
+  const s = o.warehouse.find((x) => x.card === seize.card);
+  if (!s || s.hidden || s.memorized) return;
+  removeBook(o, s.card);
+  toSpetskhranPublic(state, [s.card]);
+  log(state, `Изъятие: у ${o.name} изъята в Спецхран ${title(state, s.card)}.`);
 }
 
 export function takeFromSpetskhran(state: GameState, p: PlayerState, card: string) {

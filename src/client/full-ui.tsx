@@ -108,17 +108,16 @@ export function KontoraPanel({ view, place }: { view: PlayerView; place: (p: Pla
   const targets = kontoraTargets(view, view.me);
   return (
     <>
-      <h4>Цена похода — донос: указать на открыто лежащую на Складе соперника книгу опального жанра (сама она остаётся у владельца)</h4>
+      <h4>Цена похода — донос: указать на открыто лежащую на Складе соперника книгу опального жанра; в конце похода её изымут в Спецхран</h4>
       {targets.length === 0
         ? <p className="warn-text">Сейчас в Контору не пойти: ни у кого на Складе нет открытой опальной книги — доносить не на что.</p>
         : <TargetShelf view={view} targets={targets} />}
-      <p>Соперники уже не успеют перепрятать книги. Дальше вы укажете книгу для доноса и выберете от 1 до 5 пунктов:</p>
+      <p>Соперники уже не успеют перепрятать книги. Дальше вы укажете книгу для доноса и выберете от 1 до 4 пунктов:</p>
       <ul>
         <li><b>Ходатайство</b> — вернуть из Конторы {RULES.petitionMax === 1 ? 'одного удержанного Единомышленника' : `до ${RULES.petitionMax} удержанных Единомышленников`} любого игрока.</li>
         <li><b>Выдача на руки</b> — посмотреть Спецхран и взять оттуда одну книгу.</li>
         <li><b>Сигнал</b> — удержать в Конторе Единомышленника того, на кого вы донесли.</li>
         <li><b>Профилактика</b> — удалить Завсегдатая Клуба, с которым связан тот, на кого вы донесли.</li>
-        <li><b>Изъятие</b> — книга из доноса уходит в Спецхран.</li>
       </ul>
       <div className="modal-foot"><button className="primary" disabled={!targets.length} onClick={() => place({ address: 'kontora' })}>Дальше</button></div>
     </>
@@ -159,24 +158,23 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
   const [handout, setHandout] = useState(false);
   const [signalOn, setSignalOn] = useState(false);
   const [prophylaxis, setProphylaxis] = useState<PatronId | ''>('');
-  const [seize, setSeize] = useState(false);
   const [denounce, setDenounce] = useState<{ player: string; card: string } | null>(null);
   const held = view.players.filter((p) => p.held > 0);
   const targets = kontoraTargets(view, view.me);
   // Сигнал — только на того, на кого донос.
   const signal = signalOn && denounce ? denounce.player : '';
-  const count = [petition.length > 0, handout, signalOn, !!prophylaxis, seize].filter(Boolean).length;
+  const count = [petition.length > 0, handout, signalOn, !!prophylaxis].filter(Boolean).length;
   // Повод для Сигнала проверяется до Изъятия: книга из доноса ещё лежит у владельца.
   const target = denounce ? view.players.find((p) => p.id === denounce.player) : null;
   const signalOk = !signalOn || !target || (target.held < target.workers && signalable(view, target.id));
   const prophOk = !prophylaxis || !denounce || view.patrons.some((x) => x.id === prophylaxis && x.connections.includes(denounce.player));
   const choice: KontoraChoice = {
     ...(petition.length ? { petition } : {}), ...(handout ? { handout } : {}), ...(signal ? { signal } : {}),
-    ...(prophylaxis ? { prophylaxis } : {}), ...(seize ? { seize } : {}), ...(denounce ? { denounce } : {}),
+    ...(prophylaxis ? { prophylaxis } : {}), ...(denounce ? { denounce } : {}),
   };
   return (
     <Modal title="Контора" wide>
-      <p>Цена похода — донос: укажите открытую опальную книгу (она остаётся у владельца). Затем выберите от 1 до 5 пунктов (без повторов).</p>
+      <p>Цена похода — донос: укажите открытую опальную книгу соперника; в конце похода, после всех пунктов, её изымут в Спецхран. Выберите от 1 до 4 пунктов (без повторов).</p>
       <h4>Ходатайство ({RULES.petitionMax === 1 ? '1 Единомышленник' : `до ${RULES.petitionMax} Единомышленников`})</h4>
       <div className="genres">
         {held.length === 0 && <span className="muted">Никто не удержан</span>}
@@ -197,7 +195,6 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
           {view.patrons.filter((x) => !x.removed && (!denounce || x.connections.includes(denounce.player))).map((x) => <option key={x.id} value={x.id}>{PATRONS[x.id].name}</option>)}
         </select>
       </label>
-      <label className="row"><input type="checkbox" checked={seize} onChange={(e) => setSeize(e.target.checked)} /> Изъятие — книга из доноса уходит в Спецхран</label>
       <h4>Донос (обязательно): укажите открытую опальную книгу</h4>
       {targets.length === 0
         ? <p className="warn-text">Доносить не на что — в Контору сейчас не пойти. Единомышленник остаётся у вас.</p>

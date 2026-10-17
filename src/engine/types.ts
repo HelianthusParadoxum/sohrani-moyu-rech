@@ -130,7 +130,7 @@ export type Pending =
   | { kind: 'sproutBonus'; player: string; sprout: string; options: SproutBonusId[] }
   | { kind: 'kontoraWarning'; player: string; from: string }
   | { kind: 'kontoraDecide'; player: string }
-  | { kind: 'kontoraHandout'; player: string; cards: string[] }
+  | { kind: 'kontoraHandout'; player: string; cards: string[]; seize?: { player: string; card: string } } // seize — Изъятие после выбора книги
   | { kind: 'extraGroup'; player: string } // Подмастерье
   | { kind: 'freeConnection'; player: string } // Председатель
   | { kind: 'lieutenantPick'; player: string; cards: string[] } // Лейтенант: книги, изъятые облавой с адресов
@@ -255,8 +255,7 @@ export interface KontoraChoice {
   handout?: boolean; // Выдача на руки
   signal?: string; // Сигнал: чьего Единомышленника удержать
   prophylaxis?: PatronId; // Профилактика: какого Завсегдатая удалить
-  seize?: boolean; // Изъятие: книга, на которую указал донос, уходит в Спецхран
-  denounce?: { player: string; card: string }; // цена похода — донос: указать на открытую опальную книгу (она остаётся у владельца)
+  denounce?: { player: string; card: string }; // цена похода — донос на открытую опальную книгу; в конце похода её изымают в Спецхран
 }
 
 export type GroupAction =

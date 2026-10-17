@@ -334,10 +334,9 @@ describe('полный режим', () => {
       expect(() => applyAction(t, me, { type: 'kontoraDecide', go: true, choice: { signal: clean, denounce: { player: other, card: book } } }))
         .toThrow(/на кого донос/);
     }
-    // Донос — только указание: книга остаётся у владельца и сама служит поводом для Сигнала.
-    // Изъятие той же книги — отдельный пункт; Сигнал проверяется до него.
+    // Книга из доноса служит поводом для Сигнала; изымают её обязательно, но в самом конце похода.
     const before = s.players.find((x) => x.id === other)!.available;
-    s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: other, seize: true, denounce: { player: other, card: book } } });
+    s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: other, denounce: { player: other, card: book } } });
     expect(s.spetskhran).toContain(book);
     expect(s.players.find((x) => x.id === other)!.warehouse.some((w) => w.card === book)).toBe(false);
     const o = s.players.find((x) => x.id === other)!;
@@ -1234,6 +1233,30 @@ describe('Контора: донос', () => {
   });
 });
 
+describe('Контора: Изъятие в конце', () => {
+  it('книгу из доноса изымают после Выдачи на руки — взять её оттуда в том же походе нельзя', () => {
+    let s = createGame({ players: players(3), seed: 15, mode: 'full', curator: false });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const [a] = s.order.filter((x) => x !== me);
+    const book = s.deck.find((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.some((g) => s.banned.includes(g)))!;
+    s.deck = s.deck.filter((c) => c !== book);
+    s.players.find((x) => x.id === a)!.warehouse.push({ card: book, hidden: false });
+    s.players.find((x) => x.id === me)!.capacity = 10;
+    s = applyAction(s, me, { type: 'place', place: { address: 'kontora' } });
+    s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { handout: true, denounce: { player: a, card: book } } });
+    const pend = s.pending[0];
+    expect(pend.kind).toBe('kontoraHandout');
+    expect(pend.kind === 'kontoraHandout' && pend.cards).not.toContain(book);
+    expect(s.players.find((x) => x.id === a)!.warehouse.some((w) => w.card === book)).toBe(true);
+    const take = pend.kind === 'kontoraHandout' ? pend.cards[0] : '';
+    s = applyAction(s, me, { type: 'kontoraHandout', card: take });
+    expect(s.spetskhran).toContain(book);
+    expect(s.players.find((x) => x.id === a)!.warehouse.some((w) => w.card === book)).toBe(false);
+  });
+});
+
 describe('Ходатайство', () => {
   it('возвращает не больше 1 Единомышленника', () => {
     let s = createGame({ players: players(3), seed: 15, mode: 'full', curator: false });
@@ -1250,9 +1273,9 @@ describe('Ходатайство', () => {
       .toThrow(/1 Единомышленника/);
     s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { petition: [b], denounce: { player: a, card: book } } });
     expect(s.players.find((x) => x.id === b)!.held).toBe(0);
-    // Без Изъятия донос книгу не забирает.
-    expect(s.players.find((x) => x.id === a)!.warehouse.some((w) => w.card === book)).toBe(true);
-    expect(s.spetskhran).not.toContain(book);
+    // Книгу из доноса изымают всегда.
+    expect(s.players.find((x) => x.id === a)!.warehouse.some((w) => w.card === book)).toBe(false);
+    expect(s.spetskhran).toContain(book);
   });
 });
 

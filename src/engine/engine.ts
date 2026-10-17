@@ -7,7 +7,7 @@ import {
 import { finalScoring } from './scoring';
 import {
   afterRaid, doKontora, gaveAway, giveToPatron, holdWorker, isFull, kontoraLost, partorgFill, payPrice, price, proseBonus, purchases,
-  removePatron, rescue, setupClub, startKontora, takeFromSpetskhran,
+  removePatron, rescue, seizeDenounced, setupClub, startKontora, takeFromSpetskhran,
 } from './full';
 import type {
   Action, AddressId, CopyTextAddress, GameState, Genre, GroupAction, Mode, PassionId, Pending, PlaceAction, PlayerState,
@@ -1323,6 +1323,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
     case 'kontoraHandout': {
       check(action.type === 'kontoraHandout', 'Выберите книгу из Спецхрана');
       takeFromSpetskhran(state, p, action.card);
+      if (pend.seize) seizeDenounced(state, pend.seize);
       break;
     }
     case 'extraGroup': {

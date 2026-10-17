@@ -35,7 +35,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
         const held = state.players.find((o) => o.held > 0);
         const choice = held ? { petition: [held.id] } : { handout: true };
         return [
-          { type: 'kontoraDecide', go: true, choice: { ...choice, ...(victim && card ? { denounce: { player: victim.id, card }, seize: rand() < 0.5 } : {}) } },
+          { type: 'kontoraDecide', go: true, choice: { ...choice, ...(victim && card ? { denounce: { player: victim.id, card } } : {}) } },
           { type: 'kontoraDecide', go: false },
         ];
       }

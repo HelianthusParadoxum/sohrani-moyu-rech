@@ -833,7 +833,7 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
     const choice = Object.assign({}, ...set) as KontoraChoice;
     // Куратор, раз уж пошёл в Контору, Профилактику проводит всегда.
     if (ctx.curator && items.some((x) => x.prophylaxis) && !choice.prophylaxis) continue;
-    // Донос — цена; Изъятие той же книги — отдельный пункт (свою книгу бот не изымает).
+    // Донос — цена; книгу из доноса в конце изымают.
     for (const denounce of seizes) {
       let c = choice;
       if (c.signal) {
@@ -849,7 +849,6 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
         c = pt ? { ...rest, prophylaxis: pt.id } : rest;
       }
       if (Object.keys(c).length) out.push({ ...c, denounce });
-      out.push({ ...c, denounce, seize: true });
     }
   }
   return [...new Map(out.map((c) => [JSON.stringify(c), c])).values()];
