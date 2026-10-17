@@ -873,6 +873,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         for (const b of f.books) { removeBook(p, b); discard(state, b); gaveAway(state, p, b); }
         const reward = STEP_REWARDS[sp.progress];
         sp.progress++;
+        (p.fedSteps ??= []).push(sp.progress);
         earn(state, p, reward.talons + (hasPatron(state, p.id, 'professor') ? 1 : 0));
         gain(p, reward.points, 'sprouts');
         let text = `${p.name} питает Росток «${info.name}»: ступень ${roman(sp.progress)} закрыта (${titles(state, f.books)})`;

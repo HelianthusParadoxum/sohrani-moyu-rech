@@ -95,6 +95,12 @@ function kvartirnikLikely(state: GameState, give: string, want: string): boolean
 }
 
 // Книга годится честным для ближайшей ступени какого-нибудь Ростка до порога Гласности (основной жанр или поддержка).
+// Кто-то из соперников держит открыто книгу основного жанра этого Ростка — и сам бы его покормил.
+function othersCanFeed(state: GameState, me: string, sproutId: string): boolean {
+  const info = SPROUTS.find((s) => s.id === sproutId)!;
+  return state.players.some((o) => o.id !== me && o.warehouse.some((s) => !s.hidden && iconsOf(state, s.card).includes(info.main)));
+}
+
 function feedUseful(state: GameState, card: string): boolean {
   const icons = iconsOf(state, card);
   if (!icons.length) return false;
@@ -342,7 +348,16 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   const talonShare = last && p.available + p.bonusGroupTurns <= 0 ? 0 : BOT_BASE.curatorTalonByRound[r] ?? 1;
   let v = resources(state, p, ctx, talonShare);
   const prog = state.sprouts.map((sp) => Math.min(sp.progress, RULES.glasnostStep));
-  v -= BOT_BASE.curatorStep * prog.reduce((a, b) => a + b, 0) + BOT_BASE.curatorWeakest * Math.min(...prog);
+  if (ctx.style === 'boa') {
+    // «Удаву» ступень I почти ничего не стоит (её всё равно закроют), а кормить её — лучшая маскировка.
+    const above = prog.map((x) => Math.max(0, x - 1));
+    v -= BOT_BASE.curatorStep * (above.reduce((a, b) => a + b, 0) + BOT_BASE.boaStepI * prog.filter((x) => x >= 1).length)
+      + BOT_BASE.curatorWeakest * Math.min(...above);
+    // Один раз закрытая ступень II «наперерез» сопернику — прикрытие: так выглядит жёсткая борьба книжника.
+    if ((p.fedSteps ?? []).includes(2)) v += BOT_BASE.boaCutBonus;
+  } else {
+    v -= BOT_BASE.curatorStep * prog.reduce((a, b) => a + b, 0) + BOT_BASE.curatorWeakest * Math.min(...prog);
+  }
   v += BOT_BASE.curatorPropaganda * p.warehouse.filter((s) => isPropaganda(state, s.card)).length;
   v += attack * BOT_BASE.curatorHeld * state.players.filter((o) => o.id !== p.id).reduce((s, o) => s + o.held, 0);
   // Жанровые книги — разменная монета: Книгообмен на Пропаганду, Главлит «прокруткой», оплата Конторы своей книгой.
@@ -365,7 +380,8 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   }
   // Ранний Красный уголок: первым ходить в новой Пятилетке, когда цензура только сменилась, — сразу ударить.
   const pos = state.nextOrder.indexOf(p.id);
-  if (pos >= 0 && ctx.round < RULES.rounds) v += BOT_BASE.curatorTurnOrder * attack * (state.players.length - pos) / state.players.length;
+  // «Удав» в маске ходит в Красный уголок, как честный книжник: ранняя очередь его не манит.
+  if (pos >= 0 && ctx.round < RULES.rounds && ctx.style !== 'boa') v += BOT_BASE.curatorTurnOrder * attack * (state.players.length - pos) / state.players.length;
   // Маскировка и «отжим» Талонов.
   v -= conceal * BOT_BASE.curatorConceal * exposed;
   v -= style.squeeze[r] * ctx.talon * others.reduce((s, o) => s + o.talons, 0) / Math.max(1, others.length);
@@ -594,8 +610,22 @@ export function rankActions(state: GameState, me: string, preset: BotPreset, ran
     if (feed) return [{ a: { type: 'place', place: { address: 'sprouts', feeds: [feed] } }, v: 0 }];
   }
   // Дальше Куратор почти никогда не кормит Ростки: это слишком дорого (но изредка — чтобы не читался железно).
+  // «Удав» в маске кормит прицельно: ступени I (отнимает у честных первое питание и снимает с себя подозрение) и один раз
+  // ступень II — «подрезая» того, кто сам собирался её закрыть: со стороны это жёсткая борьба книжника.
   if (ctx.curator && rand() >= BOT_BASE.curatorFeedChance) {
-    cands = cands.filter((a) => !(a.type === 'place' && a.place.address === 'sprouts'));
+    const boa = ctx.style === 'boa';
+    const p = player(state, me);
+    const ok = (a: Action) => {
+      if (!(a.type === 'place' && a.place.address === 'sprouts')) return true;
+      if (!boa) return false;
+      return a.place.feeds.every((f) => {
+        const sp = state.sprouts.find((x) => x.id === f.sprout);
+        if (!sp) return false;
+        if (sp.progress === 0) return true;
+        return sp.progress === 1 && !(p.fedSteps ?? []).includes(2) && othersCanFeed(state, me, sp.id);
+      });
+    };
+    cands = cands.filter(ok);
     if (!cands.length) return [];
   }
   const samples = Array.from({ length: SAMPLES }, () => determinize(state, rand, me));
