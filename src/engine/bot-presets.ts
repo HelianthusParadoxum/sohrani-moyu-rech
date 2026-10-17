@@ -189,10 +189,17 @@ export const CURATOR_STYLES: Record<CuratorStyle, {
 
 // Строка для журнала в конце партии: какой стратегии держался Куратор-бот.
 // unmasked — сбросил маску (открыто взял Пропаганду или был раскрыт) и доигрывал «открытым забралом».
-export function curatorStyleNote(state: { seed: number }, pid: string, name: string, unmasked = false): string {
+export function curatorStyleNote(
+  state: { seed: number; curatorUnmask?: { round: number; act: number; why: 'propaganda' | 'exposed' | 'round' } },
+  pid: string, name: string, unmasked = false,
+): string {
   const id = curatorStyle(state, pid);
   const st = CURATOR_STYLES[id];
-  const tail = unmasked && id !== 'open' ? ' Сбросил маску и доигрывал «Открытым забралом».' : '';
+  const u = state.curatorUnmask;
+  const why = u && { propaganda: 'открыто взял Пропаганду', exposed: 'его раскусили', round: 'пришло время бить' }[u.why];
+  const at = u ? ` в Пятилетке ${u.round}${u.act ? `, на своём ${u.act}-м ходу` : ''} (${why})` : '';
+  const rest = u?.why === 'round' ? 'дальше бил открыто' : 'доигрывал «Открытым забралом»';
+  const tail = (unmasked || u) && id !== 'open' ? ` Сбросил маску${at} и ${rest}.` : '';
   return `Стратегия Куратора-бота (${name}): «${st.name}» — ${st.hint.charAt(0).toLowerCase()}${st.hint.slice(1)}${tail}`;
 }
 

@@ -236,6 +236,25 @@ describe('думающий бот в полном режиме', () => {
     expect(curatorStyleNote({ seed: 1 }, 'p1', 'Бот 1')).toContain(CURATOR_STYLES[curatorStyle({ seed: 1 }, 'p1')].name);
   });
 
+  it('в итоговой записи о Кураторе-боте — когда он сбросил маску (Пятилетка, ход, причина)', () => {
+    const seed = [...Array(40).keys()].map((i) => i + 1).find((x) => curatorStyle({ seed: x }, 'p1') === 'ambush')!;
+    const note = curatorStyleNote({ seed, curatorUnmask: { round: 3, act: 1, why: 'round' } }, 'p1', 'Бот 1');
+    expect(note).toContain('Сбросил маску в Пятилетке 3, на своём 1-м ходу');
+    // В партии: Хищник не позже 3-й Пятилетки отмечает, что маска снята.
+    let s = createGame({ players: players(3), seed, mode: 'full', curator: true });
+    for (const p of s.players) {
+      if (p.id === 'p1') p.passionOptions = ['curator', p.passionOptions.find((x) => x !== 'curator')!];
+      else p.passionOptions = p.passionOptions.map((x) => (x === 'curator' ? 'erudite' : x));
+    }
+    const rand = seeded(seed);
+    for (let i = 0; i < 6000 && s.phase !== 'end' && !s.curatorUnmask; i++) {
+      const who = activePlayersOf(s)[0];
+      s = s.phase === 'passion' && who === 'p1' ? applyAction(s, who, { type: 'choosePassion', passion: 'curator' }) : botMove(s, who, rand);
+    }
+    expect(s.curatorUnmask).toBeDefined();
+    expect(s.curatorUnmask!.round).toBeLessThanOrEqual(3);
+  }, 120_000);
+
   it('Куратор кормит Ростки разве что один раз (маскировка) и бережёт Пропаганду', () => {
     let feeds = 0;
     let curators = 0;

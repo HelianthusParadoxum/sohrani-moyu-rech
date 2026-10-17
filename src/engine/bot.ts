@@ -2,8 +2,8 @@
 // Здесь же простой бот: перебирает варианты действий и выбирает случайный допустимый,
 // с лёгкими предпочтениями. Он — пресет «Случайный» и запасной вариант для редких решений.
 import { applyAction, activePlayers, mustVisitRedCorner } from './engine';
-import { presetById } from './bot-presets';
-import { copyTextOptions, smartMove } from './bot-smart';
+import { curatorStyle, presetById } from './bot-presets';
+import { copyTextOptions, effectiveCuratorStyle, smartMove } from './bot-smart';
 import { PERMANENT_ADDRESSES, RULES, SPROUTS } from './content';
 import type { Action, ClubGift, GameState, Genre, GroupAction } from './types';
 import { GENRES } from './types';
@@ -199,9 +199,28 @@ export function botMove(state: GameState, me: string, rand: Rand = Math.random, 
   const preset = presetById(presetId);
   if (!preset.random) {
     const next = smartMove(state, me, preset, rand);
-    if (next) return next;
+    if (next) {
+      const unmask = curatorUnmask(state, me);
+      if (unmask) next.curatorUnmask = unmask;
+      return next;
+    }
   }
   return randomMove(state, me, rand);
+}
+
+// Куратор-бот впервые решает ход уже без маски: «Удав» и «Хищник» — после открыто взятой Пропаганды,
+// «Удав» — когда его раскусили, «Хищник» — с 3-й Пятилетки (дальше он и так бьёт открыто).
+function curatorUnmask(state: GameState, me: string): GameState['curatorUnmask'] | null {
+  if (state.curatorUnmask || state.mode !== 'full') return null;
+  const p = player(state, me);
+  if (p.passion !== 'curator') return null;
+  const base = curatorStyle(state, me);
+  if (base === 'open') return null;
+  const act = (p.actions?.length ?? 0) + (state.phase === 'orders' ? 1 : 0);
+  if ((p.propagandaTaken ?? 0) > 0) return { round: state.round, act, why: 'propaganda' };
+  if (effectiveCuratorStyle(state, me) === 'open') return { round: state.round, act, why: 'exposed' };
+  if (base === 'ambush' && state.round >= 3) return { round: state.round, act, why: 'round' };
+  return null;
 }
 
 function randomMove(state: GameState, me: string, rand: Rand): GameState {
