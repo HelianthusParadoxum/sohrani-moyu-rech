@@ -67,8 +67,9 @@ function noteForSpectator(room: Room) {
     const text = `Для зрителя. ${curatorStyleNote({ seed: s.seed, curatorStyleOverride: s.curatorStyleOverride }, cur.id, cur.name)}`;
     if (!s.log.some((l) => l.text === text)) s.log.push({ round: s.round, text, only: [], em: true });
   }
-  if (s.phase !== 'orders' || !s.curatorPossible) return;
-  const head = `Для зрителя. Подозрения ботов в начале Пятилетки ${s.round} (насколько каждый считает другого Куратором):`;
+  // Подозрения — в начале Посиделок: тут игроки решают, безопасно ли показывать опальное.
+  if (s.phase !== 'gathering' || !s.curatorPossible) return;
+  const head = `Для зрителя. Подозрения ботов перед Посиделками ${s.round}-й Пятилетки (насколько каждый считает другого Куратором):`;
   if (s.log.some((l) => l.text === head)) return;
   s.log.push({ round: s.round, text: head, only: [], em: true });
   for (const p of s.players) {

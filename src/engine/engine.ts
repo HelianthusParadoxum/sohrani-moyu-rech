@@ -1197,6 +1197,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
           : 'Смыслы можно вернуть только жанровой книге, возвращаемой Нагрузке или Нагрузке-улике');
       state.restored[g.card] = true;
       if (c.kind === 'propaganda') {
+        p.propagandaExposed = (p.propagandaExposed ?? 0) + 1;
         log(state, `${p.name} возвращает смыслы: ${title(state, g.card)} становится Разоблачением (+${pointsText(RULES.exposePoints)} в конце).`);
       } else if (c.kind === 'loadEvidence') {
         log(state, `${p.name} возвращает смыслы: ${title(state, g.card)} становится Уликой.`);

@@ -168,7 +168,11 @@ export function curatorSuspicionDetail(state: GameState, me: string): Record<str
     // Кто кормит Ростки, тот, скорее всего, забирает Пропаганду, чтобы она не досталась Куратору.
     const trust = o.sproutsFed.length ? BOT_BASE.suspectFedDiscount : 1;
     const times = (n: number) => (n > 1 ? ` ×${n}` : '');
-    add(trust * BOT_BASE.suspectTaken * (o.propagandaTaken ?? 0), `взял Пропаганду со стола${times(o.propagandaTaken ?? 0)}`);
+    // Открыто взятая Пропаганда подозрительна и у кормившего Ростки (слабее, чем прочие улики, не обесценивается).
+    add(Math.max(trust, BOT_BASE.suspectTakenTrust) * BOT_BASE.suspectTaken * (o.propagandaTaken ?? 0), `взял Пропаганду со стола${times(o.propagandaTaken ?? 0)}`);
+    // ...а если так и не сдал её и не разоблачил — держит у себя: так делает Куратор.
+    const kept = Math.max(0, (o.propagandaTaken ?? 0) - (o.propagandaDumped ?? 0) - (o.propagandaExposed ?? 0));
+    add(BOT_BASE.suspectKept * kept, `держит взятую Пропаганду${times(kept)}`);
     add(trust * BOT_BASE.suspectHolds * open, `Пропаганда на виду${times(open)}`);
     add(trust * BOT_BASE.suspectCacheUnshown * (o.cacheUnshown ?? 0), `не показал опальное из Тайника${times(o.cacheUnshown ?? 0)}`);
     add(trust * BOT_BASE.suspectRedEager * (o.redEager ?? 0), `рано и первым в Красном уголке${times(o.redEager ?? 0)}`);
@@ -1071,8 +1075,12 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         return drama || (books.includes(c) && (isGenreBook(state, c) || isEvidence(state, c)) && isBanned(state, c));
       });
       // Под угрозой Засады бот сравнивает: показать всё, только то, что и так лежит открыто, или ничего опального.
+      // А если кого-то за столом уже всерьёз подозревает — опального не показывает вовсе: Посиделки небезопасны.
       const isRisky = (c: string) => books.includes(c) && (isGenreBook(state, c) || isEvidence(state, c)) && isBanned(state, c);
       const hidden = new Set(p.warehouse.filter((s) => s.hidden).map((s) => s.card));
+      const unsafe = !ctx.curator && state.curatorPossible && !state.curatorRevealed && full && !state.reserve
+        && Math.max(0, ...Object.values(ctx.suspect)) >= BOT_BASE.gatheringUnsafe;
+      if (unsafe) return [{ type: 'gathering', show: show.filter((c) => !isRisky(c)) }];
       const variants = [show, show.filter((c) => !isRisky(c) || !hidden.has(c)), show.filter((c) => !isRisky(c))];
       return [...new Map(variants.map((v) => [v.join(','), { type: 'gathering' as const, show: v }])).values()];
     }
