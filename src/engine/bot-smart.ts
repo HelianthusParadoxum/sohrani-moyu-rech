@@ -833,25 +833,13 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
     const choice = Object.assign({}, ...set) as KontoraChoice;
     // Куратор, раз уж пошёл в Контору, Профилактику проводит всегда.
     if (ctx.curator && items.some((x) => x.prophylaxis) && !choice.prophylaxis) continue;
-    for (const seize of seizes) {
-      // Сигнал проверяется после уплаты цены: если цена забирает у цели последний повод — сигналим другому, кому ещё можно.
-      if (choice.signal && !signalableAfter(state, choice.signal, seize)) {
-        const alt = state.players.find((o) => o.id !== me && o.held < o.workers && (!united || o.id === enemy[0]) && signalableAfter(state, o.id, seize));
-        const { signal: _, ...rest } = choice;
-        void _;
-        out.push(alt ? { ...rest, seize, signal: alt.id } : { ...rest, seize });
-        continue;
-      }
-      out.push({ ...choice, seize });
+    // Донос — цена; Изъятие той же книги — отдельный пункт (свою книгу бот не изымает).
+    for (const denounce of seizes) {
+      if (set.length) out.push({ ...choice, denounce });
+      if (denounce.player !== me) out.push({ ...choice, denounce, seize: true });
     }
   }
   return out;
-}
-
-function signalableAfter(state: GameState, id: string, seize: { player: string; card: string }): boolean {
-  if (seize.player !== id) return signalable(state, id);
-  const o = player(state, id);
-  return signalable({ ...state, players: state.players.map((x) => (x.id === id ? { ...o, warehouse: o.warehouse.filter((s) => s.card !== seize.card) } : x)) }, id);
 }
 
 function byValue(keep: Map<string, number>, cards: string[]): string[] {

@@ -108,16 +108,17 @@ export function KontoraPanel({ view, place }: { view: PlayerView; place: (p: Pla
   const targets = kontoraTargets(view);
   return (
     <>
-      <h4>Цена похода: одна открыто лежащая на чьём-то Складе книга опального жанра уйдёт в Спецхран</h4>
+      <h4>Цена похода — донос: указать на открыто лежащую на чьём-то Складе книгу опального жанра (сама она остаётся у владельца)</h4>
       {targets.length === 0
-        ? <p className="warn-text">Сейчас в Контору не пойти: ни у кого на Складе нет открытой опальной книги — нечем заплатить.</p>
+        ? <p className="warn-text">Сейчас в Контору не пойти: ни у кого на Складе нет открытой опальной книги — доносить не на что.</p>
         : <TargetShelf view={view} targets={targets} />}
-      <p>Соперники уже не успеют перепрятать книги. Дальше вы выберете от 1 до 4 пунктов и книгу для Спецхрана:</p>
+      <p>Соперники уже не успеют перепрятать книги. Дальше вы укажете книгу для доноса и выберете от 1 до 5 пунктов:</p>
       <ul>
         <li><b>Ходатайство</b> — вернуть из Конторы {RULES.petitionMax === 1 ? 'одного удержанного Единомышленника' : `до ${RULES.petitionMax} удержанных Единомышленников`} любого игрока.</li>
         <li><b>Выдача на руки</b> — посмотреть Спецхран и взять оттуда одну книгу.</li>
         <li><b>Сигнал</b> — удержать в Конторе Единомышленника любого игрока.</li>
         <li><b>Профилактика</b> — удалить одного Завсегдатая Клуба.</li>
+        <li><b>Изъятие</b> — книга из доноса уходит в Спецхран.</li>
       </ul>
       <div className="modal-foot"><button className="primary" disabled={!targets.length} onClick={() => place({ address: 'kontora' })}>Дальше</button></div>
     </>
@@ -144,7 +145,7 @@ export function KontoraWarningPrompt({ view, me, from, act }: { view: PlayerView
   const name = view.players.find((p) => p.id === from)?.name;
   return (
     <Modal title="Предупреждение: Контора" wide>
-      <p>{name} собирается в Контору. Можно перепрятать книги — в Тайнике помещается {limit}. Открытая опальная книга может уйти в Спецхран.</p>
+      <p>{name} собирается в Контору. Можно перепрятать книги — в Тайнике помещается {limit}. На открытую опальную книгу могут донести, а затем изъять её в Спецхран.</p>
       <div className="shelf wrap">
         {cards.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} hidden={sel.includes(c)} onClick={() => setSel(toggle(sel, c))} />)}
       </div>
@@ -158,22 +159,20 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
   const [handout, setHandout] = useState(false);
   const [signal, setSignal] = useState('');
   const [prophylaxis, setProphylaxis] = useState<PatronId | ''>('');
-  const [seize, setSeize] = useState<{ player: string; card: string } | null>(null);
+  const [seize, setSeize] = useState(false);
+  const [denounce, setDenounce] = useState<{ player: string; card: string } | null>(null);
   const held = view.players.filter((p) => p.held > 0);
   const targets = kontoraTargets(view);
-  const count = [petition.length > 0, handout, !!signal, !!prophylaxis].filter(Boolean).length;
-  // Повод для Сигнала проверяется после уплаты цены: выбранная для Спецхрана книга уже не лежит у игрока.
-  const afterPrice = seize
-    ? { ...view, players: view.players.map((p) => (p.id === seize.player ? { ...p, warehouse: p.warehouse.filter((w) => w.card !== seize.card) } : p)) }
-    : view;
-  const signalOk = !signal || signalable(afterPrice, signal);
+  const count = [petition.length > 0, handout, !!signal, !!prophylaxis, seize].filter(Boolean).length;
+  // Повод для Сигнала проверяется до Изъятия: книга из доноса ещё лежит у владельца.
+  const signalOk = !signal || signalable(view, signal);
   const choice: KontoraChoice = {
     ...(petition.length ? { petition } : {}), ...(handout ? { handout } : {}), ...(signal ? { signal } : {}),
-    ...(prophylaxis ? { prophylaxis } : {}), ...(seize ? { seize } : {}),
+    ...(prophylaxis ? { prophylaxis } : {}), ...(seize ? { seize } : {}), ...(denounce ? { denounce } : {}),
   };
   return (
     <Modal title="Контора" wide>
-      <p>Выберите от 1 до 4 пунктов (без повторов).</p>
+      <p>Цена похода — донос: укажите открытую опальную книгу (она остаётся у владельца). Затем выберите от 1 до 5 пунктов (без повторов).</p>
       <h4>Ходатайство ({RULES.petitionMax === 1 ? '1 Единомышленник' : `до ${RULES.petitionMax} Единомышленников`})</h4>
       <div className="genres">
         {held.length === 0 && <span className="muted">Никто не удержан</span>}
@@ -189,10 +188,10 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
       <label>Сигнал — удержать Единомышленника игрока:
         <select value={signal} onChange={(e) => setSignal(e.target.value)}>
           <option value="">— нет —</option>
-          {view.players.filter((p) => signalable(afterPrice, p.id) || p.id === signal).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          {view.players.filter((p) => signalable(view, p.id) || p.id === signal).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
-        <span className="muted small"> (только на тех, у кого после изъятия книги-цены открыто лежит опальная книга или Пропаганда)</span>
-        {!signalOk && <div className="small" style={{ color: 'var(--red)' }}>После изъятия выбранной книги у этого игрока не останется повода для Сигнала.</div>}
+        <span className="muted small"> (только на тех, у кого открыто лежит опальная книга или Пропаганда)</span>
+        {!signalOk && <div className="small" style={{ color: 'var(--red)' }}>У этого игрока нет повода для Сигнала.</div>}
       </label>
       <label>Профилактика — удалить Завсегдатая:
         <select value={prophylaxis} onChange={(e) => setProphylaxis(e.target.value as PatronId)}>
@@ -200,13 +199,14 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
           {view.patrons.filter((x) => !x.removed).map((x) => <option key={x.id} value={x.id}>{PATRONS[x.id].name}</option>)}
         </select>
       </label>
-      <h4>Цена похода (обязательно): выберите открытую опальную книгу — она уйдёт в Спецхран</h4>
+      <label className="row"><input type="checkbox" checked={seize} onChange={(e) => setSeize(e.target.checked)} /> Изъятие — книга из доноса уходит в Спецхран</label>
+      <h4>Донос (обязательно): укажите открытую опальную книгу</h4>
       {targets.length === 0
-        ? <p className="warn-text">Заплатить нечем — в Контору сейчас не пойти. Единомышленник остаётся у вас.</p>
-        : <TargetShelf view={view} targets={targets} selected={seize?.card} onPick={(t) => setSeize(seize?.card === t.card ? null : t)} />}
+        ? <p className="warn-text">Доносить не на что — в Контору сейчас не пойти. Единомышленник остаётся у вас.</p>
+        : <TargetShelf view={view} targets={targets} selected={denounce?.card} onPick={(t) => setDenounce(denounce?.card === t.card ? null : t)} />}
       <div className="modal-foot">
         <button onClick={() => act({ type: 'kontoraDecide', go: false })}>Передумать</button>
-        <button className="primary" disabled={count < 1 || !seize || !signalOk} title={!seize ? 'Выберите книгу для Спецхрана' : count < 1 ? 'Выберите хотя бы один пункт' : !signalOk ? 'Сигналу нет повода' : ''}
+        <button className="primary" disabled={count < 1 || !denounce || !signalOk} title={!denounce ? 'Укажите книгу для доноса' : count < 1 ? 'Выберите хотя бы один пункт' : !signalOk ? 'Сигналу нет повода' : ''}
           onClick={() => act({ type: 'kontoraDecide', go: true, choice })}>Пойти в Контору ({count})</button>
       </div>
     </Modal>

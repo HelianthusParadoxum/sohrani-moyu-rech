@@ -255,7 +255,8 @@ export interface KontoraChoice {
   handout?: boolean; // Выдача на руки
   signal?: string; // Сигнал: чьего Единомышленника удержать
   prophylaxis?: PatronId; // Профилактика: какого Завсегдатая удалить
-  seize?: { player: string; card: string }; // доход: открытая опальная книга в Спецхран
+  seize?: boolean; // Изъятие: книга, на которую указал донос, уходит в Спецхран
+  denounce?: { player: string; card: string }; // цена похода — донос: указать на открытую опальную книгу (она остаётся у владельца)
 }
 
 export type GroupAction =

@@ -158,9 +158,14 @@ export function startKontora(state: GameState, p: PlayerState) {
 }
 
 export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
-  const chosen = [c.petition?.length, c.handout, c.signal, c.prophylaxis].filter(Boolean).length;
-  check(chosen >= 1, 'Выберите от 1 до 4 пунктов');
-  check(c.seize, 'Выберите открытую опальную книгу, которая уйдёт в Спецхран — это цена похода в Контору');
+  const chosen = [c.petition?.length, c.handout, c.signal, c.prophylaxis, c.seize].filter(Boolean).length;
+  check(chosen >= 1, 'Выберите от 1 до 5 пунктов');
+  check(c.denounce, 'Укажите открытую опальную книгу — донос, цена похода в Контору');
+  const target = player(state, c.denounce.player);
+  const slot = target.warehouse.find((x) => x.card === c.denounce!.card);
+  check(slot && !slot.hidden && !slot.memorized, 'Донос — только на открыто лежащую на складе книгу');
+  check(isGenreBook(state, slot.card) && isBanned(state, slot.card), 'Донос — только на книгу опального жанра');
+  log(state, `Донос в Контору: у ${target.name} открыто лежит ${title(state, slot.card)}.`);
   if (c.petition?.length) {
     check(c.petition.length <= RULES.petitionMax, RULES.petitionMax === 1 ? 'Ходатайство возвращает 1 Единомышленника' : `Ходатайство возвращает до ${RULES.petitionMax} Единомышленников`);
     for (const id of c.petition) {
@@ -171,20 +176,16 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
     }
   }
   if (c.prophylaxis) removePatron(state, c.prophylaxis);
-  if (c.seize) {
-    const o = player(state, c.seize.player);
-    const s = o.warehouse.find((x) => x.card === c.seize!.card);
-    check(s && !s.hidden && !s.memorized, 'Изъять можно только открыто лежащую на складе книгу');
-    check(isGenreBook(state, s.card) && isBanned(state, s.card), 'Изъять можно только книгу опального жанра');
-    removeBook(o, s.card);
-    toSpetskhranPublic(state, [s.card]);
-    log(state, `По доносу из Конторы у ${o.name} изъята в Спецхран ${title(state, s.card)}.`);
-  }
-  // Сигнал проверяется уже после уплаты цены: если изъяли последнюю открытую опальную книгу — повода больше нет.
+  // Сигнал — до Изъятия: книга, на которую донесли, ещё лежит у владельца и сама служит поводом.
   if (c.signal) {
     const o = player(state, c.signal);
-    check(signalable(state, o.id), `Сигнал — только на того, у кого (после изъятия книги-цены) открыто лежит опальная книга или Пропаганда: у ${o.name} таких нет`);
+    check(signalable(state, o.id), `Сигнал — только на того, у кого открыто лежит опальная книга или Пропаганда: у ${o.name} таких нет`);
     holdWorker(state, o, `сигнал от ${p.name}`);
+  }
+  if (c.seize) {
+    removeBook(target, slot.card);
+    toSpetskhranPublic(state, [slot.card]);
+    log(state, `Изъятие: у ${target.name} изъята в Спецхран ${title(state, slot.card)}.`);
   }
   if (c.handout) {
     const cards = [...state.spetskhran];

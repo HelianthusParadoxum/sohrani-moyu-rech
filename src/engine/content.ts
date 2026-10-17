@@ -130,7 +130,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   club: { id: 'club', name: 'Клуб книголюбов', limits: [2, 3, 4], fullOnly: true, hint: RULES.clubFreeGift
     ? 'Без Единомышленника: за свой ход отдайте 1 книгу 1 Завсегдатаю (его жанра или Альбом) — завяжите связь'
     : 'Отдайте Завсегдатаям книги их жанров — завяжите связи' },
-  kontora: { id: 'kontora', name: 'Контора', limits: [INF, INF, INF], fullOnly: true, perPlayer: true, hint: 'Ходатайство, Выдача на руки, Сигнал, Профилактика; доход — чужая опальная книга в Спецхран' },
+  kontora: { id: 'kontora', name: 'Контора', limits: [INF, INF, INF], fullOnly: true, perPlayer: true, hint: 'Цена — донос на открытую опальную книгу; пункты: Ходатайство, Выдача на руки, Сигнал, Профилактика, Изъятие (книгу из доноса — в Спецхран)' },
 };
 
 // Тиражирование текста: адреса, где книги покупают в открытую.

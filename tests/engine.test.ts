@@ -329,22 +329,20 @@ describe('полный режим', () => {
     const clean = s.order.find((x) => x !== me && x !== other) ?? me;
     for (const w of s.players.find((x) => x.id === clean)!.warehouse) if (s.cards[w.card].kind === 'propaganda') w.hidden = true;
     if (clean) {
-      expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: clean, seize: { player: other, card: book } } }))
+      expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: clean, denounce: { player: other, card: book } } }))
         .toThrow(/опальная книга/);
       // Открыто лежащая Пропаганда — тоже повод для Сигнала.
       const prop = Object.keys(s.cards).find((c) => s.cards[c].kind === 'propaganda' && !s.players.some((p) => p.warehouse.some((w) => w.card === c)))!;
       const t = structuredClone(s);
       t.players.find((x) => x.id === clean)!.warehouse.push({ card: prop, hidden: false });
-      expect(() => applyAction(t, me, { type: 'kontoraDecide', go: true, choice: { signal: clean, seize: { player: other, card: book } } })).not.toThrow();
+      expect(() => applyAction(t, me, { type: 'kontoraDecide', go: true, choice: { signal: clean, denounce: { player: other, card: book } } })).not.toThrow();
     }
-    // Повод для Сигнала проверяется после уплаты цены: изъяли единственную открытую опальную книгу — Сигнала нет.
-    expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: other, seize: { player: other, card: book } } }))
-      .toThrow(/после изъятия/);
-    const book2 = s.deck.find((c) => c !== book && s.cards[c].kind === 'genre' && s.cards[c].icons.some((g) => s.banned.includes(g)))!;
-    s.deck = s.deck.filter((c) => c !== book2);
-    s.players.find((x) => x.id === other)!.warehouse.push({ card: book2, hidden: false });
+    // Донос — только указание: книга остаётся у владельца и сама служит поводом для Сигнала.
+    // Изъятие той же книги — отдельный пункт; Сигнал проверяется до него.
     const before = s.players.find((x) => x.id === other)!.available;
-    s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: other, seize: { player: other, card: book } } });
+    s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: other, seize: true, denounce: { player: other, card: book } } });
+    expect(s.spetskhran).toContain(book);
+    expect(s.players.find((x) => x.id === other)!.warehouse.some((w) => w.card === book)).toBe(false);
     const o = s.players.find((x) => x.id === other)!;
     expect(o.held).toBe(1);
     // Ходатайство возвращает только 1 Единомышленника.
@@ -1223,10 +1221,13 @@ describe('Ходатайство', () => {
     s.deck = s.deck.filter((c) => c !== book);
     s.players.find((x) => x.id === a)!.warehouse.push({ card: book, hidden: false });
     s = applyAction(s, me, { type: 'place', place: { address: 'kontora' } });
-    expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { petition: [a, b], seize: { player: a, card: book } } }))
+    expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { petition: [a, b], denounce: { player: a, card: book } } }))
       .toThrow(/1 Единомышленника/);
-    s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { petition: [b], seize: { player: a, card: book } } });
+    s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { petition: [b], denounce: { player: a, card: book } } });
     expect(s.players.find((x) => x.id === b)!.held).toBe(0);
+    // Без Изъятия донос книгу не забирает.
+    expect(s.players.find((x) => x.id === a)!.warehouse.some((w) => w.card === book)).toBe(true);
+    expect(s.spetskhran).not.toContain(book);
   });
 });
 
