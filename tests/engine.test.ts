@@ -794,7 +794,8 @@ describe('Засада на Посиделках', () => {
     expect(() => applyAction(s, a, { type: 'ambush', go: true })).toThrow(/только Куратор/);
     s = applyAction(s, a, { type: 'ambush', go: false });
     const held = s.players.find((x) => x.id === a)!.held;
-    s = applyAction(s, cur, { type: 'ambush', go: true });
+    expect(() => applyAction(s, cur, { type: 'ambush', go: true, picks: { [a]: s.deck[0] } })).toThrow(/показанную/);
+    s = applyAction(s, cur, { type: 'ambush', go: true, picks: { [a]: book } });
     expect(s.curatorRevealed).toBe(cur);
     expect(s.phase).toBe('hiding');
     expect(s.players.find((x) => x.id === a)!.held).toBe(held + 1);

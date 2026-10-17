@@ -213,7 +213,7 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
         return done(state);
       case 'ambush':
         check(action.type === 'ambush', 'Сейчас решается Засада');
-        doAmbush(state, p, action.go);
+        doAmbush(state, p, action.go, action.picks);
         return done(state);
       case 'hiding':
         if (action.type === 'memorize') {
@@ -534,7 +534,7 @@ function startHiding(state: GameState) {
 
 // Засада: Куратор раскрывается; на каждого, кто показал на Посиделках опальное, — Контора: Сигнал и Изъятие показанной
 // книги (показанные книги в этот момент не считаются лежащими в Тайнике).
-function doAmbush(state: GameState, p: PlayerState, go: boolean) {
+function doAmbush(state: GameState, p: PlayerState, go: boolean, picks: Record<string, string> = {}) {
   if (go) {
     check(p.passion === 'curator', 'Засаду может устроить только Куратор');
     state.curatorRevealed = p.id;
@@ -544,7 +544,9 @@ function doAmbush(state: GameState, p: PlayerState, go: boolean) {
       if (o.id === p.id) continue;
       const shown = (state.shownAtGathering?.[o.id] ?? []).filter((c) => hasBook(o, c));
       if (!shown.length) continue;
-      const card = [...shown].sort((a, b) => iconsOf(state, b).length - iconsOf(state, a).length)[0];
+      // Книгу выбирает Куратор лично (не выбрал — самая «значкастая»).
+      if (picks[o.id]) check(shown.includes(picks[o.id]), `У ${o.name} изымают только книгу, показанную на Посиделках`);
+      const card = picks[o.id] ?? [...shown].sort((a, b) => iconsOf(state, b).length - iconsOf(state, a).length)[0];
       holdWorker(state, o, `Засада: ${p.name}`);
       removeBook(o, card);
       toSpetskhranPublic(state, [card]);

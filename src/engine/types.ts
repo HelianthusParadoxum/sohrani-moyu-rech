@@ -291,7 +291,7 @@ export type Action =
   | { type: 'spisanieKeep'; keep: string[] }
   | { type: 'sproutBonus'; bonus: SproutBonusId; group?: GroupAction }
   | { type: 'gathering'; show: string[] }
-  | { type: 'ambush'; go: boolean } // после Посиделок: Куратор раскрывается и устраивает Засаду (остальные — «дальше»)
+  | { type: 'ambush'; go: boolean; picks?: Record<string, string> } // picks — какую из показанных книг изъять у каждого; после Посиделок: Куратор раскрывается и устраивает Засаду (остальные — «дальше»)
   | { type: 'hiding'; hidden: string[]; memorize?: string | null; fillLoad?: boolean }
   | { type: 'kontoraHide'; hidden: string[] }
   | { type: 'kontoraDecide'; go: boolean; choice?: KontoraChoice }

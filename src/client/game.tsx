@@ -916,15 +916,17 @@ function PassionPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: 
 function AmbushPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
   const shown = Object.entries(view.shownAtGathering ?? {}).filter(([id, list]) => id !== me.id && list.length);
   const curator = me.passion === 'curator';
+  // Куратор сам выбирает, какую из показанных книг изъять у каждого.
+  const [picks, setPicks] = useState<Record<string, string>>(() => Object.fromEntries(shown.map(([id, list]) => [id, list[0]])));
   return (
     <Modal title={curator ? 'Засада?' : 'Посиделки окончены'} wide>
       {curator ? (
         <>
           <p>Можно раскрыться и устроить Засаду: на каждого, кто показал опальное, — Контора (Сигнал: удержать Единомышленника,
-            Изъятие: самая «значкастая» из показанных книг уходит в Спецхран). После этого все будут знать, что вы Куратор.</p>
+            Изъятие: выбранная вами показанная книга уходит в Спецхран). После этого все будут знать, что вы Куратор.</p>
           {shown.length === 0 && <p className="muted">Опальное показали только вы.</p>}
           {shown.map(([id, list]) => (
-            <div key={id}><b>{view.players.find((p) => p.id === id)?.name}</b>: <span className="shelf wrap">{list.map((c) => <Book key={c} v={view} id={c} small />)}</span></div>
+            <div key={id}><b>{view.players.find((p) => p.id === id)?.name}</b> — изъять: <span className="shelf wrap">{list.map((c) => <Book key={c} v={view} id={c} small selected={picks[id] === c} onClick={() => setPicks({ ...picks, [id]: c })} />)}</span></div>
           ))}
         </>
       ) : (
@@ -932,7 +934,7 @@ function AmbushPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (
       )}
       <div className="modal-foot">
         <button className={curator ? '' : 'primary'} onClick={() => act({ type: 'ambush', go: false })}>{curator ? 'Не сейчас' : 'Дальше'}</button>
-        {curator && <button className="primary" disabled={!shown.length} onClick={() => act({ type: 'ambush', go: true })}>Засада!</button>}
+        {curator && <button className="primary" disabled={!shown.length} onClick={() => act({ type: 'ambush', go: true, picks })}>Засада!</button>}
       </div>
     </Modal>
   );
