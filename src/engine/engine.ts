@@ -456,7 +456,9 @@ function endOrders(state: GameState) {
   state.phase = 'gathering';
   state.ready = [];
   logEvent(state, 'Посиделки.');
-  logNote(state, 'Можно показать опальные книги и Улики со склада — по 1 очку за каждую.');
+  logNote(state, RULES.nightReadTalons
+    ? `Можно показать опальные книги и Улики со склада — по 1 очку за каждую; книги из Тайника, которые не показали, дают почитать на ночь — по ${RULES.nightReadTalons} Талона.`
+    : 'Можно показать опальные книги и Улики со склада — по 1 очку за каждую.');
 }
 
 function doGathering(state: GameState, p: PlayerState, show: string[]) {
@@ -481,6 +483,8 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
   // Пропаганда). Неопальные книги в Тайнике (спрятанные впрок) показать нельзя — они не в счёт.
   const unshown = p.warehouse.filter((s) => s.hidden && !s.memorized && !show.includes(s.card) && isBanned(state, s.card)).length;
   if (unshown) p.cacheUnshown = (p.cacheUnshown ?? 0) + unshown;
+  // «Почитать на ночь»: каждая непоказанная книга из Тайника — Талоны.
+  const night = p.warehouse.filter((s) => s.hidden && !s.memorized && !show.includes(s.card)).length * RULES.nightReadTalons;
   gain(p, pts, 'gathering');
   gain(p, dramaPts, 'drama');
   pts += dramaPts;
@@ -493,6 +497,10 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
     log(state, `${p.name} показывает на Посиделках: ${titles(state, show)} — +${pointsText(pts)}.`);
   } else {
     log(state, `${p.name} ничего не показывает на Посиделках.`);
+  }
+  if (night) {
+    earn(state, p, night);
+    logAfter(state, `↳ Книги из Тайника дали почитать на ночь: +${talonsText(night)}.`);
   }
   if (state.ready.length === state.players.length) {
     state.phase = 'hiding';

@@ -1052,7 +1052,12 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         const drama = full && iconsOf(state, c).includes('drama');
         return drama || (books.includes(c) && (isGenreBook(state, c) || isEvidence(state, c)) && isBanned(state, c));
       });
-      return [{ type: 'gathering', show }];
+      // Книги из Тайника можно не показывать — их дают почитать на ночь (Талоны): бот сравнивает оба варианта.
+      const hidden = new Set(p.warehouse.filter((s) => s.hidden).map((s) => s.card));
+      const keepClosed = show.filter((c) => !hidden.has(c));
+      return keepClosed.length === show.length || !RULES.nightReadTalons
+        ? [{ type: 'gathering', show }]
+        : [{ type: 'gathering', show }, { type: 'gathering', show: keepClosed }];
     }
     case 'setupCache':
       return [{ type: 'hiding', hidden: hideList(state, me, ctx, keepMap()) }];

@@ -921,15 +921,18 @@ function GatheringPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act
   // По умолчанию к показу выбрано всё, что приносит очки: опальные книги, Улики и Драматургия (в том числе изданная).
   const [sel, setSel] = useState<string[]>(() => cands);
   const pts = sel.reduce((s, c) => s + (isBanned(view, c) && !me.published.includes(c) ? 1 : 0) + (isDrama(c) ? 1 : 0), 0);
+  // Книги из Тайника, которые не показали, «дают почитать на ночь» — Талоны.
+  const night = me.warehouse.filter((s) => s.hidden && !s.memorized && s.card && !sel.includes(s.card)).length * RULES.nightReadTalons;
   return (
     <Modal title="Посиделки" wide>
       <p>Покажите опальные жанровые книги и Улики: +1 очко за каждую. Показанные книги остаются на складе — не забудьте укрыть их перед облавой.
-        {full && ' Драматургию можно показывать и неопальную, и из изданного: +1 очко за каждую («Разыграть»).'}</p>
+        {full && ' Драматургию можно показывать и неопальную, и из изданного: +1 очко за каждую («Разыграть»).'}
+        {RULES.nightReadTalons > 0 && ` Книги из Тайника, которые вы не покажете, дают почитать на ночь своим: +${RULES.nightReadTalons}т за каждую.`}</p>
       <div className="shelf wrap">
         {cands.length === 0 && <span className="muted">Опальных жанровых книг нет</span>}
         {cands.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} onClick={() => setSel(toggle(sel, c))} />)}
       </div>
-      <div className="modal-foot"><button className="primary" onClick={() => act({ type: 'gathering', show: sel })}>{sel.length ? `Показать (+${pts} оч.)` : 'Ничего не показывать'}</button></div>
+      <div className="modal-foot"><button className="primary" onClick={() => act({ type: 'gathering', show: sel })}>{(sel.length ? `Показать (+${pts} оч.)` : 'Ничего не показывать') + (night ? `, на ночь +${night}т` : '')}</button></div>
     </Modal>
   );
 }
