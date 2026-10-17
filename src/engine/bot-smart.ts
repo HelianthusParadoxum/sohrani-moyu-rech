@@ -136,7 +136,8 @@ export function curatorSuspicion(state: GameState, me: string): Record<string, n
     const open = o.warehouse.filter((s) => !s.hidden && isPropaganda(state, s.card)).length;
     // Кто кормит Ростки, тот, скорее всего, забирает Пропаганду, чтобы она не досталась Куратору.
     const trust = o.sproutsFed.length ? BOT_BASE.suspectFedDiscount : 1;
-    let v = trust * (BOT_BASE.suspectTaken * (o.propagandaTaken ?? 0) + BOT_BASE.suspectHolds * open)
+    let v = trust * (BOT_BASE.suspectTaken * (o.propagandaTaken ?? 0) + BOT_BASE.suspectHolds * open
+      + BOT_BASE.suspectCacheUnshown * (o.cacheUnshown ?? 0))
       - BOT_BASE.suspectDumped * (o.propagandaDumped ?? 0);
     if (!o.sproutsFed.length) {
       v += BOT_BASE.suspectNoFeed[Math.min(state.round, 5)] ?? 0;

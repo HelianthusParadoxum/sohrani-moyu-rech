@@ -112,6 +112,7 @@ export interface PlayerState {
   // Что все видели (для подозрений ботов): сколько Пропаганды игрок открыто взял со стола и сколько сдал в Красный уголок.
   propagandaTaken?: number;
   propagandaDumped?: number;
+  cacheUnshown?: number; // сколько раз книги из Тайника не показаны на Посиделках (видно всем: число книг в Тайнике и показанные)
 }
 
 export interface Sprout {
