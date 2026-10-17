@@ -186,7 +186,7 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
           <option value="">— нет —</option>
           {view.players.filter((p) => signalable(view, p.id)).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
-        <span className="muted small"> (только на тех, у кого открыто лежит опальная книга)</span>
+        <span className="muted small"> (только на тех, у кого открыто лежит опальная книга или Пропаганда)</span>
       </label>
       <label>Профилактика — удалить Завсегдатая:
         <select value={prophylaxis} onChange={(e) => setProphylaxis(e.target.value as PatronId)}>
