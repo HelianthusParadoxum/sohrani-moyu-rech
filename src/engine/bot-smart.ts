@@ -246,11 +246,14 @@ function subscriptionValue(state: GameState, p: PlayerState, sub: { genre: Genre
   return v * 0.8;
 }
 
-// Пропаганда на руках у честного: −5 в конце, но если ещё успеет вернуть ей смыслы — будущее Разоблачение.
+// Пропаганда на руках у честного: −5 в конце. Если он ещё успеет вернуть ей смыслы, она нейтральна: специально за ней
+// не гоняются, но и не сбрасывают — разоблачат (само Разоблачение стоит +5).
+function canExposeLater(state: GameState, p: PlayerState, ctx: Ctx): boolean {
+  return RULES.exposePropaganda && (ctx.round < RULES.rounds || (!p.groupUsed.includes('restore') && p.available > 0));
+}
+
 function heldPropagandaValue(state: GameState, p: PlayerState, ctx: Ctx): number {
-  if (!RULES.exposePropaganda) return RULES.propagandaPoints;
-  const canStill = ctx.round < RULES.rounds || (!p.groupUsed.includes('restore') && p.available > 0);
-  return canStill ? RULES.exposePoints * BOT_BASE.exposeLater : RULES.propagandaPoints;
+  return canExposeLater(state, p, ctx) ? 0 : RULES.propagandaPoints;
 }
 
 function ownBookValue(state: GameState, p: PlayerState, card: string, ctx: Ctx): number {
@@ -839,10 +842,11 @@ function byValue(keep: Map<string, number>, cards: string[]): string[] {
   return [...cards].sort((a, b) => (keep.get(a) ?? 0) - (keep.get(b) ?? 0));
 }
 
-function redCornerCandidates(state: GameState, me: string, keep: Map<string, number>): Action[] {
+function redCornerCandidates(state: GameState, me: string, keep: Map<string, number>, ctx: Ctx): Action[] {
   const p = player(state, me);
-  // Куратор Пропаганду не сдаёт: в конце она срезает Ростки.
-  const cards = p.warehouse.map((s) => s.card).filter((c) => p.passion !== 'curator' || !isPropaganda(state, c));
+  // Куратор Пропаганду не сдаёт: в конце она срезает Ростки. Честный не сдаёт её, пока успеет разоблачить.
+  const cards = p.warehouse.map((s) => s.card)
+    .filter((c) => !isPropaganda(state, c) || (p.passion !== 'curator' && !canExposeLater(state, p, ctx)));
   const prop = cards.find((c) => isPropaganda(state, c));
   const unprinted = byValue(keep, cards.filter((c) => !isLoad(state, c) && !isEvidence(state, c) && state.cards[c].kind !== 'loadEvidence' && state.cards[c].kind !== 'loadReturnable'));
   const loads = cards.filter((c) => isLoad(state, c) && !isEvidence(state, c));
@@ -979,10 +983,10 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       // Последний Единомышленник — в Красный уголок; исключение — Расширение сети (новый пойдёт вместо него).
       if (mustVisitRedCorner(state, p)) {
         const hire: Action[] = p.groupUsed.includes('hire') ? [] : [{ type: 'group', group: { action: 'hire' } }];
-        return [...redCornerCandidates(state, me, keepMap()), ...hire];
+        return [...redCornerCandidates(state, me, keepMap(), ctx), ...hire];
       }
       const out: Action[] = [...groups()];
-      if (!p.visitedRedCorner) out.push(...redCornerCandidates(state, me, keepMap()));
+      if (!p.visitedRedCorner) out.push(...redCornerCandidates(state, me, keepMap(), ctx));
       else out.push({ type: 'pass' });
       const genreBooks = books.filter((b) => isGenreBook(state, b));
       const addrs = [...PERMANENT_ADDRESSES, ...state.safehouses].filter((a) => state.safehouses.includes(a) || addressInGame(state, a));
