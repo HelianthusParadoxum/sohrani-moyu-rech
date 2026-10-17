@@ -7,7 +7,7 @@ import {
 import { finalScoring } from './scoring';
 import {
   afterRaid, doKontora, gaveAway, giveToPatron, holdWorker, isFull, kontoraLost, partorgFill, payPrice, price, proseBonus, purchases,
-  removePatron, rescue, seizeDenounced, setupClub, startKontora, takeFromSpetskhran,
+  flushIrony, removePatron, rescue, seizeDenounced, setupClub, startKontora, takeFromSpetskhran,
 } from './full';
 import type {
   Action, AddressId, CopyTextAddress, GameState, Genre, GroupAction, Mode, PassionId, Pending, PlaceAction, PlayerState,
@@ -249,6 +249,7 @@ function logArrivals(state: GameState, before: Set<string>, mentioned = '') {
 }
 
 function finishAction(state: GameState, p: PlayerState, pointsBefore: number, logStart = state.log.length, shown?: Set<string>): GameState {
+  flushIrony(state);
   if (shown) logArrivals(state, shown, state.log.slice(logStart).map((l) => l.text).join('\n'));
   // Проза «Вдохновиться»: действие принесло очки — бонус за прозу (см. proseBonus).
   if (p.points > pointsBefore) {
@@ -596,6 +597,7 @@ function finishRound(state: GameState) {
 function changeRound(state: GameState) {
   if (state.round >= RULES.rounds) {
     state.phase = 'end';
+    flushIrony(state);
     state.result = finalScoring(state);
     log(state, `Конец Застоя. ${state.result.note}`);
     return;

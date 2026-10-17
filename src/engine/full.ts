@@ -25,12 +25,22 @@ export function price(state: GameState, p: PlayerState, cost: number): number {
   return cost > 0 && hasPatron(state, p.id, 'buyer') ? Math.max(1, cost - 1) : cost;
 }
 
-// Ирония «Пустить в народ»: +1 Талон, когда игрок отдаёт ироническую книгу куда-либо.
+// Ирония «Пустить в народ»: +1 Талон, когда игрок отдаёт ироническую книгу куда-либо. Срабатывает в конце действия.
 export function gaveAway(state: GameState, p: PlayerState, card: string) {
   if (isFull(state) && iconsOf(state, card).includes('irony')) {
-    logAfter(state, '↳ Ирония «пущена в народ»: +1 Талон.');
-    earn(state, p, 1);
+    state.ironyDue ??= {};
+    state.ironyDue[p.id] = (state.ironyDue[p.id] ?? 0) + 1;
   }
+}
+
+// Начислить отложенные Талоны иронии (в конце действия; и перед финальным подсчётом).
+export function flushIrony(state: GameState) {
+  if (!state.ironyDue) return;
+  for (const [id, n] of Object.entries(state.ironyDue)) {
+    logAfter(state, `↳ Ирония «пущена в народ»: +${talonsText(n)}.`);
+    earn(state, player(state, id), n);
+  }
+  delete state.ironyDue;
 }
 
 // Проза «Вдохновиться»: действие принесло очки — +1 очко за каждую книгу прозы на складе и в изданном, но не больше RULES.proseBonusMax.

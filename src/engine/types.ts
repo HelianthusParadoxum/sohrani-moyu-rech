@@ -192,6 +192,7 @@ export interface GameState {
   solo?: boolean; // «Несистемный»: одиночная игра
   reserve?: boolean; // «Заповедник»: полный режим без Конторы и Куратора
   sproutRound?: Record<string, string[]>; // кто в эту Пятилетку закрывал ступени каждого Ростка (места Ростка)
+  ironyDue?: Record<string, number>; // Ирония «пущена в народ»: сколько Талонов начислить в конце действия
   forcedCurator?: string; // для тестов: этот игрок — Куратор
   curatorStyleOverride?: 'open' | 'ambush' | 'boa'; // для тестов: стратегия Куратора-бота
   curatorPossible?: boolean; // Куратор есть в колоде Пристрастий (это знают все)
