@@ -39,6 +39,8 @@ export function effectiveCuratorStyle(state: GameState, me: string) {
   const style = curatorStyle(state, me);
   if (style === 'open' || state.curatorRevealed === me) return 'open';
   if ((player(state, me).propagandaTaken ?? 0) > 0) return 'open';
+  // Раз раскусили — маску уже не надеть: дальше играет открыто, даже если подозрения потом ослабли.
+  if (state.curatorUnmask?.why === 'exposed') return 'open';
   if (CURATOR_STYLES[style].untilRevealed) {
     const exposed = Math.max(0, ...state.players.filter((o) => o.id !== me).map((o) => curatorSuspicion(state, o.id)[me] ?? 0));
     if (exposed >= BOT_BASE.suspectAct) return 'open';
@@ -147,6 +149,11 @@ export function curatorSuspicion(state: GameState, me: string): Record<string, n
 }
 
 // Подозрение с расшифровкой: из чего оно сложилось (для журнала зрителя). Слагаемые — в процентных пунктах.
+// Насколько весят улики против того, кто кормил Ростки: скидка растёт с числом накормленных Ростков.
+function fedTrust(o: PlayerState): number {
+  return Math.max(BOT_BASE.suspectFedDiscount, 1 - BOT_BASE.suspectFedStep * o.sproutsFed.length);
+}
+
 export function curatorSuspicionDetail(state: GameState, me: string): Record<string, { value: number; parts: string[] }> {
   const out: Record<string, { value: number; parts: string[] }> = {};
   if (state.mode !== 'full' || !state.curatorPossible) return out;
@@ -166,7 +173,7 @@ export function curatorSuspicionDetail(state: GameState, me: string): Record<str
     };
     const open = o.warehouse.filter((s) => !s.hidden && isPropaganda(state, s.card)).length;
     // Кто кормит Ростки, тот, скорее всего, забирает Пропаганду, чтобы она не досталась Куратору.
-    const trust = o.sproutsFed.length ? BOT_BASE.suspectFedDiscount : 1;
+    const trust = fedTrust(o);
     const times = (n: number) => (n > 1 ? ` ×${n}` : '');
     // Открыто взятая Пропаганда подозрительна и у кормившего Ростки (слабее, чем прочие улики, не обесценивается).
     add(Math.max(trust, BOT_BASE.suspectTakenTrust) * BOT_BASE.suspectTaken * (o.propagandaTaken ?? 0), `взял Пропаганду со стола${times(o.propagandaTaken ?? 0)}`);
@@ -175,6 +182,7 @@ export function curatorSuspicionDetail(state: GameState, me: string): Record<str
     add(BOT_BASE.suspectKept * kept, `держит взятую Пропаганду${times(kept)}`);
     add(trust * BOT_BASE.suspectHolds * open, `Пропаганда на виду${times(open)}`);
     add(trust * BOT_BASE.suspectCacheUnshown * (o.cacheUnshown ?? 0), `не показал опальное из Тайника${times(o.cacheUnshown ?? 0)}`);
+    add(Math.max(trust, BOT_BASE.suspectTakenTrust) * BOT_BASE.suspectDenounce * (o.denounces ?? 0), `доносил в Контору${times(o.denounces ?? 0)}`);
     add(trust * BOT_BASE.suspectRedEager * (o.redEager ?? 0), `рано и первым в Красном уголке${times(o.redEager ?? 0)}`);
     add(trust * BOT_BASE.suspectRedEmpty * (o.redEmpty ?? 0), `...ничего не сдав${times(o.redEmpty ?? 0)}`);
     const extra = Math.max(0, o.capacity - avgCapacity(state, o.id) - BOT_BASE.suspectWarehouseFrom);
@@ -372,7 +380,7 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
     // и рано Пропагандой не обзаводится (к концу партии маска важна меньше, чем срезы).
     if (state.phase === 'orders') {
       const hiddenProp = p.warehouse.filter((s) => s.hidden && isPropaganda(state, s.card)).length;
-      const trust = p.sproutsFed.length ? BOT_BASE.suspectFedDiscount : 1;
+      const trust = fedTrust(p);
       v -= (BOT_BASE.boaHideAware[r] ?? 0) * conceal * BOT_BASE.curatorConceal * BOT_BASE.suspectCacheUnshown * trust * hiddenProp;
     }
   } else {

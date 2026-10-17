@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { activePlayers as activePlayersOf, applyAction, createGame } from '../src/engine/engine';
 import { botMove, playOut } from '../src/engine/bot';
 import { curatorSuspicion, effectiveCuratorStyle, rankActions } from '../src/engine/bot-smart';
-import { BOT_GOALS, BOT_PRESETS, CURATOR_STYLES, curatorStyle, curatorStyleNote, presetById } from '../src/engine/bot-presets';
+import { BOT_BASE, BOT_GOALS, BOT_PRESETS, CURATOR_STYLES, curatorStyle, curatorStyleNote, presetById } from '../src/engine/bot-presets';
 import { isBanned, isGenreBook } from '../src/engine/util';
 import type { GameState } from '../src/engine/types';
 
@@ -251,6 +251,30 @@ describe('думающий бот в полном режиме', () => {
     expect(curatorSuspicion(s, me.id)[x.id]).toBe(0);
     // Без Куратора в колоде подозревать некого.
     expect(curatorSuspicion(createGame({ players: players(3), seed: 5, mode: 'full', curator: false }), me.id)).toEqual({});
+  });
+
+  it('доносы в Контору подозрительны, а одно кормление Ростка не обесценивает улики', () => {
+    const s = createGame({ players: players(3), seed: 5, mode: 'full' });
+    const [me, x] = s.players;
+    x.redEager = 4;
+    x.sproutsFed = ['ksp'];
+    const base = curatorSuspicion(s, me.id)[x.id];
+    x.redEager = 6;
+    const once = curatorSuspicion(s, me.id)[x.id];
+    // Улики у кормившего один Росток весят 80%.
+    expect(once - base).toBeCloseTo(2 * BOT_BASE.suspectRedEager * 0.8, 5);
+    x.redEager = 4;
+    x.denounces = 1;
+    expect(curatorSuspicion(s, me.id)[x.id]).toBeCloseTo(base + BOT_BASE.suspectDenounce * Math.max(0.8, BOT_BASE.suspectTakenTrust), 5);
+  });
+
+  it('раскушенный «Удав» дальше играет открыто, даже если подозрения ослабли', () => {
+    const seed = [...Array(60).keys()].map((i) => i + 1).find((x) => curatorStyle({ seed: x }, 'p1') === 'boa')!;
+    const s = createGame({ players: players(3), seed, mode: 'full' });
+    s.players[0].passion = 'curator';
+    expect(effectiveCuratorStyle(s, 'p1')).toBe('boa');
+    s.curatorUnmask = { round: 2, act: 3, why: 'exposed' };
+    expect(effectiveCuratorStyle(s, 'p1')).toBe('open');
   });
 
   it('характер Куратора-бота выбирается случайно, но одинаково для той же партии; все три встречаются', () => {

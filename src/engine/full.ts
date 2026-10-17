@@ -178,6 +178,7 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
   check(slot && !slot.hidden && !slot.memorized, 'Донос — только на открыто лежащую на складе книгу');
   check(isGenreBook(state, slot.card) && isBanned(state, slot.card), 'Донос — только на книгу опального жанра');
   log(state, `Донос в Контору: у ${target.name} открыто лежит ${title(state, slot.card)}.`);
+  p.denounces = (p.denounces ?? 0) + 1;
   if (c.petition?.length) {
     check(c.petition.length <= RULES.petitionMax, RULES.petitionMax === 1 ? 'Ходатайство возвращает 1 Единомышленника' : `Ходатайство возвращает до ${RULES.petitionMax} Единомышленников`);
     for (const id of c.petition) {
