@@ -140,6 +140,19 @@ describe('думающий бот', () => {
     expect(checked).toBeGreaterThan(0);
   }, 120_000);
 
+  it('журнал: «Пятилетка N» отдельной жирной строкой, затем цензура, затем новый явочный адрес; Куратор — жирным', () => {
+    let s = createGame({ players: players(3), seed: 4, mode: 'full', curator: true });
+    const rand = seeded(4);
+    for (let i = 0; i < 3000 && s.round < 2; i++) s = botMove(s, activePlayersOf(s)[0], rand);
+    const k = s.log.findIndex((l) => l.text === 'Пятилетка 2.');
+    expect(k).toBeGreaterThan(0);
+    expect(s.log[k].strong).toBe(true);
+    expect(s.log[k + 1].text).toMatch(/^Цензура: /);
+    expect(s.log[k + 2].text).toMatch(/^Открылся новый явочный адрес/);
+    const cur = s.log.find((l) => /^Ваше Пристрастие .*Куратор/.test(l.text));
+    if (cur) expect(cur.strong).toBe(true);
+  }, 60_000);
+
   it('играет лучше случайного бота', () => {
     let smart = 0;
     let random = 0;

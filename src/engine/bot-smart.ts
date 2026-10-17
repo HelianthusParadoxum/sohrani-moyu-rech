@@ -6,7 +6,7 @@
 import { applyAction, mustVisitRedCorner } from './engine';
 import { BOT_BASE, CURATOR_STYLES, PATRON_POWER, curatorStyle, type BotGoal, type BotPreset, type CuratorStyle } from './bot-presets';
 import { PERMANENT_ADDRESSES, addressInGame, PASSIONS, RULES, SPROUTS, STEP_REWARDS, FIRST_FEED_POINTS, ADDRESSES, KONTORA_LOSS, limitFor } from './content';
-import { heldTotal, kontoraTargets, signalable } from './full';
+import { heldTotal, kontoraTargets } from './full';
 import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
@@ -807,15 +807,12 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
   const free = united ? held.filter((o) => o.id !== enemy[0]) : held; // Куратора из Конторы не вызволяют
   if (free.length) items.push({ petition: free.slice(0, RULES.petitionMax).map((o) => o.id) });
   if (state.spetskhran.length && freeSlots(p) > 0) items.push({ handout: true });
-  // Подозреваемый Куратор: Сигнал — ему, Профилактика — только Завсегдатаю, с которым связан лишь он.
+  // Подозреваемый Куратор: донос (а с ним Сигнал) — на него, Профилактика — только Завсегдатаю, с которым связан лишь он.
   if (united) {
     const o = player(state, enemy[0]);
-    if (o.held < o.workers && signalable(state, o.id)) items.push({ signal: '*' });
     patronRank = state.patrons.filter((x) => !x.removed && x.connections.length > 0 && x.connections.every((id) => id === o.id));
     if (patronRank[0]) items.push({ prophylaxis: patronRank[0].id });
   } else if (ctx.aggression > 0 || ctx.curator) {
-    // Сигнал — только на того, на кого донос: цель подставляется ниже, для каждого варианта доноса.
-    if (seizes.some((d) => { const o = player(state, d.player); return o.held < o.workers; })) items.push({ signal: '*' });
     // Профилактика: Завсегдатай, с которым связаны соперники, а бот — нет.
     // Куратор выбивает того, кто больше всех даёт честным: сила Завсегдатая × сколько честных с ним связаны.
     // Своей связью он тоже может пожертвовать, если честным этот Завсегдатай полезнее, чем ему.
@@ -833,15 +830,9 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
     const choice = Object.assign({}, ...set) as KontoraChoice;
     // Куратор, раз уж пошёл в Контору, Профилактику проводит всегда.
     if (ctx.curator && items.some((x) => x.prophylaxis) && !choice.prophylaxis) continue;
-    // Донос — цена; книгу из доноса в конце изымают.
+    // Донос — цена; в конце похода на того, на кого донос, — Сигнал, а книгу из доноса изымают.
     for (const denounce of seizes) {
       let c = choice;
-      if (c.signal) {
-        const o = player(state, denounce.player);
-        const { signal: _s, ...rest } = c;
-        void _s;
-        c = o.held < o.workers ? { ...rest, signal: o.id } : rest;
-      }
       if (c.prophylaxis) {
         const pt = patronRank.find((x) => x.connections.includes(denounce.player));
         const { prophylaxis: _, ...rest } = c;

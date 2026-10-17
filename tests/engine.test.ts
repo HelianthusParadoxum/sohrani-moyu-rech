@@ -324,24 +324,19 @@ describe('полный режим', () => {
     s = applyAction(s, me, { type: 'place', place: { address: 'kontora' } });
     expect(s.pending).toHaveLength(1);
     expect(s.pending[0]).toMatchObject({ kind: 'kontoraDecide', player: me });
-    expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: other } })).toThrow(RuleError);
-    // Сигнал — только на того, на кого донос: даже с открытой Пропагандой другой игрок не годится.
-    const clean = s.order.find((x) => x !== me && x !== other);
-    if (clean) {
-      const prop = Object.keys(s.cards).find((c) => s.cards[c].kind === 'propaganda' && !s.players.some((p) => p.warehouse.some((w) => w.card === c)))!;
-      const t = structuredClone(s);
-      t.players.find((x) => x.id === clean)!.warehouse.push({ card: prop, hidden: false });
-      expect(() => applyAction(t, me, { type: 'kontoraDecide', go: true, choice: { signal: clean, denounce: { player: other, card: book } } }))
-        .toThrow(/на кого донос/);
-    }
-    // Книга из доноса служит поводом для Сигнала; изымают её обязательно, но в самом конце похода.
+    // Без доноса и без пунктов по выбору — нельзя.
+    expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { handout: true } })).toThrow(RuleError);
+    expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { denounce: { player: other, card: book } } })).toThrow(/от 1 до 3/);
+    // В конце похода обязательно: Сигнал на того, на кого донос, и Изъятие книги из доноса.
     const before = s.players.find((x) => x.id === other)!.available;
-    s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: other, denounce: { player: other, card: book } } });
+    const others = s.players.filter((x) => x.id !== other && x.id !== me).map((x) => x.held);
+    s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { handout: true, denounce: { player: other, card: book } } });
+    if (s.pending[0]?.kind === 'kontoraHandout') s = applyAction(s, me, { type: 'kontoraHandout', card: s.pending[0].cards[0] });
+    expect(s.players.filter((x) => x.id !== other && x.id !== me).map((x) => x.held)).toEqual(others);
     expect(s.spetskhran).toContain(book);
     expect(s.players.find((x) => x.id === other)!.warehouse.some((w) => w.card === book)).toBe(false);
     const o = s.players.find((x) => x.id === other)!;
     expect(o.held).toBe(1);
-    // Ходатайство возвращает только 1 Единомышленника.
     expect(RULES.petitionMax).toBe(1);
     expect(o.available).toBe(before - 1);
     expect(s.spetskhran).toContain(book);

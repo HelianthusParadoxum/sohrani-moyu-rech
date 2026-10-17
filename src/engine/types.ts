@@ -130,7 +130,7 @@ export type Pending =
   | { kind: 'sproutBonus'; player: string; sprout: string; options: SproutBonusId[] }
   | { kind: 'kontoraWarning'; player: string; from: string }
   | { kind: 'kontoraDecide'; player: string }
-  | { kind: 'kontoraHandout'; player: string; cards: string[]; seize?: { player: string; card: string } } // seize — Изъятие после выбора книги
+  | { kind: 'kontoraHandout'; player: string; cards: string[]; seize?: { player: string; card: string; by?: string } } // seize — Сигнал и Изъятие после выбора книги
   | { kind: 'extraGroup'; player: string } // Подмастерье
   | { kind: 'freeConnection'; player: string } // Председатель
   | { kind: 'lieutenantPick'; player: string; cards: string[] } // Лейтенант: книги, изъятые облавой с адресов
@@ -147,6 +147,7 @@ export interface LogEntry {
   only?: string[];
   act?: { player: string; n: number }; // запись о поручении игрока: его номер в Пятилетке (кружок в журнале)
   who?: string; // чья это запись (кружок цвета игрока в журнале)
+  strong?: boolean; // выделить жирным (начало Пятилетки, Пристрастие Куратора)
   club?: { player: string; round: number }; // связь в Клубе: жетон «П<Пятилетка>», как у Завсегдатая
 }
 
@@ -253,7 +254,6 @@ export interface ClubGift { patron: PatronId; card: string }
 export interface KontoraChoice {
   petition?: string[]; // Ходатайство: чьих Единомышленников вернуть (до 2)
   handout?: boolean; // Выдача на руки
-  signal?: string; // Сигнал: чьего Единомышленника удержать
   prophylaxis?: PatronId; // Профилактика: какого Завсегдатая удалить
   denounce?: { player: string; card: string }; // цена похода — донос на открытую опальную книгу; в конце похода её изымают в Спецхран
 }

@@ -159,8 +159,8 @@ export function startKontora(state: GameState, p: PlayerState) {
 }
 
 export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
-  const chosen = [c.petition?.length, c.handout, c.signal, c.prophylaxis].filter(Boolean).length;
-  check(chosen >= 1, 'Выберите от 1 до 4 пунктов');
+  const chosen = [c.petition?.length, c.handout, c.prophylaxis].filter(Boolean).length;
+  check(chosen >= 1, 'Выберите от 1 до 3 пунктов');
   check(c.denounce, 'Укажите открытую опальную книгу — донос, цена похода в Контору');
   check(c.denounce.player !== p.id, 'Доносить можно только на книгу другого игрока');
   const target = player(state, c.denounce.player);
@@ -183,15 +183,9 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
       `Профилактика — только Завсегдатаю, с которым связан ${target.name} (на него донос)`);
     removePatron(state, c.prophylaxis);
   }
-  // Сигнал — до Изъятия: книга, на которую донесли, ещё лежит у владельца и сама служит поводом.
-  if (c.signal) {
-    const o = player(state, c.signal);
-    check(o.id === target.id, 'Сигнал — только на того, на кого донос');
-    check(signalable(state, o.id), `Сигнал — только на того, у кого открыто лежит опальная книга или Пропаганда: у ${o.name} таких нет`);
-    holdWorker(state, o, `сигнал от ${p.name}`);
-  }
-  // Изъятие книги из доноса — обязательно и в самом конце, после всех пунктов (и после Выдачи на руки).
-  const seize = { player: target.id, card: slot.card };
+  // Сигнал на того, на кого донос, и Изъятие книги из доноса — обязательны и в самом конце, после пунктов по выбору
+  // (и после Выдачи на руки).
+  const seize = { player: target.id, card: slot.card, by: p.id };
   if (c.handout) {
     const cards = [...state.spetskhran];
     if (cards.length && freeSlots(p) > 0) {
@@ -204,9 +198,11 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
   seizeDenounced(state, seize);
 }
 
-// Изъятие: книга из доноса уходит в Спецхран (если она всё ещё лежит открыто у владельца).
-export function seizeDenounced(state: GameState, seize: { player: string; card: string }) {
+// Конец похода в Контору: Сигнал на того, на кого донос (Контора удерживает его Единомышленника), затем Изъятие книги
+// из доноса в Спецхран (если она всё ещё лежит открыто у владельца).
+export function seizeDenounced(state: GameState, seize: { player: string; card: string; by?: string }) {
   const o = player(state, seize.player);
+  if (seize.by) holdWorker(state, o, `сигнал от ${player(state, seize.by).name}`);
   const s = o.warehouse.find((x) => x.card === seize.card);
   if (!s || s.hidden || s.memorized) return;
   removeBook(o, s.card);

@@ -156,6 +156,7 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
         state.log[state.log.length - 1].who = p.id;
         log(state, `Ваше Пристрастие (${p.name}): ${PASSIONS[action.passion].name}.`, [p.id]);
         state.log[state.log.length - 1].who = p.id;
+        if (action.passion === 'curator') state.log[state.log.length - 1].strong = true;
         if (state.ready.length === state.players.length) {
           startRound(state);
           // Перед первым действием партии все раскладывают стартовые книги по Тайникам.
@@ -241,7 +242,7 @@ function finishAction(state: GameState, p: PlayerState, pointsBefore: number): G
 
 // ---------- Пятилетка ----------
 
-function startRound(state: GameState) {
+function startRound(state: GameState, newSafehouse?: AddressId) {
   state.phase = 'orders';
   state.ready = [];
   state.occupancy = {};
@@ -278,7 +279,10 @@ function startRound(state: GameState) {
   } else if (!state.banned.length) {
     state.banned = shuffle(state, [...GENRES]).slice(0, state.censorship);
   }
-  log(state, `— Пятилетка ${state.round}. Цензура: ${state.censorship}. В опале: ${state.banned.map((g) => GENRE_NAMES[g]).join(', ')}.${change}`);
+  log(state, `Пятилетка ${state.round}.`);
+  state.log[state.log.length - 1].strong = true;
+  log(state, `Цензура: ${state.censorship}. В опале: ${state.banned.map((g) => GENRE_NAMES[g]).join(', ')}.${change}`);
+  if (newSafehouse) log(state, `Открылся новый явочный адрес: ${ADDRESSES[newSafehouse].name}.`);
   refreshChannels(state, state.round === 1);
   if (state.solo && isFull(state) && state.round >= 2) soloPressure(state);
   // Главлитовец: после Обстановки — в порядке, обратном порядку хода.
@@ -538,10 +542,7 @@ function changeRound(state: GameState) {
   // Новый порядок хода: сперва посетившие Красный уголок, затем остальные в прежнем порядке.
   state.order = [...state.nextOrder, ...state.order.filter((id) => !state.nextOrder.includes(id))];
   const safe = state.safehouseDeck.pop();
-  if (safe) {
-    state.safehouses.push(safe);
-    log(state, `Открылся новый явочный адрес: ${ADDRESSES[safe].name}.`);
-  }
+  if (safe) state.safehouses.push(safe); // в журнале — после строки о цензуре новой Пятилетки
   // Масштаб цензуры: прежний жетон и жетон на 1 больше — случайный из двух (в одиночной игре — всегда больший).
   const next = state.censorshipPool.find((t) => t === state.censorship + 1);
   if (next !== undefined) {
@@ -552,7 +553,7 @@ function changeRound(state: GameState) {
     }
   }
   state.round++;
-  startRound(state);
+  startRound(state, safe);
 }
 
 // ---------- Фаза поручений ----------
