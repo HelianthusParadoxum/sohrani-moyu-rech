@@ -25,6 +25,8 @@ interface Room {
   code: string; host: string; seats: Seat[]; mode: Mode; state: GameState | null; history: GameState[]; updated: number;
   botDelay?: number;
   noCurator?: boolean; // настройка: без Куратора в колоде Пристрастий
+  forceCurator?: boolean; // для тестов: первый игрок — Куратор
+  curatorStyle?: 'open' | 'ambush' | 'boa'; // для тестов: стратегия Куратора-бота
   reserve?: boolean; // «Заповедник»: полный режим без Конторы и Куратора
   build?: string; // версия игры, в которой начата партия
   outdated?: boolean; // партию сбросили из-за обновления игры — показать игрокам извинение
@@ -62,7 +64,7 @@ function noteForSpectator(room: Room) {
   const bots = new Set(room.seats.filter((x) => x.bot).map((x) => x.id));
   const cur = s.players.find((p) => p.passion === 'curator' && bots.has(p.id));
   if (cur) {
-    const text = `Для зрителя. ${curatorStyleNote({ seed: s.seed }, cur.id, cur.name)}`;
+    const text = `Для зрителя. ${curatorStyleNote({ seed: s.seed, curatorStyleOverride: s.curatorStyleOverride }, cur.id, cur.name)}`;
     if (!s.log.some((l) => l.text === text)) s.log.push({ round: s.round, text, only: [], em: true });
   }
   if (s.phase !== 'orders' || !s.curatorPossible) return;
@@ -128,6 +130,8 @@ function roomInfo(room: Room): RoomInfo {
     hostBot: hostSeat(room)?.bot ?? false,
     botDelay: room.botDelay ?? 700,
     curator: !room.noCurator,
+    forceCurator: !!room.forceCurator,
+    curatorStyle: room.curatorStyle ?? '',
     outdated: room.outdated,
   };
 }
@@ -278,6 +282,12 @@ function handle(ws: WebSocket, msg: ClientMessage) {
       room.noCurator = !msg.on;
       break;
     }
+    case 'setForceCurator': {
+      if (!isHost || room.state) return;
+      room.forceCurator = msg.on;
+      room.curatorStyle = msg.style || undefined;
+      break;
+    }
     case 'setMode': {
       if (!isHost || room.state) return;
       room.mode = msg.mode === 'reserve' ? 'full' : msg.mode;
@@ -287,7 +297,10 @@ function handle(ws: WebSocket, msg: ClientMessage) {
     case 'start': {
       if (!isHost || room.state) return;
       if (room.seats.length < 1) return send(ws, { t: 'error', message: 'За столом никого нет' });
-      room.state = createGame({ players: room.seats.map((s) => ({ id: s.id, name: s.name })), mode: room.mode, curator: !room.noCurator, reserve: room.reserve });
+      room.state = createGame({
+        players: room.seats.map((s) => ({ id: s.id, name: s.name })), mode: room.mode, curator: !room.noCurator, reserve: room.reserve,
+        forceCurator: room.forceCurator, curatorStyle: room.curatorStyle || undefined,
+      });
       room.history = [];
       room.build = BUILD;
       delete room.outdated;

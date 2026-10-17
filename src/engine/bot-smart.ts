@@ -598,7 +598,7 @@ export function rankActions(state: GameState, me: string, preset: BotPreset, ran
   let cands = candidates(state, me, ctx);
   if (!cands.length) return [];
   // Роль Куратора бот берёт с вероятностью «агрессивность × 2»: по оценке её с другими Пристрастиями не сравнить.
-  if (state.phase === 'passion' && player(state, me).passionOptions.includes('curator')) {
+  if (state.phase === 'passion' && player(state, me).passionOptions.includes('curator') && player(state, me).passionOptions.length > 1) {
     const curator = rand() < preset.character.aggression * 2;
     cands = cands.filter((a) => a.type === 'choosePassion' && (a.passion === 'curator') === curator);
     if (curator) return [{ a: cands[0], v: 0 }];

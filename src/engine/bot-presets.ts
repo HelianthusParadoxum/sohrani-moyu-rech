@@ -190,7 +190,7 @@ export const CURATOR_STYLES: Record<CuratorStyle, {
 // Строка для журнала в конце партии: какой стратегии держался Куратор-бот.
 // unmasked — сбросил маску (открыто взял Пропаганду или был раскрыт) и доигрывал «открытым забралом».
 export function curatorStyleNote(
-  state: { seed: number; curatorUnmask?: { round: number; act: number; why: 'propaganda' | 'exposed' | 'round' } },
+  state: { seed: number; curatorStyleOverride?: CuratorStyle; curatorUnmask?: { round: number; act: number; why: 'propaganda' | 'exposed' | 'round' } },
   pid: string, name: string, unmasked = false,
 ): string {
   const id = curatorStyle(state, pid);
@@ -203,7 +203,8 @@ export function curatorStyleNote(
   return `Стратегия Куратора-бота (${name}): «${st.name}» — ${st.hint.charAt(0).toLowerCase()}${st.hint.slice(1)}${tail}`;
 }
 
-export function curatorStyle(state: { seed: number }, pid: string): CuratorStyle {
+export function curatorStyle(state: { seed: number; curatorStyleOverride?: CuratorStyle }, pid: string): CuratorStyle {
+  if (state.curatorStyleOverride) return state.curatorStyleOverride;
   let h = state.seed | 0;
   for (const ch of pid) h = Math.imul(h ^ ch.charCodeAt(0), 0x9e3779b1) >>> 0;
   return (['open', 'ambush', 'boa'] as const)[h % 3];

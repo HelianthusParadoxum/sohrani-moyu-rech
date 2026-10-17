@@ -138,6 +138,24 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
               Куратор в игре (агент госбезопасности среди Пристрастий)
             </label>
           )}
+          {room.mode === 'full' && !room.reserve && room.seats.length > 1 && room.curator && (
+            <div className="row">
+              <label className="row">
+                <input type="checkbox" checked={!!room.forceCurator} onChange={(e) => net.send({ t: 'setForceCurator', on: e.target.checked, style: room.curatorStyle ?? '' })} />
+                Для тестов: первый в списке — Куратор ({room.seats[0]?.name})
+              </label>
+              {room.forceCurator && (
+                <label>Стратегия Куратора-бота
+                  <select value={room.curatorStyle ?? ''} onChange={(e) => net.send({ t: 'setForceCurator', on: true, style: e.target.value as '' })}>
+                    <option value="">Случайная</option>
+                    <option value="open">Открытое забрало</option>
+                    <option value="ambush">Хищник в засаде</option>
+                    <option value="boa">Удав</option>
+                  </select>
+                </label>
+              )}
+            </div>
+          )}
           <label className="row">
             <input type="checkbox" checked={room.hostBot} onChange={(e) => net.send({ t: 'hostBot', on: e.target.checked })} />
             За меня играет бот — я смотрю партию со стороны и вижу всё

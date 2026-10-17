@@ -25,6 +25,8 @@ export interface NewGameOptions {
   mode?: Mode;
   curator?: boolean; // полный режим: Куратор в колоде Пристрастий (по умолчанию — да)
   reserve?: boolean; // «Заповедник»: полный режим без Конторы и Куратора
+  forceCurator?: boolean; // для тестов: первый игрок из списка — Куратор
+  curatorStyle?: 'open' | 'ambush' | 'boa'; // для тестов: стратегия Куратора-бота (иначе — случайная)
 }
 
 export function createGame(opts: NewGameOptions): GameState {
@@ -85,6 +87,16 @@ export function createGame(opts: NewGameOptions): GameState {
     for (let i = 0; i < 2; i++) addBook(p, drawLoad(state)!);
     state.players.push(p);
   }
+  // Для тестов: первый игрок — Куратор (выбора у него нет), у остальных Куратора среди карт нет.
+  if (opts.forceCurator && mode === 'full' && !opts.reserve && n > 1 && opts.curator !== false) {
+    const first = opts.players[0].id;
+    for (const p of state.players) {
+      if (p.id === first) p.passionOptions = ['curator'];
+      else p.passionOptions = p.passionOptions.map((x) => (x === 'curator' ? passions.pop() ?? 'erudite' : x));
+    }
+    state.forcedCurator = first;
+  }
+  if (opts.curatorStyle) state.curatorStyleOverride = opts.curatorStyle;
   state.order = seats.map((s) => s.id);
   state.razval = [null, null, null, null];
   fillRazval(state);

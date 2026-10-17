@@ -171,6 +171,16 @@ describe('думающий бот', () => {
     expect(s.phase).toBe('end');
   }, 120_000);
 
+  it('для тестов: первый игрок — Куратор с заданной стратегией', () => {
+    let s = createGame({ players: players(3), seed: 3, mode: 'full', forceCurator: true, curatorStyle: 'boa' });
+    expect(s.players.find((p) => p.id === 'p1')!.passionOptions).toEqual(['curator']);
+    expect(s.players.filter((p) => p.id !== 'p1').every((p) => !p.passionOptions.includes('curator'))).toBe(true);
+    expect(curatorStyle(s, 'p1')).toBe('boa');
+    const rand = seeded(3);
+    for (let i = 0; i < 50 && s.phase === 'passion'; i++) s = botMove(s, activePlayersOf(s)[0], rand);
+    expect(s.players.find((p) => p.id === 'p1')!.passion).toBe('curator');
+  });
+
   it('играет лучше случайного бота', () => {
     let smart = 0;
     let random = 0;

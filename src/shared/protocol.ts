@@ -13,6 +13,8 @@ export interface RoomInfo {
   hostBot: boolean; // за хоста играет бот, хост смотрит со стороны
   botDelay: number; // пауза между ходами ботов, мс
   curator: boolean; // Куратор в колоде Пристрастий (полный режим)
+  forceCurator?: boolean; // для тестов: первый игрок — Куратор
+  curatorStyle?: '' | 'open' | 'ambush' | 'boa'; // для тестов: стратегия Куратора-бота ('' — случайная)
   outdated?: boolean; // партию сбросили: игра обновилась, старую партию продолжить нельзя
 }
 
@@ -24,6 +26,7 @@ export type ClientMessage =
   | { t: 'removeSeat'; seat: string }
   | { t: 'setMode'; mode: Mode | 'reserve' }
   | { t: 'setCurator'; on: boolean }
+  | { t: 'setForceCurator'; on: boolean; style: '' | 'open' | 'ambush' | 'boa' }
   | { t: 'start' }
   | { t: 'action'; action: Action }
   | { t: 'undo' }
