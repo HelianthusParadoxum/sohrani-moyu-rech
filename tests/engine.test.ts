@@ -7,7 +7,7 @@ import { finalScoring, passionPoints } from '../src/engine/scoring';
 import { PASSIONS, RULES, SPROUTS, limitFor } from '../src/engine/content';
 import type { GameState, Genre, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
-import { removePatron } from '../src/engine/full';
+import { proseBonus, removePatron } from '../src/engine/full';
 
 // Действие и сразу «Закончить ход».
 function act(s: GameState, who: string, a: Parameters<typeof applyAction>[2]): GameState {
@@ -1088,5 +1088,23 @@ describe('Ростки: места', () => {
     expect(() => applyAction(s, who, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: [magic[2]] }] } }))
       .toThrow(/ждите следующей/);
     expect(limitFor('sprouts', 4)).toBe(Infinity);
+  });
+});
+
+describe('Спецхран и Проза', () => {
+  it('в полном режиме Спецхран с начала партии хранит 5 Непечатных; в Райцентре и Заповеднике — пуст', () => {
+    const full = createGame({ players: players(3), seed: 4, mode: 'full' });
+    expect(full.spetskhran).toHaveLength(RULES.spetskhranStart);
+    expect(viewFor(full, 'p1').spetskhranCount).toBe(RULES.spetskhranStart);
+    expect(createGame({ players: players(3), seed: 4 }).spetskhran).toHaveLength(0);
+    expect(createGame({ players: players(3), seed: 4, reserve: true }).spetskhran).toHaveLength(0);
+  });
+
+  it('Проза «Вдохновиться» — не больше 1 очка, сколько бы прозы ни было', () => {
+    const s = createGame({ players: players(2), seed: 6, mode: 'full' });
+    const p = s.players[0];
+    const prose = Object.keys(s.cards).filter((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.includes('prose')).slice(0, 3);
+    p.warehouse = prose.map((card) => ({ card, hidden: false }));
+    expect(proseBonus(s, p)).toBe(1);
   });
 });

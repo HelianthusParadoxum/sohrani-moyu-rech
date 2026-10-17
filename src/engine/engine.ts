@@ -90,6 +90,13 @@ export function createGame(opts: NewGameOptions): GameState {
   fillRazval(state);
   state.baraholka = Array.from({ length: RULES.displaySize }, () => draw(state));
   if (mode === 'full') setupClub(state);
+  // Спецхран Конторы с начала партии не пуст (в «Заповеднике» Конторы нет).
+  if (mode === 'full' && !opts.reserve) {
+    for (let i = 0; i < RULES.spetskhranStart; i++) {
+      const c = draw(state);
+      if (c) state.spetskhran.push(c);
+    }
+  }
   log(state, `Партия началась. Порядок хода: ${state.order.map((id) => player(state, id).name).join(', ')}.`);
   log(state, solo
     ? `Несистемный: одиночная игра. Цензура растёт на 1 каждую Пятилетку; в конце вскроются ${RULES.soloEndCards[mode]} Непечатных — каждая Пропаганда срежет ступень Ростка.`
@@ -205,7 +212,7 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
 }
 
 function finishAction(state: GameState, p: PlayerState, pointsBefore: number): GameState {
-  // Проза «Вдохновиться»: действие принесло очки — +1 за каждую книгу прозы.
+  // Проза «Вдохновиться»: действие принесло очки — бонус за прозу (см. proseBonus).
   if (p.points > pointsBefore) {
     const bonus = proseBonus(state, p);
     if (bonus) {

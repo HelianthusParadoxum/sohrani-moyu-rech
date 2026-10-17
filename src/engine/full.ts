@@ -32,10 +32,11 @@ export function gaveAway(state: GameState, p: PlayerState, card: string) {
   }
 }
 
-// Проза «Вдохновиться»: +1 очко за каждую книгу прозы на складе и в изданном, когда действие принесло очки.
+// Проза «Вдохновиться»: действие принесло очки — +1 очко за каждую книгу прозы на складе и в изданном, но не больше RULES.proseBonusMax.
 export function proseBonus(state: GameState, p: PlayerState): number {
   if (!isFull(state)) return 0;
-  return [...p.warehouse.map((s) => s.card), ...p.published].filter((c) => iconsOf(state, c).includes('prose')).length;
+  const n = [...p.warehouse.map((s) => s.card), ...p.published].filter((c) => iconsOf(state, c).includes('prose')).length;
+  return Math.min(n, RULES.proseBonusMax);
 }
 
 export function heldTotal(state: GameState) {
