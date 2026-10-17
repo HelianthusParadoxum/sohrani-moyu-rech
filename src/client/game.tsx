@@ -20,7 +20,7 @@ type VPlayer = PlayerView['players'][number];
 type Panel = { kind: 'address'; id: AddressId } | { kind: 'group'; id: GroupActionId } | { kind: 'cache' } | null;
 
 const PHASE_NAMES: Record<string, string> = {
-  passion: 'Выбор Пристрастий', setupCache: 'Тайники перед началом', orders: 'Поручения', gathering: 'Посиделки', hiding: 'Укрытие', end: 'Конец Застоя',
+  passion: 'Выбор Пристрастий', setupCache: 'Тайники перед началом', orders: 'Поручения', gathering: 'Посиделки', ambush: 'Засада?', hiding: 'Укрытие', end: 'Конец Застоя',
 };
 
 export function Game({ view, room, you, isHost, send, canStepBack }: { view: PlayerView; room: RoomInfo; you: string | null; isHost: boolean; send: Send; canStepBack?: boolean }) {
@@ -141,6 +141,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
       {myPending && me && <PendingPrompt view={view} me={me} act={act} nameOf={nameOf} />}
       {!myPending && me && view.phase === 'passion' && view.active.includes(me.id) && <PassionPrompt view={view} me={me} act={act} />}
       {!myPending && me && view.phase === 'gathering' && view.active.includes(me.id) && <GatheringPrompt view={view} me={me} act={act} />}
+      {!myPending && me && view.phase === 'ambush' && view.active.includes(me.id) && <AmbushPrompt view={view} me={me} act={act} />}
       {!myPending && me && view.phase === 'hiding' && view.active.includes(me.id) && <HidingPrompt view={view} me={me} act={act} />}
       {!myPending && me && view.phase === 'setupCache' && view.active.includes(me.id) && (
         <CacheModal view={view} me={me} title="Тайник перед началом" note="Соперники пока не видят ваших стартовых книг. Что спрячете сейчас, то они так и не увидят; остальное ляжет на Склад открыто."
@@ -911,6 +912,32 @@ function PassionPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: 
   );
 }
 
+// После Посиделок все отвечают по очереди «дальше» — так не видно, кто Куратор; Куратор может устроить Засаду.
+function AmbushPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
+  const shown = Object.entries(view.shownAtGathering ?? {}).filter(([id, list]) => id !== me.id && list.length);
+  const curator = me.passion === 'curator';
+  return (
+    <Modal title={curator ? 'Засада?' : 'Посиделки окончены'} wide>
+      {curator ? (
+        <>
+          <p>Можно раскрыться и устроить Засаду: на каждого, кто показал опальное, — Контора (Сигнал: удержать Единомышленника,
+            Изъятие: самая «значкастая» из показанных книг уходит в Спецхран). После этого все будут знать, что вы Куратор.</p>
+          {shown.length === 0 && <p className="muted">Опальное показали только вы.</p>}
+          {shown.map(([id, list]) => (
+            <div key={id}><b>{view.players.find((p) => p.id === id)?.name}</b>: <span className="shelf wrap">{list.map((c) => <Book key={c} v={view} id={c} small />)}</span></div>
+          ))}
+        </>
+      ) : (
+        <p>Кто-то показал опальное. Если среди вас Куратор, он может сейчас раскрыться и устроить Засаду.</p>
+      )}
+      <div className="modal-foot">
+        <button className={curator ? '' : 'primary'} onClick={() => act({ type: 'ambush', go: false })}>{curator ? 'Не сейчас' : 'Дальше'}</button>
+        {curator && <button className="primary" disabled={!shown.length} onClick={() => act({ type: 'ambush', go: true })}>Засада!</button>}
+      </div>
+    </Modal>
+  );
+}
+
 function GatheringPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
   const full = view.mode === 'full';
   const isDrama = (c: string) => full && iconsOf(view, c).includes('drama');
@@ -920,10 +947,12 @@ function GatheringPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act
   ];
   // По умолчанию к показу выбрано всё, что приносит очки: опальные книги, Улики и Драматургия (в том числе изданная).
   const [sel, setSel] = useState<string[]>(() => cands);
-  const pts = sel.reduce((s, c) => s + (isBanned(view, c) && !me.published.includes(c) ? 1 : 0) + (isDrama(c) ? 1 : 0), 0);
+  const per = full && !view.reserve ? RULES.gatheringPointsFull : RULES.gatheringPoints;
+  const pts = sel.reduce((s, c) => s + (isBanned(view, c) && !me.published.includes(c) ? per : 0) + (isDrama(c) ? 1 : 0), 0);
   return (
     <Modal title="Посиделки" wide>
-      <p>Покажите опальные жанровые книги и Улики: +1 очко за каждую. Показанные книги остаются на складе — не забудьте укрыть их перед облавой.
+      <p>Покажите опальные жанровые книги и Улики: +{per} {per === 1 ? 'очко' : 'очка'} за каждую.
+        {full && !view.reserve && view.curatorPossible && !view.curatorRevealed && ' Осторожно: Куратор может раскрыться и устроить Засаду — показавшим опальное грозит Контора (показанная книга не считается спрятанной).'} Показанные книги остаются на складе — не забудьте укрыть их перед облавой.
         {full && ' Драматургию можно показывать и неопальную, и из изданного: +1 очко за каждую («Разыграть»).'}</p>
       <div className="shelf wrap">
         {cands.length === 0 && <span className="muted">Опальных жанровых книг нет</span>}

@@ -37,7 +37,7 @@ const SAMPLES = 2; // сколько раз перемешивать закры�
 // «открытым забралом», какой бы стратегии ни держался. Удав сбрасывает маску и когда его и так раскусили.
 export function effectiveCuratorStyle(state: GameState, me: string) {
   const style = curatorStyle(state, me);
-  if (style === 'open') return style;
+  if (style === 'open' || state.curatorRevealed === me) return 'open';
   if ((player(state, me).propagandaTaken ?? 0) > 0) return 'open';
   if (CURATOR_STYLES[style].untilRevealed) {
     const exposed = Math.max(0, ...state.players.filter((o) => o.id !== me).map((o) => curatorSuspicion(state, o.id)[me] ?? 0));
@@ -150,6 +150,11 @@ export function curatorSuspicion(state: GameState, me: string): Record<string, n
 export function curatorSuspicionDetail(state: GameState, me: string): Record<string, { value: number; parts: string[] }> {
   const out: Record<string, { value: number; parts: string[] }> = {};
   if (state.mode !== 'full' || !state.curatorPossible) return out;
+  // Куратор раскрылся (Засада): гадать больше не о чем.
+  if (state.curatorRevealed) {
+    for (const o of state.players) if (o.id !== me) out[o.id] = o.id === state.curatorRevealed ? { value: 1, parts: ['раскрылся (Засада)'] } : { value: 0, parts: [] };
+    return out;
+  }
   for (const o of state.players) {
     if (o.id === me) continue;
     const parts: string[] = [];
@@ -340,7 +345,8 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   // Насколько он уже на подозрении у честных (смотрит на себя их глазами).
   const exposed = Math.max(0, ...state.players.filter((o) => o.id !== p.id).map((o) => curatorSuspicion(state, o.id)[p.id] ?? 0));
   const attack = style.attack[r];
-  const conceal = style.conceal[r];
+  // После поручений последней Пятилетки скрываться уже незачем — маска ничего не стоит.
+  const conceal = ctx.round >= RULES.rounds && state.phase !== 'orders' ? 0 : style.conceal[r];
   const others = state.players.filter((o) => o.id !== p.id);
   // Очки Куратору не нужны: Талоны — лишь средство добыть Пропаганду. В последней Пятилетке они дешевеют,
   // а когда ходить больше нечем — не стоят ничего.
@@ -475,6 +481,15 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
     // Запас Тайника на стык Пятилеток: место сверх опальных книг — чтобы спрятать впрок то, что может попасть в опалу.
     const bannedHere = p.warehouse.filter((s) => !s.memorized && isBanned(state, s.card)).length;
     if (cacheLimit(state, p) > bannedHere) v += BOT_BASE.cacheSpare[ctx.round - 1] ?? 0;
+    // Показал опальное на Посиделках — под угрозой Засады (если Куратор ещё не раскрылся).
+    const shownHere = (state.shownAtGathering?.[me] ?? []).filter((c) => p.warehouse.some((s) => s.card === c));
+    if ((state.phase === 'gathering' || state.phase === 'ambush') && shownHere.length && state.curatorPossible && !state.curatorRevealed) {
+      const sus = Math.max(0, ...Object.values(ctx.suspect));
+      const risk = Math.min(1, BOT_BASE.ambushRisk + BOT_BASE.ambushRiskSuspect * sus);
+      const book = Math.max(...shownHere.map((c) => Math.max(0, ownBookValue(state, p, c, ctx))));
+      const worker = hasPatron(state, me, 'psychiatrist') ? 0 : left * BOT_BASE.action;
+      v -= risk * (book + worker) * ctx.preset.character.caution;
+    }
     // Открыто лежащая опальная книга посреди Пятилетки — готовый донос: Контора её изымет и удержит Единомышленника.
     // Чем сильнее подозрение на Куратора, тем вероятнее (а он ходит в Контору охотно).
     if (state.phase === 'orders') {
@@ -1052,8 +1067,14 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         const drama = full && iconsOf(state, c).includes('drama');
         return drama || (books.includes(c) && (isGenreBook(state, c) || isEvidence(state, c)) && isBanned(state, c));
       });
-      return [{ type: 'gathering', show }];
+      // Под угрозой Засады бот сравнивает: показать всё, только то, что и так лежит открыто, или ничего опального.
+      const isRisky = (c: string) => books.includes(c) && (isGenreBook(state, c) || isEvidence(state, c)) && isBanned(state, c);
+      const hidden = new Set(p.warehouse.filter((s) => s.hidden).map((s) => s.card));
+      const variants = [show, show.filter((c) => !isRisky(c) || !hidden.has(c)), show.filter((c) => !isRisky(c))];
+      return [...new Map(variants.map((v) => [v.join(','), { type: 'gathering' as const, show: v }])).values()];
     }
+    case 'ambush':
+      return p.passion === 'curator' && !state.curatorRevealed ? [{ type: 'ambush', go: false }, { type: 'ambush', go: true }] : [{ type: 'ambush', go: false }];
     case 'setupCache':
       return [{ type: 'hiding', hidden: hideList(state, me, ctx, keepMap()) }];
     case 'hiding': {

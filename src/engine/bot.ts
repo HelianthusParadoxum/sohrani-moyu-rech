@@ -63,6 +63,8 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
       return p.passionOptions.map((x) => ({ type: 'choosePassion', passion: x }));
     case 'gathering':
       return [{ type: 'gathering', show: books.filter((b) => (iconsOf(state, b).length > 0 || state.cards[b].kind === 'evidence' || (state.cards[b].kind === 'loadEvidence' && state.restored[b])) && isBanned(state, b) && rand() < 0.6) }];
+    case 'ambush':
+      return [{ type: 'ambush', go: p.passion === 'curator' && !state.curatorRevealed && rand() < 0.3 }];
     case 'setupCache':
     case 'hiding': {
       const limit = cacheLimit(state, { ...p, warehouse: p.warehouse.map((s) => ({ ...s, hidden: false })) });
@@ -200,7 +202,8 @@ export function botMove(state: GameState, me: string, rand: Rand = Math.random, 
   if (!preset.random) {
     const next = smartMove(state, me, preset, rand);
     if (next) {
-      const unmask = curatorUnmask(state, me);
+      const unmask = curatorUnmask(state, me)
+        ?? (next.curatorRevealed === me && !state.curatorUnmask ? { round: state.round, act: player(state, me).actions?.length ?? 0, why: 'ambush' as const } : null);
       if (unmask) next.curatorUnmask = unmask;
       return next;
     }
@@ -217,6 +220,7 @@ function curatorUnmask(state: GameState, me: string): GameState['curatorUnmask']
   const base = curatorStyle(state, me);
   if (base === 'open') return null;
   const act = (p.actions?.length ?? 0) + (state.phase === 'orders' ? 1 : 0);
+  if (state.curatorRevealed === me) return { round: state.round, act, why: 'ambush' };
   if ((p.propagandaTaken ?? 0) > 0) return { round: state.round, act, why: 'propaganda' };
   if (effectiveCuratorStyle(state, me) === 'open') return { round: state.round, act, why: 'exposed' };
   if (base === 'ambush' && state.round >= 3) return { round: state.round, act, why: 'round' };
@@ -239,7 +243,7 @@ function randomMove(state: GameState, me: string, rand: Rand): GameState {
     }
   }
   // Ничего не подошло: в фазе поручений — Красный уголок без сдачи или пас.
-  for (const a of [{ type: 'endTurn' }, { type: 'place', place: { address: 'redCorner', recycle: [] } }, { type: 'pass' }, { type: 'gathering', show: [] }, { type: 'hiding', hidden: [] }, { type: 'baraholkaBuy' }, { type: 'kvartirnikReply', accept: false }, { type: 'kontoraDecide', go: false }, { type: 'kontoraHide', hidden: [] }] as Action[]) {
+  for (const a of [{ type: 'endTurn' }, { type: 'place', place: { address: 'redCorner', recycle: [] } }, { type: 'pass' }, { type: 'gathering', show: [] }, { type: 'ambush', go: false }, { type: 'hiding', hidden: [] }, { type: 'baraholkaBuy' }, { type: 'kvartirnikReply', accept: false }, { type: 'kontoraDecide', go: false }, { type: 'kontoraHide', hidden: [] }] as Action[]) {
     // Пересобрать Тайник можно и в свой ход, но ход это не завершает — в поручениях это не выход.
     if (a.type === 'hiding' && state.phase !== 'hiding') continue;
     try { return applyAction(state, me, a); } catch (e) { if (!(e instanceof RuleError)) throw e; }

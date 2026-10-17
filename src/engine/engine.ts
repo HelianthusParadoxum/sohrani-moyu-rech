@@ -133,7 +133,7 @@ export function startHide(state: GameState, p: PlayerState) {
 export function activePlayers(state: GameState): string[] {
   if (state.pending.length) return [state.pending[0].player];
   if (state.phase === 'orders') return [state.order[state.turn]];
-  if (state.phase === 'passion' || state.phase === 'setupCache' || state.phase === 'gathering' || state.phase === 'hiding') {
+  if (state.phase === 'passion' || state.phase === 'setupCache' || state.phase === 'gathering' || state.phase === 'ambush' || state.phase === 'hiding') {
     return state.order.filter((id) => !state.ready.includes(id));
   }
   return [];
@@ -210,6 +210,10 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
       case 'gathering':
         check(action.type === 'gathering', 'Сейчас Посиделки');
         doGathering(state, p, action.show);
+        return done(state);
+      case 'ambush':
+        check(action.type === 'ambush', 'Сейчас решается Засада');
+        doAmbush(state, p, action.go);
         return done(state);
       case 'hiding':
         if (action.type === 'memorize') {
@@ -462,8 +466,10 @@ function endOrders(state: GameState) {
   }
   state.phase = 'gathering';
   state.ready = [];
+  state.shownAtGathering = {};
   logEvent(state, 'Посиделки.');
-  logNote(state, 'Можно показать опальные книги и Улики со склада — по 1 очку за каждую.');
+  const pts = gatheringPoints(state);
+  logNote(state, `Можно показать опальные книги и Улики со склада — ${pointsText(pts)} за каждую.${ambushPossible(state) ? ' Но Куратор может раскрыться и устроить Засаду: всех, кто показал опальное, ждёт Контора.' : ''}`);
 }
 
 function doGathering(state: GameState, p: PlayerState, show: string[]) {
@@ -479,7 +485,8 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
     check(hasBook(p, id) || (drama && p.published.includes(id)), 'Показывать можно только книги со своего склада');
     check(banned || drama, `${title(state, id)} — не опальная жанровая книга и не Улика`);
     if (banned && hasBook(p, id)) {
-      pts += 1;
+      pts += gatheringPoints(state);
+      (state.shownAtGathering ??= {})[p.id] = [...(state.shownAtGathering[p.id] ?? []), id];
       if (hasPatron(state, p.id, 'geologist')) geo++;
     }
     if (drama) dramaPts += 1;
@@ -502,11 +509,52 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
     log(state, `${p.name} ничего не показывает на Посиделках.`);
   }
   if (state.ready.length === state.players.length) {
-    state.phase = 'hiding';
     state.ready = [];
-    logEvent(state, 'Укрытие.');
-    logNote(state, 'Прячьте опальные книги в Тайник (каждые 2 Нагрузки на складе дают +1 место).');
+    // Засада возможна, если кто-то показал опальное, — ждём решения всех (так не видно, кто Куратор).
+    if (ambushPossible(state) && Object.values(state.shownAtGathering ?? {}).some((x) => x.length)) state.phase = 'ambush';
+    else startHiding(state);
   }
+}
+
+function gatheringPoints(state: GameState): number {
+  return isFull(state) && !state.reserve ? RULES.gatheringPointsFull : RULES.gatheringPoints;
+}
+
+// Засада: в полном режиме с Конторой, пока Куратор не раскрылся (есть ли он на самом деле — не выдаём).
+function ambushPossible(state: GameState): boolean {
+  return isFull(state) && !state.reserve && !!state.curatorPossible && !state.curatorRevealed;
+}
+
+function startHiding(state: GameState) {
+  state.phase = 'hiding';
+  state.ready = [];
+  logEvent(state, 'Укрытие.');
+  logNote(state, 'Прячьте опальные книги в Тайник (каждые 2 Нагрузки на складе дают +1 место).');
+}
+
+// Засада: Куратор раскрывается; на каждого, кто показал на Посиделках опальное, — Контора: Сигнал и Изъятие показанной
+// книги (показанные книги в этот момент не считаются лежащими в Тайнике).
+function doAmbush(state: GameState, p: PlayerState, go: boolean) {
+  if (go) {
+    check(p.passion === 'curator', 'Засаду может устроить только Куратор');
+    state.curatorRevealed = p.id;
+    logEvent(state, 'Засада!');
+    log(state, `Куратор раскрывается: ${p.name}. На всех, кто показал на Посиделках опальное, — Контора.`);
+    for (const o of state.players) {
+      if (o.id === p.id) continue;
+      const shown = (state.shownAtGathering?.[o.id] ?? []).filter((c) => hasBook(o, c));
+      if (!shown.length) continue;
+      const card = [...shown].sort((a, b) => iconsOf(state, b).length - iconsOf(state, a).length)[0];
+      holdWorker(state, o, `Засада: ${p.name}`);
+      removeBook(o, card);
+      toSpetskhranPublic(state, [card]);
+      log(state, `Засада: у ${o.name} изъята в Спецхран ${title(state, card)}.`);
+    }
+    startHiding(state);
+    return;
+  }
+  state.ready.push(p.id);
+  if (state.ready.length === state.players.length) startHiding(state);
 }
 
 function doHiding(state: GameState, p: PlayerState, a: Extract<Action, { type: 'hiding' }>) {

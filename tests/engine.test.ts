@@ -764,6 +764,52 @@ describe('Журнал: кружок действия', () => {
   });
 });
 
+describe('Засада на Посиделках', () => {
+  function atGathering() {
+    let s = createGame({ players: players(3), seed: 8, mode: 'full', forceCurator: true });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    s.phase = 'gathering';
+    s.ready = [];
+    s.shownAtGathering = {};
+    const cur = 'p1';
+    const [a, b] = s.players.filter((x) => x.id !== cur).map((x) => x.id);
+    const banned = s.deck.filter((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.some((g) => s.banned.includes(g))).slice(0, 1);
+    s.deck = s.deck.filter((c) => !banned.includes(c));
+    for (const q of s.players) q.warehouse = q.warehouse.filter((w) => !isBanned(s, w.card));
+    const pa = s.players.find((x) => x.id === a)!;
+    pa.cache = 1;
+    pa.warehouse.push({ card: banned[0], hidden: true });
+    return { s, cur, a, b, book: banned[0] };
+  }
+
+  it('показ опальной книги в полном режиме — 2 очка; Куратор раскрывается и бьёт Конторой по показавшим', () => {
+    let { s, cur, a, b, book } = atGathering();
+    const pts = s.players.find((x) => x.id === a)!.points;
+    s = applyAction(s, a, { type: 'gathering', show: [book] });
+    expect(s.players.find((x) => x.id === a)!.points).toBe(pts + RULES.gatheringPointsFull);
+    s = applyAction(s, b, { type: 'gathering', show: [] });
+    s = applyAction(s, cur, { type: 'gathering', show: [] });
+    expect(s.phase).toBe('ambush');
+    expect(() => applyAction(s, a, { type: 'ambush', go: true })).toThrow(/только Куратор/);
+    s = applyAction(s, a, { type: 'ambush', go: false });
+    const held = s.players.find((x) => x.id === a)!.held;
+    s = applyAction(s, cur, { type: 'ambush', go: true });
+    expect(s.curatorRevealed).toBe(cur);
+    expect(s.phase).toBe('hiding');
+    expect(s.players.find((x) => x.id === a)!.held).toBe(held + 1);
+    expect(s.spetskhran).toContain(book);
+    expect(s.players.find((x) => x.id === b)!.held).toBe(0);
+    expect(viewFor(s, b).players.find((x) => x.id === cur)!.passion).toBe('curator');
+  });
+
+  it('если опальное никто не показал, Засады нет — сразу Укрытие', () => {
+    let { s } = atGathering();
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'gathering', show: [] });
+    expect(s.phase).toBe('hiding');
+  });
+});
+
 describe('Разоблачение', () => {
   // Опцию в тестах включаем явно: в игре её можно выключить.
   const was = RULES.exposePropaganda;

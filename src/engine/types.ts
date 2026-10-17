@@ -141,7 +141,7 @@ export type Pending =
   | { kind: 'glavlitSwap'; player: string; roundStart?: boolean }; // Главлитовец переносит опалу с жанра на жанр // склад уменьшился — игрок выбирает, что отдать
 
 // setupCache — перед первым действием партии все раскладывают стартовые книги по Тайникам (чужие стартовые книги до этого не видны).
-export type Phase = 'passion' | 'setupCache' | 'orders' | 'gathering' | 'hiding' | 'end';
+export type Phase = 'passion' | 'setupCache' | 'orders' | 'gathering' | 'ambush' | 'hiding' | 'end';
 
 export interface LogEntry {
   round: number;
@@ -193,11 +193,13 @@ export interface GameState {
   reserve?: boolean; // «Заповедник»: полный режим без Конторы и Куратора
   sproutRound?: Record<string, string[]>; // кто в эту Пятилетку закрывал ступени каждого Ростка (места Ростка)
   ironyDue?: Record<string, number>; // Ирония «пущена в народ»: сколько Талонов начислить в конце действия
+  shownAtGathering?: Record<string, string[]>; // что каждый показал на Посиделках этой Пятилетки (опальное и Улики)
+  curatorRevealed?: string; // Куратор раскрылся (Засада) — все знают, кто он
   forcedCurator?: string; // для тестов: этот игрок — Куратор
   curatorStyleOverride?: 'open' | 'ambush' | 'boa'; // для тестов: стратегия Куратора-бота
   curatorPossible?: boolean; // Куратор есть в колоде Пристрастий (это знают все)
   // Куратор-бот («Удав», «Хищник») сбросил маску: Пятилетка, его ход в ней и причина (для журнала в конце партии).
-  curatorUnmask?: { round: number; act: number; why: 'propaganda' | 'exposed' | 'round' };
+  curatorUnmask?: { round: number; act: number; why: 'propaganda' | 'exposed' | 'round' | 'ambush' };
   holdTurn?: boolean; // действие не завершило ход (отказ от Конторы)
   clubGiftBy?: string; // кто уже отдал книгу в Клуб в этот ход (Клуб как свободное действие)
   // Последняя покупка в этом ходу на адресе, где можно тиражировать: после неё можно «дотиражировать» книгу оттуда же.
@@ -289,6 +291,7 @@ export type Action =
   | { type: 'spisanieKeep'; keep: string[] }
   | { type: 'sproutBonus'; bonus: SproutBonusId; group?: GroupAction }
   | { type: 'gathering'; show: string[] }
+  | { type: 'ambush'; go: boolean } // после Посиделок: Куратор раскрывается и устраивает Засаду (остальные — «дальше»)
   | { type: 'hiding'; hidden: string[]; memorize?: string | null; fillLoad?: boolean }
   | { type: 'kontoraHide'; hidden: string[] }
   | { type: 'kontoraDecide'; go: boolean; choice?: KontoraChoice }

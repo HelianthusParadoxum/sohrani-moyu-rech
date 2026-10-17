@@ -49,7 +49,7 @@ export function viewFor(state: GameState, me: string | null, omniscient = false)
       return {
         ...pub,
         warehouse: warehouse.map((s) => ({ card: own || (!s.hidden && !concealAll) ? s.card : null, hidden: s.hidden, ...(s.memorized ? { memorized: true } : {}) })),
-        passion: own ? passion : null,
+        passion: own || state.curatorRevealed === p.id ? passion : null,
         passionOptions: p.id === me ? passionOptions : [],
       };
     }),

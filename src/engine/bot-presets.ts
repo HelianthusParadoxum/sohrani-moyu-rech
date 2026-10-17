@@ -190,13 +190,13 @@ export const CURATOR_STYLES: Record<CuratorStyle, {
 // Строка для журнала в конце партии: какой стратегии держался Куратор-бот.
 // unmasked — сбросил маску (открыто взял Пропаганду или был раскрыт) и доигрывал «открытым забралом».
 export function curatorStyleNote(
-  state: { seed: number; curatorStyleOverride?: CuratorStyle; curatorUnmask?: { round: number; act: number; why: 'propaganda' | 'exposed' | 'round' } },
+  state: { seed: number; curatorStyleOverride?: CuratorStyle; curatorUnmask?: { round: number; act: number; why: 'propaganda' | 'exposed' | 'round' | 'ambush' } },
   pid: string, name: string, unmasked = false,
 ): string {
   const id = curatorStyle(state, pid);
   const st = CURATOR_STYLES[id];
   const u = state.curatorUnmask;
-  const why = u && { propaganda: 'открыто взял Пропаганду', exposed: 'его раскусили', round: 'пришло время бить' }[u.why];
+  const why = u && { propaganda: 'открыто взял Пропаганду', exposed: 'его раскусили', round: 'пришло время бить', ambush: 'устроил Засаду' }[u.why];
   const at = u ? ` в Пятилетке ${u.round}${u.act ? `, на своём ${u.act}-м ходу` : ''} (${why})` : '';
   const rest = u?.why === 'round' ? 'дальше бил открыто' : 'доигрывал «Открытым забралом»';
   const tail = (unmasked || u) && id !== 'open' ? ` Сбросил маску${at} и ${rest}.` : '';
@@ -233,6 +233,8 @@ export const BOT_BASE = {
   published: 0.5, // за значок изданной книги (сверх Талонов и очков за издание)
   capacity: [1.2, 1.0, 0.7, 0.3, 0], // место склада
   cache: [1.2, 1.0, 0.7, 0.4, 0], // место Тайника на будущие Пятилетки
+  ambushRisk: 0.1, // шанс Засады на Посиделках для показавшего опальное (книга + Единомышленник)
+  ambushRiskSuspect: 0.4, // ...плюс столько × подозрение на Куратора
   exposeRisk: 0.2, // шанс доноса на открыто лежащую опальную книгу посреди Пятилетки (книга + удержанный Единомышленник)
   exposeRiskSuspect: 0.5, // ...плюс столько × подозрение на Куратора за столом
   cacheSpare: [1.5, 1.5, 1.5, 1.5, 0], // хотя бы одно место Тайника сверх опальных книг — на стык Пятилеток (полный режим)
