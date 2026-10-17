@@ -2,6 +2,7 @@
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   ADDRESSES, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, limitFor,
+  groupInGame,
 } from '../engine/content';
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
@@ -67,7 +68,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
     <div className="game">
       <header className="topbar">
         <div className="title">Сохрани мою речь</div>
-        <div>{view.solo && <>Несистемный · </>}Пятилетка <b>{view.round}</b>/{RULES.rounds} · {PHASE_NAMES[view.phase]}</div>
+        <div>{view.reserve && <>Заповедник · </>}{view.solo && <>Несистемный · </>}Пятилетка <b>{view.round}</b>/{RULES.rounds} · {PHASE_NAMES[view.phase]}</div>
         <div className="banned">Цензура {view.censorship}: {view.banned.map((g) => <GenreChip key={g} g={g} banned />)}</div>
         <div className="muted small">Непечатные: {view.deckCount} (сброс {view.discardCount}) · Нагрузка: {view.loadDeckCount}</div>
         {isHost && (
@@ -104,8 +105,8 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
         <section className="board">
           <div className="addresses">
             {full && card('club')}
-            {full && card('kontora')}
-            <Sprouts view={view} beside={full} seatIndex={seatIndex}
+            {full && !view.reserve && card('kontora')}
+            <Sprouts view={view} beside={full && !view.reserve} seatIndex={seatIndex}
               head={<AddressHead id="sprouts" view={view} seatIndex={seatIndex} me={me} enabled={enabledFor('sprouts')} onOpen={() => setPanel({ kind: 'address', id: 'sprouts' })} />} />
             {addresses.map(card)}
           </div>
@@ -513,7 +514,7 @@ function Sprouts({ view, beside, seatIndex, head }: { view: PlayerView; beside: 
                 </li>
               ))}
             </ol>
-            <div className="muted bonus" title="Бонус за закрытие ступени (одно на выбор)">Бонус: {info.bonuses.map((b) => SPROUT_BONUS_NAMES[b]).join(' / ')}</div>
+            <div className="muted bonus" title="Бонус за закрытие ступени (одно на выбор)">Бонус: {info.bonuses.filter((b) => b !== 'rescue' || (view.mode === 'full' && !view.reserve)).map((b) => SPROUT_BONUS_NAMES[b]).join(' / ')}</div>
           </div>
         );
       })}
@@ -852,7 +853,7 @@ function PendingPrompt({ view, me, act, nameOf }: { view: PlayerView; me: VPlaye
       const options: (GroupActionId | SproutBonusId)[] = p.kind === 'sproutBonus'
         ? p.options
         : (Object.keys(GROUP_ACTIONS) as GroupActionId[])
-          .filter((g) => !GROUP_ACTIONS[g].fullOnly || view.mode === 'full')
+          .filter((g) => groupInGame(view, g))
           .filter((g) => p.kind !== 'extraGroup' || me.groupUsed.includes(g)); // Подмастерье повторяет уже сделанное
       const sendGroup = (g: GroupAction) => act(p.kind === 'sproutBonus' ? { type: 'sproutBonus', bonus: g.action, group: g } : { type: 'group', group: g });
       if (groupFor && groupFor !== 'posred' && groupFor in GROUP_ACTIONS) {
@@ -1092,7 +1093,7 @@ function MyPanel({ view, me, color, groupEnabled, onlyHire, onlyCopy, onGroup, o
       <div className="group">
         <div className="muted small">Инициативная группа (каждое действие — раз в Пятилетку):</div>
         <div className="group-actions">
-          {(Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => !GROUP_ACTIONS[g].fullOnly || view.mode === 'full').map((g) => (
+          {(Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => groupInGame(view, g)).map((g) => (
             <button key={g} className={`small ${groupBlocker(view, me, g) ? 'short' : ''}`}
               title={me.groupUsed.includes(g) ? 'Уже сделано в эту Пятилетку' : groupBlocker(view, me, g) ?? GROUP_ACTIONS[g].hint}
               disabled={!groupEnabled || me.groupUsed.includes(g) || (onlyHire && g !== 'hire') || (onlyCopy && g !== 'copyText')} onClick={() => onGroup(g)}>
@@ -1113,7 +1114,7 @@ function OtherPlayer({ view, p, color, active, first }: { view: PlayerView; p: V
       <div className="shelf wrap">{p.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}{emptySlots(freeShelf(p))}</div>
       <Published view={view} p={p} />
       <div className="group-actions readonly" title="Действия Инициативной группы в эту Пятилетку">
-        {(Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => !GROUP_ACTIONS[g].fullOnly || view.mode === 'full').map((g) => (
+        {(Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => groupInGame(view, g)).map((g) => (
           <span key={g} className={`gact ${p.groupUsed.includes(g) ? 'used' : ''}`} title={GROUP_ACTIONS[g].hint}>
             {GROUP_ACTIONS[g].name}<GroupSlot p={p} g={g} color={color} />
           </span>

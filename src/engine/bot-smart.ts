@@ -5,7 +5,7 @@
 // стопок и Барахолки, поэтому вытянутая при примерке книга — догадка, а не знание.
 import { applyAction, mustVisitRedCorner } from './engine';
 import { BOT_BASE, CURATOR_STYLES, PATRON_POWER, curatorStyle, type BotGoal, type BotPreset, type CuratorStyle } from './bot-presets';
-import { PERMANENT_ADDRESSES, PASSIONS, RULES, SPROUTS, STEP_REWARDS, FIRST_FEED_POINTS, ADDRESSES, KONTORA_LOSS, limitFor } from './content';
+import { PERMANENT_ADDRESSES, addressInGame, PASSIONS, RULES, SPROUTS, STEP_REWARDS, FIRST_FEED_POINTS, ADDRESSES, KONTORA_LOSS, limitFor } from './content';
 import { heldTotal, kontoraTargets } from './full';
 import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
@@ -945,7 +945,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       if (!p.visitedRedCorner) out.push(...redCornerCandidates(state, me, keepMap()));
       else out.push({ type: 'pass' });
       const genreBooks = books.filter((b) => isGenreBook(state, b));
-      const addrs = [...PERMANENT_ADDRESSES, ...state.safehouses].filter((a) => !ADDRESSES[a].fullOnly || state.mode === 'full');
+      const addrs = [...PERMANENT_ADDRESSES, ...state.safehouses].filter((a) => state.safehouses.includes(a) || addressInGame(state, a));
       for (const a of addrs) {
         switch (a) {
           case 'gostorg':

@@ -1016,3 +1016,27 @@ describe('«Назад» в своём ходу: узнал ли игрок но
     expect(gainedInfo(s, next, me)).toBe(false);
   });
 });
+
+describe('Заповедник', () => {
+  it('полный режим без Конторы, Куратора и Психиатра; облава никого не удерживает', () => {
+    for (let seed = 1; seed <= 25; seed++) {
+      const s = createGame({ players: players(4), seed, reserve: true });
+      expect(s.mode).toBe('full');
+      expect(s.reserve).toBe(true);
+      expect(s.curatorPossible).toBeFalsy();
+      for (const p of s.players) expect(p.passionOptions).not.toContain('curator');
+      expect(s.patrons.map((x) => x.id)).not.toContain('psychiatrist');
+      expect(s.patrons.length).toBeGreaterThan(0);
+    }
+    let s = createGame({ players: players(2), seed: 5, reserve: true });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    expect(() => applyAction(s, me, { type: 'place', place: { address: 'kontora' } })).toThrow(/нет на столе/);
+    expect(() => applyAction(s, me, { type: 'group', group: { action: 'rescue', returns: {} } })).toThrow(/нет/);
+    // Партия доигрывается, и Контора никого не держит.
+    const end = playOut(s, seeded(5), 6000);
+    expect(end.phase).toBe('end');
+    expect(end.players.every((p) => p.held === 0)).toBe(true);
+  });
+});

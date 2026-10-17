@@ -126,12 +126,13 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
       {host && (
         <>
           <label>Режим
-            <select value={room.mode} onChange={(e) => net.send({ t: 'setMode', mode: e.target.value as 'beginner' })}>
+            <select value={room.reserve ? 'reserve' : room.mode} onChange={(e) => net.send({ t: 'setMode', mode: e.target.value as 'beginner' })}>
               <option value="beginner">Райцентр (для начинающих)</option>
               <option value="full">Полные правила</option>
+              <option value="reserve">Заповедник (полные правила без Конторы и Куратора)</option>
             </select>
           </label>
-          {room.mode === 'full' && room.seats.length > 1 && (
+          {room.mode === 'full' && !room.reserve && room.seats.length > 1 && (
             <label className="row">
               <input type="checkbox" checked={room.curator} onChange={(e) => net.send({ t: 'setCurator', on: e.target.checked })} />
               Куратор в игре (агент госбезопасности среди Пристрастий)
@@ -151,7 +152,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
           {room.seats.length === 1 && (
             <p className="muted small">
               Один игрок — режим «Несистемный»: {room.mode === 'full' ? 3 : 2} Ростка, Куратора нет, Цензура растёт на 1 каждую Пятилетку
-              {room.mode === 'full' ? ', со 2-й Пятилетки лишний жетон жанра бьёт по Клубу (Профилактика или Контора)' : ''}.
+              {room.mode === 'full' ? (room.reserve ? ', со 2-й Пятилетки лишний жетон жанра бьёт по Клубу (Профилактика)' : ', со 2-й Пятилетки лишний жетон жанра бьёт по Клубу (Профилактика или Контора)') : ''}.
               В конце вскрываются {RULES.soloEndCards[room.mode]} Непечатных: каждая Пропаганда срезает ступень у самого развитого Ростка. Победа — если все Ростки устояли на III ступени.
             </p>
           )}

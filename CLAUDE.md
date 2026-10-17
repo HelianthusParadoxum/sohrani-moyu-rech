@@ -27,7 +27,7 @@
 - `npm test` — тесты; `npm run typecheck` — проверка типов.
 - `npm run dev` — сервер (8787) и Vite (5173) с прокси на `/ws`.
 - `npm run build && npm start` — продакшен-сборка и запуск.
-- `npm run simulate -- 200 3` — 200 партий ботами на 3 игроков.
+- `npm run simulate -- 200 3` — 200 партий ботами на 3 игроков (режим — 3-й аргумент: `beginner`, `full` или `reserve`).
 - `npm run simulate -- 100 4 beginner networker,gardener,collector,bookman` — турнир пресетов (места сдвигаются по кругу).
 - `npm run addresses -- 60 4 bookman,networker,collector,gardener full` — посещаемость адресов за Пятилетку на столе и заполненность мест (пресеты по местам, режим `beginner` или `full`).
 - `npm run club -- 300 4 bookman,bookman*2` — Клуб глазами ботов (полный режим): A/B-тест веса Клуба (`*2` — вдвое, `*0` — не ценит) и статистика по Завсегдатаям.
@@ -39,6 +39,8 @@
 в `src/engine/full.ts`, проверка связи с Завсегдатаем — `hasPatron`. Интерфейс полного режима — `src/client/full-ui.tsx`.
 Клуб книголюбов сейчас — свободное действие (`RULES.clubFreeGift`, действие `clubGift` в фазе поручений, `state.freeHold` не даёт
 передать ход, пока идут вызванные им решения).
+«Заповедник» (`state.reserve`, в лобби — отдельный пункт режима): полный режим без Конторы и Куратора; что есть в партии —
+`addressInGame` / `groupInGame` в `content.ts`, удержаний нет (`holdWorker`).
 Один игрок — режим «Несистемный» (`state.solo`): 3 Ростка (в Райцентре 2), Цензура +1 за Пятилетку, лишний жетон жанра (`soloPressure` в `engine.ts`),
 в конце вскрытие 30 Непечатных (в Райцентре 10) (`soloResult` в `scoring.ts`).
 6 сложных Завсегдатаев не реализованы (`implemented: false` в `PATRONS`) и не попадают в партию.

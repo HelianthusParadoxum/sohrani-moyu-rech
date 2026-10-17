@@ -9,7 +9,7 @@ import type { Mode } from '../src/engine/types';
 
 const games = Number(process.argv[2] ?? 100);
 const n = Number(process.argv[3] ?? 3);
-const mode = (process.argv[4] ?? 'beginner') as Mode;
+const mode = (process.argv[4] ?? 'beginner') as Mode | 'reserve'; // reserve — «Заповедник»
 const presetIds = (process.argv[5] ?? DEFAULT_PRESET).split(',').filter(Boolean);
 for (const id of presetIds) {
   if (!BOT_PRESETS.some((p) => p.id === id)) throw new Error(`Нет пресета «${id}». Есть: ${BOT_PRESETS.map((p) => p.id).join(', ')}`);
@@ -37,7 +37,7 @@ const started = Date.now();
 for (let i = 0; i < games; i++) {
   const players = Array.from({ length: n }, (_, k) => ({ id: `p${k}`, name: `Бот ${k}` }));
   const presets = Object.fromEntries(players.map((p, k) => [p.id, presetIds[(k + i) % presetIds.length]]));
-  const s = playOut(createGame({ players, seed: i + 1, mode }), seeded(i + 1), 5000, presets);
+  const s = playOut(createGame({ players, seed: i + 1, mode: mode === 'reserve' ? 'full' : mode, reserve: mode === 'reserve' }), seeded(i + 1), 5000, presets);
   const r = s.result!;
   if (r.glasnost) glasnost++;
   s.sprouts.forEach((sp) => progress.push(sp.progress));

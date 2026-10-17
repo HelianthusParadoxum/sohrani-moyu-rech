@@ -2,7 +2,7 @@
 // applyAction не меняет переданное состояние, а возвращает новое.
 import {
   ADDRESSES, CARDS, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, KEEPERS, PASSIONS, PERMANENT_ADDRESSES, RULES, SAFEHOUSES,
-  SPECIALS, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
+  SPECIALS, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, addressInGame, groupInGame, limitFor,
 } from './content';
 import { finalScoring } from './scoring';
 import {
@@ -24,6 +24,7 @@ export interface NewGameOptions {
   seed?: number;
   mode?: Mode;
   curator?: boolean; // полный режим: Куратор в колоде Пристрастий (по умолчанию — да)
+  reserve?: boolean; // «Заповедник»: полный режим без Конторы и Куратора
 }
 
 export function createGame(opts: NewGameOptions): GameState {
@@ -31,7 +32,7 @@ export function createGame(opts: NewGameOptions): GameState {
   check(n >= 1 && n <= 4, 'В игре участвуют от 1 до 4 игроков');
   const solo = n === 1; // «Несистемный»
   const seed = opts.seed ?? Math.floor(Math.random() * 2 ** 31);
-  const mode = opts.mode ?? 'beginner';
+  const mode = opts.reserve ? 'full' : opts.mode ?? 'beginner';
   const cards = Object.fromEntries(CARDS.map((c) => [c.id, c]));
   const state: GameState = {
     version: 1, seed, rng: seed, mode, cards, restored: {},
@@ -46,6 +47,7 @@ export function createGame(opts: NewGameOptions): GameState {
     sprouts: [], patrons: [], spetskhran: [], pending: [], ready: [], log: [],
   };
   if (solo) state.solo = true;
+  if (opts.reserve) state.reserve = true;
   state.deck = shuffle(state, CARDS.filter((c) => !['load', 'loadReturnable', 'loadEvidence'].includes(c.kind)).map((c) => c.id));
   state.loadDeck = shuffle(state, CARDS.filter((c) => ['load', 'loadReturnable', 'loadEvidence'].includes(c.kind)).map((c) => c.id));
   state.safehouseDeck = shuffle(state, [...SAFEHOUSES]);
@@ -59,7 +61,7 @@ export function createGame(opts: NewGameOptions): GameState {
   } else if (n >= 3) {
     let keepers = shuffle(state, [...KEEPERS]);
     if (n === 3) keepers = keepers.slice(3);
-    const curator = mode === 'full' && opts.curator !== false;
+    const curator = mode === 'full' && opts.curator !== false && !opts.reserve;
     passions = [...SPECIALS.filter((p) => curator || p !== 'curator'), ...keepers];
     state.curatorPossible = SPECIALS.includes('curator') && curator;
   } else {
@@ -592,7 +594,7 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
   check(action.type === 'place', 'Отправьте Единомышленника по адресу или в Группу');
   const a = action.place;
   check(
-    (PERMANENT_ADDRESSES.includes(a.address) && (!ADDRESSES[a.address].fullOnly || isFull(state))) || state.safehouses.includes(a.address),
+    (PERMANENT_ADDRESSES.includes(a.address) && addressInGame(state, a.address)) || state.safehouses.includes(a.address),
     'Этого адреса нет на столе',
   );
   if (mustVisitRedCorner(state, p)) check(a.address === 'redCorner', 'Последнего Единомышленника нужно отправить в Красный уголок');
@@ -800,7 +802,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
           text += `, +${pointsText(FIRST_FEED_POINTS)} за первое питание`;
         }
         log(state, text + '.');
-        const options = info.bonuses.filter((b) => state.mode === 'full' || b !== 'rescue');
+        const options = info.bonuses.filter((b) => b !== 'rescue' || (state.mode === 'full' && !state.reserve));
         state.pending.push({ kind: 'sproutBonus', player: p.id, sprout: sp.id, options });
       }
       return;
@@ -965,7 +967,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
   const info = GROUP_ACTIONS[g.action];
   check(info, 'Нет такого действия');
   if (opts.limited) check(!p.groupUsed.includes(g.action), `«${info.name}» уже сделано в эту Пятилетку`);
-  check(!info.fullOnly || state.mode === 'full', `«${info.name}» доступно только в полном режиме`);
+  check(groupInGame(state, g.action), `«${info.name}» в этой партии нет`);
   switch (g.action) {
     case 'expandWarehouse':
       check(p.capacity < RULES.maxCapacity, 'Склад уже максимального размера');

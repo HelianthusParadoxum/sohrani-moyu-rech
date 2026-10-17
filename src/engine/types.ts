@@ -180,6 +180,7 @@ export interface GameState {
   patrons: PatronState[];
   spetskhran: string[]; // Спецхран Конторы — общий, лежит взакрытую
   solo?: boolean; // «Несистемный»: одиночная игра
+  reserve?: boolean; // «Заповедник»: полный режим без Конторы и Куратора
   curatorPossible?: boolean; // Куратор есть в колоде Пристрастий (это знают все)
   holdTurn?: boolean; // действие не завершило ход (отказ от Конторы)
   clubGiftBy?: string; // кто уже отдал книгу в Клуб в этот ход (Клуб как свободное действие)

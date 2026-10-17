@@ -1,5 +1,5 @@
 // Полный режим: Клуб книголюбов, Завсегдатаи, Контора, особенности жанров.
-import { CLUB_SIZE, GENRE_NAMES, KONTORA_LOSS, PATRONS, RULES } from './content';
+import { CLUB_SIZE, GENRE_NAMES, KONTORA_LOSS, KONTORA_PATRONS, PATRONS, RULES } from './content';
 import type { ClubGift, GameState, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
@@ -12,7 +12,7 @@ export const isFull = (state: GameState) => state.mode === 'full';
 // ---------- Подготовка ----------
 
 export function setupClub(state: GameState) {
-  const pool = shuffle(state, Object.values(PATRONS).filter((p) => p.implemented).map((p) => p.id));
+  const pool = shuffle(state, Object.values(PATRONS).filter((p) => p.implemented && !(state.reserve && KONTORA_PATRONS.includes(p.id))).map((p) => p.id));
   const genres = shuffle(state, [...GENRES]);
   state.patrons = pool.slice(0, CLUB_SIZE).map((id, i) => ({ id, genre: genres[i], connections: [], turned: false, removed: false }));
 }
@@ -44,6 +44,7 @@ export function heldTotal(state: GameState) {
 
 // Удержать Единомышленника в Конторе (облава, Сигнал). Психиатр защищает.
 export function holdWorker(state: GameState, p: PlayerState, reason: string): boolean {
+  if (state.reserve) return false; // «Заповедник»: Конторы нет — никого не удерживают
   if (hasPatron(state, p.id, 'psychiatrist')) {
     log(state, `${p.name}: Психиатр не даёт Конторе удержать Единомышленника.`);
     return false;

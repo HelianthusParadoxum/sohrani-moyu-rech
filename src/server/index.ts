@@ -25,6 +25,7 @@ interface Room {
   code: string; host: string; seats: Seat[]; mode: Mode; state: GameState | null; history: GameState[]; updated: number;
   botDelay?: number;
   noCurator?: boolean; // настройка: без Куратора в колоде Пристрастий
+  reserve?: boolean; // «Заповедник»: полный режим без Конторы и Куратора
   build?: string; // версия игры, в которой начата партия
   outdated?: boolean; // партию сбросили из-за обновления игры — показать игрокам извинение
   stepBack?: { player: string; states: GameState[] }; // «Назад» в своём ходу: состояния, к которым можно вернуться
@@ -94,7 +95,7 @@ const newId = () => randomBytes(6).toString('hex');
 
 function roomInfo(room: Room): RoomInfo {
   return {
-    code: room.code, host: room.host, mode: room.mode, started: !!room.state,
+    code: room.code, host: room.host, mode: room.mode, reserve: room.reserve, started: !!room.state,
     seats: room.seats.map((s) => ({ id: s.id, name: s.name, bot: s.bot, online: isOnline(room, s.id), preset: seatPreset(room, s) })),
     canUndo: room.history.length > 0,
     hostBot: hostSeat(room)?.bot ?? false,
@@ -252,13 +253,14 @@ function handle(ws: WebSocket, msg: ClientMessage) {
     }
     case 'setMode': {
       if (!isHost || room.state) return;
-      room.mode = msg.mode;
+      room.mode = msg.mode === 'reserve' ? 'full' : msg.mode;
+      room.reserve = msg.mode === 'reserve';
       break;
     }
     case 'start': {
       if (!isHost || room.state) return;
       if (room.seats.length < 1) return send(ws, { t: 'error', message: 'За столом никого нет' });
-      room.state = createGame({ players: room.seats.map((s) => ({ id: s.id, name: s.name })), mode: room.mode, curator: !room.noCurator });
+      room.state = createGame({ players: room.seats.map((s) => ({ id: s.id, name: s.name })), mode: room.mode, curator: !room.noCurator, reserve: room.reserve });
       room.history = [];
       room.build = BUILD;
       delete room.outdated;

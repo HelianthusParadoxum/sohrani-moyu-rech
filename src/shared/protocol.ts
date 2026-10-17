@@ -6,6 +6,7 @@ export interface RoomInfo {
   code: string;
   host: string;
   mode: Mode;
+  reserve?: boolean; // «Заповедник»: полный режим без Конторы и Куратора
   started: boolean;
   seats: { id: string; name: string; bot: boolean; online: boolean; preset: string }[]; // preset — пресет бота
   canUndo: boolean;
@@ -21,7 +22,7 @@ export type ClientMessage =
   | { t: 'hello'; code: string; token: string | null }
   | { t: 'addBot' }
   | { t: 'removeSeat'; seat: string }
-  | { t: 'setMode'; mode: Mode }
+  | { t: 'setMode'; mode: Mode | 'reserve' }
   | { t: 'setCurator'; on: boolean }
   | { t: 'start' }
   | { t: 'action'; action: Action }

@@ -1,5 +1,5 @@
 // Справочные данные правил: адреса, Ростки, Пристрастия. Меняйте здесь, когда меняются правила.
-import type { AddressId, Genre, GroupActionId, PassionId, PatronId, PointSource, SproutBonusId } from './types';
+import type { AddressId, Genre, GroupActionId, Mode, PassionId, PatronId, PointSource, SproutBonusId } from './types';
 import cardsJson from '../data/cards.json';
 import type { Card } from './types';
 
@@ -144,6 +144,19 @@ export function limitFor(address: AddressId, playerCount: number): number {
   const l = ADDRESSES[address].limits;
   return l[Math.min(Math.max(playerCount, 2), 4) - 2];
 }
+
+// Есть ли адрес / действие Группы в этой партии. «Заповедник» (reserve) — полный режим без Конторы и Куратора.
+type GameKind = { mode: Mode; reserve?: boolean };
+export function addressInGame(g: GameKind, id: AddressId): boolean {
+  if (ADDRESSES[id].fullOnly && g.mode !== 'full') return false;
+  return !(g.reserve && id === 'kontora');
+}
+export function groupInGame(g: GameKind, id: GroupActionId): boolean {
+  if (GROUP_ACTIONS[id].fullOnly && g.mode !== 'full') return false;
+  return !(g.reserve && id === 'rescue'); // вызволять некого: Конторы нет
+}
+// Завсегдатаи, чьё свойство без Конторы ни на что не влияет.
+export const KONTORA_PATRONS: PatronId[] = ['psychiatrist'];
 
 export const GROUP_ACTIONS: Record<GroupActionId, { name: string; hint: string; fullOnly?: boolean }> = {
   expandWarehouse: { name: 'Увеличение склада', hint: '+1 место на складе (до 10)' },
