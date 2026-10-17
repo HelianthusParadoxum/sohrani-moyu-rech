@@ -993,6 +993,9 @@ describe('Выбор Пристрастий', () => {
     expect(v.baraholka.every((x) => !x)).toBe(true);
     expect(v.tolkuchka).toEqual([]);
     expect(v.sprouts).toEqual([]);
+    // Опала первой Пятилетки уже известна.
+    expect(v.banned).toEqual(s.banned);
+    expect(v.banned).toHaveLength(s.censorship);
     expect(v.patrons).toEqual([]);
     // Наблюдатель-хост видит всё.
     expect(viewFor(s, null, true).razval.some(Boolean)).toBe(true);
@@ -1127,5 +1130,22 @@ describe('Ходатайство', () => {
       .toThrow(/1 Единомышленника/);
     s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { petition: [b], seize: { player: a, card: book } } });
     expect(s.players.find((x) => x.id === b)!.held).toBe(0);
+  });
+});
+
+describe('Инерция цензуры', () => {
+  it('со 2-й Пятилетки из опалы выходит самый старый жанр, взамен приходят новые', () => {
+    for (let seed = 1; seed <= 6; seed++) {
+      let s = createGame({ players: players(2), seed });
+      const first = [...s.banned];
+      const rand = seeded(seed);
+      while (s.round === 1 && s.phase !== 'end') s = playOut(s, rand, 1);
+      while (s.phase !== 'orders') s = playOut(s, rand, 1);
+      expect(s.round).toBe(2);
+      expect(s.banned).toHaveLength(s.censorship);
+      expect(s.banned).not.toContain(first[0]); // самый старый вышел
+      for (const g of first.slice(1)) expect(s.banned).toContain(g); // остальные остались
+      expect(s.banned.slice(0, first.length - 1)).toEqual(first.slice(1)); // и стали старшими
+    }
   });
 });

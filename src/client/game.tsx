@@ -891,6 +891,7 @@ function PendingPrompt({ view, me, act, nameOf }: { view: PlayerView; me: VPlaye
 function PassionPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
   return (
     <Modal title="Тайное Пристрастие" wide>
+      <BannedLine view={view} />
       <h4>Ваши стартовые книги</h4>
       <div className="shelf wrap">{me.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} small />)}</div>
       <p>Выберите одно из двух Пристрастий. Второе уйдёт в коробку, никто его не увидит.</p>

@@ -98,6 +98,8 @@ export function createGame(opts: NewGameOptions): GameState {
     }
   }
   log(state, `Партия началась. Порядок хода: ${state.order.map((id) => player(state, id).name).join(', ')}.`);
+  // Опала первой Пятилетки известна до выбора Пристрастий (остальной стол откроется после выбора).
+  state.banned = shuffle(state, [...GENRES]).slice(0, state.censorship);
   log(state, solo
     ? `Несистемный: одиночная игра. Цензура растёт на 1 каждую Пятилетку; в конце вскроются ${RULES.soloEndCards[mode]} Непечатных — каждая Пропаганда срежет ступень Ростка.`
     : 'Каждый игрок тайно выбирает одно из двух Пристрастий.');
@@ -256,8 +258,19 @@ function startRound(state: GameState) {
     p.visitedRedCorner = false;
   }
   // Обстановка: опала и обновление каналов.
-  state.banned = shuffle(state, [...GENRES]).slice(0, state.censorship);
-  log(state, `— Пятилетка ${state.round}. Цензура: ${state.censorship}. В опале: ${state.banned.map((g) => GENRE_NAMES[g]).join(', ')}.`);
+  let change = '';
+  if (state.round > 1) {
+    // Инерция цензуры: самый старый опальный жанр выходит из опалы, взамен (и при росте Цензуры — сверх того)
+    // в опалу попадают новые. Только что освобождённый жанр в ту же Пятилетку не возвращается.
+    const kept = state.banned.slice(1);
+    const released = state.banned[0];
+    const fresh = shuffle(state, GENRES.filter((g) => !kept.includes(g) && g !== released)).slice(0, Math.max(0, state.censorship - kept.length));
+    state.banned = [...kept, ...fresh].slice(-state.censorship);
+    change = ` Из опалы выходит: ${released ? GENRE_NAMES[released] : '—'}; в опалу попадает: ${fresh.map((g) => GENRE_NAMES[g]).join(', ') || '—'}.`;
+  } else if (!state.banned.length) {
+    state.banned = shuffle(state, [...GENRES]).slice(0, state.censorship);
+  }
+  log(state, `— Пятилетка ${state.round}. Цензура: ${state.censorship}. В опале: ${state.banned.map((g) => GENRE_NAMES[g]).join(', ')}.${change}`);
   refreshChannels(state, state.round === 1);
   if (state.solo && isFull(state) && state.round >= 2) soloPressure(state);
   // Главлитовец: после Обстановки — в порядке, обратном порядку хода.
@@ -1225,7 +1238,8 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       check(action.type === 'glavlitSwap', 'Перенесите опалу с одного жанра на другой');
       check(state.banned.includes(action.from), 'Снять опалу можно только с опального жанра');
       check(GENRES.includes(action.to) && !state.banned.includes(action.to), 'Наложить опалу можно только на жанр, который сейчас не в опале');
-      state.banned = state.banned.map((g) => (g === action.from ? action.to : g));
+      // Новая опала — самая свежая: из опалы она выйдет последней.
+      state.banned = [...state.banned.filter((g) => g !== action.from), action.to];
       log(state, `${p.name} (Главлитовец): опала снята с жанра «${GENRE_NAMES[action.from]}» и наложена на «${GENRE_NAMES[action.to]}».`);
       state.pending.shift();
       if (pend.roundStart) state.holdTurn = true; // Пятилетка только началась — первый ход ещё впереди
