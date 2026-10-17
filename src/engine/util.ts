@@ -51,6 +51,12 @@ export function logEvent(state: GameState, text: string) {
   state.log[state.log.length - 1].strong = true;
 }
 
+// Следствие действия (бонус Завсегдатая, свойство жанра) — строкой «↳ …» сразу после строки самого действия.
+export function logAfter(state: GameState, text: string) {
+  log(state, text);
+  state.log[state.log.length - 1].after = true;
+}
+
 // Пояснение (что сейчас происходит, что можно сделать) — курсивом.
 export function logNote(state: GameState, text: string) {
   log(state, text);
@@ -298,7 +304,7 @@ export function earn(state: GameState, p: PlayerState, n: number) {
   p.talons += n;
   if (hasPatron(state, p.id, 'tsekhovik')) {
     p.talons += RULES.tsekhovikBonus;
-    log(state, `${p.name}: Цеховик — ещё +${RULES.tsekhovikBonus} Талон.`);
+    logAfter(state, `↳ Цеховик: ещё +${RULES.tsekhovikBonus} Талон.`);
   }
 }
 

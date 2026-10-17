@@ -16,7 +16,7 @@ import { GENRES } from './types';
 import {
   addBook, addOpenBook, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
-  talonsText, title, titles, logEvent, logNote, toSpetskhranPublic, isExposed,
+  talonsText, title, titles, logEvent, logNote, logAfter, toSpetskhranPublic, isExposed,
 } from './util';
 
 export interface NewGameOptions {
@@ -237,19 +237,23 @@ function logArrivals(state: GameState, before: Set<string>, mentioned = '') {
 
 function finishAction(state: GameState, p: PlayerState, pointsBefore: number, logStart = state.log.length, shown?: Set<string>): GameState {
   if (shown) logArrivals(state, shown, state.log.slice(logStart).map((l) => l.text).join('\n'));
-  // Следствия (ирония «пущена в народ» и т. п.) — в журнале после самого действия.
-  const fresh = state.log.slice(logStart);
-  if (fresh.some((l) => l.after)) {
-    state.log = [...state.log.slice(0, logStart), ...fresh.filter((l) => !l.after), ...fresh.filter((l) => l.after)];
-    for (const l of fresh) delete l.after;
-  }
   // Проза «Вдохновиться»: действие принесло очки — бонус за прозу (см. proseBonus).
   if (p.points > pointsBefore) {
     const bonus = proseBonus(state, p);
     if (bonus) {
       gain(p, bonus, 'prose');
-      log(state, `${p.name}: проза вдохновляет — +${pointsText(bonus)}.`);
+      logAfter(state, `↳ Проза вдохновляет: +${pointsText(bonus)}.`);
     }
+  }
+  // Следствия («↳ …») — сразу после последней строки самого действия игрока (до смены фазы и прочего).
+  const fresh = state.log.slice(logStart);
+  if (fresh.some((l) => l.after)) {
+    const main = fresh.filter((l) => !l.after);
+    let at = main.map((l) => l.text.startsWith(`${p.name} `)).lastIndexOf(true);
+    if (at < 0) at = main.length - 1;
+    const tail = fresh.filter((l) => l.after);
+    state.log = [...state.log.slice(0, logStart), ...main.slice(0, at + 1), ...tail, ...main.slice(at + 1)];
+    for (const l of fresh) delete l.after;
   }
   if (state.phase !== 'end' && kontoraLost(state)) {
     state.phase = 'end';
@@ -787,7 +791,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       // Комсорг: за каждую сданную книгу — очко Гласности.
       if (komsorg && a.recycle.length) {
         gain(p, RULES.komsorgPoints * a.recycle.length, 'komsorg');
-        log(state, `${p.name}: Комсорг — +${pointsText(RULES.komsorgPoints * a.recycle.length)}.`);
+        logAfter(state, `↳ Комсорг: +${pointsText(RULES.komsorgPoints * a.recycle.length)}.`);
       }
       return;
     }
@@ -937,7 +941,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       log(state, `${p.name} берёт взамен: ${a.draws.filter((k) => k === 'unprinted').length} Непечатных, ${a.draws.filter((k) => k === 'load').length} Нагрузки.`);
       if (pts) {
         gain(p, pts, 'editor');
-        log(state, `${p.name}: Главред — +${pointsText(pts)}.`);
+        logAfter(state, `↳ Главред: +${pointsText(pts)}.`);
       }
       earn(state, p, cards.length * RULES.glavlitTalons);
       return;
@@ -1035,7 +1039,7 @@ function takeCopy(state: GameState, p: PlayerState, addr: CopyTextAddress, c: st
   addOpenBook(state, p, c);
   log(state, `${p.name} тиражирует ${title(state, c)} (${name}).`);
   if (!inAction && hasPatron(state, p.id, 'typist')) {
-    log(state, `${p.name}: Машинистка — +1 Талон.`);
+    logAfter(state, '↳ Машинистка: +1 Талон.');
     earn(state, p, 1);
   }
 }
@@ -1106,7 +1110,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       p.available--;
       track(p, addr);
       if (hasPatron(state, p.id, 'typist')) {
-        log(state, `${p.name}: Машинистка — +1 Талон.`);
+        logAfter(state, '↳ Машинистка: +1 Талон.');
         earn(state, p, 1);
       }
       break;
@@ -1133,7 +1137,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       payPrice(state, p, RULES.restoreCost);
       if (hasPatron(state, p.id, 'postgrad')) {
         gain(p, 2, 'postgrad');
-        log(state, `${p.name}: Аспирант — +2 очка Гласности.`);
+        logAfter(state, '↳ Аспирант: +2 очка Гласности.');
       }
       break;
     }
@@ -1147,7 +1151,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
     case 'rescue': {
       const n = rescue(state, p, g.returns);
       gain(p, n * RULES.rescuePoints, 'rescue');
-      log(state, `${p.name}: за помощь товарищам +${pointsText(n * RULES.rescuePoints)}.`);
+      logAfter(state, `↳ За помощь товарищам: +${pointsText(n * RULES.rescuePoints)}.`);
       break;
     }
   }
@@ -1271,7 +1275,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       // Сначала — какой бонус выбран, потом его последствия.
       log(state, `${p.name} выбирает бонус Ростка: ${SPROUT_BONUS_NAMES[action.bonus]}.`);
       if (action.bonus === 'sideJob') {
-        log(state, `${p.name}: Приработок, +${talonsText(RULES.sideJobIncome)}.`);
+        logAfter(state, `↳ Приработок: +${talonsText(RULES.sideJobIncome)}.`);
         earn(state, p, RULES.sideJobIncome);
       } else if (action.bonus === 'underCounter') {
         let found: string | null = null;

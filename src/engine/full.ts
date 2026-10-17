@@ -4,7 +4,7 @@ import type { ClubGift, GameState, KontoraChoice, PatronId, PlayerState } from '
 import { GENRES } from './types';
 import {
   addBook, addSecretBook, check, discard, drawLoad, earn, freeSlots, hasBook, hasPatron, iconsOf, isBanned, isGenreBook, isPropaganda, log, pay, player,
-  removeBook, shuffle, talonsText, title, titles,
+  removeBook, shuffle, talonsText, title, titles, logAfter,
   forgetSpetskhran, seeSpetskhran, toSpetskhranPublic,
 } from './util';
 
@@ -28,8 +28,7 @@ export function price(state: GameState, p: PlayerState, cost: number): number {
 // Ирония «Пустить в народ»: +1 Талон, когда игрок отдаёт ироническую книгу куда-либо.
 export function gaveAway(state: GameState, p: PlayerState, card: string) {
   if (isFull(state) && iconsOf(state, card).includes('irony')) {
-    log(state, `↳ Ирония «пущена в народ»: +1 Талон.`);
-    state.log[state.log.length - 1].after = true;
+    logAfter(state, '↳ Ирония «пущена в народ»: +1 Талон.');
     earn(state, p, 1);
   }
 }
@@ -89,7 +88,7 @@ export function giveToPatron(state: GameState, p: PlayerState, gift: ClubGift) {
   onConnect(state, p, patron.id);
   // Маклер: каждая новая связь (включая с ним самим) — Талоны.
   if (hasPatron(state, p.id, 'broker')) {
-    log(state, `${p.name}: Маклер — +${talonsText(RULES.brokerTalons)}.`);
+    logAfter(state, `↳ Маклер: +${talonsText(RULES.brokerTalons)}.`);
     earn(state, p, RULES.brokerTalons);
   }
 }
