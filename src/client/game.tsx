@@ -505,7 +505,6 @@ function Sprouts({ view, beside, seatIndex, head }: { view: PlayerView; beside: 
                     ? <span key={i} className="dot num" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} />
                     : <span key={i} className="dot num slot-free" />;
                 })}
-                <span title="Закрыто ступеней" className="nowrap">{sp.progress ? roman(sp.progress) : '0'} / {roman(info.steps.length)}</span>
               </span>
             </div>
             {/* Жетоны игроков, которые хоть раз питали этот Росток (+2 очка за первое питание) */}
