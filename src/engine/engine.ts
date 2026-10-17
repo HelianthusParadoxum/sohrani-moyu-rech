@@ -16,7 +16,7 @@ import { GENRES } from './types';
 import {
   addBook, addOpenBook, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
-  talonsText, title, toSpetskhranPublic,
+  talonsText, title, toSpetskhranPublic, isExposed,
 } from './util';
 
 export interface NewGameOptions {
@@ -847,7 +847,8 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     case 'tamizdat': {
       check(hasBook(p, a.card), 'Издавать можно только книги со своего склада');
       check(!isPropaganda(state, a.card), 'Пропаганду нельзя издать');
-      const icons = iconsOf(state, a.card).length;
+      // Разоблачение издают как книгу с одним значком (без жанра).
+      const icons = iconsOf(state, a.card).length + (isExposed(state, a.card) ? 1 : 0);
       if (a.address === 'samizdat') {
         check(icons > 0 && !isEvidence(state, a.card), 'Через Самиздат можно издать только книгу с жанровым значком');
       } else {
@@ -1074,10 +1075,14 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       check(slot, 'Возвращать смыслы можно книге со своего склада');
       const c = state.cards[g.card];
       check(!state.restored[g.card], 'Этой книге смыслы уже возвращены');
-      check(c.kind === 'genre' || c.kind === 'loadReturnable' || c.kind === 'loadEvidence',
-        'Смыслы можно вернуть только жанровой книге, возвращаемой Нагрузке или Нагрузке-улике');
+      check(c.kind === 'genre' || c.kind === 'loadReturnable' || c.kind === 'loadEvidence' || (c.kind === 'propaganda' && RULES.exposePropaganda),
+        RULES.exposePropaganda
+          ? 'Смыслы можно вернуть только жанровой книге, возвращаемой Нагрузке, Нагрузке-улике или Пропаганде'
+          : 'Смыслы можно вернуть только жанровой книге, возвращаемой Нагрузке или Нагрузке-улике');
       state.restored[g.card] = true;
-      if (c.kind === 'loadEvidence') {
+      if (c.kind === 'propaganda') {
+        log(state, `${p.name} возвращает смыслы: ${title(state, g.card)} становится Разоблачением (+${pointsText(RULES.exposePoints)} в конце).`);
+      } else if (c.kind === 'loadEvidence') {
         log(state, `${p.name} возвращает смыслы: ${title(state, g.card)} становится Уликой.`);
       } else if (c.kind === 'loadReturnable') {
         log(state, `${p.name} возвращает смыслы: ${title(state, g.card)} становится «${c.returned}» (3 значка).`);

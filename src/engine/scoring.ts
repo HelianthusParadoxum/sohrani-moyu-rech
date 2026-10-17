@@ -2,7 +2,7 @@
 import { PASSIONS, RULES, SPROUTS } from './content';
 import type { GameResult, GameState, Genre, PlayerState, ScoreLine } from './types';
 import { GENRES } from './types';
-import { discard, draw, iconVariants, iconsOf, isEvidence, isPropaganda, log, roman } from './util';
+import { discard, draw, iconVariants, iconsOf, isEvidence, isExposed, isPropaganda, log, roman } from './util';
 
 // Коллекция для Пристрастия: склад (включая Тайник) + изданное.
 export function collection(state: GameState, p: PlayerState): string[] {
@@ -92,7 +92,9 @@ export function glasnostReached(state: GameState, progress = state.sprouts.map((
 export function scoreLine(state: GameState, p: PlayerState): ScoreLine {
   const passion = passionPoints(state, p);
   const stash = p.warehouse.map((s) => s.card);
-  const propaganda = RULES.propagandaPoints * stash.filter((id) => isPropaganda(state, id)).length;
+  // Колонка «Пропаганда»: минус за Пропаганду на складе, плюс за Разоблачения (на складе и изданные).
+  const propaganda = RULES.propagandaPoints * stash.filter((id) => isPropaganda(state, id)).length
+    + RULES.exposePoints * [...stash, ...p.published].filter((id) => isExposed(state, id)).length;
   const evidence = RULES.evidencePoints * [...stash, ...p.tamizdat].filter((id) => isEvidence(state, id)).length;
   const icons = collection(state, p).reduce((s, id) => s + iconsOf(state, id).length, 0);
   const connections = state.patrons.filter((x) => !x.removed && x.connections.includes(p.id)).length;

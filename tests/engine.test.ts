@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { applyAction, createGame, startHide } from '../src/engine/engine';
 import { playOut } from '../src/engine/bot';
 import { gainedInfo, viewFor } from '../src/engine/view';
 import { RuleError, cacheLimit, coversStep, iconsOf, isBanned, isEvidence, isLoad, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
-import { finalScoring, passionPoints } from '../src/engine/scoring';
+import { finalScoring, passionPoints, scoreLine } from '../src/engine/scoring';
 import { PASSIONS, RULES, SPROUTS, limitFor } from '../src/engine/content';
 import type { GameState, Genre, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
@@ -22,6 +22,11 @@ function startOrders(s: GameState): GameState {
   return s;
 }
 
+
+// Колонка «Пропаганда» финального подсчёта для игрока (минус Пропаганда, плюс Разоблачения).
+function finalScoringLine(s: GameState, id: string): number {
+  return scoreLine(s, s.players.find((p) => p.id === id)!).propaganda;
+}
 
 const players = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `p${i + 1}`, name: `Игрок ${i + 1}` }));
 
@@ -746,6 +751,51 @@ describe('Нагрузка-улика', () => {
     expect(isBanned(s, ev)).toBe(true);
     expect(isEvidence(s, ev)).toBe(true);
     expect(isLoad(s, ev)).toBe(false);
+  });
+});
+
+describe('Разоблачение', () => {
+  // Опция пока выключена в игре — в тестах включаем её на время.
+  const was = RULES.exposePropaganda;
+  beforeEach(() => { (RULES as { exposePropaganda: boolean }).exposePropaganda = true; });
+  afterEach(() => { (RULES as { exposePropaganda: boolean }).exposePropaganda = was; });
+
+  function withPropaganda() {
+    let s = createGame({ players: players(2), seed: 31 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const prop = Object.values(s.cards).find((c) => c.kind === 'propaganda')!.id;
+    s.deck = s.deck.filter((c) => c !== prop);
+    s.baraholka = s.baraholka.map((c) => (c === prop ? null : c));
+    const p = s.players.find((x) => x.id === me)!;
+    p.capacity = 10;
+    p.warehouse.push({ card: prop, hidden: false });
+    return { s, me, prop };
+  }
+
+  it('Возвращение смыслов делает Пропаганду Разоблачением: +2 очка, не опальна, издаётся как книга с 1 значком', () => {
+    let { s, me, prop } = withPropaganda();
+    expect(isBanned(s, prop)).toBe(true);
+    s = applyAction(s, me, { type: 'group', group: { action: 'restore', card: prop } });
+    expect(isBanned(s, prop)).toBe(false);
+    const p = () => s.players.find((x) => x.id === me)!;
+    const line = finalScoringLine(s, me);
+    expect(line).toBe(RULES.exposePoints);
+    // Издание — отдельным ходом: начнём с той же раздачи, где смыслы уже возвращены.
+    s = withPropaganda().s;
+    s.restored[prop] = true;
+    const talons = p().talons;
+    s = applyAction(s, me, { type: 'place', place: { address: 'samizdat', card: prop } });
+    expect(p().talons).toBe(talons + RULES.samizdatTalons);
+    expect(p().published).toContain(prop);
+    expect(finalScoringLine(s, me)).toBe(RULES.exposePoints);
+  });
+
+  it('с выключенной опцией Пропаганде смыслы не возвращают', () => {
+    const { s, me, prop } = withPropaganda();
+    (RULES as { exposePropaganda: boolean }).exposePropaganda = false;
+    expect(() => applyAction(s, me, { type: 'group', group: { action: 'restore', card: prop } })).toThrow(RuleError);
   });
 });
 

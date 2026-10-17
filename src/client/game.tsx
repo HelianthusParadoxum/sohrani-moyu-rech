@@ -7,7 +7,7 @@ import {
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
-import { coversStep, hasPatron, isEvidence, loadCover, roman } from '../engine/util';
+import { coversStep, hasPatron, isEvidence, isExposed, loadCover, roman } from '../engine/util';
 import {
   ClubContents, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
   KontoraWarningPrompt, RescuePanel,
@@ -157,6 +157,9 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
 const BOARD_ORDER: AddressId[] = ['redCorner', 'glavlit', 'gostorg', 'baraholka', 'tolkuchka', 'razval', 'zavoz', 'tamizdat', 'samizdat'];
 
 type AddressProps = { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me: VPlayer | null; enabled: boolean; onOpen: () => void };
+
+// Каким книгам можно вернуть смыслы.
+const restorable = (kind: string) => ['genre', 'loadReturnable', 'loadEvidence', ...(RULES.exposePropaganda ? ['propaganda'] : [])].includes(kind);
 
 function addressFull(id: AddressId, view: PlayerView, me: VPlayer | null) {
   const here = view.occupancy[id] ?? [];
@@ -388,8 +391,8 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
       break;
     case 'samizdat':
     case 'tamizdat': {
-      const ok = (c: string) => view.cards[c].kind !== 'propaganda' && (iconsOf(view, c).length > 0 && !isEvidence(view, c) || (id === 'tamizdat' && isEvidence(view, c)));
-      const n = sel[0] ? iconsOf(view, sel[0]).length : 0;
+      const ok = (c: string) => isExposed(view, c) || view.cards[c].kind !== 'propaganda' && (iconsOf(view, c).length > 0 && !isEvidence(view, c) || (id === 'tamizdat' && isEvidence(view, c)));
+      const n = sel[0] ? iconsOf(view, sel[0]).length + (isExposed(view, sel[0]) ? 1 : 0) : 0;
       body = (
         <>
           <p>Издайте одну книгу: она навсегда спасена, место на складе освобождается, а в подсчёте по Пристрастию книга участвует. {id === 'tamizdat' ? `+${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка за значок.` : `+${RULES.samizdatTalons}т за значок.`}</p>
@@ -607,7 +610,7 @@ function groupBlocker(view: PlayerView, me: VPlayer, id: GroupActionId): string 
       return view.players.some((p) => p.held > 0) ? null : 'Контора никого не удерживает.';
     case 'restore':
       if (me.talons < RULES.restoreCost) return `Нужно ${RULES.restoreCost}т, у вас ${me.talons}.`;
-      return me.warehouse.some((s) => s.card && !view.restored[s.card] && ['genre', 'loadReturnable', 'loadEvidence'].includes(view.cards[s.card].kind))
+      return me.warehouse.some((s) => s.card && !view.restored[s.card] && restorable(view.cards[s.card].kind))
         ? null : 'На складе нет книги, которой можно вернуть смыслы.';
     default:
       return null;
@@ -634,10 +637,10 @@ function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; v
   } else if (id === 'copyText') {
     body = <CopyTextPanel view={view} me={me} done={done} />;
   } else if (id === 'restore') {
-    const cands = me.warehouse.map((s) => s.card!).filter((c) => c && !view.restored[c] && ['genre', 'loadReturnable', 'loadEvidence'].includes(view.cards[c].kind));
+    const cands = me.warehouse.map((s) => s.card!).filter((c) => c && !view.restored[c] && restorable(view.cards[c].kind));
     body = (
       <>
-        <p>Жанровая книга получает +1 значок своего жанра; у двужанровой книги жанр этого значка выбирается всякий раз, когда это важно. Нагрузка проглоченного автора становится возвращённым произведением с 3 значками.</p>
+        <p>Жанровая книга получает +1 значок своего жанра; у двужанровой книги жанр этого значка выбирается всякий раз, когда это важно. Нагрузка проглоченного автора становится возвращённым произведением с 3 значками.{RULES.exposePropaganda && ` Пропаганда становится Разоблачением: +${RULES.exposePoints} очка в конце, его можно издать как книгу с 1 значком.`}</p>
         <div className="shelf wrap">{cands.map((c) => <Book key={c} v={view} id={c} selected={sel === c} onClick={() => setSel(c)} />)}</div>
         <div className="modal-foot"><button className="primary" disabled={!sel} onClick={() => done({ action: 'restore', card: sel })}>Вернуть смыслы</button></div>
       </>

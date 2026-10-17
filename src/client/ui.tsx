@@ -53,12 +53,12 @@ export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
   const banned = isBanned(v, id);
   const restored = !!v.restored[id];
   const flex = flexGenres(v, id);
-  const label = c.kind === 'loadReturnable' && restored ? null : c.kind === 'loadEvidence' && restored ? 'Улика' : KIND_LABEL[c.kind];
+  const label = c.kind === 'loadReturnable' && restored ? null : c.kind === 'loadEvidence' && restored ? 'Улика' : c.kind === 'propaganda' && restored ? 'Разоблачение' : KIND_LABEL[c.kind];
   const t = c.kind === 'loadReturnable' && restored ? c.returned! : c.title;
   return (
     <button
       type="button"
-      className={`book k-${c.kind === 'loadEvidence' && !restored ? 'load' : c.kind} ${banned ? 'is-banned' : ''} ${selected ? 'selected' : ''} ${hidden ? 'in-cache' : ''} ${small ? 'small' : ''} ${onClick ? 'clickable' : ''}`}
+      className={`book k-${c.kind === 'loadEvidence' && !restored ? 'load' : c.kind === 'propaganda' && restored ? 'exposed' : c.kind} ${banned ? 'is-banned' : ''} ${selected ? 'selected' : ''} ${hidden ? 'in-cache' : ''} ${small ? 'small' : ''} ${onClick ? 'clickable' : ''}`}
       onClick={onClick}
       disabled={!onClick}
       title={`${t} — ${c.author}`}

@@ -111,6 +111,7 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .book.is-banned { border-color: var(--red); }
 .book.k-propaganda { background: #2b2620; color: #f3ecdc; }
 .book.k-evidence, .book.k-loadEvidence { background: #e6e6e6; }
+.book.k-exposed { background: #efe6d2; border-style: dashed; }
 .book.k-load, .book.k-loadReturnable { background: #f0e4c8; }
 .book-title { font-family: 'PT Serif', serif; font-weight: 700; line-height: 1.15; }
 .book-author { color: var(--muted); font-size: 0.72rem; }

@@ -66,7 +66,7 @@ export function iconVariants(state: CardsInfo, id: string): Genre[][] {
   const c = state.cards[id];
   const restored = !!state.restored[id];
   if (c.kind === 'loadReturnable') return [restored ? [c.genre!, c.genre!, c.genre!] : []];
-  if (c.kind === 'loadEvidence') return [[]]; // Нагрузка-улика значков не получает
+  if (c.kind === 'loadEvidence' || c.kind === 'propaganda') return [[]]; // Нагрузка-улика и Разоблачение жанровых значков не получают
   if (!restored) return [c.icons];
   return [...new Set(c.icons)].map((g) => [...c.icons, g]);
 }
@@ -134,7 +134,12 @@ export function isEvidence(state: CardsInfo, id: string): boolean {
 }
 
 export function isPropaganda(state: CardsInfo, id: string): boolean {
-  return state.cards[id].kind === 'propaganda';
+  return state.cards[id].kind === 'propaganda' && !state.restored[id];
+}
+
+// «Разоблачение» — Пропаганда, которой вернули смыслы: +2 очка в конце (на складе или изданная).
+export function isExposed(state: CardsInfo, id: string): boolean {
+  return state.cards[id].kind === 'propaganda' && !!state.restored[id];
 }
 
 // Опальная книга: Пропаганда, Улики и книги со значком опального жанра.

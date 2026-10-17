@@ -11,7 +11,7 @@ import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
-  cacheLimit, cloneJson, coversStep, freeSlots, hasPatron, iconsOf, isBanned, isEvidence, isGenreBook, isLoad, isPropaganda, player, RuleError,
+  cacheLimit, cloneJson, coversStep, freeSlots, hasPatron, iconsOf, isBanned, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
 } from './util';
 
 type Rand = () => number;
@@ -246,8 +246,16 @@ function subscriptionValue(state: GameState, p: PlayerState, sub: { genre: Genre
   return v * 0.8;
 }
 
+// Пропаганда на руках у честного: −5 в конце, но если ещё успеет вернуть ей смыслы — будущее Разоблачение.
+function heldPropagandaValue(state: GameState, p: PlayerState, ctx: Ctx): number {
+  if (!RULES.exposePropaganda) return RULES.propagandaPoints;
+  const canStill = ctx.round < RULES.rounds || (!p.groupUsed.includes('restore') && p.available > 0);
+  return canStill ? RULES.exposePoints * BOT_BASE.exposeLater : RULES.propagandaPoints;
+}
+
 function ownBookValue(state: GameState, p: PlayerState, card: string, ctx: Ctx): number {
-  if (isPropaganda(state, card)) return ctx.curator ? BOT_BASE.curatorPropaganda : RULES.propagandaPoints;
+  if (isPropaganda(state, card)) return ctx.curator ? BOT_BASE.curatorPropaganda : heldPropagandaValue(state, p, ctx);
+  if (isExposed(state, card)) return RULES.exposePoints;
   let v = iconsOf(state, card).length * BOT_BASE.bookLatent * ctx.w.publish;
   if (isEvidence(state, card)) v += RULES.evidencePoints;
   return v;
@@ -350,7 +358,8 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   let v = p.points;
   // Финальный подсчёт.
   v += passionPoints(state, p) * w.passion;
-  v += RULES.propagandaPoints * cards.filter((c) => isPropaganda(state, c)).length;
+  v += cards.filter((c) => isPropaganda(state, c)).length * heldPropagandaValue(state, p, ctx);
+  v += RULES.exposePoints * [...cards, ...p.published].filter((c) => isExposed(state, c)).length;
   // В одиночной игре, пока цель «один Росток до IV, остальные до III» не выполнена, Улики почти не нужны:
   // их трудно хранить (опальные), а Гласности они не помогают.
   const evidenceWeight = state.solo && !soloTargetMet(state) ? BOT_BASE.soloEvidenceEarly : 1;
@@ -719,7 +728,7 @@ function groupCandidates(state: GameState, me: string, ctx: Ctx): GroupAction[] 
   if (ctx.w.network > 0) out.push({ action: 'hire' });
   out.push(...copyTextOptions(state, me));
   for (const s of p.warehouse) {
-    if (!state.restored[s.card] && ['genre', 'loadReturnable', 'loadEvidence'].includes(state.cards[s.card].kind)) out.push({ action: 'restore', card: s.card });
+    if (!state.restored[s.card] && ['genre', 'loadReturnable', 'loadEvidence', ...(RULES.exposePropaganda ? ['propaganda'] : [])].includes(state.cards[s.card].kind)) out.push({ action: 'restore', card: s.card });
   }
   const held = state.players.filter((o) => o.held > 0);
   if (held.length) out.push({ action: 'rescue', returns: Object.fromEntries(held.map((o) => [o.id, Math.min(o.held, 2)])) });
