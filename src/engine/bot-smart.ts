@@ -128,6 +128,12 @@ function reachablePropaganda(state: GameState, left: number): number {
 // Подозрение, что соперник — Куратор. Только то, что видели все: Пропаганда, открыто взятая со стола или лежащая
 // у него на виду (обычному игроку она стоит −5 очков), сданная в Красный уголок Пропаганда (Куратор её бережёт),
 // и Ростки, которые он так и не кормит.
+// Средний склад остальных игроков (кроме id): у честных склады обычно «поджарее», чем у Куратора.
+function avgCapacity(state: GameState, id: string): number {
+  const rest = state.players.filter((x) => x.id !== id);
+  return rest.reduce((s, x) => s + x.capacity, 0) / Math.max(1, rest.length);
+}
+
 export function curatorSuspicion(state: GameState, me: string): Record<string, number> {
   const out: Record<string, number> = {};
   if (state.mode !== 'full' || !state.curatorPossible) return out;
@@ -138,7 +144,8 @@ export function curatorSuspicion(state: GameState, me: string): Record<string, n
     const trust = o.sproutsFed.length ? BOT_BASE.suspectFedDiscount : 1;
     let v = trust * (BOT_BASE.suspectTaken * (o.propagandaTaken ?? 0) + BOT_BASE.suspectHolds * open
       + BOT_BASE.suspectCacheUnshown * (o.cacheUnshown ?? 0)
-      + BOT_BASE.suspectRedEager * (o.redEager ?? 0) + BOT_BASE.suspectRedEmpty * (o.redEmpty ?? 0))
+      + BOT_BASE.suspectRedEager * (o.redEager ?? 0) + BOT_BASE.suspectRedEmpty * (o.redEmpty ?? 0)
+      + BOT_BASE.suspectWarehouse * Math.max(0, o.capacity - avgCapacity(state, o.id) - BOT_BASE.suspectWarehouseFrom))
       - BOT_BASE.suspectDumped * (o.propagandaDumped ?? 0);
     if (!o.sproutsFed.length) {
       v += BOT_BASE.suspectNoFeed[Math.min(state.round, 5)] ?? 0;
