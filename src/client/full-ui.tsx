@@ -162,6 +162,11 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
   const held = view.players.filter((p) => p.held > 0);
   const targets = kontoraTargets(view);
   const count = [petition.length > 0, handout, !!signal, !!prophylaxis].filter(Boolean).length;
+  // Повод для Сигнала проверяется после уплаты цены: выбранная для Спецхрана книга уже не лежит у игрока.
+  const afterPrice = seize
+    ? { ...view, players: view.players.map((p) => (p.id === seize.player ? { ...p, warehouse: p.warehouse.filter((w) => w.card !== seize.card) } : p)) }
+    : view;
+  const signalOk = !signal || signalable(afterPrice, signal);
   const choice: KontoraChoice = {
     ...(petition.length ? { petition } : {}), ...(handout ? { handout } : {}), ...(signal ? { signal } : {}),
     ...(prophylaxis ? { prophylaxis } : {}), ...(seize ? { seize } : {}),
@@ -184,9 +189,10 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
       <label>Сигнал — удержать Единомышленника игрока:
         <select value={signal} onChange={(e) => setSignal(e.target.value)}>
           <option value="">— нет —</option>
-          {view.players.filter((p) => signalable(view, p.id)).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          {view.players.filter((p) => signalable(afterPrice, p.id) || p.id === signal).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
-        <span className="muted small"> (только на тех, у кого открыто лежит опальная книга или Пропаганда)</span>
+        <span className="muted small"> (только на тех, у кого после изъятия книги-цены открыто лежит опальная книга или Пропаганда)</span>
+        {!signalOk && <div className="small" style={{ color: 'var(--red)' }}>После изъятия выбранной книги у этого игрока не останется повода для Сигнала.</div>}
       </label>
       <label>Профилактика — удалить Завсегдатая:
         <select value={prophylaxis} onChange={(e) => setProphylaxis(e.target.value as PatronId)}>
@@ -200,7 +206,7 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
         : <TargetShelf view={view} targets={targets} selected={seize?.card} onPick={(t) => setSeize(seize?.card === t.card ? null : t)} />}
       <div className="modal-foot">
         <button onClick={() => act({ type: 'kontoraDecide', go: false })}>Передумать</button>
-        <button className="primary" disabled={count < 1 || !seize} title={!seize ? 'Выберите книгу для Спецхрана' : count < 1 ? 'Выберите хотя бы один пункт' : ''}
+        <button className="primary" disabled={count < 1 || !seize || !signalOk} title={!seize ? 'Выберите книгу для Спецхрана' : count < 1 ? 'Выберите хотя бы один пункт' : !signalOk ? 'Сигналу нет повода' : ''}
           onClick={() => act({ type: 'kontoraDecide', go: true, choice })}>Пойти в Контору ({count})</button>
       </div>
     </Modal>

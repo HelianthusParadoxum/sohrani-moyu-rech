@@ -168,11 +168,6 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
       log(state, `Ходатайство: ${o.name} получает Единомышленника обратно.`);
     }
   }
-  if (c.signal) {
-    const o = player(state, c.signal);
-    check(signalable(state, o.id), `Сигнал — только на того, у кого открыто лежит опальная книга или Пропаганда: у ${o.name} таких нет`);
-    holdWorker(state, o, `сигнал от ${p.name}`);
-  }
   if (c.prophylaxis) removePatron(state, c.prophylaxis);
   if (c.seize) {
     const o = player(state, c.seize.player);
@@ -182,6 +177,12 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
     removeBook(o, s.card);
     state.spetskhran.push(s.card);
     log(state, `По доносу из Конторы у ${o.name} изъята в Спецхран ${title(state, s.card)}.`);
+  }
+  // Сигнал проверяется уже после уплаты цены: если изъяли последнюю открытую опальную книгу — повода больше нет.
+  if (c.signal) {
+    const o = player(state, c.signal);
+    check(signalable(state, o.id), `Сигнал — только на того, у кого (после изъятия книги-цены) открыто лежит опальная книга или Пропаганда: у ${o.name} таких нет`);
+    holdWorker(state, o, `сигнал от ${p.name}`);
   }
   if (c.handout) {
     const cards = [...state.spetskhran];

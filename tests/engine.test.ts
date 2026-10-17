@@ -296,6 +296,12 @@ describe('полный режим', () => {
       t.players.find((x) => x.id === clean)!.warehouse.push({ card: prop, hidden: false });
       expect(() => applyAction(t, me, { type: 'kontoraDecide', go: true, choice: { signal: clean, seize: { player: other, card: book } } })).not.toThrow();
     }
+    // Повод для Сигнала проверяется после уплаты цены: изъяли единственную открытую опальную книгу — Сигнала нет.
+    expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: other, seize: { player: other, card: book } } }))
+      .toThrow(/после изъятия/);
+    const book2 = s.deck.find((c) => c !== book && s.cards[c].kind === 'genre' && s.cards[c].icons.some((g) => s.banned.includes(g)))!;
+    s.deck = s.deck.filter((c) => c !== book2);
+    s.players.find((x) => x.id === other)!.warehouse.push({ card: book2, hidden: false });
     const before = s.players.find((x) => x.id === other)!.available;
     s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { signal: other, seize: { player: other, card: book } } });
     const o = s.players.find((x) => x.id === other)!;
