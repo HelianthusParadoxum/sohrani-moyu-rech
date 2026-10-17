@@ -444,16 +444,20 @@ function cloneLight(state: GameState): GameState {
 }
 
 // Копия партии, в которой закрытые карты перемешаны: бот знает состав стопок, но не порядок.
-// Книги Барахолки, которые бот уже посмотрел, он помнит — они остаются на местах.
+// Книги Барахолки, которые бот уже посмотрел, он помнит — они остаются на местах. Так же и Спецхран:
+// известны книги, изъятые при всех, и виденные при Выдаче на руки; остальные там — любые из закрытых.
 function determinize(state: GameState, rand: Rand, me: string): GameState {
   const s = cloneLight(state);
   const looking = s.pending.some((x) => x.kind === 'baraholkaLook');
   const known = new Set(s.baraholkaSeen?.[me] ?? []);
   const hidden = (c: string | null, i: number) => !!c && !looking && !known.has(i);
+  const seenSpets = new Set(s.spetskhranSeen?.[me] ?? []);
+  const unknownSpets = s.spetskhran.filter((c) => !seenSpets.has(c));
   // Сортируем перед перемешиванием, чтобы настоящий порядок карт никак не влиял на решение.
-  const pool = [...s.deck, ...s.baraholka.filter((c, i): c is string => hidden(c, i))].sort();
+  const pool = [...s.deck, ...s.baraholka.filter((c, i): c is string => hidden(c, i)), ...unknownSpets].sort();
   shuffleWith(pool, rand);
   s.baraholka = s.baraholka.map((c, i) => (hidden(c, i) ? pool.pop()! : c));
+  s.spetskhran = [...s.spetskhran.filter((c) => seenSpets.has(c)), ...unknownSpets.map(() => pool.pop()!)];
   s.deck = pool;
   s.loadDeck = shuffleWith([...s.loadDeck].sort(), rand);
   s.rng = Math.floor(rand() * 2 ** 31);
@@ -974,7 +978,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       for (const a of addrs) {
         switch (a) {
           case 'gostorg':
-            for (let n = 1; n <= Math.min(3, Math.floor(freeSlots(p) / 2), hasPatron(state, me, 'zavmag') ? 3 : p.talons); n++) out.push({ type: 'place', place: { address: 'gostorg', pairs: n } });
+            for (let n = 1; n <= Math.min(BOT_BASE.gostorgMaxPairs, Math.floor(freeSlots(p) / 2), hasPatron(state, me, 'zavmag') ? 3 : p.talons); n++) out.push({ type: 'place', place: { address: 'gostorg', pairs: n } });
             break;
           case 'tolkuchka': {
             const sellable = genreBooks.filter((b) => !isEvidence(state, b));

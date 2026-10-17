@@ -2,7 +2,7 @@
 import { activePlayers } from './engine';
 import type { GameState, Pending, PlayerState } from './types';
 
-export interface PlayerView extends Omit<GameState, 'rng' | 'seed' | 'deck' | 'discard' | 'loadDeck' | 'loadDiscard' | 'baraholka' | 'baraholkaSeen' | 'players' | 'pending' | 'spetskhran'> {
+export interface PlayerView extends Omit<GameState, 'rng' | 'seed' | 'deck' | 'discard' | 'loadDeck' | 'loadDiscard' | 'baraholka' | 'baraholkaSeen' | 'players' | 'pending' | 'spetskhran' | 'spetskhranSeen'> {
   spetskhranCount: number;
   me: string | null;
   active: string[];
@@ -23,7 +23,7 @@ export interface PlayerView extends Omit<GameState, 'rng' | 'seed' | 'deck' | 'd
 // omniscient — видно всё (хост наблюдает за партией ботов со стороны).
 export function viewFor(state: GameState, me: string | null, omniscient = false): PlayerView {
   const ended = state.phase === 'end' || omniscient;
-  const { rng, seed, deck, discard, loadDeck, loadDiscard, baraholka, baraholkaSeen, players, pending, log, spetskhran, ...rest } = state;
+  const { rng, seed, deck, discard, loadDeck, loadDiscard, baraholka, baraholkaSeen, players, pending, log, spetskhran, spetskhranSeen, ...rest } = state;
   // Пока выбирают Пристрастия, стол ещё не открыт: видны только свои стартовые книги.
   const closedTable = state.phase === 'passion' && !omniscient;
   return {

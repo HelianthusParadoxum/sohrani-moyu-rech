@@ -277,3 +277,21 @@ export function gain(p: PlayerState, n: number, source: PointSource) {
   p.points += n;
   p.pointsBy[source] = (p.pointsBy[source] ?? 0) + n;
 }
+
+// Книги уходят в Спецхран при всех (изъятие по доносу или при облаве) — их знает каждый.
+export function toSpetskhranPublic(state: GameState, cards: string[]) {
+  state.spetskhran.push(...cards);
+  state.spetskhranSeen ??= {};
+  for (const p of state.players) state.spetskhranSeen[p.id] = [...(state.spetskhranSeen[p.id] ?? []), ...cards];
+}
+
+// Игрок увидел книги Спецхрана (Выдача на руки).
+export function seeSpetskhran(state: GameState, playerId: string, cards: string[]) {
+  state.spetskhranSeen ??= {};
+  state.spetskhranSeen[playerId] = [...new Set([...(state.spetskhranSeen[playerId] ?? []), ...cards])];
+}
+
+// Книга покинула Спецхран — помнить её там больше незачем.
+export function forgetSpetskhran(state: GameState, card: string) {
+  for (const id of Object.keys(state.spetskhranSeen ?? {})) state.spetskhranSeen![id] = state.spetskhranSeen![id].filter((c) => c !== card);
+}

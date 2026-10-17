@@ -5,6 +5,7 @@ import { GENRES } from './types';
 import {
   addBook, addSecretBook, check, discard, drawLoad, earn, freeSlots, hasBook, hasPatron, iconsOf, isBanned, isGenreBook, isPropaganda, log, pay, player,
   removeBook, shuffle, talonsText, title,
+  forgetSpetskhran, seeSpetskhran, toSpetskhranPublic,
 } from './util';
 
 export const isFull = (state: GameState) => state.mode === 'full';
@@ -176,7 +177,7 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
     check(s && !s.hidden && !s.memorized, 'Изъять можно только открыто лежащую на складе книгу');
     check(isGenreBook(state, s.card) && isBanned(state, s.card), 'Изъять можно только книгу опального жанра');
     removeBook(o, s.card);
-    state.spetskhran.push(s.card);
+    toSpetskhranPublic(state, [s.card]);
     log(state, `По доносу из Конторы у ${o.name} изъята в Спецхран ${title(state, s.card)}.`);
   }
   // Сигнал проверяется уже после уплаты цены: если изъяли последнюю открытую опальную книгу — повода больше нет.
@@ -187,7 +188,10 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
   }
   if (c.handout) {
     const cards = [...state.spetskhran];
-    if (cards.length && freeSlots(p) > 0) state.pending.push({ kind: 'kontoraHandout', player: p.id, cards });
+    if (cards.length && freeSlots(p) > 0) {
+      state.pending.push({ kind: 'kontoraHandout', player: p.id, cards });
+      seeSpetskhran(state, p.id, cards);
+    }
     else log(state, `${p.name}: Выдача на руки — брать нечего или некуда.`);
   }
 }
@@ -195,6 +199,7 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
 export function takeFromSpetskhran(state: GameState, p: PlayerState, card: string) {
   check(state.spetskhran.includes(card), 'Этой книги нет в Спецхране');
   state.spetskhran = state.spetskhran.filter((c) => c !== card);
+  forgetSpetskhran(state, card);
   addSecretBook(state, p, card);
   log(state, `${p.name} получает книгу из Спецхрана (Выдача на руки).`);
   log(state, `Вы получили ${title(state, card)}.`, [p.id]);

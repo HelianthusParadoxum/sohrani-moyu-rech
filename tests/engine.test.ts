@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { applyAction, createGame, startHide } from '../src/engine/engine';
 import { playOut } from '../src/engine/bot';
 import { gainedInfo, viewFor } from '../src/engine/view';
-import { RuleError, cacheLimit, coversStep, iconsOf, isBanned, isEvidence, isLoad } from '../src/engine/util';
+import { RuleError, cacheLimit, coversStep, iconsOf, isBanned, isEvidence, isLoad, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
 import { finalScoring, passionPoints } from '../src/engine/scoring';
 import { PASSIONS, RULES, SPROUTS, limitFor } from '../src/engine/content';
 import type { GameState, Genre, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
-import { proseBonus, removePatron } from '../src/engine/full';
+import { proseBonus, removePatron, takeFromSpetskhran } from '../src/engine/full';
 
 // Действие и сразу «Закончить ход».
 function act(s: GameState, who: string, a: Parameters<typeof applyAction>[2]): GameState {
@@ -124,6 +124,24 @@ describe('правила редакции октября', () => {
     expect(s.baraholka[3]).toBeNull();
     expect(s.baraholka[1]).toBe(a); // вторая просмотренная книга остаётся на Барахолке
     expect(s.pending).toHaveLength(0);
+  });
+
+  it('Спецхран: изъятое при всех знают все, Выдачу на руки — только взявший; взятую книгу забывают', () => {
+    let s = createGame({ players: players(3), seed: 4, mode: 'full' });
+    expect(Object.values(s.spetskhranSeen ?? {}).flat()).toEqual([]);
+    const [p1, p2] = s.players;
+    const card = s.deck[0];
+    toSpetskhranPublic(s, [card]);
+    expect(s.spetskhranSeen![p2.id]).toContain(card);
+    s.pending = [];
+    s.phase = 'orders';
+    seeSpetskhran(s, p1.id, [...s.spetskhran]);
+    expect(s.spetskhranSeen![p1.id]).toEqual(expect.arrayContaining(s.spetskhran));
+    expect(s.spetskhranSeen![p2.id]).toEqual([card]);
+    expect(viewFor(s, p2.id)).not.toHaveProperty('spetskhranSeen');
+    takeFromSpetskhran(s, p1, card);
+    expect(s.spetskhranSeen![p1.id]).not.toContain(card);
+    expect(s.spetskhranSeen![p2.id]).toEqual([]);
   });
 
   it('Барахолка: игрок помнит увиденные книги, соперник — нет', () => {

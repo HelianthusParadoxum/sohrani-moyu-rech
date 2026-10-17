@@ -16,7 +16,7 @@ import { GENRES } from './types';
 import {
   addBook, addOpenBook, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
-  talonsText, title,
+  talonsText, title, toSpetskhranPublic,
 } from './util';
 
 export interface NewGameOptions {
@@ -44,7 +44,7 @@ export function createGame(opts: NewGameOptions): GameState {
     deck: [], discard: [], loadDeck: [], loadDiscard: [],
     tolkuchka: [], razval: [], baraholka: [], baraholkaSeen: {}, knigoobmen: [], raspredelitel: [],
     safehouses: [], safehouseDeck: [], occupancy: {},
-    sprouts: [], patrons: [], spetskhran: [], pending: [], ready: [], log: [],
+    sprouts: [], patrons: [], spetskhran: [], spetskhranSeen: {}, pending: [], ready: [], log: [],
   };
   if (solo) state.solo = true;
   if (opts.reserve) state.reserve = true;
@@ -507,7 +507,7 @@ function raid(state: GameState) {
     const seized = p.warehouse.filter((s) => !s.hidden && !s.memorized && isBanned(state, s.card));
     if (!seized.length) continue;
     p.warehouse = p.warehouse.filter((s) => !seized.includes(s));
-    state.spetskhran.push(...seized.map((s) => s.card));
+    toSpetskhranPublic(state, seized.map((s) => s.card));
     log(state, `У ${p.name} изъято в Спецхран: ${seized.map((s) => title(state, s.card)).join(', ')}.`);
     if (isFull(state)) holdWorker(state, p, 'изъятие при облаве');
   }
@@ -1343,6 +1343,7 @@ export type { AddressId, Genre, PassionId };
 export function migrate(state: GameState): GameState {
   state.patrons ??= [];
   state.spetskhran ??= [];
+  state.spetskhranSeen ??= {};
   state.baraholkaSeen ??= {};
   for (const p of state.players as (PlayerState & { spetskhran?: string[] })[]) {
     if (p.spetskhran) { state.spetskhran.push(...p.spetskhran); delete p.spetskhran; }

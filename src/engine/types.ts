@@ -181,6 +181,7 @@ export interface GameState {
   sprouts: Sprout[];
   patrons: PatronState[];
   spetskhran: string[]; // Спецхран Конторы — общий, лежит взакрытую
+  spetskhranSeen?: Record<string, string[]>; // какие книги Спецхрана игрок знает (изъятые при всех или виденные при Выдаче на руки)
   solo?: boolean; // «Несистемный»: одиночная игра
   reserve?: boolean; // «Заповедник»: полный режим без Конторы и Куратора
   sproutRound?: Record<string, string[]>; // кто в эту Пятилетку закрывал ступени каждого Ростка (места Ростка)

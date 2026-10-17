@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyAction, createGame } from '../src/engine/engine';
+import { activePlayers as activePlayersOf, applyAction, createGame } from '../src/engine/engine';
 import { botMove, playOut } from '../src/engine/bot';
 import { curatorSuspicion, effectiveCuratorStyle, rankActions } from '../src/engine/bot-smart';
 import { BOT_GOALS, BOT_PRESETS, CURATOR_STYLES, curatorStyle, curatorStyleNote, presetById } from '../src/engine/bot-presets';
@@ -102,6 +102,43 @@ describe('думающий бот', () => {
       expect(ra.map((r) => r.a)).toEqual(rb.map((r) => r.a));
     }
   }, 60_000);
+
+  it('не подглядывает в Спецхран: знает только изъятое при всех и виденное при Выдаче на руки', () => {
+    const preset = presetById('bookman');
+    let checked = 0;
+    for (let seed = 1; seed <= 6 && checked < 2; seed++) {
+      let a = createGame({ players: players(3), seed, mode: 'full', curator: true });
+      const me = a.order[0];
+      for (const p of a.players) {
+        const passion = p.id === me ? 'curator' : p.passionOptions.find((x) => x !== 'curator')!;
+        if (!p.passionOptions.includes(passion)) p.passionOptions = [passion, p.passionOptions[0]];
+        a = applyAction(a, p.id, { type: 'choosePassion', passion });
+      }
+      a = startOrders(a);
+      const rand = seeded(seed);
+      // Доигрываем до хода Куратора, когда ему доступна Контора.
+      for (let i = 0; i < 400 && a.phase !== 'end'; i++) {
+        const who = a.pending[0]?.player ?? (a.phase === 'orders' ? a.order[a.turn] : null);
+        if (who === me && a.phase === 'orders' && !a.pending.length && !a.turnDone
+          && rankActions(a, me, preset, seeded(1)).some((r) => r.a.type === 'place' && r.a.place.address === 'kontora')) break;
+        a = botMove(a, activePlayersOf(a)[0], rand);
+      }
+      if (a.phase !== 'orders' || a.order[a.turn] !== me) continue;
+      // В одном варианте вся Пропаганда из стопки — в незнакомой ему части Спецхрана, в другом её там нет.
+      // Куратору это очень важно (Выдача на руки), но знать этого он не может.
+      const known = a.spetskhranSeen?.[me] ?? [];
+      const unknown = a.spetskhran.filter((c) => !known.includes(c));
+      const prop = a.deck.filter((c) => a.cards[c].kind === 'propaganda').slice(0, unknown.length);
+      if (!prop.length) continue;
+      const b: GameState = structuredClone(a);
+      const out = unknown.slice(0, prop.length);
+      a.deck = [...a.deck.filter((c) => !prop.includes(c)), ...out];
+      a.spetskhran = [...a.spetskhran.filter((c) => !out.includes(c)), ...prop];
+      expect(rankActions(a, me, preset, seeded(5)).map((r) => r.a)).toEqual(rankActions(b, me, preset, seeded(5)).map((r) => r.a));
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(0);
+  }, 120_000);
 
   it('играет лучше случайного бота', () => {
     let smart = 0;
