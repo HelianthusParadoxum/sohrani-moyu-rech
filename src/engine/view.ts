@@ -2,7 +2,7 @@
 import { activePlayers } from './engine';
 import type { GameState, Pending, PlayerState } from './types';
 
-export interface PlayerView extends Omit<GameState, 'rng' | 'seed' | 'deck' | 'discard' | 'loadDeck' | 'loadDiscard' | 'baraholka' | 'players' | 'pending' | 'spetskhran'> {
+export interface PlayerView extends Omit<GameState, 'rng' | 'seed' | 'deck' | 'discard' | 'loadDeck' | 'loadDiscard' | 'baraholka' | 'baraholkaSeen' | 'players' | 'pending' | 'spetskhran'> {
   spetskhranCount: number;
   me: string | null;
   active: string[];
@@ -11,6 +11,7 @@ export interface PlayerView extends Omit<GameState, 'rng' | 'seed' | 'deck' | 'd
   loadDeckCount: number;
   loadDiscardCount: number;
   baraholka: boolean[]; // есть ли книга в ячейке
+  baraholkaKnown: (string | null)[]; // книги Барахолки, которые этот игрок уже посмотрел
   players: (Omit<PlayerState, 'warehouse' | 'passion' | 'passionOptions'> & {
     warehouse: { card: string | null; hidden: boolean; memorized?: boolean }[];
     passion: PlayerState['passion'];
@@ -22,7 +23,7 @@ export interface PlayerView extends Omit<GameState, 'rng' | 'seed' | 'deck' | 'd
 // omniscient — видно всё (хост наблюдает за партией ботов со стороны).
 export function viewFor(state: GameState, me: string | null, omniscient = false): PlayerView {
   const ended = state.phase === 'end' || omniscient;
-  const { rng, seed, deck, discard, loadDeck, loadDiscard, baraholka, players, pending, log, spetskhran, ...rest } = state;
+  const { rng, seed, deck, discard, loadDeck, loadDiscard, baraholka, baraholkaSeen, players, pending, log, spetskhran, ...rest } = state;
   // Пока выбирают Пристрастия, стол ещё не открыт: видны только свои стартовые книги.
   const closedTable = state.phase === 'passion' && !omniscient;
   return {
@@ -39,6 +40,7 @@ export function viewFor(state: GameState, me: string | null, omniscient = false)
     loadDeckCount: loadDeck.length,
     loadDiscardCount: loadDiscard.length,
     baraholka: baraholka.map((c) => !closedTable && c !== null),
+    baraholkaKnown: baraholka.map((c, i) => (me !== null && !closedTable && baraholkaSeen?.[me]?.includes(i) ? c : null)),
     players: players.map((p) => {
       const own = p.id === me || ended;
       // До раскладки Тайников в начале партии чужие стартовые книги не видны совсем.

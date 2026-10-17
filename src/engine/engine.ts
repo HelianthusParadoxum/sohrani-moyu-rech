@@ -42,7 +42,7 @@ export function createGame(opts: NewGameOptions): GameState {
     banned: [], order: [], turn: 0, nextOrder: [],
     players: [],
     deck: [], discard: [], loadDeck: [], loadDiscard: [],
-    tolkuchka: [], razval: [], baraholka: [], knigoobmen: [], raspredelitel: [],
+    tolkuchka: [], razval: [], baraholka: [], baraholkaSeen: {}, knigoobmen: [], raspredelitel: [],
     safehouses: [], safehouseDeck: [], occupancy: {},
     sprouts: [], patrons: [], spetskhran: [], pending: [], ready: [], log: [],
   };
@@ -316,6 +316,7 @@ function refreshChannels(state: GameState, first: boolean) {
     fillRazval(state);
     for (const c of state.baraholka) if (c) discard(state, c);
     state.baraholka = Array.from({ length: RULES.displaySize }, () => draw(state));
+    state.baraholkaSeen = {};
   }
   if (state.safehouses.includes('knigoobmen')) {
     state.knigoobmen.forEach((c) => discard(state, c));
@@ -783,6 +784,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         return { slot, card };
       });
       state.pending.push({ kind: 'baraholkaLook', player: p.id, seen });
+      rememberBaraholka(state, p.id, slots);
       log(state, `${p.name} роется на Барахолке.`);
       return;
     }
@@ -1108,6 +1110,12 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
 
 // ---------- Отложенные решения ----------
 
+// Игрок помнит, какие книги Барахолки он уже видел (до её обновления или покупки этой книги).
+function rememberBaraholka(state: GameState, playerId: string, slots: number[]) {
+  state.baraholkaSeen ??= {};
+  state.baraholkaSeen[playerId] = [...new Set([...(state.baraholkaSeen[playerId] ?? []), ...slots])];
+}
+
 function resolvePending(state: GameState, p: PlayerState, action: Action) {
   const pend = state.pending[0];
   switch (pend.kind) {
@@ -1123,6 +1131,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         const cost = veteran && bought === 1 ? 0 : bought === 0 ? price(state, p, RULES.baraholkaPrice) : RULES.baraholkaPrice;
         pay(p, cost);
         state.baraholka[slot] = null;
+        for (const id of Object.keys(state.baraholkaSeen ?? {})) state.baraholkaSeen![id] = state.baraholkaSeen![id].filter((x) => x !== slot);
         addSecretBook(state, p, card);
         pend.seen.splice(i, 1);
         pend.bought = bought + 1;
@@ -1134,6 +1143,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         const card = state.baraholka[action.next];
         check(card && !pend.seen.some((x) => x.slot === action.next), 'Эту книгу нельзя посмотреть');
         pend.seen.push({ slot: action.next, card });
+        rememberBaraholka(state, p.id, [action.next]);
       }
       // Ветеран покупает сколько угодно книг: решение закрывается, только когда он заканчивает.
       if (veteran && (action.slot !== undefined || action.next !== undefined)) return;
@@ -1333,6 +1343,7 @@ export type { AddressId, Genre, PassionId };
 export function migrate(state: GameState): GameState {
   state.patrons ??= [];
   state.spetskhran ??= [];
+  state.baraholkaSeen ??= {};
   for (const p of state.players as (PlayerState & { spetskhran?: string[] })[]) {
     if (p.spetskhran) { state.spetskhran.push(...p.spetskhran); delete p.spetskhran; }
     p.held ??= 0;

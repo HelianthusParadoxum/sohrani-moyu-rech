@@ -126,6 +126,24 @@ describe('правила редакции октября', () => {
     expect(s.pending).toHaveLength(0);
   });
 
+  it('Барахолка: игрок помнит увиденные книги, соперник — нет', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    const [a, b] = [s.baraholka[1]!, s.baraholka[3]!];
+    s = applyAction(s, me, { type: 'place', place: { address: 'baraholka', slots: [1, 3] } });
+    s = act(s, me, { type: 'baraholkaBuy' });
+    expect(viewFor(s, me).baraholkaKnown).toEqual([null, a, null, b]);
+    const other = s.order[s.turn];
+    expect(other).not.toBe(me);
+    expect(viewFor(s, other)).not.toHaveProperty('baraholkaSeen');
+    expect(viewFor(s, other).baraholkaKnown.every((c) => c === null)).toBe(true);
+    // Купленную книгу забывают все; обновление Барахолки стирает память.
+    s = applyAction(s, other, { type: 'place', place: { address: 'baraholka', slots: [0, 3] } });
+    s = act(s, other, { type: 'baraholkaBuy', slot: 3 });
+    expect(viewFor(s, me).baraholkaKnown).toEqual([null, a, null, null]);
+    expect(viewFor(s, other).baraholkaKnown[0]).toBe(s.baraholka[0]);
+  });
+
   it('Толкучка: покупка — 2 Талона за книгу независимо от значков', () => {
     const s = started();
     const me = s.order[s.turn];

@@ -271,12 +271,12 @@ function strength(state: GameState, o: PlayerState, left: number): number {
 }
 
 // Ресурсы, которые ценны при любой роли.
-function resources(state: GameState, p: PlayerState, ctx: Ctx): number {
+function resources(state: GameState, p: PlayerState, ctx: Ctx, talonShare = 1): number {
   const left = RULES.rounds - ctx.round;
   const w = ctx.w;
-  let v = p.talons * ctx.talon * w.talons;
+  let v = p.talons * ctx.talon * w.talons * talonShare;
   const reserve = ctx.preset.character.reserve;
-  if (p.talons < reserve) v -= (reserve - p.talons) * ctx.talon;
+  if (p.talons < reserve) v -= (reserve - p.talons) * ctx.talon * talonShare;
   v += (p.workers - p.held) * left * BOT_BASE.action * w.network;
   v += (p.available + p.bonusGroupTurns * 0.7) * BOT_BASE.action;
   v += (p.capacity * (BOT_BASE.capacity[ctx.round - 1] ?? 0) + p.cache * (BOT_BASE.cache[ctx.round - 1] ?? 0)) * w.storage;
@@ -294,7 +294,11 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   const attack = style.attack[r];
   const conceal = style.conceal[r];
   const others = state.players.filter((o) => o.id !== p.id);
-  let v = resources(state, p, ctx);
+  // Очки Куратору не нужны: Талоны — лишь средство добыть Пропаганду. В последней Пятилетке они дешевеют,
+  // а когда ходить больше нечем — не стоят ничего.
+  const last = ctx.round >= RULES.rounds;
+  const talonShare = last && p.available + p.bonusGroupTurns <= 0 ? 0 : BOT_BASE.curatorTalonByRound[r] ?? 1;
+  let v = resources(state, p, ctx, talonShare);
   const prog = state.sprouts.map((sp) => Math.min(sp.progress, RULES.glasnostStep));
   v -= BOT_BASE.curatorStep * prog.reduce((a, b) => a + b, 0) + BOT_BASE.curatorWeakest * Math.min(...prog);
   v += BOT_BASE.curatorPropaganda * p.warehouse.filter((s) => isPropaganda(state, s.card)).length;
@@ -440,13 +444,16 @@ function cloneLight(state: GameState): GameState {
 }
 
 // Копия партии, в которой закрытые карты перемешаны: бот знает состав стопок, но не порядок.
-function determinize(state: GameState, rand: Rand): GameState {
+// Книги Барахолки, которые бот уже посмотрел, он помнит — они остаются на местах.
+function determinize(state: GameState, rand: Rand, me: string): GameState {
   const s = cloneLight(state);
   const looking = s.pending.some((x) => x.kind === 'baraholkaLook');
+  const known = new Set(s.baraholkaSeen?.[me] ?? []);
+  const hidden = (c: string | null, i: number) => !!c && !looking && !known.has(i);
   // Сортируем перед перемешиванием, чтобы настоящий порядок карт никак не влиял на решение.
-  const pool = [...s.deck, ...(looking ? [] : s.baraholka.filter((c): c is string => !!c))].sort();
+  const pool = [...s.deck, ...s.baraholka.filter((c, i): c is string => hidden(c, i))].sort();
   shuffleWith(pool, rand);
-  if (!looking) s.baraholka = s.baraholka.map((c) => (c ? pool.pop()! : null));
+  s.baraholka = s.baraholka.map((c, i) => (hidden(c, i) ? pool.pop()! : c));
   s.deck = pool;
   s.loadDeck = shuffleWith([...s.loadDeck].sort(), rand);
   s.rng = Math.floor(rand() * 2 ** 31);
@@ -527,7 +534,7 @@ export function rankActions(state: GameState, me: string, preset: BotPreset, ran
     cands = cands.filter((a) => !(a.type === 'place' && a.place.address === 'sprouts'));
     if (!cands.length) return [];
   }
-  const samples = Array.from({ length: SAMPLES }, () => determinize(state, rand));
+  const samples = Array.from({ length: SAMPLES }, () => determinize(state, rand, me));
   // В свой ход — сначала спрятать в Тайник самое ценное из опального: потом (Контора, облава) будет поздно.
   const rehide = rehideAction(state, me, ctx);
   if (rehide) return [{ a: rehide, v: 0 }];
@@ -983,9 +990,18 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
           case 'razval': state.razval.forEach((c, slot) => c && out.push({ type: 'place', place: { address: 'razval', slot } })); break;
           case 'zavoz': out.push({ type: 'place', place: { address: 'zavoz' } }); break;
           case 'baraholka': {
-            // Закрытые книги для бота одинаковы: смотрит первые попавшиеся.
-            const slots = state.baraholka.map((c, i) => (c ? i : -1)).filter((i) => i >= 0).slice(0, RULES.baraholkaLook);
-            if (slots.length) out.push({ type: 'place', place: { address: 'baraholka', slots } });
+            // Незнакомые закрытые книги для бота одинаковы: смотрит сначала те, что ещё не видел.
+            // Уже виденную книгу можно взять «наверняка», досмотрев к ней незнакомую.
+            const known = state.baraholkaSeen?.[me] ?? [];
+            const filled = state.baraholka.map((c, i) => (c ? i : -1)).filter((i) => i >= 0);
+            const fresh = [...filled.filter((i) => !known.includes(i)), ...filled.filter((i) => known.includes(i))];
+            const need = Math.min(RULES.baraholkaLook, filled.length);
+            const sets = [fresh.slice(0, need), ...known.filter((i) => filled.includes(i)).map((k) => [k, ...fresh.filter((i) => i !== k)].slice(0, need))];
+            const seenSets = new Set<string>();
+            for (const slots of sets) {
+              const key = [...slots].sort().join(',');
+              if (slots.length && !seenSets.has(key)) { seenSets.add(key); out.push({ type: 'place', place: { address: 'baraholka', slots } }); }
+            }
             break;
           }
           case 'podpiska':

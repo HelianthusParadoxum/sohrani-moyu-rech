@@ -241,7 +241,7 @@ function AddressContents({ id, view, seatIndex }: { id: AddressId; view: PlayerV
     case 'razval':
       return <div className="shelf wrap">{view.razval.map((c, i) => c ? <Book key={i} v={view} id={c} small price={RULES.razvalPrices[i]} /> : <div key={i} className="book empty small" />)}</div>;
     case 'baraholka':
-      return <div className="shelf wrap">{view.baraholka.map((has, i) => has ? <Book key={i} v={view} id={null} small /> : <div key={i} className="book empty small" />)}</div>;
+      return <div className="shelf wrap">{view.baraholka.map((has, i) => has ? <Book key={i} v={view} id={view.baraholkaKnown?.[i] ?? null} small note={view.baraholkaKnown?.[i] ? 'вы видели' : undefined} /> : <div key={i} className="book empty small" />)}</div>;
     case 'knigoobmen':
       return <div className="shelf wrap">{view.knigoobmen.map((c) => <Book key={c} v={view} id={c} small />)}{emptySlots(RULES.displaySize - view.knigoobmen.length)}</div>;
     case 'raspredelitel':
@@ -358,10 +358,12 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
       const pick = (i: string) => setSel(sel.includes(i) ? sel.filter((x) => x !== i) : [...sel, i].slice(-need));
       body = (
         <>
-          <p>Выберите {need === 1 ? 'закрытую книгу' : `${need} закрытые книги`}. Вы тайно посмотрите их и сможете купить одну за {RULES.baraholkaPrice}т.</p>
+          <p>Выберите {need === 1 ? 'закрытую книгу' : `${need} закрытые книги`}. Вы тайно посмотрите их и сможете купить одну за {RULES.baraholkaPrice}т.
+            {view.baraholkaKnown?.some(Boolean) && ' Открытые — те, что вы уже видели.'}</p>
           <div className="shelf">
-            {view.baraholka.map((has, i) => has && (
-              <button key={i} className={`book back ${sel.includes(String(i)) ? 'selected' : ''} clickable`} onClick={() => pick(String(i))}><span>{i + 1}</span></button>
+            {view.baraholka.map((has, i) => has && (view.baraholkaKnown?.[i]
+              ? <Book key={i} v={view} id={view.baraholkaKnown[i]} selected={sel.includes(String(i))} onClick={() => pick(String(i))} note="вы видели" />
+              : <button key={i} className={`book back ${sel.includes(String(i)) ? 'selected' : ''} clickable`} onClick={() => pick(String(i))}><span>{i + 1}</span></button>
             ))}
           </div>
           {confirmBtn('Посмотреть', sel.length === need ? { address: 'baraholka', slots: sel.map(Number) } : null)}

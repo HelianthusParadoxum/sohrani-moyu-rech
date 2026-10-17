@@ -172,6 +172,7 @@ export interface GameState {
   tolkuchka: string[]; // [0] — самая давняя
   razval: (string | null)[]; // [0] — самая свежая
   baraholka: (string | null)[];
+  baraholkaSeen?: Record<string, number[]>; // какие ячейки Барахолки игрок уже посмотрел (тайно; пока там та же книга)
   knigoobmen: string[];
   raspredelitel: string[];
   safehouses: AddressId[]; // выложенные явочные адреса
