@@ -321,11 +321,6 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   if (pos >= 0 && ctx.round < RULES.rounds) v += BOT_BASE.curatorTurnOrder * attack * (state.players.length - pos) / state.players.length;
   // Маскировка и «отжим» Талонов.
   v -= conceal * BOT_BASE.curatorConceal * exposed;
-  // Маскировка на Посиделках: всё, что лежит в Тайнике и что нельзя показать (Пропаганда), честные засчитают против него.
-  if (conceal > 0 && state.phase === 'orders') {
-    const unshowable = p.warehouse.filter((s) => s.hidden && !s.memorized && !showable(state, s.card)).length;
-    v -= conceal * BOT_BASE.curatorConceal * BOT_BASE.suspectCacheUnshown * unshowable;
-  }
   v -= style.squeeze[r] * ctx.talon * others.reduce((s, o) => s + o.talons, 0) / Math.max(1, others.length);
   if (state.phase !== 'end' && state.phase !== 'passion') {
     const risky = atRisk(state, p, (c) => ownBookValue(state, p, c, ctx), true);
@@ -847,33 +842,10 @@ function hideList(state: GameState, me: string, ctx: Ctx, keep: Map<string, numb
   return byValue(keep, banned).reverse().slice(0, limit);
 }
 
-// Можно ли показать книгу на Посиделках (опальная жанровая, Улика; в полном режиме — Драматургия).
-function showable(state: GameState, card: string): boolean {
-  if (state.mode === 'full' && iconsOf(state, card).includes('drama')) return true;
-  return (isGenreBook(state, card) || isEvidence(state, card)) && isBanned(state, card);
-}
-
 // Пересобрать Тайник в свой ход: опальные книги — по ценности, остальное место — тому, что уже лежит в Тайнике.
 function rehideAction(state: GameState, me: string, ctx: Ctx): Action | null {
   if (state.phase !== 'orders' || state.pending.length) return null;
   const p = player(state, me);
-  // Маскирующийся Куратор: Пропаганда в Тайнике выдаст его на Посиделках (её не покажешь), а на виду — тоже подозрительна.
-  // Сравнивает оба расклада Тайника (с Пропагандой и без) и берёт менее подозрительный.
-  if (ctx.curator && CURATOR_STYLES[ctx.style ?? 'open'].conceal[ctx.round - 1] > 0) {
-    const keep = keepValues(state, me, ctx);
-    const limit = cacheLimit(state, p);
-    const withProp = hideList(state, me, ctx, keep).slice(0, limit);
-    const noProp = byValue(keep, p.warehouse.filter((w) => !w.memorized && showable(state, w.card)).map((w) => w.card)).reverse().slice(0, limit);
-    const score = (hidden: string[]) => {
-      const t = cloneLight(state);
-      for (const w of player(t, me).warehouse) w.hidden = hidden.includes(w.card);
-      return evaluate(t, me, ctx);
-    };
-    const best = score(noProp) > score(withProp) ? noProp : withProp;
-    const now = p.warehouse.filter((w) => w.hidden).map((w) => w.card);
-    if (best.length === now.length && best.every((c) => now.includes(c))) return null;
-    return { type: 'hiding', hidden: best };
-  }
   const open = p.warehouse.some((s) => !s.hidden && !s.memorized && isBanned(state, s.card) && (ctx.curator || !isPropaganda(state, s.card)));
   if (!open) return null;
   const want = hideList(state, me, ctx, keepValues(state, me, ctx));
