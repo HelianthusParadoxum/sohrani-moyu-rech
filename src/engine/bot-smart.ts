@@ -345,8 +345,11 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   // Насколько он уже на подозрении у честных (смотрит на себя их глазами).
   const exposed = Math.max(0, ...state.players.filter((o) => o.id !== p.id).map((o) => curatorSuspicion(state, o.id)[p.id] ?? 0));
   const attack = style.attack[r];
-  // После поручений последней Пятилетки скрываться уже незачем — маска ничего не стоит.
-  const conceal = ctx.round >= RULES.rounds && state.phase !== 'orders' ? 0 : style.conceal[r];
+  // После поручений последней Пятилетки скрываться уже незачем — маска ничего не стоит. «Удаву» маска перестаёт быть нужна
+  // ещё раньше — на Посиделках 4-й Пятилетки: лучшее время для Засады — перед последней Пятилеткой (удержанные
+  // Единомышленники выпадают из финальных ходов, изъятые книги уже не попадут в Ростки).
+  const maskEnds = ctx.style === 'boa' ? RULES.rounds - 1 : RULES.rounds;
+  const conceal = ctx.round >= maskEnds && state.phase !== 'orders' ? 0 : style.conceal[r];
   const others = state.players.filter((o) => o.id !== p.id);
   // Очки Куратору не нужны: Талоны — лишь средство добыть Пропаганду. В последней Пятилетке они дешевеют,
   // а когда ходить больше нечем — не стоят ничего.
