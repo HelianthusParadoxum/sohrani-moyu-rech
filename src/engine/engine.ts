@@ -1186,6 +1186,8 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       if (action.type === 'pass') break;
       check(action.type === 'sproutBonus', 'Выберите бонус Ростка');
       check(pend.options.includes(action.bonus), 'Этот бонус недоступен');
+      // Сначала — какой бонус выбран, потом его последствия.
+      log(state, `${p.name} выбирает бонус Ростка: ${SPROUT_BONUS_NAMES[action.bonus]}.`);
       if (action.bonus === 'sideJob') {
         log(state, `${p.name}: Приработок, +${talonsText(RULES.sideJobIncome)}.`);
         earn(state, p, RULES.sideJobIncome);
@@ -1210,7 +1212,6 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         check(action.group && action.group.action === action.bonus, 'Уточните параметры действия');
         doGroup(state, p, action.group, { limited: false });
       }
-      log(state, `Бонус Ростка: ${SPROUT_BONUS_NAMES[action.bonus]}.`, [p.id]);
       break;
     }
     case 'glavlitSwap': {
