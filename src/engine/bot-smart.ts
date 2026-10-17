@@ -355,6 +355,13 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
       + BOT_BASE.curatorWeakest * Math.min(...above);
     // Один раз закрытая ступень II «наперерез» сопернику — прикрытие: так выглядит жёсткая борьба книжника.
     if ((p.fedSteps ?? []).includes(2)) v += BOT_BASE.boaCutBonus;
+    // Пропаганда в Тайнике на Посиделках не покажешь — честные это замечают. «Удав» заранее учитывает, как это его выдаст,
+    // и рано Пропагандой не обзаводится (к концу партии маска важна меньше, чем срезы).
+    if (state.phase === 'orders') {
+      const hiddenProp = p.warehouse.filter((s) => s.hidden && isPropaganda(state, s.card)).length;
+      const trust = p.sproutsFed.length ? BOT_BASE.suspectFedDiscount : 1;
+      v -= (BOT_BASE.boaHideAware[r] ?? 0) * conceal * BOT_BASE.curatorConceal * BOT_BASE.suspectCacheUnshown * trust * hiddenProp;
+    }
   } else {
     v -= BOT_BASE.curatorStep * prog.reduce((a, b) => a + b, 0) + BOT_BASE.curatorWeakest * Math.min(...prog);
   }
@@ -943,7 +950,7 @@ function redCornerCandidates(state: GameState, me: string, keep: Map<string, num
 }
 
 // Что спрятать в Тайник: самое ценное из опального, сколько поместится. Куратор прячет и Пропаганду.
-function hideList(state: GameState, me: string, ctx: Ctx, keep: Map<string, number>, opts: { exclude?: string; extraLoad?: number } = {}): string[] {
+function hideList(state: GameState, me: string, ctx: Ctx, keep: Map<string, number>, opts: { exclude?: string; extraLoad?: number; noSpare?: boolean } = {}): string[] {
   const p = player(state, me);
   const loads = p.warehouse.filter((s) => isLoad(state, s.card)).length + (opts.extraLoad ?? 0);
   const limit = p.cache + Math.floor(loads / 2);
@@ -952,7 +959,7 @@ function hideList(state: GameState, me: string, ctx: Ctx, keep: Map<string, numb
   const list = byValue(keep, banned).reverse().slice(0, limit);
   // Свободные места Тайника — впрок: в новой Пятилетке опала сменится, и открытая жанровая книга может стать доносом
   // в Контору раньше, чем дойдёт ход её перепрятать. Прячем самые ценные из них.
-  if (list.length < limit && state.mode === 'full' && !state.reserve) {
+  if (!opts.noSpare && list.length < limit && state.mode === 'full' && !state.reserve) {
     const spare = p.warehouse.filter((s) => s.card !== opts.exclude && !s.memorized && !list.includes(s.card) && isGenreBook(state, s.card))
       .map((s) => s.card);
     list.push(...byValue(keep, spare).reverse().slice(0, limit - list.length));
@@ -966,11 +973,15 @@ function rehideAction(state: GameState, me: string, ctx: Ctx): Action | null {
   const p = player(state, me);
   const open = p.warehouse.some((s) => !s.hidden && !s.memorized && isBanned(state, s.card) && (ctx.curator || !isPropaganda(state, s.card)));
   if (!open) return null;
-  const want = hideList(state, me, ctx, keepValues(state, me, ctx));
+  // Впрок (неопальное) посреди Пятилетки не перекладываем — только прячем опальное, иначе можно перекладывать без конца.
+  const want = hideList(state, me, ctx, keepValues(state, me, ctx), { noSpare: true });
   const rest = p.warehouse.filter((s) => s.hidden && !want.includes(s.card)).map((s) => s.card);
   const target = [...want, ...rest].slice(0, cacheLimit(state, p));
   const now = p.warehouse.filter((s) => s.hidden).map((s) => s.card);
   if (target.length === now.length && target.every((c) => now.includes(c))) return null;
+  // Перекладываем, только если это прячет больше опальных книг, чем сейчас (защита от бесконечной перекладки).
+  const bannedIn = (list: string[]) => list.filter((c) => isBanned(state, c) && (ctx.curator || !isPropaganda(state, c))).length;
+  if (bannedIn(target) <= bannedIn(now)) return null;
   return { type: 'hiding', hidden: target };
 }
 

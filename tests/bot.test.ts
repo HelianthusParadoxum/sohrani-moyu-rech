@@ -153,6 +153,24 @@ describe('думающий бот', () => {
     if (cur) expect(cur.strong).toBe(true);
   }, 60_000);
 
+  it('не перекладывает Тайник без конца (партия с Куратором-«Удавом» доигрывается)', () => {
+    const i = 8;
+    let s = createGame({ players: Array.from({ length: 3 }, (_, k) => ({ id: `p${k}`, name: `Бот ${k}` })), seed: 9000 + i, mode: 'full', curator: true });
+    const cid = `p${i % 3}`;
+    for (const p of s.players) {
+      if (p.id === cid) p.passionOptions = ['curator', p.passionOptions.find((x) => x !== 'curator')!];
+      else p.passionOptions = p.passionOptions.map((x) => (x === 'curator' ? 'erudite' : x));
+    }
+    let r = i * 17 + 3;
+    const rand = () => ((r = (r * 16807) % 2147483647) / 2147483647);
+    let steps = 0;
+    for (; steps < 3000 && s.phase !== 'end'; steps++) {
+      const who = activePlayersOf(s)[0];
+      s = s.phase === 'passion' && who === cid ? applyAction(s, who, { type: 'choosePassion', passion: 'curator' }) : botMove(s, who, rand, 'bookman');
+    }
+    expect(s.phase).toBe('end');
+  }, 120_000);
+
   it('играет лучше случайного бота', () => {
     let smart = 0;
     let random = 0;
