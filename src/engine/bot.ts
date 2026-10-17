@@ -64,7 +64,8 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
     case 'gathering':
       return [{ type: 'gathering', show: books.filter((b) => (iconsOf(state, b).length > 0 || state.cards[b].kind === 'evidence' || (state.cards[b].kind === 'loadEvidence' && state.restored[b])) && isBanned(state, b) && rand() < 0.6) }];
     case 'ambush':
-      return [{ type: 'ambush', go: p.passion === 'curator' && !state.curatorRevealed && rand() < 0.3 }];
+      return [{ type: 'ambush', go: p.passion === 'curator' && !state.curatorRevealed && rand() < 0.3
+        && state.players.some((o) => o.id !== p.id && (state.shownAtGathering?.[o.id] ?? []).length > 0) }];
     case 'setupCache':
     case 'hiding': {
       const limit = cacheLimit(state, { ...p, warehouse: p.warehouse.map((s) => ({ ...s, hidden: false })) });

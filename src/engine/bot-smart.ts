@@ -839,7 +839,8 @@ function groupCandidates(state: GameState, me: string, ctx: Ctx): GroupAction[] 
     if (!state.restored[s.card] && ['genre', 'loadReturnable', 'loadEvidence', ...(RULES.exposePropaganda ? ['propaganda'] : [])].includes(state.cards[s.card].kind)) out.push({ action: 'restore', card: s.card });
   }
   const held = state.players.filter((o) => o.held > 0);
-  if (held.length) out.push({ action: 'rescue', returns: Object.fromEntries(held.map((o) => [o.id, Math.min(o.held, 2)])) });
+  // Вызволение — в конце своей череды: пока есть свободные Единомышленники, адреса важнее (не упускать инициативу).
+  if (held.length && p.available === 0) out.push({ action: 'rescue', returns: Object.fromEntries(held.map((o) => [o.id, Math.min(o.held, 2)])) });
   return out;
 }
 
@@ -1068,12 +1069,10 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
   switch (state.phase) {
     case 'passion': return p.passionOptions.map((x) => ({ type: 'choosePassion', passion: x }));
     case 'gathering': {
-      // Показать всё, за что дают очки: опальные жанровые книги (в полном режиме и драматургию).
+      // Показать всё, за что дают очки: опальные жанровые книги и Улики. Раскрывшегося Куратора не пускают.
+      if (state.curatorRevealed === me) return [];
       const full = state.mode === 'full';
-      const show = [...new Set([...books, ...(full ? p.published : [])])].filter((c) => {
-        const drama = full && iconsOf(state, c).includes('drama');
-        return drama || (books.includes(c) && (isGenreBook(state, c) || isEvidence(state, c)) && isBanned(state, c));
-      });
+      const show = books.filter((c) => (isGenreBook(state, c) || isEvidence(state, c)) && isBanned(state, c));
       // Под угрозой Засады бот сравнивает: показать всё, только то, что и так лежит открыто, или ничего опального.
       // А если кого-то за столом уже всерьёз подозревает — опального не показывает вовсе: Посиделки небезопасны.
       const isRisky = (c: string) => books.includes(c) && (isGenreBook(state, c) || isEvidence(state, c)) && isBanned(state, c);
@@ -1084,8 +1083,11 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       const variants = [show, show.filter((c) => !isRisky(c) || !hidden.has(c)), show.filter((c) => !isRisky(c))];
       return [...new Map(variants.map((v) => [v.join(','), { type: 'gathering' as const, show: v }])).values()];
     }
-    case 'ambush':
-      return p.passion === 'curator' && !state.curatorRevealed ? [{ type: 'ambush', go: false }, { type: 'ambush', go: true }] : [{ type: 'ambush', go: false }];
+    case 'ambush': {
+      // Засада — только если есть на кого: кто-то, кроме Куратора, показал опальное.
+      const targets = state.players.some((o) => o.id !== me && (state.shownAtGathering?.[o.id] ?? []).length > 0);
+      return p.passion === 'curator' && !state.curatorRevealed && targets ? [{ type: 'ambush', go: false }, { type: 'ambush', go: true }] : [{ type: 'ambush', go: false }];
+    }
     case 'setupCache':
       return [{ type: 'hiding', hidden: hideList(state, me, ctx, keepMap()) }];
     case 'hiding': {

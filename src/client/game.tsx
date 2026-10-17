@@ -942,20 +942,15 @@ function AmbushPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (
 
 function GatheringPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
   const full = view.mode === 'full';
-  const isDrama = (c: string) => full && iconsOf(view, c).includes('drama');
-  const cands = [
-    ...me.warehouse.map((s) => s.card!).filter((c) => c && (iconsOf(view, c).length > 0 || isEvidence(view, c)) && (isBanned(view, c) || isDrama(c))),
-    ...me.published.filter(isDrama),
-  ];
-  // По умолчанию к показу выбрано всё, что приносит очки: опальные книги, Улики и Драматургия (в том числе изданная).
+  const cands = me.warehouse.map((s) => s.card!).filter((c) => c && (iconsOf(view, c).length > 0 || isEvidence(view, c)) && isBanned(view, c));
+  // По умолчанию к показу выбрано всё, что приносит очки: опальные книги и Улики.
   const [sel, setSel] = useState<string[]>(() => cands);
   const per = full && !view.reserve ? RULES.gatheringPointsFull : RULES.gatheringPoints;
-  const pts = sel.reduce((s, c) => s + (isBanned(view, c) && !me.published.includes(c) ? per : 0) + (isDrama(c) ? 1 : 0), 0);
+  const pts = sel.length * per;
   return (
     <Modal title="Посиделки" wide>
       <p>Покажите опальные жанровые книги и Улики: +{per} {per === 1 ? 'очко' : 'очка'} за каждую.
-        {full && !view.reserve && view.curatorPossible && !view.curatorRevealed && ' Осторожно: Куратор может раскрыться и устроить Засаду — показавшим опальное грозит Контора (показанная книга не считается спрятанной).'} Показанные книги остаются на складе — не забудьте укрыть их перед облавой.
-        {full && ' Драматургию можно показывать и неопальную, и из изданного: +1 очко за каждую («Разыграть»).'}</p>
+        {full && !view.reserve && view.curatorPossible && !view.curatorRevealed && ' Осторожно: Куратор может раскрыться и устроить Засаду — показавшим опальное грозит Контора (показанная книга не считается спрятанной).'} Показанные книги остаются на складе — не забудьте укрыть их перед облавой.</p>
       <div className="shelf wrap">
         {cands.length === 0 && <span className="muted">Опальных жанровых книг нет</span>}
         {cands.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} onClick={() => setSel(toggle(sel, c))} />)}

@@ -804,6 +804,56 @@ describe('Засада на Посиделках', () => {
     expect(viewFor(s, b).players.find((x) => x.id === cur)!.passion).toBe('curator');
   });
 
+  it('Засаду не на кого устраивать, если опальное показал только сам Куратор', () => {
+    let { s, cur, a, b } = atGathering();
+    const own = s.deck.find((c) => s.cards[c].kind === 'genre' && isBanned(s, c))!;
+    s.deck = s.deck.filter((c) => c !== own);
+    s.players.find((x) => x.id === cur)!.warehouse.push({ card: own, hidden: false });
+    s = applyAction(s, a, { type: 'gathering', show: [] });
+    s = applyAction(s, b, { type: 'gathering', show: [] });
+    s = applyAction(s, cur, { type: 'gathering', show: [own] });
+    expect(s.phase).toBe('ambush');
+    expect(() => applyAction(s, cur, { type: 'ambush', go: true })).toThrow(/не на кого/);
+  });
+
+  it('раскрывшийся Куратор на Посиделки не допущен', () => {
+    let { s, cur, a, b } = atGathering();
+    s.curatorRevealed = cur;
+    s.phase = 'orders';
+    for (const q of s.players) { q.available = 0; q.bonusGroupTurns = 0; q.subscriptions = []; }
+    s.players.find((x) => x.id === s.order[s.turn])!.available = 1;
+    s = applyAction(s, s.order[s.turn], { type: 'place', place: { address: 'redCorner', recycle: [] } });
+    s = applyAction(s, s.order[s.turn], { type: 'endTurn' });
+    expect(s.phase).toBe('gathering');
+    expect(s.ready).toEqual([cur]);
+    expect(s.log.some((l) => l.text.endsWith('на Посиделки не допущен.'))).toBe(true);
+    expect(() => applyAction(s, cur, { type: 'gathering', show: [] })).toThrow();
+    s = applyAction(s, a, { type: 'gathering', show: [] });
+    s = applyAction(s, b, { type: 'gathering', show: [] });
+    expect(s.phase).toBe('hiding');
+  });
+
+  it('Драматургия «Разыграть»: в конце поручений +1 за каждую открытую на складе и изданную', () => {
+    let { s, a } = atGathering();
+    s.phase = 'orders';
+    const dramas = s.deck.filter((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.includes('drama')).slice(0, 3);
+    s.deck = s.deck.filter((c) => !dramas.includes(c));
+    for (const q of s.players) {
+      q.available = 0; q.bonusGroupTurns = 0; q.subscriptions = [];
+      q.warehouse = q.warehouse.filter((w) => !s.cards[w.card].icons?.includes('drama'));
+      q.published = q.published.filter((c) => !s.cards[c].icons?.includes('drama'));
+    }
+    const pa = s.players.find((x) => x.id === a)!;
+    pa.warehouse.push({ card: dramas[0], hidden: false }, { card: dramas[1], hidden: true });
+    pa.published.push(dramas[2]);
+    const pts = pa.points;
+    s.players.find((x) => x.id === s.order[s.turn])!.available = 1;
+    s = applyAction(s, s.order[s.turn], { type: 'place', place: { address: 'redCorner', recycle: [] } });
+    s = applyAction(s, s.order[s.turn], { type: 'endTurn' });
+    expect(s.phase).toBe('gathering');
+    expect(s.players.find((x) => x.id === a)!.points).toBe(pts + 2);
+  });
+
   it('если опальное никто не показал, Засады нет — сразу Укрытие', () => {
     let { s } = atGathering();
     for (const p of s.players) s = applyAction(s, p.id, { type: 'gathering', show: [] });

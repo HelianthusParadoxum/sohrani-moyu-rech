@@ -464,40 +464,53 @@ function endOrders(state: GameState) {
       if (hasPatron(state, id, 'chairman')) state.pending.push({ kind: 'freeConnection', player: id });
     }
   }
+  if (isFull(state)) dramaBonus(state);
   state.phase = 'gathering';
   state.ready = [];
   state.shownAtGathering = {};
   logEvent(state, 'Посиделки.');
   const pts = gatheringPoints(state);
   logNote(state, `Можно показать опальные книги и Улики со склада — ${pointsText(pts)} за каждую.${ambushPossible(state) ? ' Но Куратор может раскрыться и устроить Засаду: всех, кто показал опальное, ждёт Контора.' : ''}`);
+  // Раскрывшийся Куратор на Посиделки не допускается: выбора у него нет.
+  const cur = state.curatorRevealed && state.players.find((x) => x.id === state.curatorRevealed);
+  if (cur) {
+    state.ready.push(cur.id);
+    log(state, `${cur.name} на Посиделки не допущен.`);
+  }
+}
+
+// Драматургия «Разыграть»: в конце фазы поручений +1 очко за каждую книгу драматургии в открытую на складе
+// (не в Тайнике) и в изданном.
+function dramaBonus(state: GameState) {
+  for (const id of state.order) {
+    const p = player(state, id);
+    const cards = [...p.warehouse.filter((s) => !s.hidden).map((s) => s.card), ...p.published]
+      .filter((c) => iconsOf(state, c).includes('drama'));
+    if (!cards.length) continue;
+    gain(p, cards.length, 'drama');
+    log(state, `${p.name} разыгрывает драматургию: ${titles(state, cards)} — +${pointsText(cards.length)}.`);
+  }
 }
 
 function doGathering(state: GameState, p: PlayerState, show: string[]) {
   check(new Set(show).size === show.length, 'Книга указана дважды');
+  check(state.curatorRevealed !== p.id, 'Раскрывшийся Куратор на Посиделки не допущен');
   let pts = 0;
-  let dramaPts = 0;
   let geo = 0;
   for (const id of show) {
-    // Драматургия «Разыграть»: можно показывать и неопальную, и из изданного — +1 очко.
-    const drama = isFull(state) && iconsOf(state, id).includes('drama');
     // Опальная жанровая книга или Улика (Улики тоже можно показывать).
     const banned = (isGenreBook(state, id) || isEvidence(state, id)) && isBanned(state, id);
-    check(hasBook(p, id) || (drama && p.published.includes(id)), 'Показывать можно только книги со своего склада');
-    check(banned || drama, `${title(state, id)} — не опальная жанровая книга и не Улика`);
-    if (banned && hasBook(p, id)) {
-      pts += gatheringPoints(state);
-      (state.shownAtGathering ??= {})[p.id] = [...(state.shownAtGathering[p.id] ?? []), id];
-      if (hasPatron(state, p.id, 'geologist')) geo++;
-    }
-    if (drama) dramaPts += 1;
+    check(hasBook(p, id), 'Показывать можно только книги со своего склада');
+    check(banned, `${title(state, id)} — не опальная жанровая книга и не Улика`);
+    pts += gatheringPoints(state);
+    (state.shownAtGathering ??= {})[p.id] = [...(state.shownAtGathering[p.id] ?? []), id];
+    if (hasPatron(state, p.id, 'geologist')) geo++;
   }
   // Опальные книги из Тайника, которые игрок не показал (честному показывать опальное выгодно; у Куратора в Тайнике —
   // Пропаганда). Неопальные книги в Тайнике (спрятанные впрок) показать нельзя — они не в счёт.
   const unshown = p.warehouse.filter((s) => s.hidden && !s.memorized && !show.includes(s.card) && isBanned(state, s.card)).length;
   if (unshown) p.cacheUnshown = (p.cacheUnshown ?? 0) + unshown;
   gain(p, pts, 'gathering');
-  gain(p, dramaPts, 'drama');
-  pts += dramaPts;
   if (geo) {
     earn(state, p, geo);
     log(state, `${p.name}: Геолог — +${talonsText(geo)}.`);
@@ -537,6 +550,8 @@ function startHiding(state: GameState) {
 function doAmbush(state: GameState, p: PlayerState, go: boolean, picks: Record<string, string> = {}) {
   if (go) {
     check(p.passion === 'curator', 'Засаду может устроить только Куратор');
+    check(state.players.some((o) => o.id !== p.id && (state.shownAtGathering?.[o.id] ?? []).some((c) => hasBook(o, c))),
+      'Засаду не на кого устраивать: никто, кроме вас, не показывал опальное');
     state.curatorRevealed = p.id;
     logEvent(state, 'Засада!');
     log(state, `Куратор раскрывается: ${p.name}. На всех, кто показал на Посиделках опальное, — Контора.`);
