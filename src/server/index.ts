@@ -8,7 +8,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
 import { applyAction, createGame, activePlayers, migrate } from '../engine/engine';
 import { botMove } from '../engine/bot';
-import { effectiveCuratorStyle } from '../engine/bot-smart';
+import { curatorSuspicion, effectiveCuratorStyle } from '../engine/bot-smart';
 import { BOT_PRESETS, DEFAULT_PRESET, curatorStyleNote, presetById } from '../engine/bot-presets';
 import { gainedInfo, viewFor } from '../engine/view';
 import { RuleError } from '../engine/util';
@@ -54,8 +54,32 @@ function noteCuratorStyle(room: Room) {
   if (!s.log.some((l) => l.text === text)) s.log.push({ round: s.round, text });
 }
 
+// Записи только для зрителя (хост без места видит всё): стратегия Куратора-бота сразу после выбора Пристрастия
+// и в начале каждой Пятилетки — насколько каждый честный бот подозревает в каждом другом Куратора.
+function noteForSpectator(room: Room) {
+  const s = room.state;
+  if (!s || s.mode !== 'full') return;
+  const bots = new Set(room.seats.filter((x) => x.bot).map((x) => x.id));
+  const cur = s.players.find((p) => p.passion === 'curator' && bots.has(p.id));
+  if (cur) {
+    const text = `Для зрителя. ${curatorStyleNote({ seed: s.seed }, cur.id, cur.name)}`;
+    if (!s.log.some((l) => l.text === text)) s.log.push({ round: s.round, text, only: [] });
+  }
+  if (s.phase !== 'orders' || !s.curatorPossible) return;
+  const head = `Для зрителя. Подозрения ботов в начале Пятилетки ${s.round} (насколько каждый считает другого Куратором):`;
+  if (s.log.some((l) => l.text === head)) return;
+  s.log.push({ round: s.round, text: head, only: [] });
+  for (const p of s.players) {
+    if (!bots.has(p.id) || p.passion === 'curator') continue;
+    const sus = curatorSuspicion(s, p.id);
+    const parts = s.players.filter((o) => o.id !== p.id).map((o) => `${o.name} ${Math.round((sus[o.id] ?? 0) * 100)}%`);
+    s.log.push({ round: s.round, text: `— ${p.name}: ${parts.join(', ')}.`, only: [], who: p.id });
+  }
+}
+
 function save(room: Room) {
   room.updated = Date.now();
+  noteForSpectator(room);
   noteCuratorStyle(room);
   const { history, ...rest } = room;
   writeFileSync(join(SAVE_DIR, `${room.code}.json`), JSON.stringify({ ...rest, history: history.slice(-20) }));

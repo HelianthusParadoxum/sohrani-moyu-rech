@@ -432,8 +432,9 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
     }
     if (drama) dramaPts += 1;
   }
-  // Книги из Тайника, которые игрок не показал (честному показывать опальное выгодно; у Куратора в Тайнике — Пропаганда).
-  const unshown = p.warehouse.filter((s) => s.hidden && !s.memorized && !show.includes(s.card)).length;
+  // Опальные книги из Тайника, которые игрок не показал (честному показывать опальное выгодно; у Куратора в Тайнике —
+  // Пропаганда). Неопальные книги в Тайнике (спрятанные впрок) показать нельзя — они не в счёт.
+  const unshown = p.warehouse.filter((s) => s.hidden && !s.memorized && !show.includes(s.card) && isBanned(state, s.card)).length;
   if (unshown) p.cacheUnshown = (p.cacheUnshown ?? 0) + unshown;
   gain(p, pts, 'gathering');
   gain(p, dramaPts, 'drama');

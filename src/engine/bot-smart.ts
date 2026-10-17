@@ -419,6 +419,11 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
     const cap = BOT_BASE.insuranceSteps + Math.round(BOT_BASE.coopInsuranceSteps * ctx.coop);
     v += BOT_BASE.insurance * (1 + BOT_BASE.coopInsurance * ctx.coop) * Math.min(spare, cap) * w.sprouts;
   }
+  if (ctx.full && !state.reserve) {
+    // Запас Тайника на стык Пятилеток: место сверх опальных книг — чтобы спрятать впрок то, что может попасть в опалу.
+    const bannedHere = p.warehouse.filter((s) => !s.memorized && isBanned(state, s.card)).length;
+    if (cacheLimit(state, p) > bannedHere) v += BOT_BASE.cacheSpare[ctx.round - 1] ?? 0;
+  }
   if (ctx.full) {
     // Общая угроза: при 7 удержанных проигрывают все.
     const held = heldTotal(state);
@@ -873,7 +878,15 @@ function hideList(state: GameState, me: string, ctx: Ctx, keep: Map<string, numb
   const limit = p.cache + Math.floor(loads / 2);
   const banned = p.warehouse.filter((s) => s.card !== opts.exclude && !s.memorized && isBanned(state, s.card)
     && (ctx.curator || !isPropaganda(state, s.card))).map((s) => s.card);
-  return byValue(keep, banned).reverse().slice(0, limit);
+  const list = byValue(keep, banned).reverse().slice(0, limit);
+  // Свободные места Тайника — впрок: в новой Пятилетке опала сменится, и открытая жанровая книга может стать доносом
+  // в Контору раньше, чем дойдёт ход её перепрятать. Прячем самые ценные из них.
+  if (list.length < limit && state.mode === 'full' && !state.reserve) {
+    const spare = p.warehouse.filter((s) => s.card !== opts.exclude && !s.memorized && !list.includes(s.card) && isGenreBook(state, s.card))
+      .map((s) => s.card);
+    list.push(...byValue(keep, spare).reverse().slice(0, limit - list.length));
+  }
+  return list;
 }
 
 // Пересобрать Тайник в свой ход: опальные книги — по ценности, остальное место — тому, что уже лежит в Тайнике.
