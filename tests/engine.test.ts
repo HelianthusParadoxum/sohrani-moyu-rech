@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { applyAction, createGame, startHide } from '../src/engine/engine';
 import { playOut } from '../src/engine/bot';
 import { gainedInfo, viewFor } from '../src/engine/view';
-import { RuleError, cacheLimit, coversStep, iconsOf, isBanned, isEvidence, isLoad, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
+import { RuleError, cacheLimit, coversStep, iconsOf, isBanned, isEvidence, isLoad, isPropaganda, discard, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
 import { finalScoring, passionPoints, scoreLine } from '../src/engine/scoring';
 import { PASSIONS, RULES, SPROUTS, limitFor } from '../src/engine/content';
 import type { GameState, Genre, PatronId } from '../src/engine/types';
@@ -774,11 +774,11 @@ describe('Разоблачение', () => {
     return { s, me, prop };
   }
 
-  it('Возвращение смыслов делает Пропаганду Разоблачением: +2 очка, опальна, издаётся как книга с 1 значком', () => {
+  it('Возвращение смыслов делает Пропаганду Разоблачением: +2 очка, не опальна, издаётся как книга с 1 значком', () => {
     let { s, me, prop } = withPropaganda();
     expect(isBanned(s, prop)).toBe(true);
     s = applyAction(s, me, { type: 'group', group: { action: 'restore', card: prop } });
-    expect(isBanned(s, prop)).toBe(true); // Разоблачение всё равно опально
+    expect(isBanned(s, prop)).toBe(false); // Разоблачение не опально
     const p = () => s.players.find((x) => x.id === me)!;
     const line = finalScoringLine(s, me);
     expect(line).toBe(RULES.exposePoints);
@@ -790,6 +790,17 @@ describe('Разоблачение', () => {
     expect(p().talons).toBe(talons + RULES.samizdatTalons);
     expect(p().published).toContain(prop);
     expect(finalScoringLine(s, me)).toBe(RULES.exposePoints);
+  });
+
+  it('в сброс книга уходит без жетона смыслов: Разоблачение снова Пропаганда', () => {
+    const { s, prop } = withPropaganda();
+    const genre = s.deck.find((c) => s.cards[c].kind === 'genre')!;
+    s.restored[prop] = true;
+    s.restored[genre] = true;
+    discard(s, prop);
+    discard(s, genre);
+    expect(isPropaganda(s, prop)).toBe(true);
+    expect(s.restored[genre]).toBeUndefined();
   });
 
   it('с выключенной опцией Пропаганде смыслы не возвращают', () => {

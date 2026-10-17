@@ -144,7 +144,7 @@ export function isExposed(state: CardsInfo, id: string): boolean {
 
 // Опальная книга: Пропаганда, Улики и книги со значком опального жанра.
 export function isBanned(state: CardsInfo & Pick<GameState, 'banned'>, id: string): boolean {
-  if (isPropaganda(state, id) || isEvidence(state, id) || isExposed(state, id)) return true;
+  if (isPropaganda(state, id) || isEvidence(state, id)) return true;
   return iconsOf(state, id).some((g) => state.banned.includes(g));
 }
 
@@ -177,9 +177,10 @@ export function drawLoad(state: GameState): string | null {
   return state.loadDeck.pop() ?? null;
 }
 
+// В сброс книга уходит без жетона Возвращения смыслов (Разоблачение снова становится Пропагандой).
 export function discard(state: GameState, id: string) {
+  delete state.restored[id];
   if (isFromLoadDeck(state, id)) {
-    delete state.restored[id];
     state.loadDiscard.push(id);
   } else {
     state.discard.push(id);
