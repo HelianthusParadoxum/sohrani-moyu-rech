@@ -278,6 +278,8 @@ function resources(state: GameState, p: PlayerState, ctx: Ctx, talonShare = 1): 
   const reserve = ctx.preset.character.reserve;
   if (p.talons < reserve) v -= (reserve - p.talons) * ctx.talon * talonShare;
   v += (p.workers - p.held) * left * BOT_BASE.action * w.network;
+  // Поздний найм: лишнее действие ещё в этой Пятилетке и темп в последней (ответить на финальные ходы Куратора).
+  v += p.workers * (BOT_BASE.lateHire[ctx.round - 1] ?? 0);
   v += (p.available + p.bonusGroupTurns * 0.7) * BOT_BASE.action;
   v += (p.capacity * (BOT_BASE.capacity[ctx.round - 1] ?? 0) + p.cache * (BOT_BASE.cache[ctx.round - 1] ?? 0)) * w.storage;
   v += Math.max(0, freeSlots(p)) * BOT_BASE.freeSlot;
