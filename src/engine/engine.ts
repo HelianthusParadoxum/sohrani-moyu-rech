@@ -734,6 +734,13 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         'Сдать можно до 1 Непечатной и до 1 книги Нагрузки',
       );
       const extra = hasPatron(state, p.id, 'zavkhoz') ? 1 : 0;
+      // Ретивость: рано и первым в очереди (выгоднее всего ходить первым Куратору), особенно ничего не сдав.
+      const used = p.workers - p.held - p.available;
+      if (state.round < RULES.rounds && state.nextOrder.length === 0 && used <= 2) {
+        p.redEager = (p.redEager ?? 0) + 1;
+        const couldRecycle = p.warehouse.some((s) => !s.hidden && !isPropaganda(state, s.card) && !isEvidence(state, s.card));
+        if (!a.recycle.length && couldRecycle) p.redEmpty = (p.redEmpty ?? 0) + 1;
+      }
       let income = 0;
       p.propagandaDumped = (p.propagandaDumped ?? 0) + a.recycle.filter((c) => isPropaganda(state, c)).length;
       for (const c of a.recycle) {
