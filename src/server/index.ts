@@ -8,6 +8,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
 import { applyAction, createGame, activePlayers, migrate } from '../engine/engine';
 import { botMove } from '../engine/bot';
+import { effectiveCuratorStyle } from '../engine/bot-smart';
 import { BOT_PRESETS, DEFAULT_PRESET, curatorStyleNote, presetById } from '../engine/bot-presets';
 import { gainedInfo, viewFor } from '../engine/view';
 import { RuleError } from '../engine/util';
@@ -48,7 +49,7 @@ function noteCuratorStyle(room: Room) {
   if (!s || s.phase !== 'end') return;
   const cur = s.players.find((p) => p.passion === 'curator');
   if (!cur || !room.seats.find((x) => x.id === cur.id)?.bot) return;
-  const text = curatorStyleNote(s, cur.id, cur.name);
+  const text = curatorStyleNote(s, cur.id, cur.name, effectiveCuratorStyle(s, cur.id) === 'open');
   if (!s.log.some((l) => l.text === text)) s.log.push({ round: s.round, text });
 }
 

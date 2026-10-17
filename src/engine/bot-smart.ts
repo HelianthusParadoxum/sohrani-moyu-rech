@@ -33,6 +33,19 @@ interface Ctx {
 
 const SAMPLES = 2; // сколько раз перемешивать закрытые карты при примерке
 
+// Маскировка до первого явного зла: Куратор, открыто взявший Пропаганду со стола (все это видели), дальше играет
+// «открытым забралом», какой бы стратегии ни держался. Удав сбрасывает маску и когда его и так раскусили.
+export function effectiveCuratorStyle(state: GameState, me: string) {
+  const style = curatorStyle(state, me);
+  if (style === 'open') return style;
+  if ((player(state, me).propagandaTaken ?? 0) > 0) return 'open';
+  if (CURATOR_STYLES[style].untilRevealed) {
+    const exposed = Math.max(0, ...state.players.filter((o) => o.id !== me).map((o) => curatorSuspicion(state, o.id)[me] ?? 0));
+    if (exposed >= BOT_BASE.suspectAct) return 'open';
+  }
+  return style;
+}
+
 function makeCtx(state: GameState, me: string, preset: BotPreset, honest = false): Ctx {
   const r = Math.min(Math.max(state.round, 1), RULES.rounds);
   const w = Object.fromEntries(
@@ -49,7 +62,7 @@ function makeCtx(state: GameState, me: string, preset: BotPreset, honest = false
   // Кооперация: подозрение на Куратора или просто видно, что Гласность под угрозой (не хватает ступеней на оставшиеся ходы).
   const risk = r >= 3 ? Math.min(1, Math.max(0, (urgency - BOT_BASE.coopRiskFrom) / BOT_BASE.coopRiskSpan)) : 0;
   const coop = curator ? 0 : Math.max(risk, ...Object.values(suspect));
-  const style = curator ? curatorStyle(state, me) : undefined;
+  const style = curator ? effectiveCuratorStyle(state, me) : undefined;
   if (style) w.talons *= CURATOR_STYLES[style].talons[r - 1];
   return {
     me, preset, round: r, w, talon: BOT_BASE.talon[r - 1] ?? 0.5, style,
@@ -277,9 +290,8 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   const r = ctx.round - 1;
   // Насколько он уже на подозрении у честных (смотрит на себя их глазами).
   const exposed = Math.max(0, ...state.players.filter((o) => o.id !== p.id).map((o) => curatorSuspicion(state, o.id)[p.id] ?? 0));
-  const revealed = style.untilRevealed && exposed >= BOT_BASE.suspectAct;
-  const attack = revealed ? style.attack[4] : style.attack[r];
-  const conceal = revealed ? 0 : style.conceal[r];
+  const attack = style.attack[r];
+  const conceal = style.conceal[r];
   const others = state.players.filter((o) => o.id !== p.id);
   let v = resources(state, p, ctx);
   const prog = state.sprouts.map((sp) => Math.min(sp.progress, RULES.glasnostStep));

@@ -177,20 +177,23 @@ export const CURATOR_STYLES: Record<CuratorStyle, {
     conceal: [0, 0, 0, 0, 0], attack: [1.6, 1.6, 1.6, 1.6, 1.6], talons: [0.5, 0.5, 0.5, 0.4, 0.3], squeeze: [0, 0, 0, 0, 0],
   },
   ambush: {
-    name: 'Хищник в засаде', hint: 'Первые две Пятилетки не отсвечивает, копит ресурсы и подрезает ключевые действия; потом бьёт.',
+    name: 'Хищник в засаде', hint: 'Первые две Пятилетки не отсвечивает (до первой открыто взятой Пропаганды), копит ресурсы и подрезает ключевые действия; потом бьёт.',
     conceal: [8, 8, 0, 0, 0], attack: [0.3, 0.5, 1.8, 1.8, 1.8], talons: [1.3, 1.3, 0.6, 0.4, 0.3], squeeze: [0, 0, 0, 0, 0],
   },
   boa: {
-    name: 'Удав', hint: 'Изображает честного игрока, пока его не раскроют; методично отжимает Талоны и ключевые действия.',
+    name: 'Удав', hint: 'Изображает честного игрока до первого явного зла (открыто взятой Пропаганды) или пока его не раскроют; методично отжимает Талоны и ключевые действия.',
     conceal: [8, 8, 8, 8, 8], attack: [0.4, 0.4, 0.6, 0.8, 1.2], talons: [1.5, 1.5, 1.4, 1.2, 0.8], squeeze: [0.6, 0.6, 0.6, 0.6, 0.4],
     untilRevealed: true,
   },
 };
 
 // Строка для журнала в конце партии: какой стратегии держался Куратор-бот.
-export function curatorStyleNote(state: { seed: number }, pid: string, name: string): string {
-  const st = CURATOR_STYLES[curatorStyle(state, pid)];
-  return `Стратегия Куратора-бота (${name}): «${st.name}» — ${st.hint.charAt(0).toLowerCase()}${st.hint.slice(1)}`;
+// unmasked — сбросил маску (открыто взял Пропаганду или был раскрыт) и доигрывал «открытым забралом».
+export function curatorStyleNote(state: { seed: number }, pid: string, name: string, unmasked = false): string {
+  const id = curatorStyle(state, pid);
+  const st = CURATOR_STYLES[id];
+  const tail = unmasked && id !== 'open' ? ' Сбросил маску и доигрывал «Открытым забралом».' : '';
+  return `Стратегия Куратора-бота (${name}): «${st.name}» — ${st.hint.charAt(0).toLowerCase()}${st.hint.slice(1)}${tail}`;
 }
 
 export function curatorStyle(state: { seed: number }, pid: string): CuratorStyle {

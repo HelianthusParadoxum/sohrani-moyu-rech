@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction, createGame } from '../src/engine/engine';
 import { botMove, playOut } from '../src/engine/bot';
-import { curatorSuspicion, rankActions } from '../src/engine/bot-smart';
+import { curatorSuspicion, effectiveCuratorStyle, rankActions } from '../src/engine/bot-smart';
 import { BOT_GOALS, BOT_PRESETS, CURATOR_STYLES, curatorStyle, curatorStyleNote, presetById } from '../src/engine/bot-presets';
 import { isBanned, isGenreBook } from '../src/engine/util';
 import type { GameState } from '../src/engine/types';
@@ -211,4 +211,23 @@ describe('думающий бот в полном режиме', () => {
     expect(feeds / curators).toBeLessThan(1.5);
     expect(recycled).toBe(0);
   }, 120_000);
+});
+
+describe('Куратор: маскировка до первого явного зла', () => {
+  it('Удав и Хищник, открыто взявшие Пропаганду, играют «открытым забралом»', () => {
+    const seen = new Set<string>();
+    for (let seed = 1; seed <= 60 && seen.size < 2; seed++) {
+      const s = createGame({ players: players(3), seed, mode: 'full' });
+      for (const p of s.players) {
+        const style = curatorStyle(s, p.id);
+        if (style === 'open' || seen.has(style)) continue;
+        seen.add(style);
+        p.passion = 'curator';
+        expect(effectiveCuratorStyle(s, p.id)).toBe(style);
+        p.propagandaTaken = 1;
+        expect(effectiveCuratorStyle(s, p.id)).toBe('open');
+      }
+    }
+    expect([...seen].sort()).toEqual(['ambush', 'boa']);
+  });
 });
