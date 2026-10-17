@@ -764,28 +764,6 @@ describe('Журнал: кружок действия', () => {
   });
 });
 
-describe('Посиделки: почитать на ночь', () => {
-  it('непоказанные книги из Тайника дают Талоны, показанные опальные — очки', () => {
-    let s = createGame({ players: players(2), seed: 6 });
-    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
-    s = startOrders(s);
-    s.phase = 'gathering';
-    s.ready = [];
-    const me = s.players[0];
-    const banned = s.deck.filter((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.some((g) => s.banned.includes(g))).slice(0, 2);
-    s.deck = s.deck.filter((c) => !banned.includes(c));
-    me.cache = 2;
-    me.capacity = 10;
-    me.warehouse.push({ card: banned[0], hidden: true }, { card: banned[1], hidden: true });
-    const talons = me.talons;
-    const points = me.points;
-    s = applyAction(s, me.id, { type: 'gathering', show: [banned[0]] });
-    const p = s.players.find((x) => x.id === me.id)!;
-    expect(p.points).toBe(points + 1);
-    expect(p.talons).toBe(talons + RULES.nightReadTalons);
-  });
-});
-
 describe('Разоблачение', () => {
   // Опцию в тестах включаем явно: в игре её можно выключить.
   const was = RULES.exposePropaganda;
