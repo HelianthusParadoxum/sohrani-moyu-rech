@@ -365,17 +365,19 @@ function soloPressure(state: GameState) {
 }
 
 function refreshChannels(state: GameState, first: boolean) {
+  // Все адреса с книгами каждую Пятилетку обновляются полностью: что осталось — в сброс, выкладка заново.
+  if (!first) {
+    state.tolkuchka.forEach((c) => discard(state, c));
+    state.tolkuchka = [];
+  }
   while (state.tolkuchka.length < RULES.displaySize) {
     const c = draw(state);
     if (!c) break;
     state.tolkuchka.push(c);
   }
   if (!first) {
-    // Развал: сбросить самую залежавшуюся и пополнить свежими.
-    const rest = state.razval.filter((c): c is string => c !== null);
-    const stale = rest.pop();
-    if (stale) discard(state, stale);
-    state.razval = [...rest];
+    state.razval.forEach((c) => c && discard(state, c));
+    state.razval = [null, null, null, null];
     fillRazval(state);
     for (const c of state.baraholka) if (c) discard(state, c);
     state.baraholka = Array.from({ length: RULES.displaySize }, () => draw(state));
