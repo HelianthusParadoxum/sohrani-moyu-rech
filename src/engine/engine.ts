@@ -1284,7 +1284,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       payPrice(state, p, RULES.restoreCost);
       if (hasPatron(state, p.id, 'postgrad')) {
         gain(p, 2, 'postgrad');
-        logAfter(state, '↳ Аспирант: +2 очка Гласности.');
+        logAfter(state, '↳ Архивист: +2 очка Гласности.');
       }
       break;
     }

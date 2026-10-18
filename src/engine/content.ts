@@ -259,7 +259,7 @@ export const PATRONS: Record<PatronId, PatronInfo> = Object.fromEntries([
   P('binder', 'Переплётчик', 'В одно место склада помещаются 2 книги с общим жанром', false),
   P('carpenter', 'Столяр', `Закладка Тайника увеличивает Тайник на ${RULES.carpenterCache} (до 5)`),
   P('correspondent', 'Корреспондент', `Самиздат и Тамиздат: ещё +${RULES.correspondentTalons} Талона за каждое издание`),
-  P('postgrad', 'Аспирант', 'Возвращение смыслов: +2 очка Гласности'),
+  P('postgrad', 'Архивист', 'Возвращение смыслов: +2 очка Гласности'),
   P('professor', 'Профессор', 'Каждая закрытая ступень Ростка: +1 Талон'),
   P('housekeeper', 'Управдом', '+2 места на складе (до 10)'),
   P('spotter', 'Наводчик', 'Можно смотреть закрытые книги, сбросы и верх стопок', false),
@@ -306,7 +306,7 @@ export const POINT_SOURCES: Record<PointSource, string> = {
   testimony: 'Свидетельства «Придать огласке»',
   foreign: 'Иностранная «Перевести»',
   editor: 'Главред',
-  postgrad: 'Аспирант',
+  postgrad: 'Архивист',
   komsorg: 'Комсорг',
   rescue: 'Вызволение из бед',
 };
