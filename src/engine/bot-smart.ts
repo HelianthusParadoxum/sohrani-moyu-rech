@@ -459,6 +459,16 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   const visits = left + (state.phase === 'orders' && !state.nextOrder.includes(me) ? 1 : 0);
   const loads = cards.filter((c) => isLoad(state, c) && !isEvidence(state, c)).length;
   v += Math.min(loads, visits) * RULES.redCornerLoad * ctx.talon * w.talons * BOT_BASE.loadRecycle;
+  // «Спящая» Нагрузка: Возвращение смыслов сделает из неё книгу с 3 значками (или Улику) — доля этой ценности уже сейчас
+  // (нужно ещё действие, а к концу партии на него всё меньше шансов).
+  if (left > 0 || state.phase === 'orders') {
+    for (const c of cards) {
+      if (state.restored[c]) continue;
+      const k = state.cards[c].kind;
+      if (k === 'loadReturnable') v += BOT_BASE.restorePotential * 3 * BOT_BASE.bookLatent * w.publish;
+      else if (k === 'loadEvidence') v += BOT_BASE.restorePotential * RULES.evidencePoints;
+    }
+  }
   for (const sub of p.subscriptions) v += subscriptionValue(state, p, sub, ctx);
   // Книги.
   for (const c of cards) v += iconsOf(state, c).length * BOT_BASE.bookLatent * w.publish;
