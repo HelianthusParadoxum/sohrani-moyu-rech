@@ -79,7 +79,7 @@ export type SproutBonusId = GroupActionId | 'sideJob' | 'underCounter';
 export type PassionId =
   | 'keeper_golden' | 'keeper_silver' | 'keeper_antiquary' | 'keeper_memoirist'
   | 'keeper_polyglot' | 'keeper_dreamer' | 'keeper_skit' | 'keeper_theatre'
-  | 'erudite' | 'monogamist' | 'innovator' | 'curator';
+  | 'erudite' | 'monogamist' | 'innovator' | 'curator' | 'historian';
 
 export interface WarehouseSlot {
   card: string;

@@ -22,6 +22,13 @@ export function passionPoints(state: GameState, p: PlayerState): number {
     return RULES.passionKeeper * best((icons) => icons.filter((x) => x === a || x === b).length);
   }
   switch (p.passion) {
+    case 'historian': {
+      // Вдвое за Улики и Разоблачения: ещё столько же, сколько они приносят сами. Жанровые книги — ничего.
+      const stash = p.warehouse.map((s) => s.card);
+      const evidence = [...stash, ...p.tamizdat].filter((id) => isEvidence(state, id)).length;
+      const exposed = [...stash, ...p.published].filter((id) => isExposed(state, id)).length;
+      return RULES.evidencePoints * evidence + RULES.exposePoints * exposed;
+    }
     case 'monogamist': {
       // Лучший жанр и второй по силе. Перебираем пары жанров: так гибкий значок возвращения
       // у каждой книги засчитывается ровно в одном жанре — там, где выгоднее.

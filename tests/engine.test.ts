@@ -1500,3 +1500,34 @@ describe('Журнал: стартовая сводка', () => {
     expect(viewFor(s, b.id).log.some((l) => l.text.startsWith(`${a.name} на складе на виду`))).toBe(true);
   });
 });
+
+describe('Историк', () => {
+  it('вдвое за Улики и Разоблачения, ничего за жанровые книги', () => {
+    const s = createGame({ players: players(3), seed: 4, mode: 'full' });
+    const p = s.players[0];
+    p.passion = 'historian';
+    const ev = Object.values(s.cards).find((c) => c.kind === 'evidence')!.id;
+    const prop = Object.values(s.cards).find((c) => c.kind === 'propaganda')!.id;
+    const book = Object.values(s.cards).find((c) => c.kind === 'genre' && c.icons.length === 2)!.id;
+    s.restored[prop] = true;
+    p.capacity = 10;
+    p.warehouse = [{ card: ev, hidden: false }, { card: prop, hidden: false }, { card: book, hidden: false }];
+    expect(passionPoints(s, p)).toBe(RULES.evidencePoints + RULES.exposePoints);
+    const line = scoreLine(s, p);
+    expect(line.evidence + line.propaganda + line.passion).toBe(2 * (RULES.evidencePoints + RULES.exposePoints));
+  });
+
+  it('раздаётся только в партиях с Куратором', () => {
+    const dealt = (opts: { mode: 'full' | 'beginner'; curator?: boolean }) => {
+      const seen = new Set<string>();
+      for (let seed = 1; seed <= 40; seed++) {
+        const s = createGame({ players: players(4), seed, ...opts });
+        for (const p of s.players) p.passionOptions.forEach((x) => seen.add(x));
+      }
+      return seen;
+    };
+    expect(dealt({ mode: 'full' }).has('historian')).toBe(true);
+    expect(dealt({ mode: 'full', curator: false }).has('historian')).toBe(false);
+    expect(dealt({ mode: 'beginner' }).has('historian')).toBe(false);
+  });
+});

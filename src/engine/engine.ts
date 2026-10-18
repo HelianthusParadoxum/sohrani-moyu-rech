@@ -64,7 +64,8 @@ export function createGame(opts: NewGameOptions): GameState {
     let keepers = shuffle(state, [...KEEPERS]);
     if (n === 3) keepers = keepers.slice(3);
     const curator = mode === 'full' && opts.curator !== false && !opts.reserve;
-    passions = [...SPECIALS.filter((p) => curator || p !== 'curator'), ...keepers];
+    // Историк (Улики и Разоблачения вдвое) — только вместе с Куратором.
+    passions = [...SPECIALS.filter((p) => curator || p !== 'curator'), ...(curator ? ['historian' as const] : []), ...keepers];
     state.curatorPossible = SPECIALS.includes('curator') && curator;
   } else {
     passions = [...KEEPERS];

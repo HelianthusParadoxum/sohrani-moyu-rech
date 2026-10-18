@@ -238,6 +238,8 @@ export const PASSIONS: Record<PassionId, PassionInfo> = {
   monogamist: { id: 'monogamist', name: 'Вольная душа', special: true, hint: `${RULES.passionMonogamist} очка за значок лучшего жанра${RULES.monogamistSecond ? ` и ${RULES.monogamistSecond} за значок второго по силе` : ''} (на момент подсчёта)` },
   innovator: { id: 'innovator', name: 'Новатор', special: true, hint: `${RULES.passionInnovator} очка за значок на двужанровых книгах${RULES.innovatorSingle ? `, ${RULES.innovatorSingle} очко за каждую книгу с одним жанром` : ''}` },
   curator: { id: 'curator', name: 'Куратор', special: true, hint: 'Агент госбезопасности: побеждает, если Гласность не наступит' },
+  // Раздаётся только в партиях, где может быть Куратор (см. createGame).
+  historian: { id: 'historian', name: 'Историк', special: true, hint: `Ещё по ${RULES.evidencePoints} очков за каждую Улику и по ${RULES.exposePoints} за каждое Разоблачение (монографию о Пропаганде) — вдвое больше; за жанровые книги — ничего` },
 };
 
 export const KEEPERS = Object.values(PASSIONS).filter((p) => !p.special).map((p) => p.id);
@@ -314,6 +316,7 @@ export function passionLabel(id: PassionId): string {
     erudite: 'любые жанры, по 1 книге на жанр',
     monogamist: 'один жанр на выбор',
     innovator: 'двужанровые книги',
+    historian: 'Улики и Разоблачения вдвое',
   };
   return extra[id] ? `${p.name} (${extra[id]})` : p.name;
 }
