@@ -253,8 +253,10 @@ describe('Посредничество авторам и Библиотечно�
     expect(s.discard).toContain(pend.cards[1]);
     expect(s.pending[0].kind).toBe('posrednichestvoGroup');
     const cache = byId(s, p.id).cache;
+    const talons = byId(s, p.id).talons;
     s = applyAction(s, p.id, { type: 'group', group: { action: 'expandCache' } });
     expect(byId(s, p.id).cache).toBe(cache + 1);
+    expect(byId(s, p.id).talons).toBe(talons - RULES.expandCacheCost);
   });
 
   it(`Списание: ${RULES.spisanieDraw} книги за ${RULES.spisaniePrice}т, оставить сколько угодно, остальные — в сброс`, () => {

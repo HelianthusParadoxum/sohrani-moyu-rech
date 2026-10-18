@@ -37,6 +37,10 @@ export const RULES = {
   raspredelitelSize: 4,
   agitpunktSize: 4, // Агитпункт: сколько книг Нагрузки лежит на витрине
   hireCost: 6,
+  expandWarehouseCost: 1, // Увеличение склада: цена в Талонах
+  expandCacheCost: 1, // Закладка Тайника: цена в Талонах
+  professorTalons: 1, // Профессор: за каждую закрытую ступень Ростка — Талонов
+  professorPoints: 1, // ...и очков Гласности
   restoreCost: 0, // Возвращение смыслов: цена в Талонах (0 — бесплатно)
   tolkuchkaBuy: 2, // за книгу
   tolkuchkaSellBanned: 2, // книга с опальным жанром
@@ -184,8 +188,8 @@ export function groupInGame(g: GameKind, id: GroupActionId): boolean {
 export const KONTORA_PATRONS: PatronId[] = ['psychiatrist'];
 
 export const GROUP_ACTIONS: Record<GroupActionId, { name: string; hint: string; fullOnly?: boolean }> = {
-  expandWarehouse: { name: 'Увеличение склада', hint: '+1 место на складе (до 10)' },
-  expandCache: { name: 'Закладка Тайника', hint: '1 место склада становится потайным (до 5)' },
+  expandWarehouse: { name: 'Увеличение склада', hint: `−${RULES.expandWarehouseCost}т: +1 место на складе (до 10)` },
+  expandCache: { name: 'Закладка Тайника', hint: `−${RULES.expandCacheCost}т: 1 место склада становится потайным (до 5)` },
   copyText: { name: 'Тиражирование текста', hint: 'Покупая книгу на Развале, Толкучке, в Распределителе (или меняясь на Книгообмене), поставьте ещё одного Единомышленника на Тиражирование — и возьмите с этого адреса ещё одну жанровую книгу бесплатно (не Улику и не Пропаганду)' },
   rescue: { name: 'Вызволение из бед', hint: `Вернуть Единомышленников из Конторы: +${RULES.rescuePoints} очка за каждого`, fullOnly: true },
   restore: { name: 'Возвращение смыслов', hint: `${RULES.restoreCost ? `${RULES.restoreCost}т: ` : ''}+1 значок жанровой книге или 3 значка возвращаемой Нагрузке` },
@@ -261,7 +265,7 @@ export const PATRONS: Record<PatronId, PatronInfo> = Object.fromEntries([
   P('carpenter', 'Столяр', `Закладка Тайника увеличивает Тайник на ${RULES.carpenterCache} (до 5)`),
   P('correspondent', 'Корреспондент', `Самиздат и Тамиздат: ещё +${RULES.correspondentTalons} Талон и +${RULES.correspondentPoints} очко Гласности за каждое издание`),
   P('postgrad', 'Архивист', 'Возвращение смыслов: +2 очка Гласности'),
-  P('professor', 'Профессор', 'Каждая закрытая ступень Ростка: +1 Талон'),
+  P('professor', 'Профессор', `Каждая закрытая ступень Ростка: +${RULES.professorTalons} Талон и +${RULES.professorPoints} очко Гласности`),
   P('housekeeper', 'Управдом', '+2 места на складе (до 10)'),
   P('spotter', 'Наводчик', 'Можно смотреть закрытые книги, сбросы и верх стопок', false),
   P('veteran', 'Ветеран', 'На адресах — сколько угодно книг за одно действие, в сумме на 1 Талон дешевле (минимум 1)'),
@@ -309,6 +313,7 @@ export const POINT_SOURCES: Record<PointSource, string> = {
   editor: 'Главред',
   postgrad: 'Архивист',
   correspondent: 'Корреспондент',
+  professor: 'Профессор',
   komsorg: 'Комсорг',
   rescue: 'Вызволение из бед',
 };

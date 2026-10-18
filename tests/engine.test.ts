@@ -581,6 +581,20 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     // Статистика: часть — Самиздату, часть — Корреспонденту.
     expect(s.players.find((x) => x.id === me)!.talonsBy).toMatchObject({ samizdat: RULES.samizdatTalons, correspondent: RULES.correspondentTalons });
     expect(s.players.find((x) => x.id === me)!.pointsBy.correspondent).toBe(RULES.correspondentPoints);
+    // Профессор: за ступень Ростка ещё +1 Талон и +1 очко.
+    let s4 = started();
+    const me4 = s4.order[s4.turn];
+    connect(s4, 'professor', [me4]);
+    const sp = s4.sprouts[0];
+    const main = SPROUTS.find((x) => x.id === sp.id)!.main;
+    const card4 = give(s4, me4, (icons) => icons.length === 1 && icons[0] === main);
+    const p4 = s4.players.find((x) => x.id === me4)!;
+    const t4 = p4.talons;
+    s4 = applyAction(s4, me4, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: [card4] }] } });
+    const after4 = s4.players.find((x) => x.id === me4)!;
+    expect(after4.pointsBy.professor).toBe(RULES.professorPoints);
+    expect(after4.talonsBy?.professor).toBe(RULES.professorTalons);
+    expect(after4.talons).toBeGreaterThanOrEqual(t4 + RULES.professorTalons);
     // С Цеховиком за одно издание — ещё ровно +1, хоть доход и из двух частей.
     let s3 = started();
     const me3 = s3.order[s3.turn];

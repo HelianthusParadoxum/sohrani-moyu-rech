@@ -615,9 +615,11 @@ function groupBlocker(view: PlayerView, me: VPlayer, id: GroupActionId): string 
       if (me.talons < RULES.hireCost) return `Нужно ${RULES.hireCost} Талонов, у вас ${me.talons} — не хватает ${RULES.hireCost - me.talons}.`;
       return null;
     case 'expandWarehouse':
-      return me.capacity >= RULES.maxCapacity ? `Склад уже максимального размера (${RULES.maxCapacity}).` : null;
+      if (me.capacity >= RULES.maxCapacity) return `Склад уже максимального размера (${RULES.maxCapacity}).`;
+      return me.talons < RULES.expandWarehouseCost ? `Нужно ${RULES.expandWarehouseCost} Талон, у вас ${me.talons}.` : null;
     case 'expandCache':
-      return me.cache >= RULES.maxCache ? `Тайник уже максимального размера (${RULES.maxCache}).` : null;
+      if (me.cache >= RULES.maxCache) return `Тайник уже максимального размера (${RULES.maxCache}).`;
+      return me.talons < RULES.expandCacheCost ? `Нужно ${RULES.expandCacheCost} Талон, у вас ${me.talons}.` : null;
     case 'copyText':
       // Купленная и бесплатная книги — 2 места; на Толкучке место можно освободить продажей.
       return free < 1 ? 'На складе нет свободного места.' : null;

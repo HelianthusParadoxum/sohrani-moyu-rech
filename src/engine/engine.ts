@@ -1007,8 +1007,10 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         const reward = STEP_REWARDS[sp.progress];
         sp.progress++;
         (p.fedSteps ??= []).push(sp.progress);
-        earn(state, p, 0, { sprouts: reward.talons, professor: hasPatron(state, p.id, 'professor') ? 1 : 0 });
+        const prof = hasPatron(state, p.id, 'professor');
+        earn(state, p, 0, { sprouts: reward.talons, professor: prof ? RULES.professorTalons : 0 });
         gain(p, reward.points, 'sprouts');
+        if (prof) gain(p, RULES.professorPoints, 'professor');
         let text = `${p.name} питает Росток «${info.name}»: ступень ${roman(sp.progress)} закрыта (${titles(state, f.books)})`;
         text += reward.talons ? `, +${talonsText(reward.talons)}` : `, +${pointsText(reward.points)}`;
         if (!p.sproutsFed.includes(sp.id)) {
@@ -1202,11 +1204,13 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
   switch (g.action) {
     case 'expandWarehouse':
       check(p.capacity < RULES.maxCapacity, 'Склад уже максимального размера');
+      payPrice(state, p, RULES.expandWarehouseCost);
       p.capacity++;
       log(state, `${p.name}: склад увеличен до ${p.capacity}.`);
       break;
     case 'expandCache':
       check(p.cache < RULES.maxCache, 'Тайник уже максимального размера');
+      payPrice(state, p, RULES.expandCacheCost);
       // Столяр: Тайник растёт сразу на несколько мест.
       p.cache = Math.min(RULES.maxCache, p.cache + (hasPatron(state, p.id, 'carpenter') ? RULES.carpenterCache : 1));
       log(state, `${p.name}: Тайник увеличен до ${p.cache}.`);
