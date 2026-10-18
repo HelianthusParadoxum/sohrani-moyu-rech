@@ -105,10 +105,10 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
         <section className="board">
           <div className="addresses">
             {full && card('club')}
-            {full && !view.reserve && card('kontora')}
             <Sprouts view={view} beside={full && !view.reserve} seatIndex={seatIndex}
               head={<AddressHead id="sprouts" view={view} seatIndex={seatIndex} me={me} enabled={enabledFor('sprouts')} onOpen={() => setPanel({ kind: 'address', id: 'sprouts' })}
                 rightHint={`${ADDRESSES.sprouts.hint}. Гласность: ${RULES.glasnostAllSprouts ? 'все Ростки' : 'хотя бы один Росток'} до ступени ${roman(RULES.glasnostStep)}.`} />} />
+            {full && !view.reserve && card('kontora')}
             {addresses.map(card)}
           </div>
         </section>
