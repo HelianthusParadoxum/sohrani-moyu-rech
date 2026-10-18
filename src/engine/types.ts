@@ -36,6 +36,7 @@ export type AddressId =
   | 'samizdat' // Самиздат
   | 'tamizdat' // Тамиздат
   | 'glavlit' // Главлит
+  | 'makulatura' // Макулатура
   // Явочные адреса
   | 'knigoobmen'
   | 'kvartirnik'
@@ -135,6 +136,7 @@ export type Pending =
   | { kind: 'naslednikiPick'; player: string; cards: string[] }
   | { kind: 'posrednichestvoKeep'; player: string; cards: string[] }
   | { kind: 'spisanieKeep'; player: string; cards: string[] } // Библиотечное списание: что оставить
+  | { kind: 'makulatura'; player: string; cards: string[] } // Макулатура: тянуть ещё (по Талону) или оставить одну
   | { kind: 'posrednichestvoGroup'; player: string }
   | { kind: 'sproutBonus'; player: string; sprout: string; options: SproutBonusId[] }
   | { kind: 'kontoraWarning'; player: string; from: string }
@@ -263,6 +265,7 @@ export type PlaceAction =
   | { address: 'nasledniki' }
   | { address: 'posrednichestvo' }
   | { address: 'spisanie' }
+  | { address: 'makulatura' }
   | { address: 'club'; gifts: ClubGift[] }
   | { address: 'kontora' };
 
@@ -298,6 +301,8 @@ export type Action =
   | { type: 'naslednikiPick'; cards: string[] }
   | { type: 'posrednichestvoKeep'; keep: string[] }
   | { type: 'spisanieKeep'; keep: string[] }
+  | { type: 'makulaturaDraw'; deck: 'unprinted' | 'load' }
+  | { type: 'makulaturaKeep'; card: string }
   | { type: 'sproutBonus'; bonus: SproutBonusId; group?: GroupAction }
   | { type: 'gathering'; show: string[] }
   | { type: 'ambush'; go: boolean; picks?: Record<string, string> } // picks — какую из показанных книг изъять у каждого; после Посиделок: Куратор раскрывается и устраивает Засаду (остальные — «дальше»)

@@ -1157,6 +1157,13 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     }
     case 'kontora':
       return;
+    case 'makulatura': {
+      check(freeSlots(p) > 0, 'На складе нет места');
+      check(p.talons >= RULES.makulaturaPrice, `Нужен хотя бы ${RULES.makulaturaPrice} Талон`);
+      state.pending.push({ kind: 'makulatura', player: p.id, cards: [] });
+      log(state, `${p.name} роется в Макулатуре.`);
+      return;
+    }
     case 'spisanie': {
       check(freeSlots(p) > 0, 'На складе нет места');
       payPrice(state, p, RULES.spisaniePrice);
@@ -1403,6 +1410,24 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       state.pending.shift();
       state.pending.unshift({ kind: 'posrednichestvoGroup', player: p.id });
       return;
+    }
+    case 'makulatura': {
+      if (action.type === 'makulaturaDraw') {
+        payPrice(state, p, RULES.makulaturaPrice);
+        const c = action.deck === 'load' ? drawLoad(state) : draw(state);
+        check(c, action.deck === 'load' ? 'Стопка Нагрузки пуста' : 'Стопка Непечатных пуста');
+        pend.cards.push(c);
+        log(state, `${p.name} тянет книгу из стопки ${action.deck === 'load' ? 'Нагрузки' : 'Непечатных'} (−${talonsText(RULES.makulaturaPrice)}).`);
+        log(state, `Вытянута ${title(state, c)}.`, [p.id]);
+        return;
+      }
+      check(action.type === 'makulaturaKeep', 'Тяните ещё книгу или оставьте себе одну из вытянутых');
+      check(pend.cards.includes(action.card), 'Эта книга не из вытянутых');
+      for (const c of pend.cards) if (c !== action.card) discard(state, c);
+      addSecretBook(state, p, action.card);
+      log(state, `${p.name} оставляет себе одну книгу из Макулатуры (вытянуто: ${pend.cards.length}).`);
+      log(state, `Вы оставили ${title(state, action.card)}.`, [p.id]);
+      break;
     }
     case 'spisanieKeep': {
       check(action.type === 'spisanieKeep', 'Выберите, что оставить из Библиотечного списания');

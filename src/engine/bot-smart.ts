@@ -604,7 +604,7 @@ function determinize(state: GameState, rand: Rand, me: string): GameState {
 
 // Отложенные решения, которые бот при примерке додумывает сам (они следуют сразу за ходом).
 const FOLLOW_UP = new Set([
-  'sproutBonus', 'posrednichestvoKeep', 'spisanieKeep', 'posrednichestvoGroup', 'baraholkaLook', 'naslednikiPick', 'extraGroup', 'discardExcess',
+  'sproutBonus', 'posrednichestvoKeep', 'spisanieKeep', 'makulatura', 'posrednichestvoGroup', 'baraholkaLook', 'naslednikiPick', 'extraGroup', 'discardExcess',
   'kontoraDecide', 'kontoraHandout', 'glavlitSwap', 'lieutenantPick', 'freeConnection',
 ]);
 
@@ -1068,6 +1068,14 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         const need = Math.min(RULES.posrednichestvoKeep, pend.cards.length);
         return subsets(pend.cards, need).filter((x) => x.length === need).map((keep) => ({ type: 'posrednichestvoKeep', keep }));
       }
+      case 'makulatura': {
+        // Сколько книг тянуть: при запасе Талонов — больше выбор (не больше BOT_BASE.makulaturaMax), потом оставить лучшую.
+        const target = Math.min(BOT_BASE.makulaturaMax, Math.max(1, Math.floor((p.talons + pend.cards.length) / 3)));
+        const draws: Action[] = p.talons >= RULES.makulaturaPrice
+          ? [{ type: 'makulaturaDraw', deck: 'unprinted' }, { type: 'makulaturaDraw', deck: 'load' }] : [];
+        if (pend.cards.length < target && draws.length) return pend.cards.length ? [draws[0]] : draws;
+        return pend.cards.map((card) => ({ type: 'makulaturaKeep' as const, card }));
+      }
       case 'spisanieKeep': {
         const room = Math.max(0, freeSlots(p));
         return [[], ...subsets(pend.cards, room)].map((keep) => ({ type: 'spisanieKeep', keep }));
@@ -1224,7 +1232,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
           }
           case 'raspredelitel': for (const c of state.raspredelitel) out.push({ type: 'place', place: { address: 'raspredelitel', card: c } }); break;
           case 'agitpunkt': for (const c of new Set(state.agitpunkt ?? [])) out.push({ type: 'place', place: { address: 'agitpunkt', card: c } }); break;
-          case 'nasledniki': case 'posrednichestvo': case 'spisanie': out.push({ type: 'place', place: { address: a } }); break;
+          case 'nasledniki': case 'posrednichestvo': case 'spisanie': case 'makulatura': out.push({ type: 'place', place: { address: a } }); break;
           case 'club': if (!RULES.clubFreeGift) out.push(...clubCandidates(state, me, keepMap())); break;
           case 'kontora': {
             // Только что передумал идти (соперники перепрятали книги) — второй раз за ход не объявляет.

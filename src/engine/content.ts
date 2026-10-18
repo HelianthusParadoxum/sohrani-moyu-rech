@@ -53,6 +53,7 @@ export const RULES = {
   posrednichestvoPrice: 2, // Посредничество авторам
   raspredelitelPrice: 2, // книга Распределителя
   spisaniePrice: 1, // Библиотечное списание
+  makulaturaPrice: 1, // Макулатура: Талонов за каждую вытянутую книгу
   spisanieDraw: 3, // Библиотечное списание: сколько книг тайно взять сверху стопки (оставить — сколько угодно)
   posrednichestvoDraw: 3, // Посредничество авторам: сколько книг тайно вытянуть
   posrednichestvoKeep: 1, // ...и сколько из них оставить (остальные — в сброс)
@@ -135,6 +136,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   samizdat: { id: 'samizdat', name: 'Самиздат', limits: [2, 2, 3], hint: `Издать книгу: +${RULES.samizdatTalons}т/значок` },
   tamizdat: { id: 'tamizdat', name: 'Тамиздат', limits: [1, 1, 2], hint: `Издать книгу: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка/значок` },
   glavlit: { id: 'glavlit', name: 'Главлит', limits: [1, 1, 2], hint: `Отдать любое число подцензурных книг (+${RULES.glavlitTalons}т за каждую) и взять столько же из стопок Непечатных и Нагрузки на выбор` },
+  makulatura: { id: 'makulatura', name: 'Макулатура', limits: [1, 1, 2], hint: `По ${RULES.makulaturaPrice}т за книгу: тяните тайно сколько угодно книг из стопок Непечатных и Нагрузки (из любой), затем оставьте себе одну, остальные — в сброс` },
   knigoobmen: { id: 'knigoobmen', name: 'Книгообмен', limits: [1, 1, 1], safehouse: true, hint: 'Отдать 1 жанровую книгу — взять 1 с витрины; когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы' },
   kvartirnik: { id: 'kvartirnik', name: 'Квартирник', limits: [1, 1, 1], safehouse: true, hint: 'Обмен книгами с другим игроком по согласию; когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы' },
   raspredelitel: { id: 'raspredelitel', name: 'Распределитель', limits: [1, 1, 1], safehouse: true, hint: `Купить 1 выдающуюся книгу за ${RULES.raspredelitelPrice}т` },
@@ -160,7 +162,7 @@ export function safehouseCost(id: AddressId): number {
 }
 
 export const PERMANENT_ADDRESSES: AddressId[] = [
-  'gostorg', 'tolkuchka', 'redCorner', 'razval', 'zavoz', 'baraholka', 'sprouts', 'samizdat', 'tamizdat', 'glavlit',
+  'gostorg', 'tolkuchka', 'redCorner', 'razval', 'zavoz', 'baraholka', 'sprouts', 'samizdat', 'tamizdat', 'glavlit', 'makulatura',
   'club', 'kontora',
 ];
 export const SAFEHOUSES: AddressId[] = ['knigoobmen', 'kvartirnik', 'raspredelitel', 'nasledniki', 'posrednichestvo', 'spisanie', 'podpiska', 'agitpunkt'];

@@ -156,7 +156,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
 // ---------- Адреса ----------
 
 // Порядок обычных адресов на поле (после Клуба, Конторы и Ростков); явочные — следом.
-const BOARD_ORDER: AddressId[] = ['redCorner', 'glavlit', 'gostorg', 'baraholka', 'tolkuchka', 'razval', 'zavoz', 'tamizdat', 'samizdat'];
+const BOARD_ORDER: AddressId[] = ['redCorner', 'glavlit', 'makulatura', 'gostorg', 'baraholka', 'tolkuchka', 'razval', 'zavoz', 'tamizdat', 'samizdat'];
 
 type AddressProps = { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me: VPlayer | null; enabled: boolean; onOpen: () => void };
 
@@ -485,6 +485,10 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
     case 'kontora':
       body = <KontoraPanel view={view} place={place} />;
       break;
+    case 'makulatura':
+      body = <><p>{info.hint}.</p>{confirmBtn('Пойти в Макулатуру', me.talons >= RULES.makulaturaPrice && free > 0 ? { address: 'makulatura' } : null,
+        free <= 0 ? 'Нет места на складе' : me.talons < RULES.makulaturaPrice ? 'Нужен хотя бы 1 Талон' : undefined)}</>;
+      break;
     case 'nasledniki':
     case 'posrednichestvo':
     case 'spisanie':
@@ -791,6 +795,24 @@ function PendingPrompt({ view, me, act, nameOf }: { view: PlayerView; me: VPlaye
       return <HandoutPrompt view={view} cards={p.cards} act={act} />;
     case 'freeConnection':
       return <FreeConnectionPrompt view={view} me={me} act={act} />;
+    case 'makulatura': {
+      const can = me.talons >= RULES.makulaturaPrice;
+      const keep = sel.find((c) => p.cards.includes(c));
+      return (
+        <Modal title="Макулатура" wide>
+          <p>Тяните книги по {RULES.makulaturaPrice}т из любой стопки — сколько хотите. Потом оставьте себе одну, остальные уйдут в сброс. Талонов: {me.talons}.</p>
+          <div className="shelf wrap">
+            {p.cards.length === 0 && <span className="muted">Пока ничего не вытянуто</span>}
+            {p.cards.map((c) => <Book key={c} v={view} id={c} selected={keep === c} onClick={() => setSel([c])} />)}
+          </div>
+          <div className="modal-foot">
+            <button disabled={!can} onClick={() => act({ type: 'makulaturaDraw', deck: 'unprinted' })}>Из Непечатных (−{RULES.makulaturaPrice}т)</button>
+            <button disabled={!can} onClick={() => act({ type: 'makulaturaDraw', deck: 'load' })}>Из Нагрузки (−{RULES.makulaturaPrice}т)</button>
+            <button className="primary" disabled={!keep} onClick={() => keep && act({ type: 'makulaturaKeep', card: keep })}>Оставить выбранную</button>
+          </div>
+        </Modal>
+      );
+    }
     case 'baraholkaLook': {
       const veteran = hasPatron(view, me.id, 'veteran');
       const more = veteran ? view.baraholka.map((has, i) => (has && !p.seen.some((x) => x.slot === i) ? i : -1)).filter((i) => i >= 0) : [];

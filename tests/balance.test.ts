@@ -294,3 +294,25 @@ describe('Новатор', () => {
     expect(passionPoints(s, p)).toBe(2 * RULES.passionInnovator + 2 * RULES.innovatorSingle);
   });
 });
+
+describe('Макулатура', () => {
+  it(`по ${RULES.makulaturaPrice}т за книгу из любой стопки, оставить одну, остальные — в сброс; соперник не видит`, () => {
+    let s = started();
+    const p = me(s);
+    p.talons = 5;
+    p.capacity = 10;
+    s = applyAction(s, p.id, { type: 'place', place: { address: 'makulatura' } });
+    expect(() => applyAction(s, p.id, { type: 'makulaturaKeep', card: s.deck[0] })).toThrow(RuleError);
+    const top = s.deck[s.deck.length - 1];
+    const topLoad = s.loadDeck[s.loadDeck.length - 1];
+    s = applyAction(s, p.id, { type: 'makulaturaDraw', deck: 'unprinted' });
+    s = applyAction(s, p.id, { type: 'makulaturaDraw', deck: 'load' });
+    expect(byId(s, p.id).talons).toBe(5 - 2 * RULES.makulaturaPrice);
+    const other = s.players.find((x) => x.id !== p.id)!.id;
+    expect(JSON.stringify(viewFor(s, other).pending)).not.toContain(top);
+    s = applyAction(s, p.id, { type: 'makulaturaKeep', card: top });
+    expect(byId(s, p.id).warehouse.some((w) => w.card === top)).toBe(true);
+    expect(s.loadDiscard).toContain(topLoad);
+    expect(s.pending).toHaveLength(0);
+  });
+});
