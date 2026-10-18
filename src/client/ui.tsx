@@ -37,7 +37,7 @@ export function GenreChip({ g, banned, favored }: { g: Genre; banned?: boolean; 
 }
 
 const KIND_LABEL: Record<string, string> = {
-  propaganda: 'Пропаганда', evidence: 'Улика', load: 'Нагрузка', loadReturnable: 'Нагрузка', loadEvidence: 'Нагрузка', loadPropaganda: 'Нагрузка',
+  propaganda: 'Пропаганда', evidence: 'Улика', load: 'Нагрузка', loadReturnable: 'Нагрузка', loadEvidence: 'Нагрузка', loadPropaganda: 'Нагрузка · Пропаганда',
 };
 
 export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
@@ -51,15 +51,15 @@ export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
   const banned = isBanned(v, id);
   const restored = !!v.restored[id];
   const flex = flexGenres(v, id);
-  const label = c.kind === 'loadReturnable' && restored ? null : c.kind === 'loadEvidence' && restored ? 'Улика' : c.kind === 'propaganda' && restored ? 'Разоблачение' : KIND_LABEL[c.kind];
+  const label = c.kind === 'loadReturnable' && restored ? null : c.kind === 'loadEvidence' && restored ? 'Улика' : (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && restored ? 'Разоблачение' : KIND_LABEL[c.kind];
   const t = c.kind === 'loadReturnable' && restored ? c.returned! : c.title;
   return (
     <button
       type="button"
-      className={`book k-${c.kind === 'loadEvidence' && !restored ? 'load' : c.kind === 'propaganda' && restored ? 'exposed' : c.kind} ${banned ? 'is-banned' : ''} ${selected ? 'selected' : ''} ${hidden ? 'in-cache' : ''} ${small ? 'small' : ''} ${onClick ? 'clickable' : ''}`}
+      className={`book k-${c.kind === 'loadEvidence' && !restored ? 'load' : (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && restored ? 'exposed' : c.kind} ${banned ? 'is-banned' : ''} ${selected ? 'selected' : ''} ${hidden ? 'in-cache' : ''} ${small ? 'small' : ''} ${onClick ? 'clickable' : ''}`}
       onClick={onClick}
       disabled={!onClick}
-      title={`${t} — ${c.author}${c.kind === 'loadPropaganda' ? '. Нагрузка-пропаганда: у книжников — Нагрузка, у Куратора — Пропаганда (срезает Ростки в конце)' : ''}`}
+      title={`${t} — ${c.author}${c.kind === 'loadPropaganda' && !restored ? '. Нагрузка-пропаганда: это Пропаганда (опальна, −5 очков, у Куратора срезает Ростки), но сдаётся в Красный уголок как Нагрузка (+2т); Тайник не прикрывает' : ''}`}
     >
       <div className="book-icons">
         {(flex ? icons.slice(0, -1) : icons).map((g, i) => <GenreChip key={i} g={g} banned={v.banned.includes(g)} favored={favoredGenres(v).includes(g)} />)}

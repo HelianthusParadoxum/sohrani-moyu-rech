@@ -15,7 +15,7 @@ import type {
 import { GENRES } from './types';
 import {
   addBook, addOpenBook, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
-  isGenreBook, isLoad, isPropaganda, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
+  isGenreBook, isLoad, isPropaganda, isPropagandaKind, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
   talonsText, title, titles, logEvent, logNote, logAfter, toSpetskhranPublic, isExposed,
 } from './util';
 
@@ -1265,12 +1265,12 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       check(slot, 'Возвращать смыслы можно книге со своего склада');
       const c = state.cards[g.card];
       check(!state.restored[g.card], 'Этой книге смыслы уже возвращены');
-      check(c.kind === 'genre' || c.kind === 'loadReturnable' || c.kind === 'loadEvidence' || (c.kind === 'propaganda' && RULES.exposePropaganda),
+      check(c.kind === 'genre' || c.kind === 'loadReturnable' || c.kind === 'loadEvidence' || (isPropagandaKind(c.kind) && RULES.exposePropaganda),
         RULES.exposePropaganda
           ? 'Смыслы можно вернуть только жанровой книге, возвращаемой Нагрузке, Нагрузке-улике или Пропаганде'
           : 'Смыслы можно вернуть только жанровой книге, возвращаемой Нагрузке или Нагрузке-улике');
       state.restored[g.card] = true;
-      if (c.kind === 'propaganda') {
+      if (isPropagandaKind(c.kind)) {
         p.propagandaExposed = (p.propagandaExposed ?? 0) + 1;
         log(state, `${p.name} возвращает смыслы: ${title(state, g.card)} становится Разоблачением (+${pointsText(RULES.exposePoints)} в конце).`);
       } else if (c.kind === 'loadEvidence') {

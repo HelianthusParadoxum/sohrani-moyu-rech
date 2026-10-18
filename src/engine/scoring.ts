@@ -2,7 +2,7 @@
 import { PASSIONS, RULES, SPROUTS } from './content';
 import type { GameResult, GameState, Genre, PlayerState, ScoreLine } from './types';
 import { GENRES } from './types';
-import { curatorCuts, discard, draw, iconVariants, iconsOf, isEvidence, isExposed, isPropaganda, log, roman } from './util';
+import { discard, draw, iconVariants, iconsOf, isEvidence, isExposed, isPropaganda, log, roman } from './util';
 
 // Коллекция для Пристрастия: склад (включая Тайник) + изданное.
 export function collection(state: GameState, p: PlayerState): string[] {
@@ -123,8 +123,7 @@ export function finalScoring(state: GameState): GameResult {
   }
   if (curator) {
     // Срез: за каждую Пропаганду у Куратора — минус ступень у самого развитого Ростка.
-    // Нагрузка-пропаганда (ПСС Ленина) у Куратора — тоже Пропаганда.
-    const cuts = curatorCuts(state, curator.warehouse.map((s) => s.card));
+    const cuts = curator.warehouse.filter((s) => isPropaganda(state, s.card)).length;
     const cutLog: string[] = [];
     log(state, `Куратор раскрывается: ${curator.name}. Пропаганды у него на Складе и в Тайнике: ${cuts}${cuts ? ' — столько ступеней он срежет.' : ' — срезать нечем.'}`);
     for (let i = 0; i < cuts; i++) {

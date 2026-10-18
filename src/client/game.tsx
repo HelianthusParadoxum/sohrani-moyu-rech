@@ -161,7 +161,7 @@ const BOARD_ORDER: AddressId[] = ['redCorner', 'glavlit', 'gostorg', 'baraholka'
 type AddressProps = { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me: VPlayer | null; enabled: boolean; onOpen: () => void };
 
 // Каким книгам можно вернуть смыслы.
-const restorable = (kind: string) => ['genre', 'loadReturnable', 'loadEvidence', ...(RULES.exposePropaganda ? ['propaganda'] : [])].includes(kind);
+const restorable = (kind: string) => ['genre', 'loadReturnable', 'loadEvidence', ...(RULES.exposePropaganda ? ['propaganda', 'loadPropaganda'] : [])].includes(kind);
 
 function addressFull(id: AddressId, view: PlayerView, me: VPlayer | null) {
   const here = view.occupancy[id] ?? [];
@@ -310,7 +310,7 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
       break;
     }
     case 'tolkuchka': {
-      const sellable = mine.filter((c) => iconsOf(view, c).length > 0 && !['evidence', 'loadEvidence', 'propaganda'].includes(view.cards[c].kind));
+      const sellable = mine.filter((c) => iconsOf(view, c).length > 0 && !['evidence', 'loadEvidence', 'propaganda', 'loadPropaganda'].includes(view.cards[c].kind));
       const price = (c: string) => (iconsOf(view, c).some((g) => view.banned.includes(g)) ? RULES.tolkuchkaSellBanned : RULES.tolkuchkaSellFree);
       const gain = sel2.reduce((s, c) => s + price(c), 0);
       const cost = sel.length * RULES.tolkuchkaBuy;
@@ -396,7 +396,7 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
       break;
     case 'samizdat':
     case 'tamizdat': {
-      const ok = (c: string) => isExposed(view, c) || view.cards[c].kind !== 'propaganda' && (iconsOf(view, c).length > 0 && !isEvidence(view, c) || (id === 'tamizdat' && isEvidence(view, c)));
+      const ok = (c: string) => isExposed(view, c) || !['propaganda', 'loadPropaganda'].includes(view.cards[c].kind) && (iconsOf(view, c).length > 0 && !isEvidence(view, c) || (id === 'tamizdat' && isEvidence(view, c)));
       const n = sel[0] ? iconsOf(view, sel[0]).length + (isExposed(view, sel[0]) ? 1 : 0) : 0;
       body = (
         <>
@@ -702,7 +702,7 @@ function CopyTextPanel({ view, me, done }: { view: PlayerView; me: VPlayer; done
   const free = me.capacity - me.warehouse.filter((s) => !s.memorized).length;
   const mine = me.warehouse.map((s) => s.card).filter((c): c is string => !!c);
   const genreBooks = mine.filter((c) => iconsOf(view, c).length > 0);
-  const sellable = genreBooks.filter((c) => !['evidence', 'loadEvidence', 'propaganda'].includes(view.cards[c].kind));
+  const sellable = genreBooks.filter((c) => !['evidence', 'loadEvidence', 'propaganda', 'loadPropaganda'].includes(view.cards[c].kind));
   const sellPrice = (c: string) => (iconsOf(view, c).some((g) => view.banned.includes(g)) ? RULES.tolkuchkaSellBanned : RULES.tolkuchkaSellFree);
   const shelf: { key: string; card: string; price: number }[] =
     addr === 'razval' ? view.razval.flatMap((c, i) => (c ? [{ key: String(i), card: c, price: RULES.razvalPrices[i] }] : []))

@@ -661,6 +661,8 @@ describe('Тайник и закрытые книги', () => {
     const p0 = s.players.find((p) => p.id === me)!;
     p0.cache = 1;
     p0.capacity = 10;
+    // Обычная Нагрузка (ПСС Ленина — Пропаганда, она тоже ушла бы в Тайник).
+    s.loadDeck = s.loadDeck.filter((c) => s.cards[c].kind !== 'loadPropaganda');
     s = applyAction(s, me, { type: 'place', place: { address: 'gostorg', pairs: 1 } });
     const p = s.players.find((x) => x.id === me)!;
     const hidden = p.warehouse.filter((x) => x.hidden);
@@ -713,22 +715,46 @@ describe('Срезы Куратора', () => {
     expect(text).toContain('ступень IV → III');
   });
 
-  it('ПСС Ленина: у Куратора — Пропаганда (срез), у книжника — просто Нагрузка', () => {
+  it('ПСС Ленина — Пропаганда у всех: срез у Куратора, −5 у книжника; Тайник не прикрывает; смыслы → Разоблачение', () => {
     const s = createGame({ players: players(3), seed: 4, mode: 'full' });
     const [cur, honest] = s.players;
     cur.passion = 'curator';
     const lenin = Object.values(s.cards).find((c) => c.kind === 'loadPropaganda')!.id;
     expect(s.loadDeck).toContain(lenin);
-    expect(isBanned(s, lenin)).toBe(false);
-    cur.warehouse = [{ card: lenin, hidden: false }];
-    honest.warehouse = [];
+    expect(isPropaganda(s, lenin)).toBe(true);
+    expect(isBanned(s, lenin)).toBe(true);
+    expect(isLoad(s, lenin)).toBe(false); // не прикрывает Тайник
+    const h = { ...honest, warehouse: [{ card: lenin, hidden: false }] };
+    expect(scoreLine(s, h).propaganda).toBe(RULES.propagandaPoints);
+    s.restored[lenin] = true;
+    expect(scoreLine(s, h).propaganda).toBe(RULES.exposePoints);
+    delete s.restored[lenin];
+    cur.warehouse = [{ card: lenin, hidden: true }];
     for (const sp of s.sprouts) sp.progress = 4;
     finalScoring(s);
     const text = s.log.map((l) => l.text).join('\n');
     expect(text).toContain('Пропаганды у него на Складе и в Тайнике: 1');
     expect(text.match(/Срез: Росток/g)).toHaveLength(1);
-    // У книжника — Нагрузка без штрафа за Пропаганду.
-    expect(scoreLine(s, { ...honest, warehouse: [{ card: lenin, hidden: false }] }).propaganda).toBe(0);
+  });
+
+  it('ПСС Ленина сдаётся в Красный уголок как Нагрузка (+2т), рядом с обычной Непечатной', () => {
+    let s = createGame({ players: players(2), seed: 4, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    const lenin = Object.values(s.cards).find((c) => c.kind === 'loadPropaganda')!.id;
+    s.loadDeck = s.loadDeck.filter((c) => c !== lenin);
+    const book = s.deck.find((c) => s.cards[c].kind === 'genre')!;
+    s.deck = s.deck.filter((c) => c !== book);
+    p.capacity = 10;
+    p.warehouse = [{ card: lenin, hidden: false }, { card: book, hidden: false }];
+    const before = p.talons;
+    s = applyAction(s, me, { type: 'place', place: { address: 'redCorner', recycle: [book, lenin] } });
+    const after = s.players.find((x) => x.id === me)!;
+    expect(after.talons - before).toBe(RULES.redCornerLoad + RULES.redCornerUnprinted);
+    expect(after.propagandaDumped).toBe(1);
+    expect(s.loadDiscard).toContain(lenin);
   });
 });
 
