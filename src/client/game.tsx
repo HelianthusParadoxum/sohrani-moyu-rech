@@ -106,6 +106,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
           <div className="addresses">
             {full && card('club')}
             <Sprouts view={view} beside={full && !view.reserve} seatIndex={seatIndex}
+              onOpen={enabledFor('sprouts') ? () => setPanel({ kind: 'address', id: 'sprouts' }) : undefined}
               head={<AddressHead id="sprouts" view={view} seatIndex={seatIndex} me={me} enabled={enabledFor('sprouts')} onOpen={() => setPanel({ kind: 'address', id: 'sprouts' })}
                 rightHint={`${ADDRESSES.sprouts.hint}. Гласность: ${RULES.glasnostAllSprouts ? 'все Ростки' : 'хотя бы один Росток'} до ступени ${roman(RULES.glasnostStep)}.`} />} />
             {full && !view.reserve && card('kontora')}
@@ -186,13 +187,12 @@ function AddressCard(props: AddressProps) {
   );
 }
 
-// Заголовок адреса: название, жетоны Единомышленников, места и кнопка «сюда».
+// Заголовок адреса: название, жетоны Единомышленников и места (поручение — нажатием на сам адрес).
 function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint, rightHint }: AddressProps & { inlineHint?: boolean; rightHint?: string }) {
   const info = ADDRESSES[id];
   const here = view.occupancy[id] ?? [];
   const limit = limitFor(id, view.players.length);
   const freeClub = id === 'club' && RULES.clubFreeGift;
-  const full = addressFull(id, view, me);
   return (
       <div className="addr-head">
         <b>{info.name}</b>
@@ -209,7 +209,6 @@ function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint, rig
             ? <span className="muted small">∞</span>
             : Array.from({ length: Math.max(0, limit - here.length) }, (_, i) => <span key={`free${i}`} className="dot num slot-free" title="Свободное место" />))}
           {enabled && freeClub && <button className="go small" onClick={(e) => { e.stopPropagation(); onOpen(); }} title="Свободное действие: Единомышленник не нужен">отдать книгу →</button>}
-          {enabled && !freeClub && <button className="go small" disabled={full} onClick={(e) => { e.stopPropagation(); onOpen(); }} title={full ? 'Мест нет' : 'Отправить Единомышленника сюда'}>{full ? 'занято' : 'сюда →'}</button>}
         </span>
       </div>
   );
@@ -511,9 +510,11 @@ function stepText(main: Genre, step: { main: number; support?: Genre }) {
 }
 
 // Ростки Гласности вместе с их действием («сюда →» — закрыть ступени).
-function Sprouts({ view, beside, seatIndex, head }: { view: PlayerView; beside: boolean; seatIndex: (id: string) => number; head: ReactNode }) {
+// onOpen — поручение на Ростки: нажатие на любое место панели.
+function Sprouts({ view, beside, seatIndex, head, onOpen }: { view: PlayerView; beside: boolean; seatIndex: (id: string) => number; head: ReactNode; onOpen?: () => void }) {
   return (
-    <div className={`sprouts-panel address addr-sprouts ${beside ? 'beside' : ''}`}>
+    <div className={`sprouts-panel address addr-sprouts ${beside ? 'beside' : ''} ${onOpen ? 'can' : ''}`} onClick={onOpen}
+      role={onOpen ? 'button' : undefined} title={onOpen ? 'Отправить Единомышленника питать Ростки' : undefined}>
       {head}
       <div className="sprouts">
       {view.sprouts.map((sp) => {
