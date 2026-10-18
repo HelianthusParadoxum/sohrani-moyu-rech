@@ -251,7 +251,7 @@ function handle(ws: WebSocket, msg: ClientMessage) {
       const room = rooms.get(msg.code);
       if (!room) return send(ws, { t: 'error', message: 'Комната не найдена' });
       if (room.state) return send(ws, { t: 'error', message: 'Партия уже началась — можно только смотреть' });
-      if (room.seats.length >= 4) return send(ws, { t: 'error', message: 'За столом уже 4 игрока' });
+      if (room.seats.length >= 5) return send(ws, { t: 'error', message: 'За столом уже 5 игроков' });
       const seat: Seat = { id: newId(), name: msg.name.trim().slice(0, 24) || 'Игрок', token: newId() + newId(), bot: false };
       room.seats.push(seat);
       sockets.set(ws, { room: room.code, seat: seat.id, host: false });
@@ -269,7 +269,7 @@ function handle(ws: WebSocket, msg: ClientMessage) {
   switch (msg.t) {
     case 'addBot': {
       if (!isHost || room.state) return;
-      if (room.seats.length >= 4) return send(ws, { t: 'error', message: 'За столом уже 4 игрока' });
+      if (room.seats.length >= 5) return send(ws, { t: 'error', message: 'За столом уже 5 игроков' });
       room.seats.push({ id: newId(), name: 'Бот', token: newId(), bot: true });
       break;
     }

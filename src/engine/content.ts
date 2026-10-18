@@ -26,6 +26,8 @@ export const RULES = {
   rounds: 5,
   startTalons: 5,
   startWorkers: 5,
+  startWorkersFive: 4, // впятером у каждого на старте на 1 Единомышленника меньше
+  safehouseExtraFive: 1, // впятером у каждого явочного адреса +1 место
   maxWorkers: 7,
   startCapacity: 5,
   maxCapacity: 10,
@@ -103,7 +105,7 @@ export const RULES = {
   glasnostAllSprouts: true, // все выложенные Ростки (true) или хотя бы один (false)
 };
 
-// Лимиты Единомышленников на адресе для 2 / 3 / 4 игроков. Infinity — без лимита.
+// Лимиты Единомышленников на адресе для 2 / 3 / 4 игроков (впятером — как вчетвером, у явочных +1). Infinity — без лимита.
 type Limits = [number, number, number];
 const INF = Infinity;
 
@@ -163,7 +165,9 @@ export const STARTS_FILLED: AddressId[] = ['knigoobmen', 'raspredelitel', 'agitp
 
 export function limitFor(address: AddressId, playerCount: number): number {
   const l = ADDRESSES[address].limits;
-  return l[Math.min(Math.max(playerCount, 2), 4) - 2];
+  // Впятером — места как вчетвером, а у явочных адресов на одно больше.
+  const extra = playerCount >= 5 && ADDRESSES[address].safehouse ? RULES.safehouseExtraFive : 0;
+  return l[Math.min(Math.max(playerCount, 2), 4) - 2] + extra;
 }
 
 // Есть ли адрес / действие Группы в этой партии. «Заповедник» (reserve) — полный режим без Конторы и Куратора.

@@ -31,7 +31,7 @@ export interface NewGameOptions {
 
 export function createGame(opts: NewGameOptions): GameState {
   const n = opts.players.length;
-  check(n >= 1 && n <= 4, 'В игре участвуют от 1 до 4 игроков');
+  check(n >= 1 && n <= 5, 'В игре участвуют от 1 до 5 игроков');
   const solo = n === 1; // «Несистемный»
   const seed = opts.seed ?? Math.floor(Math.random() * 2 ** 31);
   const mode = opts.reserve ? 'full' : opts.mode ?? 'beginner';
@@ -76,7 +76,7 @@ export function createGame(opts: NewGameOptions): GameState {
   for (const s of seats) {
     const p: PlayerState = {
       id: s.id, name: s.name,
-      workers: RULES.startWorkers, available: RULES.startWorkers, bonusGroupTurns: 0,
+      workers: n >= 5 ? RULES.startWorkersFive : RULES.startWorkers, available: n >= 5 ? RULES.startWorkersFive : RULES.startWorkers, bonusGroupTurns: 0,
       talons: RULES.startTalons, points: 0,
       capacity: RULES.startCapacity, cache: 0, warehouse: [],
       published: [], tamizdat: [],

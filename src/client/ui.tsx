@@ -9,7 +9,7 @@ import { flexGenres, iconsOf, isBanned as isBannedBook } from '../engine/util';
 
 export { GENRE_SHORT } from '../engine/content';
 
-export const PLAYER_COLORS = ['#b03a2e', '#1f618d', '#1e8449', '#7d3c98'];
+export const PLAYER_COLORS = ['#b03a2e', '#1f618d', '#1e8449', '#7d3c98', '#b9770e'];
 
 export { iconsOf, isLoad } from '../engine/util';
 

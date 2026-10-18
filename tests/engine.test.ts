@@ -1531,3 +1531,15 @@ describe('Историк', () => {
     expect(dealt({ mode: 'beginner' }).has('historian')).toBe(false);
   });
 });
+
+describe('Впятером', () => {
+  it('на старте на 1 Единомышленника меньше, у явочных адресов +1 место', () => {
+    const s = createGame({ players: players(5), seed: 3, mode: 'full' });
+    expect(s.players).toHaveLength(5);
+    for (const p of s.players) expect(p.workers).toBe(RULES.startWorkersFive);
+    expect(limitFor('knigoobmen', 5)).toBe(limitFor('knigoobmen', 4) + 1);
+    expect(limitFor('agitpunkt', 5)).toBe(2);
+    expect(limitFor('razval', 5)).toBe(limitFor('razval', 4));
+    expect(createGame({ players: players(4), seed: 3, mode: 'full' }).players[0].workers).toBe(RULES.startWorkers);
+  });
+});

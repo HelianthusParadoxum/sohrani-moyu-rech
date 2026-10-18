@@ -120,7 +120,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
       {!seated && !room.started && (
         <div className="row">
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ваше имя" maxLength={24} />
-          <button className="primary" disabled={!name.trim() || room.seats.length >= 4} onClick={onJoin}>Сесть за стол</button>
+          <button className="primary" disabled={!name.trim() || room.seats.length >= 5} onClick={onJoin}>Сесть за стол</button>
         </div>
       )}
       {host && (
@@ -162,7 +162,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
           </label>
           <SpeedSelect room={room} send={net.send} />
           <div className="row">
-            <button disabled={room.seats.length >= 4} onClick={() => net.send({ t: 'addBot' })}>Добавить бота</button>
+            <button disabled={room.seats.length >= 5} onClick={() => net.send({ t: 'addBot' })}>Добавить бота</button>
             <button className="primary" disabled={room.seats.length < 1} onClick={() => net.send({ t: 'start' })}>
               {room.seats.length === 1 ? 'Начать одиночную партию' : 'Начать партию'}
             </button>
