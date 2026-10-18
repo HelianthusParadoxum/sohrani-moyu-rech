@@ -455,6 +455,10 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   v += connections * (BOT_BASE.connection + BOT_BASE.patronEffect * w.club * (left + 1));
   // Ресурсы.
   v += resources(state, p, ctx);
+  // Нагрузка — будущие Талоны: в каждый оставшийся визит в Красный уголок можно сдать одну.
+  const visits = left + (state.phase === 'orders' && !state.nextOrder.includes(me) ? 1 : 0);
+  const loads = cards.filter((c) => isLoad(state, c) && !isEvidence(state, c)).length;
+  v += Math.min(loads, visits) * RULES.redCornerLoad * ctx.talon * w.talons * BOT_BASE.loadRecycle;
   for (const sub of p.subscriptions) v += subscriptionValue(state, p, sub, ctx);
   // Книги.
   for (const c of cards) v += iconsOf(state, c).length * BOT_BASE.bookLatent * w.publish;
@@ -1207,6 +1211,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
             break;
           }
           case 'raspredelitel': for (const c of state.raspredelitel) out.push({ type: 'place', place: { address: 'raspredelitel', card: c } }); break;
+          case 'agitpunkt': for (const c of new Set(state.agitpunkt ?? [])) out.push({ type: 'place', place: { address: 'agitpunkt', card: c } }); break;
           case 'nasledniki': case 'posrednichestvo': case 'spisanie': out.push({ type: 'place', place: { address: a } }); break;
           case 'club': if (!RULES.clubFreeGift) out.push(...clubCandidates(state, me, keepMap())); break;
           case 'kontora': {

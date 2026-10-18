@@ -250,6 +250,8 @@ function AddressContents({ id, view, seatIndex }: { id: AddressId; view: PlayerV
       return <div className="shelf wrap">{view.baraholka.map((has, i) => has ? <Book key={i} v={view} id={view.baraholkaKnown?.[i] ?? null} small note={view.baraholkaKnown?.[i] ? 'вы видели' : undefined} /> : <div key={i} className="book empty small" />)}</div>;
     case 'knigoobmen':
       return <div className="shelf wrap">{view.knigoobmen.map((c) => <Book key={c} v={view} id={c} small />)}{emptySlots(RULES.displaySize - view.knigoobmen.length)}</div>;
+    case 'agitpunkt':
+      return <div className="shelf wrap">{(view.agitpunkt ?? []).map((c) => <Book key={c} v={view} id={c} small note="даром" />)}{emptySlots(RULES.agitpunktSize - (view.agitpunkt ?? []).length)}</div>;
     case 'raspredelitel':
       return <div className="shelf wrap">{view.raspredelitel.map((c) => <Book key={c} v={view} id={c} small price={RULES.raspredelitelPrice} />)}{emptySlots(RULES.raspredelitelSize - view.raspredelitel.length)}</div>;
     default:
@@ -464,6 +466,16 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
           {pickList(view.raspredelitel, sel, setSel, veteran ? {} : { max: 1 })}
           {confirmBtn(veteran && sel.length > 1 ? 'Купить' : `Купить за ${RULES.raspredelitelPrice}т`, sel.length && free >= sel.length
             ? { address: 'raspredelitel', card: sel[0], ...(sel.length > 1 ? { cards: sel } : {}) } : null)}
+        </>
+      );
+      break;
+    case 'agitpunkt':
+      body = (
+        <>
+          <p>{info.hint}.{veteran && ' Ветеран: можно взять сколько угодно книг.'}</p>
+          {pickList(view.agitpunkt ?? [], sel, setSel, veteran ? {} : { max: 1 })}
+          {confirmBtn('Взять', sel.length && free >= sel.length
+            ? { address: 'agitpunkt', card: sel[0], ...(sel.length > 1 ? { cards: sel } : {}) } : null, free < Math.max(1, sel.length) ? 'Нет места на складе' : undefined)}
         </>
       );
       break;

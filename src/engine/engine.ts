@@ -44,7 +44,7 @@ export function createGame(opts: NewGameOptions): GameState {
     banned: [], order: [], turn: 0, nextOrder: [],
     players: [],
     deck: [], discard: [], loadDeck: [], loadDiscard: [],
-    tolkuchka: [], razval: [], baraholka: [], baraholkaSeen: {}, knigoobmen: [], raspredelitel: [],
+    tolkuchka: [], razval: [], baraholka: [], baraholkaSeen: {}, knigoobmen: [], raspredelitel: [], agitpunkt: [],
     safehouses: [], safehouseDeck: [], occupancy: {},
     sprouts: [], patrons: [], spetskhran: [], spetskhranSeen: {}, pending: [], ready: [], log: [],
   };
@@ -238,18 +238,19 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
 }
 
 // Открытые адреса, куда выходят книги (для журнала: что и куда вышло).
-const DISPLAYS: [keyof Pick<GameState, 'razval' | 'tolkuchka' | 'knigoobmen' | 'raspredelitel'>, string][] = [
+const DISPLAYS: [keyof Pick<GameState, 'razval' | 'tolkuchka' | 'knigoobmen' | 'raspredelitel' | 'agitpunkt'>, string][] = [
   ['razval', 'На Развал'], ['tolkuchka', 'На Толкучку'], ['knigoobmen', 'На Книгообмен'], ['raspredelitel', 'В Распределитель'],
+  ['agitpunkt', 'На Агитпункт'],
 ];
 
 function displayed(state: GameState): Set<string> {
-  return new Set(DISPLAYS.flatMap(([k]) => (state[k] as (string | null)[]).filter((c): c is string => !!c)));
+  return new Set(DISPLAYS.flatMap(([k]) => ((state[k] ?? []) as (string | null)[]).filter((c): c is string => !!c)));
 }
 
 // Записать, какие книги вышли на открытые адреса (кроме уже названных в журнале этого действия — например, проданных).
 function logArrivals(state: GameState, before: Set<string>, mentioned = '') {
   for (const [k, where] of DISPLAYS) {
-    const fresh = (state[k] as (string | null)[]).filter((c): c is string => !!c && !before.has(c) && !mentioned.includes(state.cards[c].title));
+    const fresh = ((state[k] ?? []) as (string | null)[]).filter((c): c is string => !!c && !before.has(c) && !mentioned.includes(state.cards[c].title));
     if (fresh.length) log(state, `${where} ${fresh.length > 1 ? 'выходят' : 'выходит'}: ${titles(state, fresh)}.`);
   }
 }
@@ -383,6 +384,14 @@ function refreshChannels(state: GameState, first: boolean) {
     for (const c of state.baraholka) if (c) discard(state, c);
     state.baraholka = Array.from({ length: RULES.displaySize }, () => draw(state));
     state.baraholkaSeen = {};
+  }
+  if (state.safehouses.includes('agitpunkt')) {
+    (state.agitpunkt ?? []).forEach((c) => discard(state, c));
+    state.agitpunkt = [];
+    for (let i = 0; i < RULES.agitpunktSize; i++) {
+      const c = drawLoad(state);
+      if (c) state.agitpunkt.push(c);
+    }
   }
   if (state.safehouses.includes('knigoobmen')) {
     state.knigoobmen.forEach((c) => discard(state, c));
@@ -1101,6 +1110,17 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         addOpenBook(state, p, card);
         state.raspredelitel = state.raspredelitel.filter((c) => c !== card);
         log(state, `${p.name} получает из Распределителя ${title(state, card)}.`);
+      }
+      return;
+    }
+    case 'agitpunkt': {
+      const cards = [...new Set(a.cards?.length ? a.cards : [a.card])];
+      check(cards.length === 1 || hasPatron(state, p.id, 'veteran'), 'Несколько книг за одно действие — только со связью с Ветераном');
+      for (const card of cards) {
+        check((state.agitpunkt ?? []).includes(card), 'Этой книги нет на Агитпункте');
+        addOpenBook(state, p, card);
+        state.agitpunkt = (state.agitpunkt ?? []).filter((c) => c !== card);
+        log(state, `${p.name} берёт на Агитпункте ${title(state, card)}.`);
       }
       return;
     }

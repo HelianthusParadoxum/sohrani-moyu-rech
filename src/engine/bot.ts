@@ -123,6 +123,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
             break;
           }
           case 'raspredelitel': for (const c of state.raspredelitel) out.push({ type: 'place', place: { address: 'raspredelitel', card: c } }); break;
+          case 'agitpunkt': for (const c of new Set(state.agitpunkt ?? [])) out.push({ type: 'place', place: { address: 'agitpunkt', card: c } }); break;
           case 'nasledniki': case 'posrednichestvo': case 'spisanie': out.push({ type: 'place', place: { address: a } }); break;
           case 'club':
             if (!RULES.clubFreeGift) for (const gift of clubGifts(state, me)) out.push({ type: 'place', place: { address: 'club', gifts: [gift] } });

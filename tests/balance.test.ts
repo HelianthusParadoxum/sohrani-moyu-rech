@@ -195,6 +195,23 @@ describe('цены и доходы', () => {
   });
 });
 
+describe('Агитпункт', () => {
+  it('книга Нагрузки с витрины — даром, одна за действие (несколько — только с Ветераном)', () => {
+    let s = started();
+    const p = me(s);
+    p.talons = 3;
+    p.capacity = 10;
+    s.safehouses = ['agitpunkt'];
+    s.agitpunkt = s.loadDeck.splice(0, 4);
+    const [a, b] = s.agitpunkt;
+    expect(() => applyAction(s, p.id, { type: 'place', place: { address: 'agitpunkt', card: a, cards: [a, b] } })).toThrow(/Ветераном/);
+    s = act(s, p.id, { type: 'place', place: { address: 'agitpunkt', card: a } });
+    expect(byId(s, p.id).talons).toBe(3);
+    expect(byId(s, p.id).warehouse.some((w) => w.card === a)).toBe(true);
+    expect(s.agitpunkt).not.toContain(a);
+  });
+});
+
 describe('Красный уголок и Тамиздат', () => {
   it(`Нагрузка в Красном уголке — ${RULES.redCornerLoad}т, Непечатная — ${RULES.redCornerUnprinted}т`, () => {
     let s = started();

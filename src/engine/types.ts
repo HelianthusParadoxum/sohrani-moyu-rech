@@ -42,6 +42,7 @@ export type AddressId =
   | 'nasledniki'
   | 'posrednichestvo'
   | 'spisanie'
+  | 'agitpunkt'
   // Полный режим
   | 'club' // Клуб книголюбов
   | 'kontora'; // Контора
@@ -184,6 +185,7 @@ export interface GameState {
   baraholkaSeen?: Record<string, number[]>; // какие ячейки Барахолки игрок уже посмотрел (тайно; пока там та же книга)
   knigoobmen: string[];
   raspredelitel: string[];
+  agitpunkt?: string[]; // Агитпункт: открытая витрина Нагрузки
   safehouses: AddressId[]; // выложенные явочные адреса
   safehouseDeck: AddressId[];
   occupancy: Partial<Record<AddressId, string[]>>;
@@ -254,6 +256,7 @@ export type PlaceAction =
   | { address: 'knigoobmen'; give: string; take: string }
   | { address: 'kvartirnik'; to: string; give: string; want: string }
   | { address: 'raspredelitel'; card: string; cards?: string[] } // cards — Ветеран покупает несколько
+  | { address: 'agitpunkt'; card: string; cards?: string[] } // cards — Ветеран берёт несколько
   | { address: 'nasledniki' }
   | { address: 'posrednichestvo' }
   | { address: 'spisanie' }

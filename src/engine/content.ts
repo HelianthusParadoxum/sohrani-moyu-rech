@@ -34,6 +34,7 @@ export const RULES = {
   censorshipTokens: [3, 4, 5, 6, 7],
   displaySize: 4,
   raspredelitelSize: 4,
+  agitpunktSize: 4, // Агитпункт: сколько книг Нагрузки лежит на витрине
   hireCost: 6,
   restoreCost: 0, // Возвращение смыслов: цена в Талонах (0 — бесплатно)
   tolkuchkaBuy: 2, // за книгу
@@ -131,6 +132,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   knigoobmen: { id: 'knigoobmen', name: 'Книгообмен', limits: [1, 1, 1], safehouse: true, hint: 'Отдать 1 жанровую книгу — взять 1 с витрины' },
   kvartirnik: { id: 'kvartirnik', name: 'Квартирник', limits: [1, 1, 1], safehouse: true, hint: 'Обмен книгами с другим игроком по согласию' },
   raspredelitel: { id: 'raspredelitel', name: 'Распределитель', limits: [1, 1, 1], safehouse: true, hint: `Купить 1 выдающуюся книгу за ${RULES.raspredelitelPrice}т` },
+  agitpunkt: { id: 'agitpunkt', name: 'Агитпункт', limits: [1, 1, 1], safehouse: true, hint: 'Свой человек в агитпункте: взять 1 книгу Нагрузки с витрины бесплатно' },
   nasledniki: { id: 'nasledniki', name: 'Наследники', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.safehousePrice}т: тайно взять 1–2 книги из сброса Непечатных; остаток сброса замешивается в стопку` },
   posrednichestvo: { id: 'posrednichestvo', name: 'Посредничество авторам', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.posrednichestvoPrice}т: тайно вытянуть ${RULES.posrednichestvoDraw}, оставить ${RULES.posrednichestvoKeep}, затем 1 любое действие Группы (даже уже сделанное)` },
   spisanie: { id: 'spisanie', name: 'Библиотечное списание', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.spisaniePrice}т: тайно взять ${RULES.spisanieDraw} книги сверху стопки Непечатных, оставить сколько угодно, остальные — в сброс` },
@@ -155,9 +157,9 @@ export const PERMANENT_ADDRESSES: AddressId[] = [
   'gostorg', 'tolkuchka', 'redCorner', 'razval', 'zavoz', 'baraholka', 'sprouts', 'samizdat', 'tamizdat', 'glavlit',
   'club', 'kontora',
 ];
-export const SAFEHOUSES: AddressId[] = ['knigoobmen', 'kvartirnik', 'raspredelitel', 'nasledniki', 'posrednichestvo', 'spisanie', 'podpiska'];
+export const SAFEHOUSES: AddressId[] = ['knigoobmen', 'kvartirnik', 'raspredelitel', 'nasledniki', 'posrednichestvo', 'spisanie', 'podpiska', 'agitpunkt'];
 // Адреса, которые начинают партию заполненными (если выложены).
-export const STARTS_FILLED: AddressId[] = ['knigoobmen', 'raspredelitel'];
+export const STARTS_FILLED: AddressId[] = ['knigoobmen', 'raspredelitel', 'agitpunkt'];
 
 export function limitFor(address: AddressId, playerCount: number): number {
   const l = ADDRESSES[address].limits;
