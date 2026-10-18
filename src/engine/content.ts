@@ -56,7 +56,7 @@ export const RULES = {
   tamizdatTalons: 1, // Тамиздат: Талонов за значок
   tamizdatPoints: 2, // Тамиздат: очков Гласности за значок
   redCornerUnprinted: 1, // Красный уголок: Талонов за сданную Непечатную книгу
-  redCornerLoad: 2, // Красный уголок: Талонов за сданную книгу Нагрузки
+  redCornerLoad: 1, // Красный уголок: Талонов за сданную книгу Нагрузки
   sideJobIncome: 3,
   passionKeeper: 2, // Хранитель: очков за значок своих двух жанров
   passionErudite: 1, // Эрудит: очков за значок (по 1 книге на жанр); было 2 без бонуса за жанры
@@ -81,7 +81,8 @@ export const RULES = {
   clubFreeGift: true,
   glavlitTalons: 1, // Главлит: Талонов за каждую отданную подцензурную книгу
   rescuePoints: 2, // Вызволение из бед: очков Гласности за каждого вызволенного Единомышленника
-  correspondentTalons: 3, // Корреспондент: Талонов за каждое издание через Самиздат или Тамиздат
+  correspondentTalons: 1, // Корреспондент: Талонов за каждое издание через Самиздат или Тамиздат
+  correspondentPoints: 1, // ...и очков Гласности за каждое издание
   carpenterCache: 2, // Столяр: на сколько мест растёт Тайник от Закладки Тайника
   brokerTalons: 2, // Маклер: Талонов за каждую новую связь
   tsekhovikBonus: 1, // Цеховик: на сколько Талонов больше при каждом получении Талонов
@@ -258,7 +259,7 @@ const P = (id: PatronId, name: string, hint: string, implemented = true): Patron
 export const PATRONS: Record<PatronId, PatronInfo> = Object.fromEntries([
   P('binder', 'Переплётчик', 'В одно место склада помещаются 2 книги с общим жанром', false),
   P('carpenter', 'Столяр', `Закладка Тайника увеличивает Тайник на ${RULES.carpenterCache} (до 5)`),
-  P('correspondent', 'Корреспондент', `Самиздат и Тамиздат: ещё +${RULES.correspondentTalons} Талона за каждое издание`),
+  P('correspondent', 'Корреспондент', `Самиздат и Тамиздат: ещё +${RULES.correspondentTalons} Талон и +${RULES.correspondentPoints} очко Гласности за каждое издание`),
   P('postgrad', 'Архивист', 'Возвращение смыслов: +2 очка Гласности'),
   P('professor', 'Профессор', 'Каждая закрытая ступень Ростка: +1 Талон'),
   P('housekeeper', 'Управдом', '+2 места на складе (до 10)'),
@@ -307,6 +308,7 @@ export const POINT_SOURCES: Record<PointSource, string> = {
   foreign: 'Иностранная «Перевести»',
   editor: 'Главред',
   postgrad: 'Архивист',
+  correspondent: 'Корреспондент',
   komsorg: 'Комсорг',
   rescue: 'Вызволение из бед',
 };

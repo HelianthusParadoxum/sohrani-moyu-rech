@@ -570,7 +570,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     for (const i of slots) expect(s.razval[i]).toBeNull();
   });
 
-  it('Корреспондент: +3 Талона за издание; Столяр: Закладка Тайника — +2 места', () => {
+  it('Корреспондент: +1 Талон и +1 очко за издание; Столяр: Закладка Тайника — +2 места', () => {
     let s = started();
     const me = s.order[s.turn];
     connect(s, 'correspondent', [me]);
@@ -580,6 +580,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     expect(s.players.find((x) => x.id === me)!.talons).toBe(t + RULES.samizdatTalons + RULES.correspondentTalons);
     // Статистика: часть — Самиздату, часть — Корреспонденту.
     expect(s.players.find((x) => x.id === me)!.talonsBy).toMatchObject({ samizdat: RULES.samizdatTalons, correspondent: RULES.correspondentTalons });
+    expect(s.players.find((x) => x.id === me)!.pointsBy.correspondent).toBe(RULES.correspondentPoints);
     // С Цеховиком за одно издание — ещё ровно +1, хоть доход и из двух частей.
     let s3 = started();
     const me3 = s3.order[s3.turn];

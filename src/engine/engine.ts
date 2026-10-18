@@ -1048,6 +1048,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       } else if (isFull(state) && genres.includes('foreign')) {
         add(RULES.foreignPoints, 'foreign'); // «Перевести»
       }
+      if (corr) add(RULES.correspondentPoints, 'correspondent');
       gaveAway(state, p, a.card);
       log(state, `${p.name} издаёт ${title(state, a.card)} через ${name}: +${talonsText(talons + corr)}${pts ? `, +${pointsText(pts)}` : ''}.`);
       earn(state, p, 0, { [a.address]: talons, correspondent: corr });
