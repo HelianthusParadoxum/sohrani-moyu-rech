@@ -4,7 +4,7 @@ import type { ClubGift, GameState, KontoraChoice, PatronId, PlayerState } from '
 import { GENRES } from './types';
 import {
   addBook, addSecretBook, check, discard, drawLoad, earn, freeSlots, hasBook, hasPatron, iconsOf, isBanned, isGenreBook, isPropaganda, log, pay, player,
-  removeBook, shuffle, talonsText, title, titles, logAfter,
+  removeBook, saved, shuffle, talonsText, title, titles, logAfter,
   forgetSpetskhran, seeSpetskhran, toSpetskhranPublic,
 } from './util';
 
@@ -22,7 +22,9 @@ export function setupClub(state: GameState) {
 
 // Скупщик: каждое действие с ценой в Талонах — на 1 дешевле, до минимума в 1.
 export function price(state: GameState, p: PlayerState, cost: number): number {
-  return cost > 0 && hasPatron(state, p.id, 'buyer') ? Math.max(1, cost - 1) : cost;
+  const c = cost > 0 && hasPatron(state, p.id, 'buyer') ? Math.max(1, cost - 1) : cost;
+  saved(p, 'buyer', cost - c);
+  return c;
 }
 
 // Ирония «Пустить в народ»: +1 Талон, когда игрок отдаёт ироническую книгу куда-либо. Срабатывает в конце действия.
@@ -38,7 +40,7 @@ export function flushIrony(state: GameState) {
   if (!state.ironyDue) return;
   for (const [id, n] of Object.entries(state.ironyDue)) {
     logAfter(state, `↳ Ирония «пущена в народ»: +${talonsText(n)}.`);
-    earn(state, player(state, id), n);
+    earn(state, player(state, id), n, 'irony');
   }
   delete state.ironyDue;
 }
@@ -99,7 +101,7 @@ export function giveToPatron(state: GameState, p: PlayerState, gift: ClubGift) {
   // Маклер: каждая новая связь (включая с ним самим) — Талоны.
   if (hasPatron(state, p.id, 'broker')) {
     logAfter(state, `↳ Маклер: +${talonsText(RULES.brokerTalons)}.`);
-    earn(state, p, RULES.brokerTalons);
+    earn(state, p, RULES.brokerTalons, 'broker');
   }
 }
 
@@ -257,7 +259,7 @@ export function afterRaid(state: GameState) {
     if (hasPatron(state, p.id, 'nesun')) {
       const used = p.warehouse.filter((s) => s.hidden).length;
       const n = Math.max(0, p.cache - used);
-      if (n) { log(state, `${p.name}: Несун — +${talonsText(n)}.`); earn(state, p, n); }
+      if (n) { log(state, `${p.name}: Несун — +${talonsText(n)}.`); earn(state, p, n, 'nesun'); }
     }
     // Библиотекарь: до 2 книг сверху перетасованного сброса.
     if (hasPatron(state, p.id, 'librarian') && state.discard.length) {
@@ -290,7 +292,7 @@ export function purchases(state: GameState, p: PlayerState) {
   let veteran = hasPatron(state, p.id, 'veteran');
   return (cost: number): number => {
     let c = count === 0 ? price(state, p, cost) : cost;
-    if (veteran && c > 0 && spent + c - 1 >= 1) { c--; veteran = false; }
+    if (veteran && c > 0 && spent + c - 1 >= 1) { c--; veteran = false; saved(p, 'veteran', 1); }
     pay(p, c);
     spent += c;
     count++;

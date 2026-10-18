@@ -578,6 +578,17 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     const t = s.players.find((x) => x.id === me)!.talons;
     s = applyAction(s, me, { type: 'place', place: { address: 'samizdat', card } });
     expect(s.players.find((x) => x.id === me)!.talons).toBe(t + RULES.samizdatTalons + RULES.correspondentTalons);
+    // Статистика: часть — Самиздату, часть — Корреспонденту.
+    expect(s.players.find((x) => x.id === me)!.talonsBy).toMatchObject({ samizdat: RULES.samizdatTalons, correspondent: RULES.correspondentTalons });
+    // С Цеховиком за одно издание — ещё ровно +1, хоть доход и из двух частей.
+    let s3 = started();
+    const me3 = s3.order[s3.turn];
+    connect(s3, 'correspondent', [me3]);
+    s3.patrons[1] = { id: 'tsekhovik', genre: s3.patrons[1].genre, connections: [me3], turned: false, removed: false };
+    const card3 = give(s3, me3, (icons) => icons.length === 1 && !icons.includes('irony'));
+    const t3 = s3.players.find((x) => x.id === me3)!.talons;
+    s3 = applyAction(s3, me3, { type: 'place', place: { address: 'samizdat', card: card3 } });
+    expect(s3.players.find((x) => x.id === me3)!.talons).toBe(t3 + RULES.samizdatTalons + RULES.correspondentTalons + RULES.tsekhovikBonus);
 
     let s2 = started();
     const me2 = s2.order[s2.turn];

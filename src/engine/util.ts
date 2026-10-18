@@ -305,11 +305,23 @@ export function roman(n: number): string {
 }
 
 // Получить Талоны. Цеховик: каждое получение Талонов — на RULES.tsekhovikBonus больше (отдельной строкой в журнале).
-export function earn(state: GameState, p: PlayerState, n: number) {
+// Сэкономленные Завсегдатаем Талоны (статистика: p.talonsSaved).
+export function saved(p: PlayerState, source: string, n: number) {
+  if (n > 0) (p.talonsSaved ??= {})[source] = (p.talonsSaved[source] ?? 0) + n;
+}
+
+// source — откуда Талоны (для статистики: p.talonsBy). Одно получение может складываться из частей
+// (адрес + Завсегдатай) — Цеховик всё равно срабатывает один раз.
+export function earn(state: GameState, p: PlayerState, n: number, source: string | Record<string, number>) {
+  const parts = typeof source === 'string' ? { [source]: n } : source;
+  n = Object.values(parts).reduce((a, b) => a + b, 0);
   if (n <= 0) return;
   p.talons += n;
+  for (const [k, v] of Object.entries(parts)) if (v > 0) (p.talonsBy ??= {})[k] = (p.talonsBy?.[k] ?? 0) + v;
+  p.talonsBy ??= {};
   if (hasPatron(state, p.id, 'tsekhovik')) {
     p.talons += RULES.tsekhovikBonus;
+    p.talonsBy.tsekhovik = (p.talonsBy.tsekhovik ?? 0) + RULES.tsekhovikBonus;
     logAfter(state, `↳ Цеховик: ещё +${RULES.tsekhovikBonus} Талон.`);
   }
 }
