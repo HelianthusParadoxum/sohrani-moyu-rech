@@ -53,7 +53,7 @@ export function createGame(opts: NewGameOptions): GameState {
   state.deck = shuffle(state, CARDS.filter((c) => !['load', 'loadReturnable', 'loadEvidence', 'loadPropaganda'].includes(c.kind)).map((c) => c.id));
   state.loadDeck = shuffle(state, CARDS.filter((c) => ['load', 'loadReturnable', 'loadEvidence', 'loadPropaganda'].includes(c.kind)).map((c) => c.id));
   state.safehouseDeck = shuffle(state, [...SAFEHOUSES]);
-  state.sprouts = shuffle(state, SPROUTS.map((s) => s.id)).slice(0, solo ? RULES.soloSprouts[mode] : n + RULES.extraSprouts[mode]).map((id) => ({ id, progress: 0 }));
+  state.sprouts = shuffle(state, SPROUTS.map((s) => s.id)).slice(0, solo ? RULES.soloSprouts[mode] : n + RULES.extraSprouts[opts.reserve ? 'reserve' : mode]).map((id) => ({ id, progress: 0 }));
 
   // Колода Пристрастий.
   let passions: PassionId[];
@@ -76,7 +76,7 @@ export function createGame(opts: NewGameOptions): GameState {
   for (const s of seats) {
     const p: PlayerState = {
       id: s.id, name: s.name,
-      workers: n >= 5 ? RULES.startWorkersFive : RULES.startWorkers, available: n >= 5 ? RULES.startWorkersFive : RULES.startWorkers, bonusGroupTurns: 0,
+      workers: RULES.startWorkers, available: RULES.startWorkers, bonusGroupTurns: 0,
       talons: RULES.startTalons, points: 0,
       capacity: RULES.startCapacity, cache: 0, warehouse: [],
       published: [], tamizdat: [],

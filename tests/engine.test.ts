@@ -60,7 +60,7 @@ describe('подготовка', () => {
       expect(p.passionOptions).toHaveLength(2);
     }
     expect(s.sprouts).toHaveLength(3); // Райцентр: Ростков по числу игроков
-    expect(createGame({ players: players(3), seed: 1, mode: 'full' }).sprouts).toHaveLength(4); // полный: +1
+    expect(createGame({ players: players(3), seed: 1, mode: 'full' }).sprouts).toHaveLength(3); // полный: по числу игроков (в «Заповеднике» +1)
     expect(s.razval.every(Boolean)).toBe(true);
     expect(new Set(allCards(s)).size).toBe(132);
   });
@@ -1533,10 +1533,12 @@ describe('Историк', () => {
 });
 
 describe('Впятером', () => {
-  it('на старте на 1 Единомышленника меньше, у явочных адресов +1 место', () => {
+  it('у явочных адресов +1 место; Единомышленников, как всегда, 5; Ростков — по числу игроков', () => {
     const s = createGame({ players: players(5), seed: 3, mode: 'full' });
     expect(s.players).toHaveLength(5);
-    for (const p of s.players) expect(p.workers).toBe(RULES.startWorkersFive);
+    for (const p of s.players) expect(p.workers).toBe(RULES.startWorkers);
+    expect(s.sprouts).toHaveLength(5);
+    expect(createGame({ players: players(3), seed: 3, mode: 'full', reserve: true }).sprouts).toHaveLength(4);
     expect(limitFor('knigoobmen', 5)).toBe(limitFor('knigoobmen', 4) + 1);
     expect(limitFor('agitpunkt', 5)).toBe(2);
     expect(limitFor('razval', 5)).toBe(limitFor('razval', 4));
