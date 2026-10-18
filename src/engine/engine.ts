@@ -50,8 +50,8 @@ export function createGame(opts: NewGameOptions): GameState {
   };
   if (solo) state.solo = true;
   if (opts.reserve) state.reserve = true;
-  state.deck = shuffle(state, CARDS.filter((c) => !['load', 'loadReturnable', 'loadEvidence'].includes(c.kind)).map((c) => c.id));
-  state.loadDeck = shuffle(state, CARDS.filter((c) => ['load', 'loadReturnable', 'loadEvidence'].includes(c.kind)).map((c) => c.id));
+  state.deck = shuffle(state, CARDS.filter((c) => !['load', 'loadReturnable', 'loadEvidence', 'loadPropaganda'].includes(c.kind)).map((c) => c.id));
+  state.loadDeck = shuffle(state, CARDS.filter((c) => ['load', 'loadReturnable', 'loadEvidence', 'loadPropaganda'].includes(c.kind)).map((c) => c.id));
   state.safehouseDeck = shuffle(state, [...SAFEHOUSES]);
   state.sprouts = shuffle(state, SPROUTS.map((s) => s.id)).slice(0, solo ? RULES.soloSprouts[mode] : n + RULES.extraSprouts[mode]).map((id) => ({ id, progress: 0 }));
 
@@ -1165,7 +1165,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
 
 function isFromLoadDeck(state: GameState, id: string) {
   const k = state.cards[id].kind;
-  return k === 'load' || k === 'loadReturnable' || k === 'loadEvidence';
+  return k === 'load' || k === 'loadReturnable' || k === 'loadEvidence' || k === 'loadPropaganda';
 }
 
 // ---------- Действия Инициативной группы ----------

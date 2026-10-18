@@ -121,6 +121,9 @@ for c in cards:
     c["author"] = re.sub(r"^Перевод — .*?Автор — ", "", c["author"])
     c["author"] = re.sub(r"\s*\(.*$", "", c["author"]) if c["author"].startswith("Перевод") else c["author"]
 
+# Нагрузка-пропаганда (добавлена автором вручную): у книжников — Нагрузка, у Куратора — Пропаганда.
+add("loadPropaganda", "Полное собрание сочинений", "Владимир Ленин")
+
 json.dump(cards, open("src/data/cards.json", "w"), ensure_ascii=False, indent=1)
 from collections import Counter
 print(Counter(c["kind"] for c in cards))

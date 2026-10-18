@@ -149,12 +149,12 @@ export function isLoad(state: CardsInfo, id: string): boolean {
   const c = state.cards[id];
   // Возвращаемая Нагрузка и Нагрузка-улика перестают быть Нагрузкой, когда им вернули смыслы.
   if (c.kind === 'loadReturnable' || c.kind === 'loadEvidence') return !state.restored[id];
-  return c.kind === 'load';
+  return c.kind === 'load' || c.kind === 'loadPropaganda';
 }
 
 export function isFromLoadDeck(state: CardsInfo, id: string): boolean {
   const k = state.cards[id].kind;
-  return k === 'load' || k === 'loadReturnable' || k === 'loadEvidence';
+  return k === 'load' || k === 'loadReturnable' || k === 'loadEvidence' || k === 'loadPropaganda';
 }
 
 export function isEvidence(state: CardsInfo, id: string): boolean {
@@ -165,6 +165,11 @@ export function isEvidence(state: CardsInfo, id: string): boolean {
 
 export function isPropaganda(state: CardsInfo, id: string): boolean {
   return state.cards[id].kind === 'propaganda' && !state.restored[id];
+}
+
+// Сколько Пропаганды у Куратора для срезов: настоящая Пропаганда и Нагрузка-пропаганда (у него она — Пропаганда).
+export function curatorCuts(state: CardsInfo, cards: string[]): number {
+  return cards.filter((c) => isPropaganda(state, c) || state.cards[c].kind === 'loadPropaganda').length;
 }
 
 // «Разоблачение» — Пропаганда, которой вернули смыслы: +2 очка в конце (на складе или изданная).

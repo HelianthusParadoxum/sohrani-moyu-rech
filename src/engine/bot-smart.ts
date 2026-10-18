@@ -11,7 +11,7 @@ import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
-  cacheLimit, cloneJson, coversStep, freeSlots, hasPatron, iconsOf, isBanned, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
+  cacheLimit, cloneJson, coversStep, curatorCuts, freeSlots, hasPatron, iconsOf, isBanned, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
 } from './util';
 
 type Rand = () => number;
@@ -310,6 +310,7 @@ function heldPropagandaValue(state: GameState, p: PlayerState, ctx: Ctx): number
 
 function ownBookValue(state: GameState, p: PlayerState, card: string, ctx: Ctx): number {
   if (isPropaganda(state, card)) return ctx.curator ? BOT_BASE.curatorPropaganda : heldPropagandaValue(state, p, ctx);
+  if (ctx.curator && state.cards[card].kind === 'loadPropaganda') return BOT_BASE.curatorPropaganda;
   if (isExposed(state, card)) return RULES.exposePoints;
   let v = iconsOf(state, card).length * BOT_BASE.bookLatent * ctx.w.publish;
   if (isEvidence(state, card)) v += RULES.evidencePoints;
@@ -386,7 +387,7 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   } else {
     v -= BOT_BASE.curatorStep * prog.reduce((a, b) => a + b, 0) + BOT_BASE.curatorWeakest * Math.min(...prog);
   }
-  v += BOT_BASE.curatorPropaganda * p.warehouse.filter((s) => isPropaganda(state, s.card)).length;
+  v += BOT_BASE.curatorPropaganda * curatorCuts(state, p.warehouse.map((s) => s.card));
   v += attack * BOT_BASE.curatorHeld * state.players.filter((o) => o.id !== p.id).reduce((s, o) => s + o.held, 0);
   // Жанровые книги — разменная монета: Книгообмен на Пропаганду, Главлит «прокруткой», оплата Конторы своей книгой.
   for (const s of p.warehouse) {
@@ -995,7 +996,9 @@ function redCornerCandidates(state: GameState, me: string, keep: Map<string, num
     .filter((c) => !isPropaganda(state, c) || (p.passion !== 'curator' && !canExposeLater(state, p, ctx)));
   const prop = cards.find((c) => isPropaganda(state, c));
   const unprinted = byValue(keep, cards.filter((c) => !isLoad(state, c) && !isEvidence(state, c) && state.cards[c].kind !== 'loadEvidence' && state.cards[c].kind !== 'loadReturnable'));
-  const loads = cards.filter((c) => isLoad(state, c) && !isEvidence(state, c));
+  // Нагрузку-пропаганду (ПСС Ленина) Куратор сдаёт последней — у него это Пропаганда.
+  const lenin = (c: string) => (ctx.curator && state.cards[c].kind === 'loadPropaganda' ? 1 : 0);
+  const loads = cards.filter((c) => isLoad(state, c) && !isEvidence(state, c)).sort((a, b) => lenin(a) - lenin(b));
   const ups = prop ? [prop] : unprinted.slice(0, 1);
   const out: string[][] = [[]];
   for (const u of [...ups, null]) for (const l of [loads[0], null]) {

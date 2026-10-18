@@ -306,3 +306,6 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 .hint.inline.right { font-size: 0.75rem; text-align: right; max-width: 60%; margin-left: auto; }
 .fed-row { display: flex; align-items: center; gap: 4px; margin-top: 4px; }
 .dot.slot-free { background: transparent; border: 1.5px dashed rgba(0,0,0,.35); }
+
+/* Нагрузка-пропаганда (ПСС Ленина) выглядит как Нагрузка */
+.book.k-loadPropaganda { background: #f0e4c8; }

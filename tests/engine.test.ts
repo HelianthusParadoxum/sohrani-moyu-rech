@@ -62,7 +62,7 @@ describe('подготовка', () => {
     expect(s.sprouts).toHaveLength(3); // Райцентр: Ростков по числу игроков
     expect(createGame({ players: players(3), seed: 1, mode: 'full' }).sprouts).toHaveLength(4); // полный: +1
     expect(s.razval.every(Boolean)).toBe(true);
-    expect(new Set(allCards(s)).size).toBe(131);
+    expect(new Set(allCards(s)).size).toBe(132);
   });
 
   it('скрывает чужие Пристрастия и колоды', () => {
@@ -92,8 +92,8 @@ describe('партия ботами', () => {
         expect(s.result).toBeDefined();
         expect(s.round).toBe(5);
         const cards = allCards(s);
-        expect(cards.length).toBe(131);
-        expect(new Set(cards).size).toBe(131);
+        expect(cards.length).toBe(132);
+        expect(new Set(cards).size).toBe(132);
       }
     });
   }
@@ -255,7 +255,7 @@ describe('полный режим', () => {
         expect(s.phase).toBe('end');
         const cards = allCards(s);
         expect(new Set(cards).size).toBe(cards.length);
-        expect(cards.length).toBe(131);
+        expect(cards.length).toBe(132);
       }
     });
   }
@@ -292,7 +292,9 @@ describe('полный режим', () => {
     expect(new Set(s.patrons.map((x) => x.genre)).size).toBe(8);
     const me = s.order[s.turn];
     const p = s.players.find((x) => x.id === me)!;
-    const book = Object.values(s.cards).find((c) => c.kind === 'genre' && c.icons.length === 1 && c.icons[0] !== 'album')!;
+    // Завсегдатай без решения при завязке связи (Главлитовец сразу просит перенести опалу).
+    const book = Object.values(s.cards).find((c) => c.kind === 'genre' && c.icons.length === 1 && c.icons[0] !== 'album'
+      && s.patrons.find((x) => x.genre === c.icons[0])!.id !== 'glavlit')!;
     p.warehouse.push({ card: book.id, hidden: false });
     s.deck = s.deck.filter((c) => c !== book.id);
     const patron = s.patrons.find((x) => x.genre === book.icons[0])!;
@@ -709,6 +711,24 @@ describe('Срезы Куратора', () => {
     expect(text).toContain('Пропаганды у него на Складе и в Тайнике: 2');
     expect(text.match(/Срез: Росток/g)).toHaveLength(2);
     expect(text).toContain('ступень IV → III');
+  });
+
+  it('ПСС Ленина: у Куратора — Пропаганда (срез), у книжника — просто Нагрузка', () => {
+    const s = createGame({ players: players(3), seed: 4, mode: 'full' });
+    const [cur, honest] = s.players;
+    cur.passion = 'curator';
+    const lenin = Object.values(s.cards).find((c) => c.kind === 'loadPropaganda')!.id;
+    expect(s.loadDeck).toContain(lenin);
+    expect(isBanned(s, lenin)).toBe(false);
+    cur.warehouse = [{ card: lenin, hidden: false }];
+    honest.warehouse = [];
+    for (const sp of s.sprouts) sp.progress = 4;
+    finalScoring(s);
+    const text = s.log.map((l) => l.text).join('\n');
+    expect(text).toContain('Пропаганды у него на Складе и в Тайнике: 1');
+    expect(text.match(/Срез: Росток/g)).toHaveLength(1);
+    // У книжника — Нагрузка без штрафа за Пропаганду.
+    expect(scoreLine(s, { ...honest, warehouse: [{ card: lenin, hidden: false }] }).propaganda).toBe(0);
   });
 });
 

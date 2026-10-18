@@ -14,7 +14,7 @@ export const PLAYER_COLORS = ['#b03a2e', '#1f618d', '#1e8449', '#7d3c98'];
 export { iconsOf, isLoad } from '../engine/util';
 
 export function fromLoadDeck(v: PlayerView, id: string) {
-  return ['load', 'loadReturnable', 'loadEvidence'].includes(v.cards[id].kind);
+  return ['load', 'loadReturnable', 'loadEvidence', 'loadPropaganda'].includes(v.cards[id].kind);
 }
 
 export function isBanned(v: PlayerView, id: string) {
@@ -37,7 +37,7 @@ export function GenreChip({ g, banned, favored }: { g: Genre; banned?: boolean; 
 }
 
 const KIND_LABEL: Record<string, string> = {
-  propaganda: 'Пропаганда', evidence: 'Улика', load: 'Нагрузка', loadReturnable: 'Нагрузка', loadEvidence: 'Нагрузка',
+  propaganda: 'Пропаганда', evidence: 'Улика', load: 'Нагрузка', loadReturnable: 'Нагрузка', loadEvidence: 'Нагрузка', loadPropaganda: 'Нагрузка',
 };
 
 export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
@@ -59,7 +59,7 @@ export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
       className={`book k-${c.kind === 'loadEvidence' && !restored ? 'load' : c.kind === 'propaganda' && restored ? 'exposed' : c.kind} ${banned ? 'is-banned' : ''} ${selected ? 'selected' : ''} ${hidden ? 'in-cache' : ''} ${small ? 'small' : ''} ${onClick ? 'clickable' : ''}`}
       onClick={onClick}
       disabled={!onClick}
-      title={`${t} — ${c.author}`}
+      title={`${t} — ${c.author}${c.kind === 'loadPropaganda' ? '. Нагрузка-пропаганда: у книжников — Нагрузка, у Куратора — Пропаганда (срезает Ростки в конце)' : ''}`}
     >
       <div className="book-icons">
         {(flex ? icons.slice(0, -1) : icons).map((g, i) => <GenreChip key={i} g={g} banned={v.banned.includes(g)} favored={favoredGenres(v).includes(g)} />)}

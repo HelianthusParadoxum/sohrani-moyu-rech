@@ -68,8 +68,8 @@ describe('думающий бот', () => {
         expect(s.phase).toBe('end');
         expect(s.round).toBe(5);
         const cards = allCards(s);
-        expect(cards.length).toBe(131);
-        expect(new Set(cards).size).toBe(131);
+        expect(cards.length).toBe(132);
+        expect(new Set(cards).size).toBe(132);
       }
     }, 60_000);
   }
@@ -311,7 +311,7 @@ describe('думающий бот в полном режиме', () => {
     let feeds = 0;
     let curators = 0;
     let recycled = 0;
-    for (let seed = 1; seed <= 4; seed++) {
+    for (let seed = 1; seed <= 8; seed++) {
       const s0 = createGame({ players: players(3), seed, mode: 'full' });
       // Куратор — первому игроку.
       s0.players[0].passionOptions = ['curator', s0.players[0].passionOptions.find((x) => x !== 'curator')!];
@@ -327,7 +327,7 @@ describe('думающий бот в полном режиме', () => {
       const propaganda = Object.values(s.cards).filter((c) => c.kind === 'propaganda').map((c) => `«${c.title}»`);
       recycled += s.log.filter((l) => l.text.startsWith(`${cur.name} в Красном уголке`) && propaganda.some((t) => l.text.includes(t))).length;
     }
-    expect(curators).toBe(4);
+    expect(curators).toBe(8);
     // Одна ступень для маскировки, дальше — почти никогда.
     expect(feeds / curators).toBeLessThan(1.5);
     expect(recycled).toBe(0);
