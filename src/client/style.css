@@ -309,3 +309,8 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 /* ПСС Ленина: Пропаганда (тёмная) с нагрузочной полосой сверху */
 .book.k-loadPropaganda { background: #2b2620; color: #f3ecdc; border-top: 6px solid #f0e4c8; }
 .book.k-loadPropaganda .book-author { color: #b8ad98; }
+/* Телефон: Ростки во всю ширину, по два в ряд (Контора — под ними) */
+@media (max-width: 600px) {
+  .sprouts-panel.beside { grid-column: 1 / -1; }
+  .sprouts-panel .sprouts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
