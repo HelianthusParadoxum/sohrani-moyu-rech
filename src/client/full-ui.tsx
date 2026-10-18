@@ -1,6 +1,6 @@
 // Интерфейс полного режима: Клуб книголюбов, Контора.
 import { useState } from 'react';
-import { GENRE_NAMES, PATRONS, RULES } from '../engine/content';
+import { GENRE_NAMES, KONTORA_LOSS, PATRONS, RULES } from '../engine/content';
 import type { Action, ClubGift, Genre, GroupAction, KontoraChoice, PatronId, PlaceAction } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import { cacheLimit } from '../engine/util';
@@ -33,12 +33,26 @@ export function ClubContents({ view, seatIndex }: { view: PlayerView; seatIndex:
   );
 }
 
-export function KontoraContents({ view }: { view: PlayerView }) {
-  const held = view.players.filter((p) => p.held > 0);
-  const total = view.players.reduce((s, p) => s + p.held, 0);
+// Человечек — удержанный Конторой Единомышленник (пустой — свободное место из 7).
+function Figure({ color, title }: { color?: string; title?: string }) {
+  return (
+    <svg className={`figure${color ? '' : ' free'}`} viewBox="0 0 12 18" width="12" height="18" aria-label={title}>
+      {title && <title>{title}</title>}
+      <circle cx="6" cy="4" r="3" fill={color ?? 'none'} />
+      <path d="M1.5 17 V12 a4.5 4.5 0 0 1 9 0 V17 Z" fill={color ?? 'none'} />
+    </svg>
+  );
+}
+
+export function KontoraContents({ view, seatIndex }: { view: PlayerView; seatIndex: (id: string) => number }) {
+  const held = view.players.flatMap((p) => Array.from({ length: p.held }, () => p));
+  const total = held.length;
   return (
     <div className="small">
-      Удержано: <b>{total}</b> из 7{held.length > 0 && ` (${held.map((p) => `${p.name}: ${p.held}`).join(', ')})`}
+      <div className="held-figures" title={`Удержано: ${total} из ${KONTORA_LOSS}`}>
+        {held.map((p, i) => <Figure key={i} color={PLAYER_COLORS[seatIndex(p.id)]} title={p.name} />)}
+        {Array.from({ length: Math.max(0, KONTORA_LOSS - total) }, (_, i) => <Figure key={`f${i}`} />)}
+      </div>
       <div>В Спецхране: <b>{view.spetskhranCount}</b> книг(и)</div>
       {total >= 5 && <div className="warn-text">При 7 удержанных подполье проигрывает!</div>}
     </div>

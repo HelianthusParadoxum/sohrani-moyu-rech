@@ -118,7 +118,7 @@ export interface AddressInfo {
 
 export const ADDRESSES: Record<AddressId, AddressInfo> = {
   gostorg: { id: 'gostorg', name: 'Госкниготорг', limits: [2, 3, 4], hint: '−1т за пару: Нагрузка + Непечатное, любое число пар' },
-  tolkuchka: { id: 'tolkuchka', name: 'Толкучка', limits: [2, 3, 4], hint: 'Купить: −2т за книгу. Продать: +2т за книгу опального жанра, +1т за прочие' },
+  tolkuchka: { id: 'tolkuchka', name: 'Толкучка', limits: [2, 3, 4], hint: 'Купить 1 книгу: −2т. Продать: +2т за книгу опального жанра, +1т за прочие' },
   redCorner: { id: 'redCorner', name: 'Красный уголок', limits: [INF, INF, INF], perPlayer: true, hint: `Очередь хода на следующую Пятилетку; сдать до 1 Непечатной (+${RULES.redCornerUnprinted}т) и до 1 Нагрузки (+${RULES.redCornerLoad}т)` },
   razval: { id: 'razval', name: 'Развал', limits: [2, 3, 4], hint: 'Купить 1 книгу: −2/−2/−1/−1т по свежести' },
   zavoz: { id: 'zavoz', name: 'Завоз', limits: [1, 1, 2], hint: '+2т, Развал полностью обновляется' },

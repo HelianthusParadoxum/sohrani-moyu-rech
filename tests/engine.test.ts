@@ -174,6 +174,10 @@ describe('правила редакции октября', () => {
     const before = s.players.find((p) => p.id === me)!.talons;
     const next = applyAction(s, me, { type: 'place', place: { address: 'tolkuchka', ops: [{ op: 'buy', card }] } });
     expect(next.players.find((p) => p.id === me)!.talons).toBe(before - 2);
+    // Две книги за одно действие — только с Ветераном.
+    const two = { type: 'place' as const, place: { address: 'tolkuchka' as const, ops: s.tolkuchka.slice(0, 2).map((c) => ({ op: 'buy' as const, card: c })) } };
+    s.players.find((p) => p.id === me)!.talons = 10;
+    expect(() => applyAction(s, me, two)).toThrow(/Ветераном/);
   });
 
   it('пасовать можно только после Красного уголка, и пас — до конца Пятилетки', () => {
@@ -1013,10 +1017,10 @@ describe('Опальное — сразу в Тайник', () => {
     const free = s.deck.find((c) => s.cards[c].kind === 'genre' && !s.cards[c].icons.some((g) => s.banned.includes(g)))!;
     s.deck = s.deck.filter((c) => c !== banned && c !== free);
     s.tolkuchka = [banned, free];
-    s = applyAction(s, me, { type: 'place', place: { address: 'tolkuchka', ops: [{ op: 'buy', card: free }, { op: 'buy', card: banned }] } });
-    const w = s.players.find((x) => x.id === me)!.warehouse;
-    expect(w.find((x) => x.card === banned)!.hidden).toBe(true);
-    expect(w.find((x) => x.card === free)!.hidden).toBe(false);
+    const buy = (card: string) => applyAction(s, me, { type: 'place', place: { address: 'tolkuchka', ops: [{ op: 'buy', card }] } })
+      .players.find((x) => x.id === me)!.warehouse.find((x) => x.card === card)!;
+    expect(buy(banned).hidden).toBe(true);
+    expect(buy(free).hidden).toBe(false);
   });
 });
 

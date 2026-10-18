@@ -295,3 +295,9 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 @media (max-width: 1000px) { .end-turn-inline { display: none; } }
 .address.can { cursor: pointer; }
 .banned-line { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 0 0 6px; }
+
+/* Контора: удержанные Единомышленники */
+.held-figures { display: flex; gap: 3px; margin: 2px 0 4px; }
+.figure { overflow: visible; }
+.figure circle, .figure path { stroke: rgba(0,0,0,.35); stroke-width: 1; }
+.figure.free circle, .figure.free path { stroke-dasharray: 2 1.5; }

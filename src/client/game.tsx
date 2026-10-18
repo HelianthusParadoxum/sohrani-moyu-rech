@@ -218,7 +218,7 @@ function AddressContents({ id, view, seatIndex }: { id: AddressId; view: PlayerV
     case 'club':
       return <ClubContents view={view} seatIndex={seatIndex} />;
     case 'kontora':
-      return <KontoraContents view={view} />;
+      return <KontoraContents view={view} seatIndex={seatIndex} />;
     case 'redCorner': {
       if (view.round >= RULES.rounds) return <div className="muted small">Последняя Пятилетка — очередь уже не важна.</div>;
       // Новый порядок: сперва посетившие Красный уголок, затем остальные в прежнем порядке.
@@ -313,8 +313,8 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
       const ops = [...sel2.map((card) => ({ op: 'sell' as const, card })), ...sel.map((card) => ({ op: 'buy' as const, card }))];
       body = (
         <>
-          <h4>Купить (−{RULES.tolkuchkaBuy}т за книгу)</h4>
-          {pickList(view.tolkuchka, sel, setSel, { note: () => `${RULES.tolkuchkaBuy}т` })}
+          <h4>{veteran ? `Купить (−${RULES.tolkuchkaBuy}т за книгу; Ветеран: сколько угодно, в сумме на 1 Талон дешевле)` : `Купить 1 книгу (−${RULES.tolkuchkaBuy}т)`}</h4>
+          {pickList(view.tolkuchka, sel, setSel, { note: () => `${RULES.tolkuchkaBuy}т`, ...(veteran ? {} : { max: 1 }) })}
           <h4>Продать (+{RULES.tolkuchkaSellBanned}т за книгу опального жанра, +{RULES.tolkuchkaSellFree}т за прочие)</h4>
           {pickList(sellable, sel2, setSel2, { note: (c) => `+${price(c)}т` })}
           {confirmBtn('Совершить сделки', ops.length ? { address: 'tolkuchka', ops } : null, `Итого: ${gain - cost >= 0 ? '+' : ''}${gain - cost}т (у вас ${me.talons}т)`)}
@@ -697,6 +697,8 @@ function CopyTextPanel({ view, me, done }: { view: PlayerView; me: VPlayer; done
           : view.knigoobmen.map((c) => ({ key: c, card: c, price: 0 }));
   const bought = shelf.filter((x) => buy.includes(x.key));
   const swap = addr === 'knigoobmen';
+  // Несколько книг за одно действие — только с Ветераном (Тиражирование в этой форме — на Толкучке).
+  const multiBuy = addr === 'tolkuchka' && hasPatron(view, me.id, 'veteran');
   const income = addr === 'tolkuchka' ? sell.reduce((s, c) => s + sellPrice(c), 0) : 0;
   const cost = (swap ? 0 : bought.reduce((s, x) => s + x.price, 0)) - income;
   const gives = addr === 'tolkuchka' || swap ? sell.length : 0;
@@ -717,12 +719,12 @@ function CopyTextPanel({ view, me, done }: { view: PlayerView; me: VPlayer; done
           <button key={a} className={addr === a ? 'selected' : ''} onClick={() => choose(a)}>{ADDRESSES[a].name}{busy(a) ? ' (занято)' : ''}</button>
         ))}
       </div>
-      <h4>{swap ? 'Обменять: взять с витрины' : `Купить${addr === 'tolkuchka' ? ' (можно несколько)' : ''}`}</h4>
+      <h4>{swap ? 'Обменять: взять с витрины' : `Купить${multiBuy ? ' (Ветеран: можно несколько)' : ''}`}</h4>
       <div className="shelf wrap">
         {shelf.length === 0 && <span className="muted">Здесь нет книг</span>}
         {shelf.map((x) => (
           <Book key={x.key} v={view} id={x.card} note={swap ? 'обмен' : undefined} price={swap ? undefined : x.price} selected={buy.includes(x.key)}
-            onClick={() => { setBuy(addr === 'tolkuchka' ? toggle(buy, x.key) : buy.includes(x.key) ? [] : [x.key]); if (gift === x.card) setGift(''); }} />
+            onClick={() => { setBuy(multiBuy ? toggle(buy, x.key) : buy.includes(x.key) ? [] : [x.key]); if (gift === x.card) setGift(''); }} />
         ))}
       </div>
       {(addr === 'tolkuchka' || swap) && (
