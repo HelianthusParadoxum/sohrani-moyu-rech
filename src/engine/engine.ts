@@ -1,7 +1,7 @@
 // Движок правил: создание партии и применение действий.
 // applyAction не меняет переданное состояние, а возвращает новое.
 import {
-  ADDRESSES, CARDS, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, KEEPERS, PASSIONS, PERMANENT_ADDRESSES, RULES, SAFEHOUSES,
+  ADDRESSES, CARDS, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, KEEPERS, PASSIONS, PATRONS, PERMANENT_ADDRESSES, RULES, SAFEHOUSES,
   SPECIALS, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, addressInGame, groupInGame, limitFor,
 } from './content';
 import { finalScoring } from './scoring';
@@ -110,6 +110,7 @@ export function createGame(opts: NewGameOptions): GameState {
     }
   }
   log(state, `Партия началась. Порядок хода: ${state.order.map((id) => player(state, id).name).join(', ')}.`);
+  logSetup(state);
   // Опала первой Пятилетки известна до выбора Пристрастий (остальной стол откроется после выбора).
   state.banned = shuffle(state, [...GENRES]).slice(0, state.censorship);
   logNote(state, solo
@@ -192,6 +193,7 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
         if (state.ready.length === state.players.length) {
           state.phase = 'orders';
           state.ready = [];
+          logStartBooks(state);
         }
         return done(state);
       }
@@ -410,6 +412,35 @@ function fillRazval(state: GameState) {
     books.unshift(c);
   }
   state.razval = [...books, ...Array(RULES.displaySize - books.length).fill(null)];
+}
+
+// Начало партии: какие Ростки Гласности в игре и какие Завсегдатаи в Клубе (с жанром, который каждый из них ждёт).
+function logSetup(state: GameState) {
+  const sprouts = state.sprouts.map((sp) => {
+    const info = SPROUTS.find((x) => x.id === sp.id)!;
+    const sup = info.steps.map((st) => st.support).filter((g): g is Genre => !!g).map((g) => GENRE_NAMES[g]);
+    return `• «${info.name}» — ${GENRE_NAMES[info.main]}; поддержка по ступеням: ${sup.join(', ')}`;
+  });
+  log(state, `Ростки Гласности:\n${sprouts.join('\n')}`);
+  if (state.patrons?.length) {
+    const patrons = state.patrons.map((pt) => `• ${PATRONS[pt.id].name} (${GENRE_NAMES[pt.genre]}) — ${PATRONS[pt.id].hint}`);
+    log(state, `Завсегдатаи Клуба (в скобках — жанр книги, за которую заводится связь):\n${patrons.join('\n')}`);
+  }
+}
+
+// Стартовые книги, когда все разложили их по Тайникам: что на виду — всем; что в Тайнике — только хозяину (и зрителю).
+function logStartBooks(state: GameState) {
+  for (const id of state.order) {
+    const p = player(state, id);
+    const open = p.warehouse.filter((s) => !s.hidden).map((s) => s.card);
+    const hidden = p.warehouse.filter((s) => s.hidden).map((s) => s.card);
+    log(state, open.length ? `${p.name} на складе на виду: ${titles(state, open)}.` : `${p.name}: на складе на виду ничего.`);
+    state.log[state.log.length - 1].who = p.id;
+    if (hidden.length) {
+      log(state, `${p.name} прячет в Тайнике: ${titles(state, hidden)}.`, [p.id]);
+      state.log[state.log.length - 1].who = p.id;
+    }
+  }
 }
 
 function canAct(p: PlayerState) {

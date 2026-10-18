@@ -1434,3 +1434,19 @@ describe('Окостенение цензуры', () => {
     }
   });
 });
+
+describe('Журнал: стартовая сводка', () => {
+  it('Ростки, Завсегдатаи и стартовые книги; Тайник — только хозяину', () => {
+    let s = createGame({ players: players(3), seed: 3, mode: 'full' });
+    expect(s.log.some((l) => l.text.startsWith('Ростки Гласности:'))).toBe(true);
+    expect(s.log.some((l) => l.text.startsWith('Завсегдатаи Клуба'))).toBe(true);
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    const [a, b] = s.players;
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'hiding', hidden: p.id === a.id ? [p.warehouse[0].card] : [] });
+    expect(s.phase).toBe('orders');
+    const secret = `${a.name} прячет в Тайнике:`;
+    expect(viewFor(s, a.id).log.some((l) => l.text.startsWith(secret))).toBe(true);
+    expect(viewFor(s, b.id).log.some((l) => l.text.startsWith(secret))).toBe(false);
+    expect(viewFor(s, b.id).log.some((l) => l.text.startsWith(`${a.name} на складе на виду`))).toBe(true);
+  });
+});

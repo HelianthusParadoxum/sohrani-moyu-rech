@@ -417,6 +417,17 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
     const risky = atRisk(state, p, (c) => ownBookValue(state, p, c, ctx), true);
     v -= risky.reduce((s, c) => s + Math.max(0, ownBookValue(state, p, c, ctx)), 0) * ctx.preset.character.caution;
   }
+  // Открыто лежащая опальная книга посреди Пятилетки — готовый донос и для честных: Контора её изымет и удержит
+  // Единомышленника. Чем сильнее его подозревают (а раскрывшегося — наверняка), тем охотнее на него донесут.
+  if (state.phase === 'orders' && !state.reserve) {
+    const open = p.warehouse.filter((s) => !s.hidden && !s.memorized && isGenreBook(state, s.card) && isBanned(state, s.card)).length;
+    if (open && others.some((o) => o.available > 0)) {
+      const risk = Math.min(1, BOT_BASE.exposeRisk + BOT_BASE.exposeRiskSuspect * exposed);
+      const book = (BOT_BASE.curatorBook + BOT_BASE.curatorBannedBook) * (BOT_BASE.curatorBookByRound[r] ?? 1);
+      const worker = hasPatron(state, p.id, 'psychiatrist') ? 0 : (RULES.rounds - ctx.round + 1) * BOT_BASE.action;
+      v -= risk * (book + worker) * ctx.preset.character.caution;
+    }
+  }
   return v;
 }
 
