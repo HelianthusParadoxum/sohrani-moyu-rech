@@ -302,6 +302,7 @@ function startRound(state: GameState, newSafehouse?: AddressId) {
   state.ready = [];
   state.occupancy = {};
   state.sproutRound = {};
+  state.sproutRoundN = {};
   state.nextOrder = [];
   delete state.turnDone;
   delete state.lastBuy;
@@ -976,6 +977,8 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         const fedNow = (state.sproutRound ??= {})[sp.id] ?? [];
         check(fedNow.length < RULES.sproutSlotsPerRound, `${info.name}: в эту Пятилетку на этом Ростке уже закрыто ${RULES.sproutSlotsPerRound} ступени — ждите следующей`);
         state.sproutRound[sp.id] = [...fedNow, p.id];
+        // Поручение ещё не записано в p.actions (это делается после doPlace) — его номер следующий.
+        (state.sproutRoundN ??= {})[sp.id] = [...(state.sproutRoundN[sp.id] ?? []), p.actions.length + 1];
         const step = info.steps[sp.progress];
         for (const b of f.books) {
           check(!used.has(b), 'Одна книга не может пойти дважды');

@@ -301,3 +301,8 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 .figure { overflow: visible; }
 .figure circle, .figure path { stroke: rgba(0,0,0,.35); stroke-width: 1; }
 .figure.free circle, .figure.free path { stroke-dasharray: 2 1.5; }
+
+/* Ростки: подсказка справа в заголовке и строка «Вложились» */
+.hint.inline.right { font-size: 0.75rem; text-align: right; max-width: 60%; margin-left: auto; }
+.fed-row { display: flex; align-items: center; gap: 4px; margin-top: 4px; }
+.dot.slot-free { background: transparent; border: 1.5px dashed rgba(0,0,0,.35); }

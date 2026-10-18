@@ -194,6 +194,7 @@ export interface GameState {
   solo?: boolean; // «Несистемный»: одиночная игра
   reserve?: boolean; // «Заповедник»: полный режим без Конторы и Куратора
   sproutRound?: Record<string, string[]>; // кто в эту Пятилетку закрывал ступени каждого Ростка (места Ростка)
+  sproutRoundN?: Record<string, number[]>; // ...и каким по счёту поручением игрока (номер на кружке)
   ironyDue?: Record<string, number>; // Ирония «пущена в народ»: сколько Талонов начислить в конце действия
   shownAtGathering?: Record<string, string[]>; // что каждый показал на Посиделках этой Пятилетки (опальное и Улики)
   curatorRevealed?: string; // Куратор раскрылся (Засада) — все знают, кто он

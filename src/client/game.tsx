@@ -1,7 +1,7 @@
 // Игровой стол.
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  ADDRESSES, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, limitFor,
+  ADDRESSES, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
   groupInGame,
 } from '../engine/content';
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
@@ -107,7 +107,8 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
             {full && card('club')}
             {full && !view.reserve && card('kontora')}
             <Sprouts view={view} beside={full && !view.reserve} seatIndex={seatIndex}
-              head={<AddressHead id="sprouts" view={view} seatIndex={seatIndex} me={me} enabled={enabledFor('sprouts')} onOpen={() => setPanel({ kind: 'address', id: 'sprouts' })} />} />
+              head={<AddressHead id="sprouts" view={view} seatIndex={seatIndex} me={me} enabled={enabledFor('sprouts')} onOpen={() => setPanel({ kind: 'address', id: 'sprouts' })}
+                rightHint={`${ADDRESSES.sprouts.hint}. Гласность: ${RULES.glasnostAllSprouts ? 'все Ростки' : 'хотя бы один Росток'} до ступени ${roman(RULES.glasnostStep)}.`} />} />
             {addresses.map(card)}
           </div>
         </section>
@@ -186,7 +187,7 @@ function AddressCard(props: AddressProps) {
 }
 
 // Заголовок адреса: название, жетоны Единомышленников, места и кнопка «сюда».
-function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint }: AddressProps & { inlineHint?: boolean }) {
+function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint, rightHint }: AddressProps & { inlineHint?: boolean; rightHint?: string }) {
   const info = ADDRESSES[id];
   const here = view.occupancy[id] ?? [];
   const limit = limitFor(id, view.players.length);
@@ -197,13 +198,14 @@ function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint }: A
         <b>{info.name}</b>
         {inlineHint && <span className="hint inline">{info.hint}</span>}
         <span className="workers">
-          {here.map((pid, i) => {
+          {rightHint && <span className="hint inline right">{rightHint}</span>}
+          {!rightHint && here.map((pid, i) => {
             // Номер на жетоне — каким по счёту в Пятилетке было это действие игрока.
             const k = here.slice(0, i).filter((x) => x === pid).length;
             const n = view.players.find((x) => x.id === pid)?.actions?.filter((a) => a.target === id)[k]?.n;
             return <span key={i} className="dot num" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} title={n ? `${n}-е действие игрока` : undefined}>{n ?? ''}</span>;
           })}
-          {!freeClub && (limit === Infinity
+          {!freeClub && !rightHint && (limit === Infinity
             ? <span className="muted small">∞</span>
             : Array.from({ length: Math.max(0, limit - here.length) }, (_, i) => <span key={`free${i}`} className="dot num slot-free" title="Свободное место" />))}
           {enabled && freeClub && <button className="go small" onClick={(e) => { e.stopPropagation(); onOpen(); }} title="Свободное действие: Единомышленник не нужен">отдать книгу →</button>}
@@ -497,7 +499,6 @@ function Sprouts({ view, beside, seatIndex, head }: { view: PlayerView; beside: 
   return (
     <div className={`sprouts-panel address addr-sprouts ${beside ? 'beside' : ''}`}>
       {head}
-      <div className="hint">{ADDRESSES.sprouts.hint}. Гласность: {RULES.glasnostAllSprouts ? 'все Ростки' : 'хотя бы один Росток'} до ступени {roman(RULES.glasnostStep)}.</div>
       <div className="sprouts">
       {view.sprouts.map((sp) => {
         const info = SPROUTS.find((s) => s.id === sp.id)!;
@@ -507,20 +508,13 @@ function Sprouts({ view, beside, seatIndex, head }: { view: PlayerView; beside: 
               <span className="workers" title={`Места в эту Пятилетку: не больше ${RULES.sproutSlotsPerRound} ступеней`}>
                 {Array.from({ length: RULES.sproutSlotsPerRound }, (_, i) => {
                   const pid = view.sproutRound?.[sp.id]?.[i];
+                  const n = view.sproutRoundN?.[sp.id]?.[i];
                   return pid
-                    ? <span key={i} className="dot num" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} />
+                    ? <span key={i} className="dot num" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} title={n ? `${n}-е действие игрока` : undefined}>{n ?? ''}</span>
                     : <span key={i} className="dot num slot-free" />;
                 })}
               </span>
             </div>
-            {/* Жетоны игроков, которые хоть раз питали этот Росток (+2 очка за первое питание) */}
-            {view.players.some((p) => p.sproutsFed.includes(sp.id)) && (
-              <div className="workers" title="Питали этот Росток (получили +2 очка за первое питание)">
-                {view.players.filter((p) => p.sproutsFed.includes(sp.id)).map((p) => (
-                  <span key={p.id} className="dot" style={{ background: PLAYER_COLORS[seatIndex(p.id)] }} title={p.name} />
-                ))}
-              </div>
-            )}
             <ol className="steps">
               {info.steps.map((st, i) => (
                 <li key={i} className={i < sp.progress ? 'done' : i === sp.progress ? 'next' : ''}>
@@ -530,6 +524,14 @@ function Sprouts({ view, beside, seatIndex, head }: { view: PlayerView; beside: 
               ))}
             </ol>
             <div className="muted bonus" title="Бонус за закрытие ступени (одно на выбор)">Бонус: {info.bonuses.filter((b) => b !== 'rescue' || (view.mode === 'full' && !view.reserve)).map((b) => SPROUT_BONUS_NAMES[b]).join(' / ')}</div>
+            {/* Кто хоть раз вкладывался в этот Росток (+2 очка за первое питание): слот на каждого игрока. */}
+            <div className="fed-row muted small" title={`Вложились в этот Росток (+${FIRST_FEED_POINTS} очка за первое вложение)`}>
+              Вложились:{' '}
+              {view.players.filter((p) => p.sproutsFed.includes(sp.id)).map((p) => (
+                <span key={p.id} className="dot" style={{ background: PLAYER_COLORS[seatIndex(p.id)] }} title={p.name} />
+              ))}
+              {view.players.filter((p) => !p.sproutsFed.includes(sp.id)).map((p) => <span key={p.id} className="dot slot-free" />)}
+            </div>
           </div>
         );
       })}
