@@ -1122,6 +1122,8 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         state.agitpunkt = (state.agitpunkt ?? []).filter((c) => c !== card);
         log(state, `${p.name} берёт на Агитпункте ${title(state, card)}.`);
       }
+      // Как Книгообмен и Квартирник: отсюда Единомышленник в конце поручений идёт ещё и в Инициативную группу.
+      p.bonusGroupTurns++;
       return;
     }
     case 'nasledniki': {

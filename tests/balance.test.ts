@@ -209,6 +209,8 @@ describe('Агитпункт', () => {
     expect(byId(s, p.id).talons).toBe(3);
     expect(byId(s, p.id).warehouse.some((w) => w.card === a)).toBe(true);
     expect(s.agitpunkt).not.toContain(a);
+    // Как с Книгообмена и Квартирника — в конце поручений ещё действие Инициативной группы.
+    expect(byId(s, p.id).bonusGroupTurns).toBe(1);
   });
 });
 
