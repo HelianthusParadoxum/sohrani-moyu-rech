@@ -139,7 +139,8 @@ const rows = Object.entries(patron).map(([id, ps]) => ({ id: id as PatronId, ...
 for (const ps of rows) {
   console.log(`  ${PATRONS[ps.id].name.padEnd(14)} ${f(ps.links / ps.games, 2)} / партию (в ${ps.games} партиях), Пятилетка ${f(ps.round / Math.max(1, ps.links))}; `
     + `со связью: побед ${f((100 * ps.withWins) / Math.max(1, ps.withPlays), 0)}%, отрыв ${f(ps.withTotal / Math.max(1, ps.withPlays))}; `
-    + `без: побед ${f((100 * ps.withoutWins) / Math.max(1, ps.withoutPlays), 0)}%, отрыв ${f(ps.withoutTotal / Math.max(1, ps.withoutPlays))}`);
+    + `без: побед ${f((100 * ps.withoutWins) / Math.max(1, ps.withoutPlays), 0)}%, отрыв ${f(ps.withoutTotal / Math.max(1, ps.withoutPlays))}; `
+    + `разница побед ${(d => (d >= 0 ? '+' : '') + f(d, 0))((100 * ps.withWins) / Math.max(1, ps.withPlays) - (100 * ps.withoutWins) / Math.max(1, ps.withoutPlays))}`);
 }
 
 const albumRows = Object.entries(albums).map(([id, a]) => ({ id: id as PatronId, ...a! })).sort((a, b) => b.album / b.links - a.album / a.links);
