@@ -11,7 +11,7 @@ import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
-  cacheLimit, cloneJson, coversStep, freeSlots, hasPatron, iconsOf, isBanned, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
+  addSecretBook, cacheLimit, cloneJson, coversStep, freeSlots, hasPatron, iconsOf, isBanned, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
 } from './util';
 
 type Rand = () => number;
@@ -642,6 +642,10 @@ function tryApply(state: GameState, me: string, a: Action): GameState | null {
 function score(state: GameState, me: string, a: Action, ctx: Ctx, depth: number): number | null {
   let next = tryApply(state, me, a);
   if (!next) return null;
+  // Куратор в Макулатуре: одной примерки мало (Пропаганда выпадает редко) — считаем ожидание по составу стопки.
+  if (ctx.curator && a.type === 'place' && a.place.address === 'makulatura' && next.pending[0]?.kind === 'makulatura') {
+    return curatorMakulaturaValue(next, me, ctx);
+  }
   // Поход в Контору: при примерке считаем, что соперники перепрячут всё, что поместится (самое значкастое — первым).
   while (next && next.pending[0]?.kind === 'kontoraWarning' && next.pending[0].player !== me) {
     const o = player(next, next.pending[0].player);
@@ -666,6 +670,28 @@ function score(state: GameState, me: string, a: Action, ctx: Ctx, depth: number)
     if (best !== null) return best;
   }
   return evaluate(next, me, ctx);
+}
+
+// Ожидаемая польза Макулатуры для Куратора: тянет из Непечатных, пока не найдёт Пропаганду (или не кончатся попытки).
+// Состав стопки бот знает (порядок — нет): шанс Пропаганды на каждую попытку — её доля среди закрытых Непечатных.
+function curatorMakulaturaValue(next: GameState, me: string, ctx: Ctx): number {
+  const p = player(next, me);
+  const price = RULES.makulaturaPrice;
+  const tries = Math.max(1, Math.min(BOT_BASE.curatorMakulaturaMax, Math.floor((p.talons - BOT_BASE.curatorMakulaturaReserve) / price)));
+  const prop = next.deck.find((c) => isPropaganda(next, c));
+  const share = next.deck.length ? next.deck.filter((c) => isPropaganda(next, c)).length / next.deck.length : 0;
+  let spent = 0;
+  for (let i = 0; i < tries; i++) spent += (1 - share) ** i;
+  const hit = 1 - (1 - share) ** tries;
+  const after = (withProp: boolean) => {
+    const s = cloneLight(next);
+    const q = player(s, me);
+    s.pending = s.pending.slice(1);
+    q.talons = Math.max(0, q.talons - Math.round(spent * price));
+    if (withProp && prop) addSecretBook(s, q, prop);
+    return evaluate(s, me, ctx);
+  };
+  return prop && hit > 0 ? hit * after(true) + (1 - hit) * after(false) : after(false);
 }
 
 // Лучшие по оценке ходы, от лучшего к худшему.
@@ -1100,6 +1126,17 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         return subsets(pend.cards, need).filter((x) => x.length === need).map((keep) => ({ type: 'posrednichestvoKeep', keep }));
       }
       case 'makulatura': {
+        // Куратор ищет Пропаганду: нашёл — оставляет её; нет — тянет из Непечатных дальше, пока хватает Талонов
+        // (не больше BOT_BASE.curatorMakulaturaMax и не тратя последние BOT_BASE.curatorMakulaturaReserve).
+        if (ctx.curator) {
+          const found = pend.cards.find((c) => isPropaganda(state, c));
+          if (found) return [{ type: 'makulaturaKeep', card: found }];
+          if (pend.cards.length < BOT_BASE.curatorMakulaturaMax && p.talons - RULES.makulaturaPrice >= BOT_BASE.curatorMakulaturaReserve) {
+            return [{ type: 'makulaturaDraw', deck: 'unprinted' }];
+          }
+          if (!pend.cards.length && p.talons >= RULES.makulaturaPrice) return [{ type: 'makulaturaDraw', deck: 'unprinted' }];
+          return pend.cards.map((card) => ({ type: 'makulaturaKeep' as const, card }));
+        }
         // Сколько книг тянуть: при запасе Талонов — больше выбор (не больше BOT_BASE.makulaturaMax), потом оставить лучшую.
         const target = Math.min(BOT_BASE.makulaturaMax, Math.max(1, Math.floor((p.talons + pend.cards.length) / 3)));
         const draws: Action[] = p.talons >= RULES.makulaturaPrice
