@@ -75,7 +75,7 @@ export interface PatronState {
 export type PointSource =
   | 'gathering' | 'drama' | 'sprouts' | 'firstFeed' | 'tamizdat' | 'testimony' | 'foreign' | 'editor' | 'postgrad' | 'prose' | 'komsorg' | 'rescue' | 'correspondent' | 'professor';
 
-export type SproutBonusId = GroupActionId | 'sideJob' | 'underCounter';
+export type SproutBonusId = GroupActionId | 'sideJob' | 'underCounter' | 'acquaintance';
 
 export type PassionId =
   | 'keeper_golden' | 'keeper_silver' | 'keeper_antiquary' | 'keeper_memoirist'
@@ -305,7 +305,7 @@ export type Action =
   | { type: 'spisanieKeep'; keep: string[] }
   | { type: 'makulaturaDraw'; deck: 'unprinted' | 'load' }
   | { type: 'makulaturaKeep'; card: string }
-  | { type: 'sproutBonus'; bonus: SproutBonusId; group?: GroupAction }
+  | { type: 'sproutBonus'; bonus: SproutBonusId; group?: GroupAction; patron?: PatronId }
   | { type: 'gathering'; show: string[] }
   | { type: 'ambush'; go: boolean; picks?: Record<string, string> } // picks — какую из показанных книг изъять у каждого; после Посиделок: Куратор раскрывается и устраивает Засаду (остальные — «дальше»)
   | { type: 'hiding'; hidden: string[]; memorize?: string | null; fillLoad?: boolean }

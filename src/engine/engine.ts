@@ -2,11 +2,11 @@
 // applyAction не меняет переданное состояние, а возвращает новое.
 import {
   ADDRESSES, CARDS, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, KEEPERS, PASSIONS, PATRONS, PERMANENT_ADDRESSES, RULES, SAFEHOUSES,
-  SPECIALS, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, addressInGame, groupInGame, limitFor,
+  SPECIALS, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, sproutBonusOptions, FIRST_FEED_POINTS, addressInGame, groupInGame, limitFor,
 } from './content';
 import { finalScoring } from './scoring';
 import {
-  afterRaid, doKontora, gaveAway, giveToPatron, holdWorker, isFull, kontoraLost, partorgFill, payPrice, price, proseBonus, purchases,
+  afterRaid, befriendPatron, befriendTargets, doKontora, gaveAway, giveToPatron, holdWorker, isFull, kontoraLost, partorgFill, payPrice, price, proseBonus, purchases,
   flushIrony, removePatron, rescue, seizeDenounced, setupClub, startKontora, takeFromSpetskhran,
 } from './full';
 import type {
@@ -1020,9 +1020,9 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         }
         const need = `${info.name}: нужно значков «${GENRE_NAMES[info.main]}»: ${step.main}` + (step.support ? ` и значок поддержки «${GENRE_NAMES[step.support]}»` : '');
         if (!coversStep(state, f.books, info.main, step.main, step.support, { wildScifi: isFull(state) })) {
-          // Лаборант: скидка в 1 значок — одна на всё поручение, а не на каждую ступень.
+          // Лаборант: можно не сдавать значок поддержки — один раз на всё поручение, а не на каждой ступени.
           check(hasPatron(state, p.id, 'labtech') && coversStep(state, f.books, info.main, step.main, step.support, { wildScifi: isFull(state), labtech: true }), need);
-          check(!labtechUsed, 'Лаборант даёт скидку в 1 значок только один раз за поручение');
+          check(!labtechUsed, 'Лаборант позволяет не сдавать значок поддержки только один раз за поручение');
           labtechUsed = true;
         }
         for (const b of f.books) { removeBook(p, b); discard(state, b); gaveAway(state, p, b); }
@@ -1041,7 +1041,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
           text += `, +${pointsText(FIRST_FEED_POINTS)} за первое питание`;
         }
         log(state, text + '.');
-        const options = info.bonuses.filter((b) => b !== 'rescue' || (state.mode === 'full' && !state.reserve));
+        const options = sproutBonusOptions(state, info).filter((b) => b !== 'acquaintance' || befriendTargets(state, p.id).length > 0);
         state.pending.push({ kind: 'sproutBonus', player: p.id, sprout: sp.id, options });
       }
       return;
@@ -1486,7 +1486,10 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       check(pend.options.includes(action.bonus), 'Этот бонус недоступен');
       // Сначала — какой бонус выбран, потом его последствия.
       log(state, `${p.name} выбирает бонус Ростка: ${SPROUT_BONUS_NAMES[action.bonus]}.`);
-      if (action.bonus === 'sideJob') {
+      if (action.bonus === 'acquaintance') {
+        check(action.patron, 'Выберите Завсегдатая');
+        befriendPatron(state, p, action.patron);
+      } else if (action.bonus === 'sideJob') {
         logAfter(state, `↳ Приработок: +${talonsText(RULES.sideJobIncome)}.`);
         earn(state, p, RULES.sideJobIncome, 'sideJob');
       } else if (action.bonus === 'underCounter') {

@@ -5,6 +5,7 @@ import { applyAction, activePlayers, mustVisitRedCorner } from './engine';
 import { curatorStyle, presetById } from './bot-presets';
 import { copyTextOptions, effectiveCuratorStyle, smartMove } from './bot-smart';
 import { PERMANENT_ADDRESSES, RULES, SPROUTS } from './content';
+import { befriendTargets } from './full';
 import type { Action, ClubGift, GameState, Genre, GroupAction } from './types';
 import { GENRES } from './types';
 import { cacheLimit, freeSlots, iconsOf, isBanned, isLoad, isPropaganda, player, RuleError } from './util';
@@ -53,6 +54,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
         const out: Action[] = [];
         for (const b of pend.options) {
           if (b === 'sideJob' || b === 'underCounter') out.push({ type: 'sproutBonus', bonus: b });
+          else if (b === 'acquaintance') for (const patron of befriendTargets(state, me)) out.push({ type: 'sproutBonus', bonus: b, patron });
           else for (const g of groupCandidates(state, me, rand)) if (g.type === 'group' && g.group.action === b) out.push({ type: 'sproutBonus', bonus: b, group: g.group });
         }
         return [...out, { type: 'pass' }];

@@ -114,16 +114,13 @@ export function flexGenres(state: CardsInfo, id: string): Genre[] | null {
 
 export interface StepOptions {
   wildScifi?: boolean; // «Заронить зерно»: значки Фантастики — значки любого жанра
-  labtech?: boolean; // Лаборант: на 1 значок меньше (минимум 1)
+  labtech?: boolean; // Лаборант: можно не сдавать значок поддержки (жанр сверх основного)
 }
 
 // Закрывают ли книги ступень Ростка: перебираем выбор жанра гибких значков и Фантастики.
 export function coversStep(state: CardsInfo, books: string[], main: Genre, need: number, support?: Genre, opts: StepOptions = {}): boolean {
   const reqs: { need: number; support?: Genre }[] = [{ need, support }];
-  if (opts.labtech) {
-    if (need > 1 || support) reqs.push({ need: Math.max(need - 1, support ? 0 : 1), support });
-    if (support) reqs.push({ need });
-  }
+  if (opts.labtech && support) reqs.push({ need });
   const options = books.map((b) => iconVariants(state, b));
   const ok = (icons: Genre[], r: { need: number; support?: Genre }) => {
     let m = icons.filter((g) => g === main).length;

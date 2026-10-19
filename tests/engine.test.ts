@@ -4,7 +4,7 @@ import { playOut } from '../src/engine/bot';
 import { gainedInfo, viewFor } from '../src/engine/view';
 import { RuleError, cacheLimit, coversStep, iconsOf, isBanned, isEvidence, isLoad, isPropaganda, discard, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
 import { finalScoring, passionPoints, scoreLine } from '../src/engine/scoring';
-import { PASSIONS, RULES, SPROUTS, limitFor } from '../src/engine/content';
+import { PASSIONS, RULES, SPROUTS, limitFor, sproutBonusOptions } from '../src/engine/content';
 import type { GameState, Genre, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
 import { proseBonus, removePatron, takeFromSpetskhran } from '../src/engine/full';
@@ -1157,13 +1157,13 @@ describe('Журнал поручений', () => {
 });
 
 describe('Лаборант', () => {
-  it('скидка в 1 значок — одна на всё поручение', () => {
+  it('можно не сдавать значок поддержки — один раз на всё поручение', () => {
     let s = createGame({ players: players(2), seed: 33, mode: 'full' });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
     s = startOrders(s);
     const me = s.order[s.turn];
     s.patrons[0] = { id: 'labtech', genre: s.patrons[0].genre, connections: [me], turned: false, removed: false };
-    // Два Ростка на II ступени (нужен 1 значок основного жанра и значок поддержки). Со скидкой хватит одного значка поддержки.
+    // Два Ростка на II ступени (нужен 1 значок основного жанра и значок поддержки). С Лаборантом хватит значка основного жанра.
     const supOf = (id: string) => {
       const info = SPROUTS.find((x) => x.id === id)!;
       return { main: info.main as string, support: info.steps[1].support! as string };
@@ -1175,9 +1175,9 @@ describe('Лаборант', () => {
     let a = s.sprouts[0], b = s.sprouts[1], ka = '', kb = '';
     for (const x of s.sprouts) for (const y of s.sprouts) {
       if (x === y || ka) continue;
-      const bad = [supOf(x.id).main, supOf(y.id).main, 'scifi'];
-      const k1 = single(supOf(x.id).support, bad);
-      const k2 = k1 && single(supOf(y.id).support, bad, k1);
+      const bad = [supOf(x.id).support, supOf(y.id).support, 'scifi'];
+      const k1 = single(supOf(x.id).main, bad);
+      const k2 = k1 && single(supOf(y.id).main, bad, k1);
       if (k1 && k2) { a = x; b = y; ka = k1; kb = k2; }
     }
     a.progress = 1;
@@ -1201,9 +1201,39 @@ describe('Лаборант', () => {
       .toThrow(/только 1 ступень/);
     const t = applyAction(s, me, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: a.id, books: [ka] }] } });
     expect(t.sprouts.find((x) => x.id === a.id)!.progress).toBe(2);
-    // Без Лаборанта одного значка поддержки мало.
+    // Без Лаборанта одного значка основного жанра мало.
     s.patrons[0] = { ...s.patrons[0], connections: [] };
     expect(() => applyAction(s, me, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: a.id, books: [ka] }] } })).toThrow();
+  });
+
+  it('значок основного жанра Лаборант не заменяет', () => {
+    // II ступень: 1 значок основного жанра + поддержка. Только значок поддержки — мало и с Лаборантом.
+    const cards = { cards: { a: { kind: 'genre', icons: ['poetry'] }, b: { kind: 'genre', icons: ['testimony'] } }, restored: {} } as never;
+    expect(coversStep(cards, ['b'], 'poetry', 1, 'testimony', { labtech: true })).toBe(false);
+    expect(coversStep(cards, ['a'], 'poetry', 1, 'testimony', { labtech: true })).toBe(true);
+    // IV ступень: 2 значка основного жанра — и с Лаборантом нужны оба.
+    expect(coversStep(cards, ['a'], 'poetry', 2, 'testimony', { labtech: true })).toBe(false);
+  });
+});
+
+describe('Бонус Ростка «Завязать знакомство»', () => {
+  it('в полном режиме заменяет Приработок; связь с любым Завсегдатаем без книги, даже с занятым', () => {
+    const kvn = SPROUTS.find((x) => x.id === 'kvn')!;
+    expect(sproutBonusOptions({ mode: 'full' }, kvn)).toEqual(['hire', 'acquaintance']);
+    expect(sproutBonusOptions({ mode: 'beginner' }, kvn)).toEqual(['hire', 'sideJob']);
+    let s = createGame({ players: players(2), seed: 5, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    const target = s.patrons[1];
+    target.turned = true;
+    const books = p.warehouse.length;
+    s.pending = [{ kind: 'sproutBonus', player: me, sprout: 'kvn', options: ['hire', 'acquaintance'] }];
+    expect(() => applyAction(s, me, { type: 'sproutBonus', bonus: 'acquaintance' })).toThrow(/Завсегдатая/);
+    s = applyAction(s, me, { type: 'sproutBonus', bonus: 'acquaintance', patron: target.id });
+    expect(s.patrons[1].connections).toContain(me);
+    expect(s.players.find((x) => x.id === me)!.warehouse.length).toBe(books);
   });
 });
 

@@ -6,7 +6,7 @@
 import { applyAction, mustVisitRedCorner } from './engine';
 import { BOT_BASE, CURATOR_STYLES, PATRON_POWER, curatorStyle, type BotGoal, type BotPreset, type CuratorStyle, type TunableBase } from './bot-presets';
 import { PERMANENT_ADDRESSES, addressInGame, PASSIONS, RULES, SPROUTS, STEP_REWARDS, FIRST_FEED_POINTS, ADDRESSES, KONTORA_LOSS, limitFor } from './content';
-import { heldTotal, kontoraTargets } from './full';
+import { befriendTargets, heldTotal, kontoraTargets } from './full';
 import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
@@ -1116,6 +1116,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         const out: Action[] = [];
         for (const b of pend.options) {
           if (b === 'sideJob' || b === 'underCounter') out.push({ type: 'sproutBonus', bonus: b });
+          else if (b === 'acquaintance') for (const patron of befriendTargets(state, me)) out.push({ type: 'sproutBonus', bonus: b, patron });
           else for (const g of groupCandidates(state, me, { ...ctx, w: { ...ctx.w, network: 1 } })) if (g.action === b) out.push({ type: 'sproutBonus', bonus: b, group: g });
         }
         return [...out, { type: 'pass' }];

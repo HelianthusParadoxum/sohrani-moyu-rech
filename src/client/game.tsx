@@ -2,7 +2,7 @@
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   ADDRESSES, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
-  groupInGame,
+  groupInGame, sproutBonusOptions,
 } from '../engine/content';
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
@@ -10,7 +10,7 @@ import type { PlayerView } from '../engine/view';
 import { coversStep, hasPatron, isEvidence, isExposed, loadCover, roman } from '../engine/util';
 import { kontoraTargets } from '../engine/full';
 import {
-  ClubContents, fittingBooks, patronOpen, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
+  BefriendPicker, ClubContents, fittingBooks, patronOpen, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
   KontoraWarningPrompt, RescuePanel,
 } from './full-ui';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
@@ -638,7 +638,7 @@ function Sprouts({ view, me, beside, seatIndex, head, onOpen }: { view: PlayerVi
                 </li>
               ))}
             </ol>
-            <div className="muted bonus" title="Бонус за закрытие ступени (одно на выбор)">Бонус: {info.bonuses.filter((b) => b !== 'rescue' || (view.mode === 'full' && !view.reserve)).map((b) => SPROUT_BONUS_NAMES[b]).join(' / ')}</div>
+            <div className="muted bonus" title="Бонус за закрытие ступени (одно на выбор)">Бонус: {sproutBonusOptions(view, info).map((b) => SPROUT_BONUS_NAMES[b]).join(' / ')}</div>
             {/* Кто хоть раз вкладывался в этот Росток (+2 очка за первое питание): слот на каждого игрока. */}
             <div className="fed-row muted small" title={`Вложились в этот Росток (+${FIRST_FEED_POINTS} очка за первое вложение)`}>
               Вложились:{' '}
@@ -1025,6 +1025,9 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
           .filter((g) => groupInGame(view, g))
           .filter((g) => p.kind !== 'extraGroup' || me.groupUsed.includes(g)); // Подмастерье повторяет уже сделанное
       const sendGroup = (g: GroupAction) => act(p.kind === 'sproutBonus' ? { type: 'sproutBonus', bonus: g.action, group: g } : { type: 'group', group: g });
+      if (groupFor === 'acquaintance') {
+        return <BefriendPicker view={view} me={me} close={() => setGroupFor(null)} onPick={(patron) => act({ type: 'sproutBonus', bonus: 'acquaintance', patron })} />;
+      }
       if (groupFor && groupFor !== 'posred' && groupFor in GROUP_ACTIONS) {
         return <GroupPanel id={groupFor as GroupActionId} view={view} me={me} close={() => setGroupFor(null)} done={sendGroup} />;
       }
@@ -1036,6 +1039,7 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
             {options.map((o) => (
               <button key={o} onClick={() => {
                 if (o === 'sideJob' || o === 'underCounter') act({ type: 'sproutBonus', bonus: o });
+                else if (o === 'acquaintance') setGroupFor(o);
                 else if (o === 'copyText' || o === 'restore' || o === 'rescue' || groupBlocker(view, me, o as GroupActionId)) setGroupFor(o);
                 else sendGroup({ action: o } as GroupAction);
               }}>{SPROUT_BONUS_NAMES[o as SproutBonusId]}</button>

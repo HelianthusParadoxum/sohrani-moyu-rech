@@ -203,7 +203,16 @@ export const SPROUT_BONUS_NAMES: Record<SproutBonusId, string> = {
   ...Object.fromEntries(Object.entries(GROUP_ACTIONS).map(([k, v]) => [k, v.name])),
   sideJob: 'Приработок (+3т)',
   underCounter: 'Из-под полы',
+  acquaintance: 'Завязать знакомство',
 } as Record<SproutBonusId, string>;
+
+// Бонусы Ростка в этой партии: в полном режиме (и в Заповеднике) Приработок заменён на «Завязать знакомство» —
+// связь с любым Завсегдатаем без книги; Вызволение — только там, где есть Контора.
+export function sproutBonusOptions(game: { mode: string; reserve?: boolean }, info: SproutInfo): SproutBonusId[] {
+  return info.bonuses
+    .map((b) => (b === 'sideJob' && game.mode === 'full' ? 'acquaintance' : b))
+    .filter((b) => b !== 'rescue' || (game.mode === 'full' && !game.reserve));
+}
 
 // Ступень Ростка: сколько значков основного жанра и какой жанр поддержки.
 export interface SproutStep { main: number; support?: Genre }
@@ -292,7 +301,7 @@ export const PATRONS: Record<PatronId, PatronInfo> = Object.fromEntries([
   P('komsorg', 'Комсорг', `Красный уголок: сдавать любое число книг, за каждую — +${RULES.komsorgPoints} очко Гласности`),
   P('typist', 'Машинистка', `Тиражирование: +${RULES.typistTalons} Талона; можно без покупки — взять любую жанровую книгу с поля, не отправляя Единомышленника на адрес`),
   P('editor', 'Главред', 'За каждую сданную в Главлит книгу — +1 очко Гласности за значок'),
-  P('labtech', 'Лаборант', 'Питая Ростки, сдаёте на 1 значок меньше (минимум 1) — один раз за поручение'),
+  P('labtech', 'Лаборант', 'Питая Ростки, можно не сдавать значок поддержки (жанр сверх основного жанра Ростка) — один раз за поручение'),
   P('psychiatrist', 'Психиатр', 'Контора не может удерживать ваших Единомышленников'),
   P('nesun', 'Несун', 'В конце Пятилетки +1 Талон за каждое пустое место Тайника'),
   P('geologist', 'Геолог', 'Посиделки: +1 Талон за каждую показанную опальную книгу'),

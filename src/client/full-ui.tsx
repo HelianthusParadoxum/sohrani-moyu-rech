@@ -140,6 +140,24 @@ export function ClubGiftModal({ view, me, act, close, patron }: { view: PlayerVi
   );
 }
 
+// Бонус Ростка «Завязать знакомство»: связь с любым Завсегдатаем без книги (и с занятым на эту Пятилетку).
+export function BefriendPicker({ view, me, onPick, close }: { view: PlayerView; me: VPlayer; onPick: (id: PatronId) => void; close: () => void }) {
+  const open = byClubOrder(view.patrons).filter((pt) => !pt.removed && !pt.connections.includes(me.id));
+  return (
+    <Modal title="Завязать знакомство" wide onClose={close}>
+      <p className="muted small">Связь с любым Завсегдатаем — без книги, даже если он занят на эту Пятилетку.</p>
+      <ul className="patrons">
+        {open.map((pt) => (
+          <li key={pt.id} className="can" role="button" onClick={() => onPick(pt.id)} title={PATRONS[pt.id].hint}>
+            <GenreChip g={pt.genre} /> <b>{PATRONS[pt.id].name}</b>
+            <div className="muted small">{PATRONS[pt.id].hint}</div>
+          </li>
+        ))}
+      </ul>
+    </Modal>
+  );
+}
+
 export function KontoraPanel({ view, place }: { view: PlayerView; place: (p: PlaceAction) => void }) {
   const targets = kontoraTargets(view, view.me);
   return (

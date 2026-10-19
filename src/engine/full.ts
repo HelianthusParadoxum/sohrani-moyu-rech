@@ -92,10 +92,27 @@ export function giveToPatron(state: GameState, p: PlayerState, gift: ClubGift) {
   removeBook(p, gift.card);
   discard(state, gift.card);
   gaveAway(state, p, gift.card);
+  linkPatron(state, p, patron, `отдана ${title(state, gift.card)}`);
+}
+
+// Бонус Ростка «Завязать знакомство»: связь с любым Завсегдатаем без книги — и даже с занятым на эту Пятилетку.
+export function befriendPatron(state: GameState, p: PlayerState, id: PatronId) {
+  const patron = state.patrons.find((x) => x.id === id);
+  check(patron && !patron.removed, 'Этого Завсегдатая нет в Клубе');
+  check(!patron.connections.includes(p.id), `У вас уже есть связь с Завсегдатаем «${PATRONS[id].name}»`);
+  linkPatron(state, p, patron, 'знакомство через Росток');
+}
+
+// С кем можно завязать знакомство.
+export function befriendTargets(state: GameState, me: string): PatronId[] {
+  return state.patrons.filter((x) => !x.removed && !x.connections.includes(me)).map((x) => x.id);
+}
+
+function linkPatron(state: GameState, p: PlayerState, patron: GameState['patrons'][number], how: string) {
   patron.connections.push(p.id);
   patron.since = { ...patron.since, [p.id]: state.round };
   patron.turned = true;
-  log(state, `${p.name} заводит связь в Клубе: ${name} (отдана ${title(state, gift.card)}).`);
+  log(state, `${p.name} заводит связь в Клубе: ${PATRONS[patron.id].name} (${how}).`);
   state.log[state.log.length - 1].club = { player: p.id, round: state.round };
   onConnect(state, p, patron.id);
   // Маклер: каждая следующая связь — Талоны (связь с ним самим — нет).
