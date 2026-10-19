@@ -215,7 +215,8 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
   }
   // Сигнал на того, на кого донос, и Изъятие книги из доноса — обязательны и в самом конце, после пунктов по выбору
   // (и после Выдачи на руки).
-  const seize = { player: target.id, card: slot.card, by: p.id };
+  // Психиатр защищает и в том походе в Контору, которым его профилактируют.
+  const seize = { player: target.id, card: slot.card, by: p.id, shielded: c.prophylaxis === 'psychiatrist' };
   if (c.handout) {
     const cards = [...state.spetskhran];
     if (cards.length && freeSlots(p) > 0) {
@@ -230,9 +231,10 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
 
 // Конец похода в Контору: Сигнал на того, на кого донос (Контора удерживает его Единомышленника), затем Изъятие книги
 // из доноса в Спецхран (если она всё ещё лежит открыто у владельца).
-export function seizeDenounced(state: GameState, seize: { player: string; card: string; by?: string }) {
+export function seizeDenounced(state: GameState, seize: { player: string; card: string; by?: string; shielded?: boolean }) {
   const o = player(state, seize.player);
-  if (seize.by) holdWorker(state, o, `сигнал от ${player(state, seize.by).name}`);
+  if (seize.by && seize.shielded) log(state, `${o.name}: Психиатр напоследок не даёт Конторе удержать Единомышленника.`);
+  else if (seize.by) holdWorker(state, o, `сигнал от ${player(state, seize.by).name}`);
   const s = o.warehouse.find((x) => x.card === seize.card);
   if (!s || s.hidden || s.memorized) return;
   removeBook(o, s.card);

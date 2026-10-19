@@ -143,7 +143,7 @@ export type Pending =
   | { kind: 'sproutBonus'; player: string; sprout: string; options: SproutBonusId[] }
   | { kind: 'kontoraWarning'; player: string; from: string }
   | { kind: 'kontoraDecide'; player: string }
-  | { kind: 'kontoraHandout'; player: string; cards: string[]; seize?: { player: string; card: string; by?: string } } // seize — Сигнал и Изъятие после выбора книги
+  | { kind: 'kontoraHandout'; player: string; cards: string[]; seize?: { player: string; card: string; by?: string; shielded?: boolean } } // seize — Сигнал и Изъятие после выбора книги
   | { kind: 'extraGroup'; player: string } // Подмастерье
   | { kind: 'freeConnection'; player: string } // Председатель
   | { kind: 'lieutenantPick'; player: string; cards: string[] } // Лейтенант: книги, изъятые облавой с адресов

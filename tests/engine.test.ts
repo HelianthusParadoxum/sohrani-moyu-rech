@@ -1518,6 +1518,24 @@ describe('Контора: донос', () => {
     s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { prophylaxis: pa.id, denounce: { player: a, card: banned[1] } } });
     expect(s.patrons.find((x) => x.id === pa.id)!.removed).toBe(true);
   });
+
+  it('Психиатр защищает и в том походе в Контору, которым его профилактируют', () => {
+    let s = createGame({ players: players(3), seed: 15, mode: 'full', curator: false });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const [a] = s.order.filter((x) => x !== me);
+    for (const q of s.players) q.warehouse = q.warehouse.filter((w) => !isBanned(s, w.card));
+    const book = s.deck.find((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.some((g) => s.banned.includes(g)))!;
+    s.deck = s.deck.filter((c) => c !== book);
+    s.players.find((x) => x.id === a)!.warehouse.push({ card: book, hidden: false });
+    s.patrons[0] = { id: 'psychiatrist', genre: s.patrons[0].genre, connections: [a], turned: false, removed: false };
+    s = applyAction(s, me, { type: 'place', place: { address: 'kontora' } });
+    s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { prophylaxis: 'psychiatrist', denounce: { player: a, card: book } } });
+    expect(s.patrons[0].removed).toBe(true);
+    expect(s.players.find((x) => x.id === a)!.held).toBe(0);
+    expect(s.log.some((l) => l.text.includes('Психиатр напоследок'))).toBe(true);
+  });
 });
 
 describe('Контора: Изъятие в конце', () => {
