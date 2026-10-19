@@ -730,7 +730,11 @@ function groupBlocker(view: PlayerView, me: VPlayer, id: GroupActionId): string 
       const any = view.razval.some((c, i) => c && can(RULES.razvalPrices[i])) || (view.tolkuchka.length > 0 && can(RULES.tolkuchkaBuy))
         || (view.safehouses.includes('raspredelitel') && view.raspredelitel.length > 0 && can(RULES.raspredelitelPrice))
         || (view.safehouses.includes('knigoobmen') && view.knigoobmen.length > 0 && me.warehouse.some((s) => s.card && iconsOf(view, s.card).length > 0));
-      return any ? null : 'Не на что купить книгу ни на одном адресе.';
+      // Машинистка: можно без покупки — достаточно жанровой книги на любом открытом адресе.
+      const anyFree = hasPatron(view, me.id, 'typist') && [...view.razval, ...view.tolkuchka,
+        ...(view.safehouses.includes('raspredelitel') ? view.raspredelitel : []), ...(view.safehouses.includes('knigoobmen') ? view.knigoobmen : [])]
+        .some((c) => c && iconsOf(view, c).length > 0);
+      return any || anyFree ? null : 'Не на что купить книгу ни на одном адресе.';
     }
     case 'rescue':
       return view.players.some((p) => p.held > 0) ? null : 'Контора никого не удерживает.';
@@ -835,10 +839,13 @@ function CopyTextPanel({ view, me, done }: { view: PlayerView; me: VPlayer; done
           : (bought.length && sell.length ? { address: 'knigoobmen', give: sell[0], take: bought[0].card } : null);
   const halfSwap = swap && (bought.length > 0) !== (sell.length > 0);
   const busy = (a: AddressId) => (view.occupancy[a]?.length ?? 0) >= limitFor(a, view.players.length);
-  const ok = purchase && gift && !halfSwap && cost <= me.talons && room >= 0;
+  // Машинистка: можно без покупки — книгу берёт сам Единомышленник на Тиражировании, на адрес никто не идёт.
+  const typist = hasPatron(view, me.id, 'typist');
+  const ok = (purchase || (typist && !buy.length && !sell.length)) && gift && !halfSwap && cost <= me.talons && room >= 0;
   return (
     <>
       <p>{GROUP_ACTIONS.copyText.hint}. Покупатель занимает место на адресе, второй Единомышленник встаёт на Тиражирование (если Тиражирование — бонус, идёт только покупатель).</p>
+      {typist && <p className="muted small">Машинистка: можно ничего не покупать — просто выберите книгу «взять бесплатно» на любом адресе; на адрес никто не пойдёт. За Тиражирование +{RULES.typistTalons}т.</p>}
       <div className="row">
         {addrs.map((a) => (
           <button key={a} className={addr === a ? 'selected' : ''} onClick={() => choose(a)}>{ADDRESSES[a].name}{busy(a) ? ' (занято)' : ''}</button>

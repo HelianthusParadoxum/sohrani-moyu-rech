@@ -758,7 +758,9 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
     return;
   }
   // Тиражирование вдогонку: только что купил на адресе — второй Единомышленник берёт оттуда же книгу даром.
-  if (action.type === 'group' && action.group.action === 'copyText' && !action.group.buy && state.lastBuy?.player === p.id) {
+  // (С Машинисткой Тиражирование без покупки с другого адреса — обычное, не «вдогонку».)
+  if (action.type === 'group' && action.group.action === 'copyText' && !action.group.buy && state.lastBuy?.player === p.id
+    && (!hasPatron(state, p.id, 'typist') || action.group.address === state.lastBuy.address)) {
     doGroup(state, p, action.group, { limited: true, worker: true, followUp: true });
     track(p, 'group:copyText');
     p.available--;
@@ -1200,7 +1202,7 @@ function isFromLoadDeck(state: GameState, id: string) {
 
 // ---------- Действия Инициативной группы ----------
 
-// Тиражирование: взять книгу даром с адреса (Машинистка — +1 Талон; при обычном Тиражировании её Талон начисляется ниже).
+// Тиражирование: взять книгу даром с адреса (Машинистка — Талоны; при обычном Тиражировании они начисляются ниже).
 function takeCopy(state: GameState, p: PlayerState, addr: CopyTextAddress, c: string, inAction = false) {
   const name = ADDRESSES[addr].name;
   if (addr === 'razval') {
@@ -1213,10 +1215,13 @@ function takeCopy(state: GameState, p: PlayerState, addr: CopyTextAddress, c: st
   }
   addOpenBook(state, p, c);
   log(state, `${p.name} тиражирует ${title(state, c)} (${name}).`);
-  if (!inAction && hasPatron(state, p.id, 'typist')) {
-    logAfter(state, '↳ Машинистка: +1 Талон.');
-    earn(state, p, 1, 'typist');
-  }
+  if (!inAction) typistBonus(state, p);
+}
+
+function typistBonus(state: GameState, p: PlayerState) {
+  if (!hasPatron(state, p.id, 'typist')) return;
+  logAfter(state, `↳ Машинистка: +${talonsText(RULES.typistTalons)}.`);
+  earn(state, p, RULES.typistTalons, 'typist');
 }
 
 // worker — действие делает Единомышленник из Группы (он занимает место на адресе, куда идёт тиражировать).
@@ -1259,6 +1264,15 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       }
       check((COPY_TEXT_ADDRESSES as readonly string[]).includes(addr), 'Тиражировать можно на Развале, Толкучке, в Распределителе или на Книгообмене');
       check(!ADDRESSES[addr].safehouse || state.safehouses.includes(addr), `${name}: этого адреса нет на столе`);
+      // Машинистка: без покупки — книгу с поля берёт сам Единомышленник на Тиражировании, на адрес никто не идёт.
+      if (!g.buy && hasPatron(state, p.id, 'typist')) {
+        check(g.card, 'Выберите книгу, которую взять бесплатно');
+        check(isGenreBook(state, g.card), 'Тиражировать можно только жанровую книгу — не Улику и не Пропаганду');
+        if (opts.worker) check(p.visitedRedCorner || hasPatron(state, p.id, 'doctor') || p.available > 1, 'Последнего Единомышленника нужно отправить в Красный уголок');
+        takeCopy(state, p, addr, g.card, true);
+        typistBonus(state, p);
+        break;
+      }
       check(!g.buy || g.buy.address === addr, 'Покупать нужно на том же адресе');
       check(g.buy, 'Тиражирование — только вместе с покупкой (на Книгообмене — обменом) на этом адресе');
       check(g.buy.address !== 'tolkuchka' || g.buy.ops.some((op) => op.op === 'buy'), 'На Толкучке нужно купить хотя бы одну книгу');
@@ -1286,10 +1300,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       // Покупатель; Единомышленника на Тиражировании в обычном ходе спишет doOrder.
       p.available--;
       track(p, addr);
-      if (hasPatron(state, p.id, 'typist')) {
-        logAfter(state, '↳ Машинистка: +1 Талон.');
-        earn(state, p, 1, 'typist');
-      }
+      typistBonus(state, p);
       break;
     }
     case 'restore': {

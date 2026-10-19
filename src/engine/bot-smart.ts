@@ -829,6 +829,13 @@ export function copyTextOptions(state: GameState, me: string): GroupAction[] {
   const p = player(state, me);
   // Бесплатно тиражировать можно только жанровые книги (не Улики и не Пропаганду).
   const others = (list: (string | null)[], taken?: string) => list.filter((c): c is string => !!c && c !== taken && isGenreBook(state, c));
+  // Машинистка: без покупки — любая жанровая книга с открытого адреса.
+  if (hasPatron(state, me, 'typist')) {
+    for (const card of others(state.razval)) out.push({ action: 'copyText', address: 'razval', card });
+    for (const card of others(state.tolkuchka)) out.push({ action: 'copyText', address: 'tolkuchka', card });
+    if (state.safehouses.includes('raspredelitel')) for (const card of others(state.raspredelitel)) out.push({ action: 'copyText', address: 'raspredelitel', card });
+    if (state.safehouses.includes('knigoobmen')) for (const card of others(state.knigoobmen)) out.push({ action: 'copyText', address: 'knigoobmen', card });
+  }
   state.razval.forEach((c, slot) => {
     if (c) for (const card of others(state.razval, c)) out.push({ action: 'copyText', address: 'razval', buy: { address: 'razval', slot }, card });
   });

@@ -648,6 +648,28 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     expect(p.warehouse.length).toBe(p0.warehouse.length + 2);
   });
 
+  it(`Машинистка: Тиражирование без покупки — книга с любого адреса, на адрес никто не идёт; +${RULES.typistTalons}т`, () => {
+    let s = started();
+    const me = s.order[s.turn];
+    connect(s, 'typist', [me]);
+    const p = s.players.find((x) => x.id === me)!;
+    p.capacity = 10;
+    const card = s.tolkuchka.find((c) => s.cards[c].kind === 'genre')!;
+    const t = p.talons;
+    const available = p.available;
+    s = applyAction(s, me, { type: 'group', group: { action: 'copyText', address: 'tolkuchka', card } });
+    const after = s.players.find((x) => x.id === me)!;
+    expect(after.warehouse.some((w) => w.card === card)).toBe(true);
+    expect(after.talons).toBe(t + RULES.typistTalons);
+    expect(after.available).toBe(available - 1);
+    expect(s.occupancy.tolkuchka ?? []).not.toContain(me);
+    // Без Машинистки так нельзя — Тиражирование только вместе с покупкой.
+    const s2 = started();
+    const me2 = s2.order[s2.turn];
+    const card2 = s2.tolkuchka.find((c) => s2.cards[c].kind === 'genre')!;
+    expect(() => applyAction(s2, me2, { type: 'group', group: { action: 'copyText', address: 'tolkuchka', card: card2 } })).toThrow(RuleError);
+  });
+
   it('Цеховик: за действие, приносящее Талоны, — на 1 больше (раз за действие); Маклер: +2 Талона за связь', () => {
     let s = started();
     const me = s.order[s.turn];
