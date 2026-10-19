@@ -57,6 +57,7 @@ const visitSizes: Record<number, number> = {};
 type AlbumStat = { links: number; album: number; albumSpare: number };
 const albums: Partial<Record<PatronId, AlbumStat>> = {};
 const started = Date.now();
+let kontoraLost = 0;
 
 for (let i = first; i < first + games; i++) {
   const players = Array.from({ length: n }, (_, k) => ({ id: `p${k}`, name: `Бот ${k}` }));
@@ -93,6 +94,8 @@ for (let i = first; i < first + games; i++) {
     }
   }
   const r = s.result!;
+  // Контора удержала слишком многих — проиграли все, очков нет: такую партию только считаем.
+  if (!r.scores.length) { kontoraLost++; continue; }
   const best = Math.max(...r.scores.map((x) => x.total));
   for (const p of s.players) {
     const st = (preset[presets[p.id]] ??= { plays: 0, wins: 0, total: 0, conns: 0, visits: 0, gifts: 0, byRound: [0, 0, 0, 0, 0] });
@@ -127,6 +130,7 @@ for (const [id, st] of Object.entries(preset)) {
   console.log(`  ${presetById(id).name.padEnd(20)} ${st.wins} / ${st.plays} (${f((100 * st.wins) / st.plays, 0)}%), итог ${f(st.total / st.plays)}, связей ${f(st.conns / st.plays)}, `
     + `приходов ${f(st.visits / st.plays)}, за приход ${f(st.gifts / Math.max(1, st.visits), 2)}, по Пятилеткам ${st.byRound.map((x) => f(x / st.plays, 2)).join(' / ')}`);
 }
+if (kontoraLost) console.log(`\nПроиграны всеми (Контора): ${kontoraLost} партий — в статистику не вошли.`);
 console.log(`\nСколько связей заводят за один приход: ${Object.entries(visitSizes).map(([k, v]) => `${k} — ${v} раз`).join(', ')}`);
 console.log('\nЗавсегдатаи (по убыванию популярности): связей на партию (из возможных ' + n + '), средняя Пятилетка связи,');
 console.log('доля побед и средний отрыв от лидера — у игроков со связью и без неё:');
