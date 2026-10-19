@@ -36,7 +36,7 @@ export interface BotPreset {
   goals: Record<BotGoal, [number, number, number, number, number]>; // вес по Пятилеткам 1..5
   character: BotCharacter;
   soloGoal?: number; // одиночная игра: множитель цели «все Ростки до III, один до IV» (1 — как у всех)
-  albumOption?: number; // своя ценность Альбома-козыря вместо BOT_BASE (для замеров)
+  base?: Partial<Record<TunableBase, number>>; // свои числа вместо BOT_BASE (для замеров A/B)
 }
 
 export const BOT_PRESETS: BotPreset[] = [
@@ -248,6 +248,7 @@ export const BOT_BASE = {
   connection: 1, // связь с Завсегдатаем: очко в финальном подсчёте
   patronEffect: 1, // польза свойства Завсегдатая за каждую оставшуюся Пятилетку (× цель «Связи в Клубе»)
   albumOption: 0.5, // Альбом на складе: доля ценности связи с Завсегдатаем, которого иначе не достать (козырь Клуба)
+  feedScifi: 1, // задел для Ростка: значок Фантастики засчитывается вместо недостающего значка (0 — не засчитывается)
   // Подозрение, что соперник — Куратор (0..1, только по открытой информации) и что бот тогда делает.
   suspectTaken: 0.45, // за каждую Пропаганду, открыто взятую со стола
   suspectRedEager: 0.15, // за каждый ранний приход первым в Красный уголок (Куратору выгоднее всего ходить первым)
@@ -306,3 +307,7 @@ export const BOT_BASE = {
   coopInsurance: 2, // при полной кооперации «Громоотвод» втрое ценнее
   coopInsuranceSteps: 2, // ...и засчитывается до 5 запасных ступеней
 };
+
+// Числа BOT_BASE, которые пресет может переопределить (поле base) — для A/B-замеров.
+export type TunableBase = 'albumOption' | 'feedScifi';
+

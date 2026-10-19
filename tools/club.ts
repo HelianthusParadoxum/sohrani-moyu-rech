@@ -1,7 +1,7 @@
 // Клуб книголюбов глазами ботов (полный режим): npm run club -- [партий] [игроков] [пресеты через запятую]
 // Пресет можно усилить или ослабить по цели «Связи в Клубе»: bookman*2 — вес Клуба вдвое больше, bookman*0 — Клуб не ценит.
 // Пример A/B-теста: npm run club -- 200 4 bookman,bookman*2
-// bookman~0 — бот, для которого Альбом не козырь (число — BOT_BASE.albumOption).
+// bookman~albumOption=0 — бот со своим числом BOT_BASE (можно несколько: bookman~albumOption=0~feedScifi=0).
 // Куратор в этих партиях отключён, чтобы сравнивать только очки.
 
 import { botMove } from '../src/engine/bot';
@@ -19,12 +19,13 @@ const first = Number(process.argv[5] ?? 0); // с какого номера па
 // «bookman*2» — копия пресета с весами Клуба, умноженными на 2 (не больше 10).
 for (const spec of specs) {
   if (BOT_PRESETS.some((p) => p.id === spec)) continue;
-  // «bookman~0» — своя ценность Альбома-козыря (BOT_BASE.albumOption).
+  // «bookman~feedScifi=0» — свои числа BOT_BASE (только из TunableBase в bot-presets.ts).
   if (spec.includes('~')) {
-    const [base, num] = spec.split('~');
+    const [base, ...pairs] = spec.split('~');
     const src = BOT_PRESETS.find((p) => p.id === base);
-    if (!src || Number.isNaN(Number(num))) throw new Error(`Не понимаю пресет «${spec}»`);
-    BOT_PRESETS.push({ ...src, id: spec, name: `${src.name} Альбом ${num}`, albumOption: Number(num) });
+    const tuned = Object.fromEntries(pairs.map((x) => x.split('=')).map(([k, v]) => [k, Number(v)]));
+    if (!src || !pairs.length || Object.values(tuned).some(Number.isNaN)) throw new Error(`Не понимаю пресет «${spec}»`);
+    BOT_PRESETS.push({ ...src, id: spec, name: `${src.name} ${pairs.join(' ')}`, base: tuned });
     continue;
   }
   const [base, k] = spec.split('*');

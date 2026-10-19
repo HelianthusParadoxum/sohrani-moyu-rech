@@ -4,7 +4,7 @@
 // Честность: бот не подглядывает в закрытые карты. Перед примеркой он перемешивает свою копию
 // стопок и Барахолки, поэтому вытянутая при примерке книга — догадка, а не знание.
 import { applyAction, mustVisitRedCorner } from './engine';
-import { BOT_BASE, CURATOR_STYLES, PATRON_POWER, curatorStyle, type BotGoal, type BotPreset, type CuratorStyle } from './bot-presets';
+import { BOT_BASE, CURATOR_STYLES, PATRON_POWER, curatorStyle, type BotGoal, type BotPreset, type CuratorStyle, type TunableBase } from './bot-presets';
 import { PERMANENT_ADDRESSES, addressInGame, PASSIONS, RULES, SPROUTS, STEP_REWARDS, FIRST_FEED_POINTS, ADDRESSES, KONTORA_LOSS, limitFor } from './content';
 import { heldTotal, kontoraTargets } from './full';
 import { passionPoints } from './scoring';
@@ -215,6 +215,9 @@ function stepOpts(state: GameState, me: string) {
   return { wildScifi: state.mode === 'full', labtech: hasPatron(state, me, 'labtech') };
 }
 
+// Число BOT_BASE с поправкой пресета (для A/B-замеров).
+const tune = (ctx: Ctx, key: TunableBase) => ctx.preset.base?.[key] ?? BOT_BASE[key];
+
 // Насколько книги на складе готовы закрыть ближайшие ступени Ростков.
 function feedPotential(state: GameState, p: PlayerState, ctx: Ctx): number {
   const books = p.warehouse.map((s) => s.card).filter((c) => isGenreBook(state, c));
@@ -229,9 +232,14 @@ function feedPotential(state: GameState, p: PlayerState, ctx: Ctx): number {
       continue;
     }
     // Часть нужного уже есть: значки основного жанра и значок поддержки.
+    // Фантастика в полном режиме — джокер: закрывает недостающие значки (сначала поддержку, потом основной жанр).
     const icons = books.flatMap((b) => iconsOf(state, b));
-    const main = Math.min(1, icons.filter((g) => g === info.main).length / step.main);
-    const frac = step.support ? (main + (icons.includes(step.support) ? 1 : 0)) / 2 : main;
+    const scifiWild = state.mode === 'full' && info.main !== 'scifi' && step.support !== 'scifi';
+    let wild = scifiWild ? icons.filter((g) => g === 'scifi').length * tune(ctx, 'feedScifi') : 0;
+    let sup = step.support && icons.includes(step.support) ? 1 : 0;
+    if (step.support && !sup && wild > 0) { const k = Math.min(1, wild); sup = k; wild -= k; }
+    const main = Math.min(1, (icons.filter((g) => g === info.main).length + wild) / step.main);
+    const frac = step.support ? (main + sup) / 2 : main;
     v += reward * BOT_BASE.feedPartial * frac;
   }
   return v;
@@ -466,7 +474,7 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   const connections = state.patrons.filter((x) => !x.removed && x.connections.includes(me)).length;
   const link = BOT_BASE.connection + BOT_BASE.patronEffect * w.club * (left + 1);
   v += connections * link;
-  v += albumReserve(state, me, cards, link, left, ctx.preset.albumOption ?? BOT_BASE.albumOption);
+  v += albumReserve(state, me, cards, link, left, tune(ctx, 'albumOption'));
   // Ресурсы.
   v += resources(state, p, ctx);
   // Нагрузка — будущие Талоны: в каждый оставшийся визит в Красный уголок можно сдать одну.
