@@ -674,12 +674,27 @@ function score(state: GameState, me: string, a: Action, ctx: Ctx, depth: number)
 
 // Ожидаемая польза Макулатуры для Куратора: тянет из Непечатных, пока не найдёт Пропаганду (или не кончатся попытки).
 // Состав стопки бот знает (порядок — нет): шанс Пропаганды на каждую попытку — её доля среди закрытых Непечатных.
+// Сколько Куратор готов тянуть в Макулатуре: в последней Пятилетке Талоны больше ни на что не нужны — до последнего.
+function curatorDig(ctx: Ctx): { max: number; reserve: number } {
+  return ctx.round >= RULES.rounds
+    ? { max: BOT_BASE.curatorMakulaturaMaxLast, reserve: 0 }
+    : { max: BOT_BASE.curatorMakulaturaMax, reserve: BOT_BASE.curatorMakulaturaReserve };
+}
+
+// Доля Пропаганды в закрытых стопках Непечатных и Нагрузки (в Нагрузке — Ленин): из какой выгоднее тянуть.
+function propagandaShares(s: GameState): { best: 'unprinted' | 'load'; share: number; card?: string } {
+  const of = (list: string[]) => ({ share: list.length ? list.filter((c) => isPropaganda(s, c)).length / list.length : 0, card: list.find((c) => isPropaganda(s, c)) });
+  const u = of(s.deck);
+  const l = of(s.loadDeck);
+  return l.share > u.share ? { best: 'load', ...l } : { best: 'unprinted', ...u };
+}
+
 function curatorMakulaturaValue(next: GameState, me: string, ctx: Ctx): number {
   const p = player(next, me);
   const price = RULES.makulaturaPrice;
-  const tries = Math.max(1, Math.min(BOT_BASE.curatorMakulaturaMax, Math.floor((p.talons - BOT_BASE.curatorMakulaturaReserve) / price)));
-  const prop = next.deck.find((c) => isPropaganda(next, c));
-  const share = next.deck.length ? next.deck.filter((c) => isPropaganda(next, c)).length / next.deck.length : 0;
+  const { max, reserve } = curatorDig(ctx);
+  const tries = Math.max(1, Math.min(max, Math.floor((p.talons - reserve) / price)));
+  const { share, card: prop } = propagandaShares(next);
   let spent = 0;
   for (let i = 0; i < tries; i++) spent += (1 - share) ** i;
   const hit = 1 - (1 - share) ** tries;
@@ -1131,10 +1146,11 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         if (ctx.curator) {
           const found = pend.cards.find((c) => isPropaganda(state, c));
           if (found) return [{ type: 'makulaturaKeep', card: found }];
-          if (pend.cards.length < BOT_BASE.curatorMakulaturaMax && p.talons - RULES.makulaturaPrice >= BOT_BASE.curatorMakulaturaReserve) {
-            return [{ type: 'makulaturaDraw', deck: 'unprinted' }];
+          const { max, reserve } = curatorDig(ctx);
+          const deck = propagandaShares(determinize(state, () => 0.5, me)).best;
+          if ((pend.cards.length < max && p.talons - RULES.makulaturaPrice >= reserve) || (!pend.cards.length && p.talons >= RULES.makulaturaPrice)) {
+            return [{ type: 'makulaturaDraw', deck }];
           }
-          if (!pend.cards.length && p.talons >= RULES.makulaturaPrice) return [{ type: 'makulaturaDraw', deck: 'unprinted' }];
           return pend.cards.map((card) => ({ type: 'makulaturaKeep' as const, card }));
         }
         // Сколько книг тянуть: при запасе Талонов — больше выбор (не больше BOT_BASE.makulaturaMax), потом оставить лучшую.
