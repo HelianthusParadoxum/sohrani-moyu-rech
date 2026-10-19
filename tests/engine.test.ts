@@ -581,7 +581,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     // Статистика: часть — Самиздату, часть — Корреспонденту.
     expect(s.players.find((x) => x.id === me)!.talonsBy).toMatchObject({ samizdat: RULES.samizdatTalons, correspondent: RULES.correspondentTalons });
     expect(s.players.find((x) => x.id === me)!.pointsBy.correspondent).toBe(RULES.correspondentPoints);
-    // Профессор: за ступень Ростка ещё +1 Талон и +1 очко.
+    // Профессор: за ступень Ростка ещё +1 Талон и +2 очка.
     let s4 = started();
     const me4 = s4.order[s4.turn];
     connect(s4, 'professor', [me4]);
@@ -700,6 +700,16 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     const t2 = s2.players.find((x) => x.id === me2)!.talons;
     s2 = applyAction(s2, me2, { type: 'clubGift', gift: { patron: other.id, card } });
     expect(s2.players.find((x) => x.id === me2)!.talons).toBe(t2 + RULES.brokerTalons);
+
+    // Связь с самим Маклером Талонов не даёт.
+    let s3 = started();
+    const me3 = s3.order[s3.turn];
+    connect(s3, 'broker', []);
+    const card3 = give(s3, me3, (icons) => icons.includes(s3.patrons[0].genre) && !icons.includes('irony'));
+    const t3 = s3.players.find((x) => x.id === me3)!.talons;
+    s3 = applyAction(s3, me3, { type: 'clubGift', gift: { patron: 'broker', card: card3 } });
+    expect(s3.patrons[0].connections).toContain(me3);
+    expect(s3.players.find((x) => x.id === me3)!.talons).toBe(t3);
   });
 
   it('Комсорг: в Красном уголке сколько угодно книг и +1 очко за каждую', () => {
