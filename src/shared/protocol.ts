@@ -31,6 +31,7 @@ export type ClientMessage =
   | { t: 'action'; action: Action }
   | { t: 'undo' }
   | { t: 'stepBack' } // «Назад»: отменить свои действия в этом ходу (до момента, когда узнал новое)
+  | { t: 'stepBackOne' } // отменить только последний шаг своего хода (закрыть окно решения, вызванного подарком)
   | { t: 'restart' }
   | { t: 'hostBot'; on: boolean }
   | { t: 'botDelay'; ms: number }

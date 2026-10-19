@@ -149,7 +149,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
       {panel?.kind === 'group' && me && (
         <GroupPanel id={panel.id} view={view} me={me} close={() => setPanel(null)} done={(group) => { act({ type: 'group', group }); setPanel(null); }} />
       )}
-      {myPending && me && <PendingPrompt view={view} me={me} act={act} nameOf={nameOf} />}
+      {myPending && me && <PendingPrompt view={view} me={me} act={act} nameOf={nameOf} cancel={canStepBack ? () => send({ t: 'stepBackOne' }) : undefined} />}
       {!myPending && me && view.phase === 'passion' && view.active.includes(me.id) && <PassionPrompt view={view} me={me} act={act} />}
       {!myPending && me && view.phase === 'gathering' && view.active.includes(me.id) && <GatheringPrompt view={view} me={me} act={act} />}
       {!myPending && me && view.phase === 'ambush' && view.active.includes(me.id) && <AmbushPrompt view={view} me={me} act={act} />}
@@ -795,7 +795,8 @@ function CopyTextPanel({ view, me, done }: { view: PlayerView; me: VPlayer; done
 
 // ---------- Решения ----------
 
-function PendingPrompt({ view, me, act, nameOf }: { view: PlayerView; me: VPlayer; act: (a: Action) => void; nameOf: (id: string) => string }) {
+// cancel — отменить последний шаг (решение, вызванное своим же действием, — например, подарком Главлитовцу).
+function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me: VPlayer; act: (a: Action) => void; nameOf: (id: string) => string; cancel?: () => void }) {
   const p = view.pending[0];
   const [sel, setSel] = useState<string[]>([]);
   const [groupFor, setGroupFor] = useState<SproutBonusId | 'posred' | null>(null);
@@ -859,7 +860,8 @@ function PendingPrompt({ view, me, act, nameOf }: { view: PlayerView; me: VPlaye
       );
     }
     case 'glavlitSwap':
-      return <GlavlitPrompt view={view} act={act} />;
+      // Связь с Главлитовцем только что завязана — нажатие снаружи окна отменяет подарок (в начале Пятилетки — нет).
+      return <GlavlitPrompt view={view} act={act} onClose={!p.roundStart ? cancel : undefined} />;
     case 'lieutenantPick': {
       const free = me.capacity - me.warehouse.filter((s) => !s.memorized).length;
       return (
@@ -1256,11 +1258,12 @@ function Log({ view, seatIndex }: { view: PlayerView; seatIndex: (id: string) =>
   );
 }
 
-function GlavlitPrompt({ view, act }: { view: PlayerView; act: (a: Action) => void }) {
+function GlavlitPrompt({ view, act, onClose }: { view: PlayerView; act: (a: Action) => void; onClose?: () => void }) {
   const [from, setFrom] = useState<Genre | null>(null);
   const [to, setTo] = useState<Genre | null>(null);
   return (
-    <Modal title="Главлитовец">
+    <Modal title="Главлитовец" onClose={onClose}>
+      {onClose && <p className="muted small">Закройте окно, чтобы передумать и не дарить книгу.</p>}
       <p>Снимите опалу с одного жанра и наложите её на другой.</p>
       <h4>Снять опалу с жанра</h4>
       <div className="genres">{view.banned.map((g) => <button key={g} className={from === g ? 'selected' : ''} onClick={() => setFrom(g)}><GenreChip g={g} banned /> {GENRE_NAMES[g]}</button>)}</div>

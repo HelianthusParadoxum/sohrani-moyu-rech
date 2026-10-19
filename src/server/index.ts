@@ -334,6 +334,16 @@ function handle(ws: WebSocket, msg: ClientMessage) {
       sb.states = [];
       break;
     }
+    case 'stepBackOne': {
+      // Отменить только последний шаг своего хода (например, подарок Завсегдатаю, за которым следует его решение).
+      const sb = room.stepBack;
+      if (!sb || sb.player !== conn.seat || !sb.states.length) return;
+      const target = sb.states.pop()!;
+      const i = room.history.lastIndexOf(target);
+      if (i >= 0) room.history.length = i;
+      room.state = target;
+      break;
+    }
     case 'undo': {
       // Отмена последнего действия — для плейтестов, доступна хосту.
       if (!isHost || !room.history.length) return;
