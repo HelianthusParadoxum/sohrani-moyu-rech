@@ -609,8 +609,10 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     const me2 = s2.order[s2.turn];
     connect(s2, 'carpenter', [me2]);
     const cache = s2.players.find((x) => x.id === me2)!.cache;
+    const talons = s2.players.find((x) => x.id === me2)!.talons;
     s2 = applyAction(s2, me2, { type: 'group', group: { action: 'expandCache' } });
     expect(s2.players.find((x) => x.id === me2)!.cache).toBe(cache + RULES.carpenterCache);
+    expect(s2.players.find((x) => x.id === me2)!.talons).toBe(talons); // со Столяром — бесплатно
   });
 
   it('Подмастерье повторяет только уже сделанное действие Группы', () => {

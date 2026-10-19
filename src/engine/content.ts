@@ -265,7 +265,7 @@ const P = (id: PatronId, name: string, hint: string, implemented = true): Patron
 // implemented: false — эффект ещё не запрограммирован, такой Завсегдатай не попадает в партию.
 export const PATRONS: Record<PatronId, PatronInfo> = Object.fromEntries([
   P('binder', 'Переплётчик', 'В одно место склада помещаются 2 книги с общим жанром', false),
-  P('carpenter', 'Столяр', `Закладка Тайника увеличивает Тайник на ${RULES.carpenterCache} (до 5)`),
+  P('carpenter', 'Столяр', `Закладка Тайника бесплатна и увеличивает Тайник на ${RULES.carpenterCache} (до 5)`),
   P('correspondent', 'Корреспондент', `Самиздат и Тамиздат: ещё +${RULES.correspondentTalons} Талон и +${RULES.correspondentPoints} очко Гласности за каждое издание`),
   P('postgrad', 'Архивист', 'Возвращение смыслов: +2 очка Гласности'),
   P('professor', 'Профессор', `Каждая закрытая ступень Ростка: +${RULES.professorTalons} Талон и +${RULES.professorPoints} очко Гласности`),

@@ -722,7 +722,7 @@ function groupBlocker(view: PlayerView, me: VPlayer, id: GroupActionId): string 
       return me.talons < RULES.expandWarehouseCost ? `Нужно ${RULES.expandWarehouseCost} Талон, у вас ${me.talons}.` : null;
     case 'expandCache':
       if (me.cache >= RULES.maxCache) return `Тайник уже максимального размера (${RULES.maxCache}).`;
-      return me.talons < RULES.expandCacheCost ? `Нужно ${RULES.expandCacheCost} Талон, у вас ${me.talons}.` : null;
+      return me.talons < RULES.expandCacheCost && !hasPatron(view, me.id, 'carpenter') ? `Нужно ${RULES.expandCacheCost} Талон, у вас ${me.talons}.` : null;
     case 'copyText': {
       // Купленная и бесплатная книги — 2 места; на Толкучке место можно освободить продажей.
       if (free < 1) return 'На складе нет свободного места.';

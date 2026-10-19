@@ -1239,7 +1239,8 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       break;
     case 'expandCache':
       check(p.cache < RULES.maxCache, 'Тайник уже максимального размера');
-      payPrice(state, p, RULES.expandCacheCost);
+      // Столяр: Закладка Тайника бесплатна.
+      if (!hasPatron(state, p.id, 'carpenter')) payPrice(state, p, RULES.expandCacheCost);
       // Столяр: Тайник растёт сразу на несколько мест.
       p.cache = Math.min(RULES.maxCache, p.cache + (hasPatron(state, p.id, 'carpenter') ? RULES.carpenterCache : 1));
       log(state, `${p.name}: Тайник увеличен до ${p.cache}.`);
