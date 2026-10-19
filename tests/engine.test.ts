@@ -1119,6 +1119,27 @@ describe('Посиделки и Улики', () => {
     // В журнале строка Посиделок — с кружком игрока.
     expect(s.log.find((l) => l.text.includes('показывает на Посиделках'))?.who).toBe(p.id);
   });
+
+  it('Геолог: строка «↳ Геолог» сразу под строкой показа, без кружка', () => {
+    let s = createGame({ players: players(2), seed: 3, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const p = s.players[0];
+    s.patrons[0] = { id: 'geologist', genre: s.patrons[0].genre, connections: [p.id], turned: false, removed: false };
+    const ev = s.deck.find((c) => s.cards[c].kind === 'evidence')!;
+    p.capacity = 10;
+    p.warehouse.push({ card: ev, hidden: false });
+    s.phase = 'gathering';
+    s.ready = [];
+    s.pending = [];
+    s = applyAction(s, p.id, { type: 'gathering', show: [ev] });
+    const i = s.log.findIndex((l) => l.text.includes('показывает на Посиделках'));
+    const tail = s.log.slice(i + 1).filter((l) => l.text.startsWith('↳'));
+    const geo = tail.find((l) => l.text.startsWith('↳ Геолог: +1'));
+    expect(geo).toBeTruthy();
+    expect(geo!.who).toBeUndefined();
+    expect(s.log.slice(i + 1, i + 1 + tail.length).every((l) => l.text.startsWith('↳'))).toBe(true);
+  });
 });
 
 describe('Опальное — сразу в Тайник', () => {

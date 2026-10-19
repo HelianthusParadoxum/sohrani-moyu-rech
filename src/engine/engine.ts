@@ -573,11 +573,6 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
   const unshown = p.warehouse.filter((s) => s.hidden && !s.memorized && !show.includes(s.card) && isBanned(state, s.card)).length;
   if (unshown) p.cacheUnshown = (p.cacheUnshown ?? 0) + unshown;
   gain(p, pts, 'gathering');
-  if (geo) {
-    earn(state, p, geo, 'geologist');
-    log(state, `${p.name}: Геолог — +${talonsText(geo)}.`);
-    state.log[state.log.length - 1].who = p.id;
-  }
   state.ready.push(p.id);
   if (show.length) {
     log(state, `${p.name} показывает на Посиделках: ${titles(state, show)} — +${pointsText(pts)}.`);
@@ -585,6 +580,11 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
     log(state, `${p.name} ничего не показывает на Посиделках.`);
   }
   state.log[state.log.length - 1].who = p.id;
+  // Геолог — следствие показа: строкой «↳ …» под ней, как Цеховик.
+  if (geo) {
+    earn(state, p, geo, 'geologist');
+    logAfter(state, `↳ Геолог: +${talonsText(geo)}.`);
+  }
   if (state.ready.length === state.players.length) {
     state.ready = [];
     // Засада возможна, если кто-то показал опальное, — ждём решения всех (так не видно, кто Куратор).
