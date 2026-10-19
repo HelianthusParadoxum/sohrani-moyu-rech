@@ -892,7 +892,7 @@ export function copyTextOptions(state: GameState, me: string): GroupAction[] {
   return out;
 }
 
-function groupCandidates(state: GameState, me: string, ctx: Ctx): GroupAction[] {
+function groupCandidates(state: GameState, me: string, ctx: Ctx, free = false): GroupAction[] {
   const p = player(state, me);
   const out: GroupAction[] = [{ action: 'expandWarehouse' }, { action: 'expandCache' }];
   if (ctx.w.network > 0) out.push({ action: 'hire' });
@@ -901,8 +901,10 @@ function groupCandidates(state: GameState, me: string, ctx: Ctx): GroupAction[] 
     if (!state.restored[s.card] && ['genre', 'loadReturnable', 'loadEvidence', ...(RULES.exposePropaganda ? ['propaganda', 'loadPropaganda'] : [])].includes(state.cards[s.card].kind)) out.push({ action: 'restore', card: s.card });
   }
   const held = state.players.filter((o) => o.held > 0);
-  // Вызволение — в конце своей череды: пока есть свободные Единомышленники, адреса важнее (не упускать инициативу).
-  if (held.length && p.available === 0) out.push({ action: 'rescue', returns: Object.fromEntries(held.map((o) => [o.id, Math.min(o.held, 2)])) });
+  // Вызволение — в конце своей череды: пока свободных Единомышленников больше одного (не считая того, кто должен в Красный
+  // уголок), адреса важнее — не упускать инициативу. Без Единомышленника (бонус Ростка, Подмастерье, Квартирник) — когда угодно.
+  const spare = p.available - (p.visitedRedCorner ? 0 : 1);
+  if (held.length && (free || spare <= 1)) out.push({ action: 'rescue', returns: Object.fromEntries(held.map((o) => [o.id, Math.min(o.held, 2)])) });
   return out;
 }
 
@@ -1111,13 +1113,13 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       }
       case 'posrednichestvoGroup':
       case 'extraGroup':
-        return [...groupCandidates(state, me, ctx).filter((g) => p.groupUsed.includes(g.action)).map((group) => ({ type: 'group' as const, group })), { type: 'pass' }];
+        return [...groupCandidates(state, me, ctx, true).filter((g) => p.groupUsed.includes(g.action)).map((group) => ({ type: 'group' as const, group })), { type: 'pass' }];
       case 'sproutBonus': {
         const out: Action[] = [];
         for (const b of pend.options) {
           if (b === 'sideJob' || b === 'underCounter') out.push({ type: 'sproutBonus', bonus: b });
           else if (b === 'acquaintance') for (const patron of befriendTargets(state, me)) out.push({ type: 'sproutBonus', bonus: b, patron });
-          else for (const g of groupCandidates(state, me, { ...ctx, w: { ...ctx.w, network: 1 } })) if (g.action === b) out.push({ type: 'sproutBonus', bonus: b, group: g });
+          else for (const g of groupCandidates(state, me, { ...ctx, w: { ...ctx.w, network: 1 } }, true)) if (g.action === b) out.push({ type: 'sproutBonus', bonus: b, group: g });
         }
         return [...out, { type: 'pass' }];
       }
