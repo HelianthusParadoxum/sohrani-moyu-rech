@@ -1144,7 +1144,7 @@ function Stats({ p, view }: { p: VPlayer; view: PlayerView }) {
       <span title="Талоны">🎫 {p.talons}</span>
       <span title="Очки Гласности, набранные по ходу игры">★ {p.points}</span>
       <span title="Единомышленники: свободны / всего">👤 {p.available}/{p.workers}</span>
-      <span title="Склад: занято / мест">📚 {p.warehouse.length}/{p.capacity}</span>
+      <span title="Склад: занято / мест (заученный сборник поэзии — сверх склада)">📚 {p.warehouse.filter((s) => !s.memorized).length}/{p.capacity}</span>
       <span title={`Мест в Тайнике: ${p.cache}${cover ? ` + ${cover} за Нагрузку на складе` : ''}`}>🔒 {p.cache + cover}{cover ? '*' : ''}</span>
       {p.held > 0 && <span title="Единомышленников удерживает Контора">🏢 {p.held}</span>}
       {view.mode === 'full' && <span title="Связи в Клубе книголюбов">🤝 {view.patrons.filter((x) => !x.removed && x.connections.includes(p.id)).length}</span>}
