@@ -616,7 +616,7 @@ function Sprouts({ view, me, beside, seatIndex, head, onOpen }: { view: PlayerVi
         // Росток доступен: не дорощен до конца, есть место в эту Пятилетку и книг хватает на ближайшую ступень (с Лаборантом — со скидкой).
         const open = !!onOpen && !!me && sproutOpen(view, me, sp);
         return (
-          <div key={sp.id} className={`sprout ${sp.progress >= RULES.glasnostStep ? 'grown' : ''} ${open ? 'can' : ''} ${onOpen && !open ? 'off' : ''}`}
+          <div key={sp.id} className={`sprout ${sp.progress >= RULES.glasnostStep ? 'grown' : ''} ${open ? 'can' : ''} ${sp.progress >= 4 ? 'off' : ''}`}
             role={open ? 'button' : undefined} title={open ? `Закрыть ступень Ростка «${info.name}»` : undefined}
             onClick={onOpen ? (e) => { e.stopPropagation(); if (open) onOpen(sp.id); } : undefined}>
             <div className="addr-head"><b>{info.name}</b>
