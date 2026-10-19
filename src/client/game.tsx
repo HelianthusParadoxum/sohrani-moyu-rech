@@ -8,8 +8,9 @@ import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupActio
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import { coversStep, hasPatron, isEvidence, isExposed, loadCover, roman } from '../engine/util';
+import { kontoraTargets } from '../engine/full';
 import {
-  ClubContents, fittingBooks, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
+  ClubContents, fittingBooks, patronOpen, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
   KontoraWarningPrompt, RescuePanel,
 } from './full-ui';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
@@ -59,7 +60,10 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
   // Порядок на столе: Клуб на всю ширину, под ним Контора и Ростки (вместе с их действием), затем адреса и явочные.
   const full = view.mode === 'full';
   const addresses: AddressId[] = [...BOARD_ORDER, ...view.safehouses];
-  const enabledFor = (id: AddressId) => (id === 'club' && RULES.clubFreeGift ? canGift : canPlace && (!mustRed || id === 'redCorner'));
+  // Адрес активен, только если хватает ресурсов (Талонов, книг, места); Клуб — если есть кому дарить.
+  const enabledFor = (id: AddressId) => (id === 'club' && RULES.clubFreeGift
+    ? canGift && !!me && view.patrons.some((pt) => patronOpen(view, me, pt))
+    : canPlace && (!mustRed || id === 'redCorner') && !!me && !addressBlocker(view, me, id));
   // Клуб: нажатие на Завсегдатая — сразу дарение ему; подходящая книга одна — отдаётся без окна.
   const giftTo = (patron: PatronId) => {
     const pt = view.patrons.find((x) => x.id === patron);
@@ -70,6 +74,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
   };
   const card = (id: AddressId) => (
     <AddressCard key={id} id={id} view={view} seatIndex={seatIndex} me={me} enabled={enabledFor(id)} onOpen={() => setPanel({ kind: 'address', id })}
+      blocked={canPlace && me && !(id === 'club' && RULES.clubFreeGift) ? addressBlocker(view, me, id) : null}
       onPatron={id === 'club' && RULES.clubFreeGift && canGift ? giftTo : undefined} />
   );
 
@@ -168,10 +173,90 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
 // Порядок обычных адресов на поле (после Клуба, Конторы и Ростков); явочные — следом.
 const BOARD_ORDER: AddressId[] = ['redCorner', 'glavlit', 'makulatura', 'gostorg', 'baraholka', 'tolkuchka', 'razval', 'zavoz', 'tamizdat', 'samizdat'];
 
-type AddressProps = { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me: VPlayer | null; enabled: boolean; onOpen: () => void; onPatron?: (id: PatronId) => void };
+type AddressProps = { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me: VPlayer | null; enabled: boolean; onOpen: () => void; onPatron?: (id: PatronId) => void; blocked?: string | null };
 
 // Каким книгам можно вернуть смыслы.
 const restorable = (kind: string) => ['genre', 'loadReturnable', 'loadEvidence', ...(RULES.exposePropaganda ? ['propaganda', 'loadPropaganda'] : [])].includes(kind);
+
+// Цена с учётом Скупщика (на 1 Талон дешевле, минимум 1).
+function priceFor(view: PlayerView, me: VPlayer, cost: number): number {
+  return cost > 0 && hasPatron(view, me.id, 'buyer') ? Math.max(1, cost - 1) : cost;
+}
+
+// Можно ли закрыть ближайшую ступень Ростка книгами со склада (есть место в эту Пятилетку, с учётом Лаборанта).
+function sproutOpen(view: PlayerView, me: VPlayer, sp: PlayerView['sprouts'][number]): boolean {
+  const info = SPROUTS.find((s) => s.id === sp.id)!;
+  const next = info.steps[sp.progress];
+  const mine = me.warehouse.map((s) => s.card!).filter(Boolean);
+  return !!next && (view.sproutRound?.[sp.id]?.length ?? 0) < RULES.sproutSlotsPerRound
+    && coversStep(view, mine, info.main, next.main, next.support, { wildScifi: view.mode === 'full', labtech: hasPatron(view, me.id, 'labtech') });
+}
+
+// Можно ли издать книгу через Самиздат / Тамиздат.
+function publishable(view: PlayerView, c: string, tamizdat: boolean): boolean {
+  return isExposed(view, c) || !['propaganda', 'loadPropaganda'].includes(view.cards[c].kind)
+    && (iconsOf(view, c).length > 0 && !isEvidence(view, c) || (tamizdat && isEvidence(view, c)));
+}
+
+// Почему поручение на адрес сейчас невозможно — не хватает Талонов, книг, места (null — можно).
+function addressBlocker(view: PlayerView, me: VPlayer, id: AddressId): string | null {
+  const free = me.capacity - me.warehouse.filter((s) => !s.memorized).length;
+  const books = me.warehouse.map((s) => s.card!).filter(Boolean);
+  const talons = (cost: number) => (me.talons >= priceFor(view, me, cost) ? null : `Нужно ${priceFor(view, me, cost)}т, у вас ${me.talons}.`);
+  const room = free > 0 ? null : 'На складе нет места.';
+  const sellable = books.filter((c) => iconsOf(view, c).length > 0 && !['evidence', 'loadEvidence', 'propaganda', 'loadPropaganda'].includes(view.cards[c].kind));
+  switch (id) {
+    case 'gostorg':
+      if (free < 2) return 'Нужно 2 свободных места на складе.';
+      return hasPatron(view, me.id, 'zavmag') ? null : talons(1);
+    case 'tolkuchka': {
+      const canBuy = view.tolkuchka.length > 0 && free > 0 && me.talons >= priceFor(view, me, RULES.tolkuchkaBuy);
+      return canBuy || sellable.length ? null : 'Нечего продать и не на что (или некуда) купить.';
+    }
+    case 'razval': {
+      const prices = view.razval.flatMap((c, i) => (c ? [priceFor(view, me, RULES.razvalPrices[i])] : []));
+      if (!prices.length) return 'Развал пуст.';
+      return room ?? (me.talons >= Math.min(...prices) ? null : `Не хватает Талонов: самая дешёвая книга — ${Math.min(...prices)}т.`);
+    }
+    case 'baraholka':
+      if (!view.baraholka.some(Boolean)) return 'На Барахолке не осталось книг.';
+      return room ?? talons(RULES.baraholkaPrice);
+    case 'podpiska':
+      return talons(1);
+    case 'sprouts':
+      return view.sprouts.some((sp) => sproutOpen(view, me, sp)) ? null : 'Книг не хватает ни на одну ступень (или места Ростков заняты).';
+    case 'samizdat':
+    case 'tamizdat':
+      return books.some((c) => publishable(view, c, id === 'tamizdat')) ? null : 'Нет книги, которую можно издать.';
+    case 'glavlit':
+      return books.some((c) => iconsOf(view, c).some((g) => view.banned.includes(g))) ? null : 'Нет книги опального жанра.';
+    case 'makulatura':
+      return room ?? talons(RULES.makulaturaPrice);
+    case 'knigoobmen':
+      if (!view.knigoobmen.length) return 'Витрина пуста.';
+      return books.some((c) => iconsOf(view, c).length > 0) ? null : 'Нет жанровой книги для обмена.';
+    case 'kvartirnik':
+      if (!books.length) return 'Нечего предложить.';
+      return view.players.some((o) => o.id !== me.id && o.warehouse.some((s) => s.card && !s.hidden)) ? null : 'Ни у кого нет книг на виду.';
+    case 'raspredelitel':
+      if (!view.raspredelitel.length) return 'Распределитель пуст.';
+      return room ?? talons(RULES.raspredelitelPrice);
+    case 'agitpunkt':
+      if (!(view.agitpunkt ?? []).length) return 'Витрина пуста.';
+      return room;
+    case 'nasledniki':
+      if (!view.discardCount) return 'Сброс Непечатных пуст.';
+      return room ?? talons(RULES.safehousePrice);
+    case 'posrednichestvo':
+      return room ?? talons(RULES.posrednichestvoPrice);
+    case 'spisanie':
+      return room ?? talons(RULES.spisaniePrice);
+    case 'kontora':
+      return kontoraTargets(view, me.id).length ? null : 'Ни у кого из соперников нет открыто лежащей книги опального жанра — доносить не на что.';
+    default:
+      return null;
+  }
+}
 
 function addressFull(id: AddressId, view: PlayerView, me: VPlayer | null) {
   const here = view.occupancy[id] ?? [];
@@ -188,7 +273,7 @@ function AddressCard(props: AddressProps) {
   const open = enabled && !full ? props.onOpen : undefined;
   return (
     <div className={`address addr-${id} ${info.safehouse ? 'safehouse' : ''} ${open ? 'can' : ''}`} onClick={open}
-      role={open ? 'button' : undefined} title={open ? 'Отправить Единомышленника сюда' : undefined}>
+      role={open ? 'button' : undefined} title={open ? 'Отправить Единомышленника сюда' : props.blocked ? `Сейчас нельзя: ${props.blocked}` : undefined}>
       <AddressHead {...props} inlineHint={inlineHint} />
       {!inlineHint && <div className="hint">{info.hint}</div>}
       <AddressContents id={id} view={view} seatIndex={seatIndex} me={me} onPatron={props.onPatron} />
@@ -521,7 +606,6 @@ function stepText(main: Genre, step: { main: number; support?: Genre }) {
 // Ростки Гласности вместе с их действием («сюда →» — закрыть ступени).
 // onOpen — поручение на Ростки: нажатие на конкретный Росток — сразу к его ступени (на панель — общий выбор).
 function Sprouts({ view, me, beside, seatIndex, head, onOpen }: { view: PlayerView; me: VPlayer | null; beside: boolean; seatIndex: (id: string) => number; head: ReactNode; onOpen?: (sprout?: string) => void }) {
-  const mine = me ? me.warehouse.map((s) => s.card!).filter(Boolean) : [];
   return (
     <div className={`sprouts-panel address addr-sprouts ${beside ? 'beside' : ''} ${onOpen ? 'can' : ''}`} onClick={onOpen ? () => onOpen() : undefined}
       role={onOpen ? 'button' : undefined} title={onOpen ? 'Отправить Единомышленника питать Ростки' : undefined}>
@@ -530,9 +614,7 @@ function Sprouts({ view, me, beside, seatIndex, head, onOpen }: { view: PlayerVi
       {view.sprouts.map((sp) => {
         const info = SPROUTS.find((s) => s.id === sp.id)!;
         // Росток доступен: не дорощен до конца, есть место в эту Пятилетку и книг хватает на ближайшую ступень (с Лаборантом — со скидкой).
-        const next = info.steps[sp.progress];
-        const open = !!onOpen && !!me && !!next && (view.sproutRound?.[sp.id]?.length ?? 0) < RULES.sproutSlotsPerRound
-          && coversStep(view, mine, info.main, next.main, next.support, { wildScifi: view.mode === 'full', labtech: hasPatron(view, me.id, 'labtech') });
+        const open = !!onOpen && !!me && sproutOpen(view, me, sp);
         return (
           <div key={sp.id} className={`sprout ${sp.progress >= RULES.glasnostStep ? 'grown' : ''} ${open ? 'can' : ''} ${onOpen && !open ? 'off' : ''}`}
             role={open ? 'button' : undefined} title={open ? `Закрыть ступень Ростка «${info.name}»` : undefined}
@@ -633,7 +715,7 @@ function groupBlocker(view: PlayerView, me: VPlayer, id: GroupActionId): string 
   switch (id) {
     case 'hire':
       if (me.workers >= RULES.maxWorkers) return `У вас уже максимум Единомышленников (${RULES.maxWorkers}).`;
-      if (me.talons < RULES.hireCost) return `Нужно ${RULES.hireCost} Талонов, у вас ${me.talons} — не хватает ${RULES.hireCost - me.talons}.`;
+      if (me.talons < priceFor(view, me, RULES.hireCost)) return `Нужно ${priceFor(view, me, RULES.hireCost)} Талонов, у вас ${me.talons} — не хватает ${priceFor(view, me, RULES.hireCost) - me.talons}.`;
       return null;
     case 'expandWarehouse':
       if (me.capacity >= RULES.maxCapacity) return `Склад уже максимального размера (${RULES.maxCapacity}).`;
@@ -641,9 +723,15 @@ function groupBlocker(view: PlayerView, me: VPlayer, id: GroupActionId): string 
     case 'expandCache':
       if (me.cache >= RULES.maxCache) return `Тайник уже максимального размера (${RULES.maxCache}).`;
       return me.talons < RULES.expandCacheCost ? `Нужно ${RULES.expandCacheCost} Талон, у вас ${me.talons}.` : null;
-    case 'copyText':
+    case 'copyText': {
       // Купленная и бесплатная книги — 2 места; на Толкучке место можно освободить продажей.
-      return free < 1 ? 'На складе нет свободного места.' : null;
+      if (free < 1) return 'На складе нет свободного места.';
+      const can = (cost: number) => me.talons >= priceFor(view, me, cost);
+      const any = view.razval.some((c, i) => c && can(RULES.razvalPrices[i])) || (view.tolkuchka.length > 0 && can(RULES.tolkuchkaBuy))
+        || (view.safehouses.includes('raspredelitel') && view.raspredelitel.length > 0 && can(RULES.raspredelitelPrice))
+        || (view.safehouses.includes('knigoobmen') && view.knigoobmen.length > 0 && me.warehouse.some((s) => s.card && iconsOf(view, s.card).length > 0));
+      return any ? null : 'Не на что купить книгу ни на одном адресе.';
+    }
     case 'rescue':
       return view.players.some((p) => p.held > 0) ? null : 'Контора никого не удерживает.';
     case 'restore':
@@ -1196,7 +1284,7 @@ function MyPanel({ view, me, color, groupEnabled, onlyHire, onlyCopy, onGroup, o
           {(Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => groupInGame(view, g)).map((g) => (
             <button key={g} className={`small ${groupBlocker(view, me, g) ? 'short' : ''}`}
               title={me.groupUsed.includes(g) ? 'Уже сделано в эту Пятилетку' : groupBlocker(view, me, g) ?? GROUP_ACTIONS[g].hint}
-              disabled={!groupEnabled || me.groupUsed.includes(g) || (onlyHire && g !== 'hire') || (onlyCopy && g !== 'copyText')} onClick={() => onGroup(g)}>
+              disabled={!groupEnabled || me.groupUsed.includes(g) || !!groupBlocker(view, me, g) || (onlyHire && g !== 'hire') || (onlyCopy && g !== 'copyText')} onClick={() => onGroup(g)}>
               {GROUP_ACTIONS[g].name}<GroupSlot p={me} g={g} color={color} />
             </button>
           ))}
