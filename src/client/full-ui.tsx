@@ -66,15 +66,26 @@ export function GiftPicker({ view, me, single, onDone }: { view: PlayerView; me:
   const used = gifts.map((g) => g.card);
   const open = byClubOrder(view.patrons).filter((pt) => !pt.removed && !pt.turned && !pt.connections.includes(me.id) && !gifts.some((g) => g.patron === pt.id));
   const pt = view.patrons.find((x) => x.id === patron);
-  const fits = (c: string) => !!pt && (iconsOf(view, c).includes(pt.genre) || iconsOf(view, c).includes('album'));
+  const fitsFor = (genre: Genre) => (c: string) => iconsOf(view, c).includes(genre) || iconsOf(view, c).includes('album');
+  const fits = (c: string) => !!pt && fitsFor(pt.genre)(c);
   const books = me.warehouse.map((s) => s.card!).filter((c) => c && !used.includes(c));
+  const give = (id: PatronId, card: string) => {
+    const next = [...gifts, { patron: id, card }];
+    setPatron(null);
+    if (single) onDone(next); else setGifts(next);
+  };
+  // Подходящая книга одна — отдаём её сразу, без выбора.
+  const choosePatron = (id: PatronId, genre: Genre) => {
+    const only = books.filter(fitsFor(genre));
+    if (only.length === 1) give(id, only[0]); else setPatron(id);
+  };
   return (
     <>
       <p>Выберите Завсегдатая и отдайте ему книгу жанра его слота (Альбом подходит любому). {single ? 'Одна связь.' : 'За один приход можно завязать несколько связей.'}</p>
       <div className="genres">
         {open.length === 0 && <span className="muted">Свободных Завсегдатаев нет</span>}
         {open.map((x) => (
-          <button key={x.id} className={patron === x.id ? 'selected' : ''} onClick={() => setPatron(x.id)} title={PATRONS[x.id].hint}>
+          <button key={x.id} className={patron === x.id ? 'selected' : ''} onClick={() => choosePatron(x.id, x.genre)} title={PATRONS[x.id].hint}>
             <GenreChip g={x.genre} /> {PATRONS[x.id].name}
           </button>
         ))}
@@ -85,11 +96,7 @@ export function GiftPicker({ view, me, single, onDone }: { view: PlayerView; me:
           <div className="shelf wrap">
             {books.filter(fits).length === 0 && <span className="muted">Подходящих книг нет</span>}
             {books.filter(fits).map((c) => (
-              <Book key={c} v={view} id={c} onClick={() => {
-                const next = [...gifts, { patron: pt.id, card: c }];
-                setPatron(null);
-                if (single) onDone(next); else setGifts(next);
-              }} />
+              <Book key={c} v={view} id={c} onClick={() => give(pt.id, c)} />
             ))}
           </div>
         </>

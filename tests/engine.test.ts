@@ -648,13 +648,24 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     expect(p.warehouse.length).toBe(p0.warehouse.length + 2);
   });
 
-  it('Цеховик: каждое получение Талонов — на 1 больше; Маклер: +2 Талона за связь', () => {
+  it('Цеховик: за действие, приносящее Талоны, — на 1 больше (раз за действие); Маклер: +2 Талона за связь', () => {
     let s = started();
     const me = s.order[s.turn];
     connect(s, 'tsekhovik', [me]);
     const t = s.players.find((x) => x.id === me)!.talons;
     s = applyAction(s, me, { type: 'place', place: { address: 'zavoz' } });
     expect(s.players.find((x) => x.id === me)!.talons).toBe(t + RULES.zavozIncome + RULES.tsekhovikBonus);
+    // Продажа иронии на Толкучке: Талоны за продажу и Ирония «пущена в народ» — а Цеховик всё равно +1 один раз.
+    let s1 = started();
+    const me1 = s1.order[s1.turn];
+    connect(s1, 'tsekhovik', [me1]);
+    const irony = give(s1, me1, (icons) => icons.length === 1 && icons[0] === 'irony');
+    const t1 = s1.players.find((x) => x.id === me1)!.talons;
+    s1 = applyAction(s1, me1, { type: 'place', place: { address: 'tolkuchka', ops: [{ op: 'sell', card: irony }] } });
+    const p1 = s1.players.find((x) => x.id === me1)!;
+    expect(p1.talonsBy?.irony).toBe(1);
+    expect(p1.talonsBy?.tsekhovik).toBe(RULES.tsekhovikBonus);
+    expect(p1.talons).toBe(t1 + p1.talonsBy!.tolkuchka + 1 + RULES.tsekhovikBonus);
 
     let s2 = started();
     const me2 = s2.order[s2.turn];

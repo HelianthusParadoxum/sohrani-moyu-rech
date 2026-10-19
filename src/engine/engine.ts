@@ -258,6 +258,7 @@ function logArrivals(state: GameState, before: Set<string>, mentioned = '') {
 
 function finishAction(state: GameState, p: PlayerState, pointsBefore: number, logStart = state.log.length, shown?: Set<string>): GameState {
   flushIrony(state);
+  tsekhovikBonus(state);
   if (shown) logArrivals(state, shown, state.log.slice(logStart).map((l) => l.text).join('\n'));
   // Проза «Вдохновиться»: действие принесло очки — бонус за прозу (см. proseBonus).
   if (p.points > pointsBefore) {
@@ -295,6 +296,22 @@ function finishAction(state: GameState, p: PlayerState, pointsBefore: number, lo
     log(state, state.result.note);
   }
   return state;
+}
+
+// Цеховик: за любое действие, приносящее Талоны, — на 1 Талон больше. Один раз за поручение, сколько бы частей ни было
+// (адрес, Ирония, Завсегдатаи, бонус Ростка, выбранный следом).
+function tsekhovikBonus(state: GameState) {
+  for (const q of state.players) {
+    if (!q.talonsEarned) continue;
+    delete q.talonsEarned;
+    if (!hasPatron(state, q.id, 'tsekhovik')) continue;
+    const at = `${state.round}:${state.phase}:${q.actions.length}`;
+    if (q.tsekhovikAt === at) continue;
+    q.tsekhovikAt = at;
+    q.talons += RULES.tsekhovikBonus;
+    (q.talonsBy ??= {}).tsekhovik = (q.talonsBy.tsekhovik ?? 0) + RULES.tsekhovikBonus;
+    logAfter(state, `↳ Цеховик${q.id === state.order[state.turn] ? '' : ` (${q.name})`}: ещё +${talonsText(RULES.tsekhovikBonus)}.`);
+  }
 }
 
 // ---------- Пятилетка ----------
