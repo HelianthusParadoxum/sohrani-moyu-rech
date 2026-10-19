@@ -394,7 +394,15 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   } else {
     v -= BOT_BASE.curatorStep * prog.reduce((a, b) => a + b, 0) + BOT_BASE.curatorWeakest * Math.min(...prog);
   }
-  v += BOT_BASE.curatorPropaganda * p.warehouse.filter((s) => isPropaganda(state, s.card)).length;
+  const props = p.warehouse.filter((s) => isPropaganda(state, s.card)).length;
+  v += BOT_BASE.curatorPropaganda * props;
+  // Последняя Пятилетка: сколько срезов нужно, чтобы Гласность не устояла (срез бьёт по самому развитому Ростку, так что
+  // нужно опустить все Ростки до порога и ещё один — ниже). Отстающие Ростки честные, скорее всего, дотянут до порога —
+  // считаем по ним как по пороговым. Пропаганда, которой хватает до этого числа, — почти победа.
+  if (ctx.round >= RULES.rounds) {
+    const need = state.sprouts.reduce((s, sp) => s + Math.max(0, sp.progress - RULES.glasnostStep), 0) + 1;
+    v += BOT_BASE.curatorFlip * (props >= need ? 1 : BOT_BASE.curatorFlipPartial * props / need);
+  }
   v += attack * BOT_BASE.curatorHeld * state.players.filter((o) => o.id !== p.id).reduce((s, o) => s + o.held, 0);
   // Жанровые книги — разменная монета: Книгообмен на Пропаганду, Главлит «прокруткой», оплата Конторы своей книгой.
   for (const s of p.warehouse) {
@@ -681,12 +689,25 @@ function curatorDig(ctx: Ctx): { max: number; reserve: number } {
     : { max: BOT_BASE.curatorMakulaturaMax, reserve: BOT_BASE.curatorMakulaturaReserve };
 }
 
-// Доля Пропаганды в закрытых стопках Непечатных и Нагрузки (в Нагрузке — Ленин): из какой выгоднее тянуть.
-function propagandaShares(s: GameState): { best: 'unprinted' | 'load'; share: number; card?: string } {
-  const of = (list: string[]) => ({ share: list.length ? list.filter((c) => isPropaganda(s, c)).length / list.length : 0, card: list.find((c) => isPropaganda(s, c)) });
-  const u = of(s.deck);
-  const l = of(s.loadDeck);
-  return l.share > u.share ? { best: 'load', ...l } : { best: 'unprinted', ...u };
+// Поиск Пропаганды в стопке Непечатных или Нагрузки (в Нагрузке — Ленин): стопка кончится — сброс перетасуют, и поиск
+// в том же действии продолжается. Для каждой стопки — шанс найти за tries попыток и сколько попыток уйдёт в среднем.
+function propagandaSearch(s: GameState, tries: number): { best: 'unprinted' | 'load'; hit: number; spent: number; card?: string } {
+  const of = (deck: string[], disc: string[]) => {
+    const pools = [deck, disc].map((list) => ({ n: list.length, m: list.filter((c) => isPropaganda(s, c)).length }));
+    let miss = 1;
+    let spent = 0;
+    let k = 0;
+    for (const pool of pools) {
+      for (let i = 0; i < pool.n && k < tries; i++, k++) {
+        spent += miss;
+        miss *= (pool.n - pool.m - i) / (pool.n - i);
+      }
+    }
+    return { hit: 1 - miss, spent, card: [...deck, ...disc].find((c) => isPropaganda(s, c)) };
+  };
+  const u = of(s.deck, s.discard);
+  const l = of(s.loadDeck, s.loadDiscard);
+  return l.hit > u.hit ? { best: 'load', ...l } : { best: 'unprinted', ...u };
 }
 
 function curatorMakulaturaValue(next: GameState, me: string, ctx: Ctx): number {
@@ -694,10 +715,7 @@ function curatorMakulaturaValue(next: GameState, me: string, ctx: Ctx): number {
   const price = RULES.makulaturaPrice;
   const { max, reserve } = curatorDig(ctx);
   const tries = Math.max(1, Math.min(max, Math.floor((p.talons - reserve) / price)));
-  const { share, card: prop } = propagandaShares(next);
-  let spent = 0;
-  for (let i = 0; i < tries; i++) spent += (1 - share) ** i;
-  const hit = 1 - (1 - share) ** tries;
+  const { hit, spent, card: prop } = propagandaSearch(next, tries);
   const after = (withProp: boolean) => {
     const s = cloneLight(next);
     const q = player(s, me);
@@ -939,7 +957,9 @@ function groupCandidates(state: GameState, me: string, ctx: Ctx, free = false): 
   if (ctx.w.network > 0) out.push({ action: 'hire' });
   out.push(...copyTextOptions(state, me));
   for (const s of p.warehouse) {
-    if (!state.restored[s.card] && ['genre', 'loadReturnable', 'loadEvidence', ...(RULES.exposePropaganda ? ['propaganda', 'loadPropaganda'] : [])].includes(state.cards[s.card].kind)) out.push({ action: 'restore', card: s.card });
+    // Куратор свою Пропаганду в Разоблачение не превращает — это его срезы.
+    const ownWeapon = p.passion === 'curator' && isPropaganda(state, s.card);
+    if (!state.restored[s.card] && !ownWeapon && ['genre', 'loadReturnable', 'loadEvidence', ...(RULES.exposePropaganda ? ['propaganda', 'loadPropaganda'] : [])].includes(state.cards[s.card].kind)) out.push({ action: 'restore', card: s.card });
   }
   const held = state.players.filter((o) => o.held > 0);
   // Вызволение — в конце своей череды: пока свободных Единомышленников больше одного (не считая того, кто должен в Красный
@@ -1147,7 +1167,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
           const found = pend.cards.find((c) => isPropaganda(state, c));
           if (found) return [{ type: 'makulaturaKeep', card: found }];
           const { max, reserve } = curatorDig(ctx);
-          const deck = propagandaShares(determinize(state, () => 0.5, me)).best;
+          const deck = propagandaSearch(determinize(state, () => 0.5, me), max).best;
           if ((pend.cards.length < max && p.talons - RULES.makulaturaPrice >= reserve) || (!pend.cards.length && p.talons >= RULES.makulaturaPrice)) {
             return [{ type: 'makulaturaDraw', deck }];
           }
