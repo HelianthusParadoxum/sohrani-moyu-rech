@@ -7,6 +7,7 @@ import { botMove } from '../src/engine/bot';
 import { activePlayers, createGame } from '../src/engine/engine';
 import { BOT_PRESETS, presetById } from '../src/engine/bot-presets';
 import { PATRONS } from '../src/engine/content';
+import { iconsOf } from '../src/engine/util';
 import type { GameState, PatronId } from '../src/engine/types';
 
 const games = Number(process.argv[2] ?? 100);
@@ -41,6 +42,10 @@ type PatronStat = { games: number; links: number; withPlays: number; withWins: n
 const preset: Record<string, PresetStat> = {};
 const patron: Partial<Record<PatronId, PatronStat>> = {};
 const visitSizes: Record<number, number> = {};
+// Альбомы (козырь — подходит любому Завсегдатаю): сколько связей заведено Альбомом, а не книгой нужного жанра,
+// и в скольких из них у игрока была и подходящая жанровая книга (то есть Альбом отдан по выбору, а не от безысходности).
+type AlbumStat = { links: number; album: number; albumSpare: number };
+const albums: Partial<Record<PatronId, AlbumStat>> = {};
 const started = Date.now();
 
 for (let i = first; i < first + games; i++) {
@@ -53,6 +58,8 @@ for (let i = first; i < first + games; i++) {
     const who = activePlayers(s)[0];
     const before = conns(s, who);
     const was = new Set(s.patrons.filter((x) => x.connections.includes(who)).map((x) => x.id));
+    const had = s.players.find((x) => x.id === who)!.warehouse.map((x) => x.card);
+    const prev = s;
     s = botMove(s, who, rand, presets[who]);
     const got = conns(s, who) - before;
     if (got > 0) {
@@ -62,6 +69,17 @@ for (let i = first; i < first + games; i++) {
       st.byRound[s.round - 1] += got;
       visitSizes[got] = (visitSizes[got] ?? 0) + 1;
       for (const pt of s.patrons) if (pt.connections.includes(who) && !was.has(pt.id)) (linkRound[pt.id] ??= {})[who] = s.round;
+      const left = new Set(s.players.find((x) => x.id === who)!.warehouse.map((x) => x.card));
+      const gone = had.filter((c) => !left.has(c));
+      for (const pt of s.patrons) {
+        if (!pt.connections.includes(who) || was.has(pt.id)) continue;
+        const a = (albums[pt.id] ??= { links: 0, album: 0, albumSpare: 0 });
+        a.links++;
+        const fits = (c: string) => iconsOf(prev, c).includes(pt.genre);
+        if (gone.some(fits) || !gone.some((c) => iconsOf(prev, c).includes('album'))) continue;
+        a.album++;
+        if (had.some((c) => fits(c) && !iconsOf(prev, c).includes('album'))) a.albumSpare++;
+      }
     }
   }
   const r = s.result!;
@@ -108,4 +126,14 @@ for (const ps of rows) {
   console.log(`  ${PATRONS[ps.id].name.padEnd(14)} ${f(ps.links / ps.games, 2)} / партию (в ${ps.games} партиях), Пятилетка ${f(ps.round / Math.max(1, ps.links))}; `
     + `со связью: побед ${f((100 * ps.withWins) / Math.max(1, ps.withPlays), 0)}%, отрыв ${f(ps.withTotal / Math.max(1, ps.withPlays))}; `
     + `без: побед ${f((100 * ps.withoutWins) / Math.max(1, ps.withoutPlays), 0)}%, отрыв ${f(ps.withoutTotal / Math.max(1, ps.withoutPlays))}`);
+}
+
+const albumRows = Object.entries(albums).map(([id, a]) => ({ id: id as PatronId, ...a! })).sort((a, b) => b.album / b.links - a.album / a.links);
+const total = albumRows.reduce((t, a) => ({ links: t.links + a.links, album: t.album + a.album, spare: t.spare + a.albumSpare }), { links: 0, album: 0, spare: 0 });
+console.log(`\nАльбомы: ${total.album} связей из ${total.links} (${f((100 * total.album) / Math.max(1, total.links), 0)}%) заведены Альбомом; `
+  + `в ${total.spare} из них у игрока была и подходящая жанровая книга.`);
+console.log('По Завсегдатаям (чаще всего на них тратят Альбом): связей, из них Альбомом, из них при наличии жанровой книги');
+for (const a of albumRows) {
+  console.log(`  ${PATRONS[a.id].name.padEnd(14)} ${String(a.links).padStart(4)} связей, Альбомом ${String(a.album).padStart(3)} (${f((100 * a.album) / Math.max(1, a.links), 0).padStart(2)}%), `
+    + `по выбору ${a.albumSpare}`);
 }
