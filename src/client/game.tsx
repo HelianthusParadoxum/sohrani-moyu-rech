@@ -4,12 +4,12 @@ import {
   ADDRESSES, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
   groupInGame,
 } from '../engine/content';
-import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
+import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import { coversStep, hasPatron, isEvidence, isExposed, loadCover, roman } from '../engine/util';
 import {
-  ClubContents, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
+  ClubContents, fittingBooks, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
   KontoraWarningPrompt, RescuePanel,
 } from './full-ui';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
@@ -17,7 +17,7 @@ import { Book, GenreChip, SpeedSelect, Modal, PLAYER_COLORS, fromLoadDeck, icons
 
 type Send = (m: ClientMessage) => void;
 type VPlayer = PlayerView['players'][number];
-type Panel = { kind: 'address'; id: AddressId } | { kind: 'group'; id: GroupActionId } | { kind: 'cache' } | null;
+type Panel = { kind: 'address'; id: AddressId; sprout?: string; patron?: PatronId } | { kind: 'group'; id: GroupActionId } | { kind: 'cache' } | null;
 
 const PHASE_NAMES: Record<string, string> = {
   passion: 'Выбор Пристрастий', setupCache: 'Тайники перед началом', orders: 'Поручения', gathering: 'Посиделки', ambush: 'Засада?', hiding: 'Укрытие', end: 'Конец Застоя',
@@ -60,8 +60,17 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
   const full = view.mode === 'full';
   const addresses: AddressId[] = [...BOARD_ORDER, ...view.safehouses];
   const enabledFor = (id: AddressId) => (id === 'club' && RULES.clubFreeGift ? canGift : canPlace && (!mustRed || id === 'redCorner'));
+  // Клуб: нажатие на Завсегдатая — сразу дарение ему; подходящая книга одна — отдаётся без окна.
+  const giftTo = (patron: PatronId) => {
+    const pt = view.patrons.find((x) => x.id === patron);
+    if (!me || !pt) return;
+    const books = fittingBooks(view, me, pt.genre);
+    if (books.length === 1) act({ type: 'clubGift', gift: { patron, card: books[0] } });
+    else setPanel({ kind: 'address', id: 'club', patron });
+  };
   const card = (id: AddressId) => (
-    <AddressCard key={id} id={id} view={view} seatIndex={seatIndex} me={me} enabled={enabledFor(id)} onOpen={() => setPanel({ kind: 'address', id })} />
+    <AddressCard key={id} id={id} view={view} seatIndex={seatIndex} me={me} enabled={enabledFor(id)} onOpen={() => setPanel({ kind: 'address', id })}
+      onPatron={id === 'club' && RULES.clubFreeGift && canGift ? giftTo : undefined} />
   );
 
   return (
@@ -106,7 +115,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
           <div className="addresses">
             {full && card('club')}
             <Sprouts view={view} beside={full && !view.reserve} seatIndex={seatIndex}
-              onOpen={enabledFor('sprouts') ? () => setPanel({ kind: 'address', id: 'sprouts' }) : undefined}
+              onOpen={enabledFor('sprouts') ? (sprout) => setPanel({ kind: 'address', id: 'sprouts', sprout }) : undefined}
               head={<AddressHead id="sprouts" view={view} seatIndex={seatIndex} me={me} enabled={enabledFor('sprouts')} onOpen={() => setPanel({ kind: 'address', id: 'sprouts' })}
                 rightHint={`${ADDRESSES.sprouts.hint}. Гласность: ${RULES.glasnostAllSprouts ? 'все Ростки' : 'хотя бы один Росток'} до ступени ${roman(RULES.glasnostStep)}.`} />} />
             {full && !view.reserve && card('kontora')}
@@ -129,10 +138,10 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
       )}
 
       {panel?.kind === 'address' && panel.id === 'club' && RULES.clubFreeGift && me && canGift && (
-        <ClubGiftModal view={view} me={me} act={act} close={() => setPanel(null)} />
+        <ClubGiftModal view={view} me={me} act={act} close={() => setPanel(null)} patron={panel.patron} />
       )}
       {panel?.kind === 'address' && !(panel.id === 'club' && RULES.clubFreeGift) && me && (
-        <AddressPanel id={panel.id} view={view} me={me} close={() => setPanel(null)} place={(place) => { act({ type: 'place', place }); setPanel(null); }} />
+        <AddressPanel id={panel.id} sprout={panel.sprout} view={view} me={me} close={() => setPanel(null)} place={(place) => { act({ type: 'place', place }); setPanel(null); }} />
       )}
       {panel?.kind === 'cache' && me && (
         <CacheModal view={view} me={me} close={() => setPanel(null)} done={(hidden) => { act({ type: 'hiding', hidden }); setPanel(null); }} />
@@ -159,7 +168,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
 // Порядок обычных адресов на поле (после Клуба, Конторы и Ростков); явочные — следом.
 const BOARD_ORDER: AddressId[] = ['redCorner', 'glavlit', 'makulatura', 'gostorg', 'baraholka', 'tolkuchka', 'razval', 'zavoz', 'tamizdat', 'samizdat'];
 
-type AddressProps = { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me: VPlayer | null; enabled: boolean; onOpen: () => void };
+type AddressProps = { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me: VPlayer | null; enabled: boolean; onOpen: () => void; onPatron?: (id: PatronId) => void };
 
 // Каким книгам можно вернуть смыслы.
 const restorable = (kind: string) => ['genre', 'loadReturnable', 'loadEvidence', ...(RULES.exposePropaganda ? ['propaganda', 'loadPropaganda'] : [])].includes(kind);
@@ -182,7 +191,7 @@ function AddressCard(props: AddressProps) {
       role={open ? 'button' : undefined} title={open ? 'Отправить Единомышленника сюда' : undefined}>
       <AddressHead {...props} inlineHint={inlineHint} />
       {!inlineHint && <div className="hint">{info.hint}</div>}
-      <AddressContents id={id} view={view} seatIndex={seatIndex} />
+      <AddressContents id={id} view={view} seatIndex={seatIndex} me={me} onPatron={props.onPatron} />
     </div>
   );
 }
@@ -214,10 +223,10 @@ function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint, rig
   );
 }
 
-function AddressContents({ id, view, seatIndex }: { id: AddressId; view: PlayerView; seatIndex: (id: string) => number }) {
+function AddressContents({ id, view, seatIndex, me, onPatron }: { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me?: VPlayer | null; onPatron?: (id: PatronId) => void }) {
   switch (id) {
     case 'club':
-      return <ClubContents view={view} seatIndex={seatIndex} />;
+      return <ClubContents view={view} seatIndex={seatIndex} me={me} onPatron={onPatron} />;
     case 'kontora':
       return <KontoraContents view={view} seatIndex={seatIndex} />;
     case 'redCorner': {
@@ -258,7 +267,7 @@ function AddressContents({ id, view, seatIndex }: { id: AddressId; view: PlayerV
   }
 }
 
-function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: PlayerView; me: VPlayer; close: () => void; place: (p: PlaceAction) => void }) {
+function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; sprout?: string; view: PlayerView; me: VPlayer; close: () => void; place: (p: PlaceAction) => void }) {
   const info = ADDRESSES[id];
   const mine = me.warehouse.map((s) => s.card!).filter(Boolean);
   const free = me.capacity - me.warehouse.filter((s) => !s.memorized).length;
@@ -391,7 +400,7 @@ function AddressPanel({ id, view, me, close, place }: { id: AddressId; view: Pla
       break;
     }
     case 'sprouts':
-      body = <SproutFeeder view={view} me={me} place={place} />;
+      body = <SproutFeeder view={view} me={me} place={place} initial={sprout} />;
       break;
     case 'samizdat':
     case 'tamizdat': {
@@ -510,17 +519,21 @@ function stepText(main: Genre, step: { main: number; support?: Genre }) {
 }
 
 // Ростки Гласности вместе с их действием («сюда →» — закрыть ступени).
-// onOpen — поручение на Ростки: нажатие на любое место панели.
-function Sprouts({ view, beside, seatIndex, head, onOpen }: { view: PlayerView; beside: boolean; seatIndex: (id: string) => number; head: ReactNode; onOpen?: () => void }) {
+// onOpen — поручение на Ростки: нажатие на конкретный Росток — сразу к его ступени (на панель — общий выбор).
+function Sprouts({ view, beside, seatIndex, head, onOpen }: { view: PlayerView; beside: boolean; seatIndex: (id: string) => number; head: ReactNode; onOpen?: (sprout?: string) => void }) {
   return (
-    <div className={`sprouts-panel address addr-sprouts ${beside ? 'beside' : ''} ${onOpen ? 'can' : ''}`} onClick={onOpen}
+    <div className={`sprouts-panel address addr-sprouts ${beside ? 'beside' : ''} ${onOpen ? 'can' : ''}`} onClick={onOpen ? () => onOpen() : undefined}
       role={onOpen ? 'button' : undefined} title={onOpen ? 'Отправить Единомышленника питать Ростки' : undefined}>
       {head}
       <div className="sprouts">
       {view.sprouts.map((sp) => {
         const info = SPROUTS.find((s) => s.id === sp.id)!;
+        // Росток доступен: не дорощен до конца и есть место в эту Пятилетку.
+        const open = !!onOpen && sp.progress < 4 && (view.sproutRound?.[sp.id]?.length ?? 0) < RULES.sproutSlotsPerRound;
         return (
-          <div key={sp.id} className={`sprout ${sp.progress >= RULES.glasnostStep ? 'grown' : ''}`}>
+          <div key={sp.id} className={`sprout ${sp.progress >= RULES.glasnostStep ? 'grown' : ''} ${open ? 'can' : ''} ${onOpen && !open ? 'off' : ''}`}
+            role={open ? 'button' : undefined} title={open ? `Закрыть ступень Ростка «${info.name}»` : undefined}
+            onClick={onOpen ? (e) => { e.stopPropagation(); if (open) onOpen(sp.id); } : undefined}>
             <div className="addr-head"><b>{info.name}</b>
               <span className="workers" title={`Места в эту Пятилетку: не больше ${RULES.sproutSlotsPerRound} ступеней`}>
                 {Array.from({ length: RULES.sproutSlotsPerRound }, (_, i) => {
@@ -557,9 +570,9 @@ function Sprouts({ view, beside, seatIndex, head, onOpen }: { view: PlayerView; 
   );
 }
 
-function SproutFeeder({ view, me, place }: { view: PlayerView; me: VPlayer; place: (p: PlaceAction) => void }) {
+function SproutFeeder({ view, me, place, initial }: { view: PlayerView; me: VPlayer; place: (p: PlaceAction) => void; initial?: string }) {
   const [feeds, setFeeds] = useState<{ sprout: string; books: string[]; labtech?: boolean }[]>([]);
-  const [sprout, setSprout] = useState<string>('');
+  const [sprout, setSprout] = useState<string>(initial ?? '');
   const [books, setBooks] = useState<string[]>([]);
   const used = feeds.flatMap((f) => f.books);
   const mine = me.warehouse.map((s) => s.card!).filter((c) => c && !used.includes(c));

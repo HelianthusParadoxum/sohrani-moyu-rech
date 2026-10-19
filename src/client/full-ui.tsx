@@ -13,11 +13,26 @@ type VPlayer = PlayerView['players'][number];
 const CLUB_ORDER: Genre[] = ['prose', 'irony', 'drama', 'poetry', 'testimony', 'foreign', 'scifi', 'album'];
 const byClubOrder = <T extends { genre: Genre }>(list: T[]) => [...list].sort((a, b) => CLUB_ORDER.indexOf(a.genre) - CLUB_ORDER.indexOf(b.genre));
 
-export function ClubContents({ view, seatIndex }: { view: PlayerView; seatIndex: (id: string) => number }) {
+// Книги игрока, которые подходят Завсегдатаю: его жанра или Альбом (Альбом подходит любому).
+export function fittingBooks(view: PlayerView, me: VPlayer, genre: Genre): string[] {
+  return me.warehouse.map((s) => s.card!).filter((c) => c && (iconsOf(view, c).includes(genre) || iconsOf(view, c).includes('album')));
+}
+
+// Можно ли сейчас завязать связь с Завсегдатаем: свободен, связи ещё нет и есть подходящая книга.
+export function patronOpen(view: PlayerView, me: VPlayer, pt: PlayerView['patrons'][number]): boolean {
+  return !pt.removed && !pt.turned && !pt.connections.includes(me.id) && fittingBooks(view, me, pt.genre).length > 0;
+}
+
+// onPatron — нажатие на Завсегдатая (когда можно дарить): сразу к дарению именно ему.
+export function ClubContents({ view, seatIndex, me, onPatron }: { view: PlayerView; seatIndex: (id: string) => number; me?: VPlayer | null; onPatron?: (id: PatronId) => void }) {
   return (
     <ul className="patrons">
-      {byClubOrder(view.patrons).map((pt) => (
-        <li key={pt.id} className={`${pt.removed ? 'removed' : ''} ${pt.turned ? 'turned' : ''}`} title={PATRONS[pt.id].hint}>
+      {byClubOrder(view.patrons).map((pt) => {
+        const can = !!onPatron && !!me && patronOpen(view, me, pt);
+        return (
+        <li key={pt.id} className={`${pt.removed ? 'removed' : ''} ${pt.turned ? 'turned' : ''} ${can ? 'can' : ''} ${onPatron && !can ? 'off' : ''}`}
+          title={PATRONS[pt.id].hint} role={can ? 'button' : undefined}
+          onClick={can ? (e) => { e.stopPropagation(); onPatron!(pt.id); } : onPatron ? (e) => e.stopPropagation() : undefined}>
           <GenreChip g={pt.genre} /> <b>{PATRONS[pt.id].name}</b>
           {pt.connections.map((pid) => (
             // Число на жетоне — Пятилетка, в которую завязана связь.
@@ -25,10 +40,10 @@ export function ClubContents({ view, seatIndex }: { view: PlayerView; seatIndex:
               title={pt.since?.[pid] ? `Связь с ${pt.since[pid]}-й Пятилетки` : undefined}>{pt.since?.[pid] ? `П${pt.since[pid]}` : ''}</span>
           ))}
           {pt.removed && <span className="muted small"> — профилактика</span>}
-          {!pt.removed && pt.turned && <span className="muted small"> — Занят на Пятилетку</span>}
           <div className="muted small">{PATRONS[pt.id].hint}</div>
         </li>
-      ))}
+        );
+      })}
     </ul>
   );
 }
@@ -60,9 +75,9 @@ export function KontoraContents({ view, seatIndex }: { view: PlayerView; seatInd
 }
 
 // Подарки Завсегдатаям: каждому — книга жанра его слота (Альбом подходит любому).
-export function GiftPicker({ view, me, single, onDone }: { view: PlayerView; me: VPlayer; single?: boolean; onDone: (gifts: ClubGift[]) => void }) {
+export function GiftPicker({ view, me, single, onDone, initialPatron }: { view: PlayerView; me: VPlayer; single?: boolean; onDone: (gifts: ClubGift[]) => void; initialPatron?: PatronId }) {
   const [gifts, setGifts] = useState<ClubGift[]>([]);
-  const [patron, setPatron] = useState<PatronId | null>(null);
+  const [patron, setPatron] = useState<PatronId | null>(initialPatron ?? null);
   const used = gifts.map((g) => g.card);
   const open = byClubOrder(view.patrons).filter((pt) => !pt.removed && !pt.turned && !pt.connections.includes(me.id) && !gifts.some((g) => g.patron === pt.id));
   const pt = view.patrons.find((x) => x.id === patron);
@@ -116,11 +131,11 @@ export function ClubPanel({ view, me, place }: { view: PlayerView; me: VPlayer; 
 }
 
 // Клуб как свободное действие: одна книга одному Завсегдатаю за ход, Единомышленник не нужен.
-export function ClubGiftModal({ view, me, act, close }: { view: PlayerView; me: VPlayer; act: (a: Action) => void; close: () => void }) {
+export function ClubGiftModal({ view, me, act, close, patron }: { view: PlayerView; me: VPlayer; act: (a: Action) => void; close: () => void; patron?: PatronId }) {
   return (
     <Modal title="Клуб книголюбов" wide onClose={close}>
       <p className="muted small">Свободное действие: Единомышленник не нужен, ход не заканчивается. Одна книга за ход.</p>
-      <GiftPicker view={view} me={me} single onDone={(g) => { act({ type: 'clubGift', gift: g[0] }); close(); }} />
+      <GiftPicker view={view} me={me} single initialPatron={patron} onDone={(g) => { act({ type: 'clubGift', gift: g[0] }); close(); }} />
     </Modal>
   );
 }
