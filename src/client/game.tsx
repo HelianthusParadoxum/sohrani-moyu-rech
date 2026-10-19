@@ -114,7 +114,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
         <section className="board">
           <div className="addresses">
             {full && card('club')}
-            <Sprouts view={view} beside={full && !view.reserve} seatIndex={seatIndex}
+            <Sprouts view={view} me={me} beside={full && !view.reserve} seatIndex={seatIndex}
               onOpen={enabledFor('sprouts') ? (sprout) => setPanel({ kind: 'address', id: 'sprouts', sprout }) : undefined}
               head={<AddressHead id="sprouts" view={view} seatIndex={seatIndex} me={me} enabled={enabledFor('sprouts')} onOpen={() => setPanel({ kind: 'address', id: 'sprouts' })}
                 rightHint={`${ADDRESSES.sprouts.hint}. Гласность: ${RULES.glasnostAllSprouts ? 'все Ростки' : 'хотя бы один Росток'} до ступени ${roman(RULES.glasnostStep)}.`} />} />
@@ -520,7 +520,8 @@ function stepText(main: Genre, step: { main: number; support?: Genre }) {
 
 // Ростки Гласности вместе с их действием («сюда →» — закрыть ступени).
 // onOpen — поручение на Ростки: нажатие на конкретный Росток — сразу к его ступени (на панель — общий выбор).
-function Sprouts({ view, beside, seatIndex, head, onOpen }: { view: PlayerView; beside: boolean; seatIndex: (id: string) => number; head: ReactNode; onOpen?: (sprout?: string) => void }) {
+function Sprouts({ view, me, beside, seatIndex, head, onOpen }: { view: PlayerView; me: VPlayer | null; beside: boolean; seatIndex: (id: string) => number; head: ReactNode; onOpen?: (sprout?: string) => void }) {
+  const mine = me ? me.warehouse.map((s) => s.card!).filter(Boolean) : [];
   return (
     <div className={`sprouts-panel address addr-sprouts ${beside ? 'beside' : ''} ${onOpen ? 'can' : ''}`} onClick={onOpen ? () => onOpen() : undefined}
       role={onOpen ? 'button' : undefined} title={onOpen ? 'Отправить Единомышленника питать Ростки' : undefined}>
@@ -528,8 +529,10 @@ function Sprouts({ view, beside, seatIndex, head, onOpen }: { view: PlayerView; 
       <div className="sprouts">
       {view.sprouts.map((sp) => {
         const info = SPROUTS.find((s) => s.id === sp.id)!;
-        // Росток доступен: не дорощен до конца и есть место в эту Пятилетку.
-        const open = !!onOpen && sp.progress < 4 && (view.sproutRound?.[sp.id]?.length ?? 0) < RULES.sproutSlotsPerRound;
+        // Росток доступен: не дорощен до конца, есть место в эту Пятилетку и книг хватает на ближайшую ступень (с Лаборантом — со скидкой).
+        const next = info.steps[sp.progress];
+        const open = !!onOpen && !!me && !!next && (view.sproutRound?.[sp.id]?.length ?? 0) < RULES.sproutSlotsPerRound
+          && coversStep(view, mine, info.main, next.main, next.support, { wildScifi: view.mode === 'full', labtech: hasPatron(view, me.id, 'labtech') });
         return (
           <div key={sp.id} className={`sprout ${sp.progress >= RULES.glasnostStep ? 'grown' : ''} ${open ? 'can' : ''} ${onOpen && !open ? 'off' : ''}`}
             role={open ? 'button' : undefined} title={open ? `Закрыть ступень Ростка «${info.name}»` : undefined}
