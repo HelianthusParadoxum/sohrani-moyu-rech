@@ -431,24 +431,16 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   return v;
 }
 
-// Желанность Завсегдатая: 1 — средний; сильные (по PATRON_POWER) дороже, слабые дешевле.
-const POWER_AVG = Object.values(PATRON_POWER).reduce((a, b) => a + b, 0) / Object.values(PATRON_POWER).length;
-function patronWant(id: PatronId, pick = BOT_BASE.patronPick): number {
-  return Math.max(0.2, 1 + pick * ((PATRON_POWER[id] ?? POWER_AVG) - POWER_AVG) / POWER_AVG);
-}
-
-// Альбом — козырь Клуба: подходит любому Завсегдатаю. Пока он лежит на складе, он стоит доли пользы самых желанных
-// Завсегдатаев, которых иначе не достать (нет книги их жанра). Отдать Альбом туда, куда можно отдать жанровую книгу,
-// или слабому Завсегдатаю, — значит потерять эту долю.
-function albumReserve(state: GameState, me: string, cards: string[], worth: (id: PatronId) => number, left: number, option: number): number {
+// Альбом — козырь Клуба: подходит любому Завсегдатаю. Пока он лежит на складе, он стоит доли связи с Завсегдатаем,
+// которого иначе не достать (нет книги его жанра). Все Завсегдатаи для бота равны — их силу он не знает заранее.
+// Отдать Альбом туда, куда можно отдать жанровую книгу, — значит потерять эту долю.
+function albumReserve(state: GameState, me: string, cards: string[], link: number, left: number, option: number): number {
   if (state.mode !== 'full' || (left === 0 && state.phase !== 'orders')) return 0;
   const albums = cards.filter((c) => iconsOf(state, c).includes('album')).length;
   if (!albums) return 0;
   const genres = new Set(cards.flatMap((c) => iconsOf(state, c).includes('album') ? [] : iconsOf(state, c)));
-  const out = state.patrons
-    .filter((pt) => !pt.removed && !pt.connections.includes(me) && !genres.has(pt.genre))
-    .map((pt) => worth(pt.id)).sort((a, b) => b - a);
-  return option * out.slice(0, albums).reduce((a, b) => a + b, 0);
+  const out = state.patrons.filter((pt) => !pt.removed && !pt.connections.includes(me) && !genres.has(pt.genre)).length;
+  return option * link * Math.min(albums, out);
 }
 
 export function evaluate(state: GameState, me: string, ctx: Ctx): number {
@@ -471,11 +463,10 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   // их трудно хранить (опальные), а Гласности они не помогают.
   const evidenceWeight = state.solo && !soloTargetMet(state) ? BOT_BASE.soloEvidenceEarly : 1;
   v += RULES.evidencePoints * evidenceWeight * [...cards, ...p.tamizdat].filter((c) => isEvidence(state, c)).length;
-  // Связи в Клубе: очко в подсчёте плюс польза свойства, тем больше, чем сильнее Завсегдатай (PATRON_POWER).
-  const club = ctx.preset.club ?? BOT_BASE;
-  const patronWorth = (id: PatronId) => BOT_BASE.patronEffect * w.club * (left + 1) * patronWant(id, club.patronPick);
-  for (const pt of state.patrons) if (!pt.removed && pt.connections.includes(me)) v += BOT_BASE.connection + patronWorth(pt.id);
-  v += albumReserve(state, me, cards, patronWorth, left, club.albumOption);
+  const connections = state.patrons.filter((x) => !x.removed && x.connections.includes(me)).length;
+  const link = BOT_BASE.connection + BOT_BASE.patronEffect * w.club * (left + 1);
+  v += connections * link;
+  v += albumReserve(state, me, cards, link, left, ctx.preset.albumOption ?? BOT_BASE.albumOption);
   // Ресурсы.
   v += resources(state, p, ctx);
   // Нагрузка — будущие Талоны: в каждый оставшийся визит в Красный уголок можно сдать одну.
