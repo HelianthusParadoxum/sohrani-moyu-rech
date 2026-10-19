@@ -1106,6 +1106,8 @@ describe('Посиделки и Улики', () => {
     const before = p.points;
     s = applyAction(s, p.id, { type: 'gathering', show: [ev] });
     expect(s.players[0].points).toBe(before + 1);
+    // В журнале строка Посиделок — с кружком игрока.
+    expect(s.log.find((l) => l.text.includes('показывает на Посиделках'))?.who).toBe(p.id);
   });
 });
 

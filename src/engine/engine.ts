@@ -537,6 +537,7 @@ function endOrders(state: GameState) {
   if (cur) {
     state.ready.push(cur.id);
     log(state, `${cur.name} на Посиделки не допущен.`);
+    state.log[state.log.length - 1].who = cur.id;
   }
 }
 
@@ -575,6 +576,7 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
   if (geo) {
     earn(state, p, geo, 'geologist');
     log(state, `${p.name}: Геолог — +${talonsText(geo)}.`);
+    state.log[state.log.length - 1].who = p.id;
   }
   state.ready.push(p.id);
   if (show.length) {
@@ -582,6 +584,7 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
   } else {
     log(state, `${p.name} ничего не показывает на Посиделках.`);
   }
+  state.log[state.log.length - 1].who = p.id;
   if (state.ready.length === state.players.length) {
     state.ready = [];
     // Засада возможна, если кто-то показал опальное, — ждём решения всех (так не видно, кто Куратор).
