@@ -262,6 +262,7 @@ export function rescue(state: GameState, p: PlayerState, returns: Record<string,
     total += releaseWorker(state, o, n);
   }
   check(total > 0, 'Выберите, кого вызволить');
+  check(total <= RULES.rescueMax, `За одно Вызволение — не больше ${RULES.rescueMax} Единомышленников`);
   log(state, `${p.name} вызволяет из Конторы Единомышленников: ${total}.`);
   return total;
 }

@@ -185,7 +185,12 @@ function groupCandidates(state: GameState, me: string, rand: Rand): Action[] {
   const r = p.warehouse.find((s) => !state.restored[s.card] && ['genre', 'loadReturnable', 'loadEvidence'].includes(state.cards[s.card].kind));
   if (r) out.push({ action: 'restore', card: r.card });
   const held = state.players.filter((o) => o.held > 0);
-  if (held.length) out.push({ action: 'rescue', returns: Object.fromEntries(held.map((o) => [o.id, o.held])) });
+  if (held.length) {
+    let left = RULES.rescueMax;
+    const returns: Record<string, number> = {};
+    for (const o of held) { const n = Math.min(o.held, left); if (n > 0) { returns[o.id] = n; left -= n; } }
+    out.push({ action: 'rescue', returns });
+  }
   return out.map((group) => ({ type: 'group', group }));
 }
 

@@ -280,11 +280,14 @@ export function RescuePanel({ view, done }: { view: PlayerView; done: (g: GroupA
   const total = Object.values(returns).reduce((s, n) => s + n, 0);
   return (
     <>
-      <p>Верните любое число удерживаемых Конторой Единомышленников себе и другим игрокам.</p>
-      {held.map((p) => (
-        <label key={p.id} className="row">{p.name}: <input type="number" min={0} max={p.held} value={returns[p.id] ?? 0}
-          onChange={(e) => setReturns({ ...returns, [p.id]: Math.max(0, Math.min(p.held, Number(e.target.value))) })} /> из {p.held}</label>
-      ))}
+      <p>Верните до {RULES.rescueMax} удерживаемых Конторой Единомышленников — себе и другим игрокам.</p>
+      {held.map((p) => {
+        const room = RULES.rescueMax - total + (returns[p.id] ?? 0);
+        return (
+          <label key={p.id} className="row">{p.name}: <input type="number" min={0} max={Math.min(p.held, room)} value={returns[p.id] ?? 0}
+            onChange={(e) => setReturns({ ...returns, [p.id]: Math.max(0, Math.min(p.held, room, Number(e.target.value))) })} /> из {p.held}</label>
+        );
+      })}
       <div className="modal-foot"><button className="primary" disabled={!total} onClick={() => done({ action: 'rescue', returns })}>Вызволить ({total})</button></div>
     </>
   );

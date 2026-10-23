@@ -1014,8 +1014,26 @@ function groupCandidates(state: GameState, me: string, ctx: Ctx, free = false): 
   // Вызволение — в конце своей череды: пока свободных Единомышленников больше одного (не считая того, кто должен в Красный
   // уголок), адреса важнее — не упускать инициативу. Без Единомышленника (бонус Ростка, Подмастерье, Квартирник) — когда угодно.
   const spare = p.available - (p.visitedRedCorner ? 0 : 1);
-  if (held.length && (free || spare <= 1)) out.push({ action: 'rescue', returns: Object.fromEntries(held.map((o) => [o.id, Math.min(o.held, 2)])) });
+  if (held.length && (free || spare <= 1)) for (const returns of rescueOptions(state, me)) out.push({ action: 'rescue', returns });
   return out;
+}
+
+// Кого вызволить (не больше RULES.rescueMax за раз): сначала своих, затем остальных — и наоборот, сначала чужих.
+function rescueOptions(state: GameState, me: string): Record<string, number>[] {
+  const held = state.players.filter((o) => o.held > 0).sort((a, b) => b.held - a.held);
+  const pick = (order: PlayerState[]) => {
+    const out: Record<string, number> = {};
+    let left = RULES.rescueMax;
+    for (const o of order) {
+      const n = Math.min(o.held, left);
+      if (n > 0) { out[o.id] = n; left -= n; }
+    }
+    return out;
+  };
+  const own = held.filter((o) => o.id === me);
+  const others = held.filter((o) => o.id !== me);
+  const opts = [pick([...own, ...others]), pick([...others, ...own])];
+  return opts.filter((x, i) => opts.findIndex((y) => JSON.stringify(y) === JSON.stringify(x)) === i);
 }
 
 function clubGifts(state: GameState, me: string): ClubGift[] {

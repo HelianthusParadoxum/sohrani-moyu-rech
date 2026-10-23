@@ -628,14 +628,18 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     expect(next.players.find((x) => x.id === me)!.capacity).toBe(p.capacity + 1);
   });
 
-  it('Вызволение из бед: +2 очка за каждого вызволенного', () => {
+  it('Вызволение из бед: +2 очка за каждого вызволенного, не больше 2 за раз', () => {
     let s = started();
     const me = s.order[s.turn];
     const other = s.players.find((x) => x.id !== me)!;
     other.held = 2;
     other.available = Math.max(0, other.available - 2);
+    other.held = 3;
+    // Не больше двух за одно Вызволение.
+    expect(() => applyAction(s, me, { type: 'group', group: { action: 'rescue', returns: { [other.id]: 3 } } })).toThrow(/не больше 2/);
     s = applyAction(s, me, { type: 'group', group: { action: 'rescue', returns: { [other.id]: 2 } } });
     expect(s.players.find((x) => x.id === me)!.pointsBy.rescue).toBe(2 * RULES.rescuePoints);
+    expect(s.players.find((x) => x.id === other.id)!.held).toBe(1);
   });
 
   it('Завмаг: Госкниготорг бесплатно, состав свободный', () => {
