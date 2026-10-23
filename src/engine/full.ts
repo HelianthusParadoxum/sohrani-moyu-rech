@@ -39,7 +39,7 @@ export function gaveAway(state: GameState, p: PlayerState, card: string) {
 export function flushIrony(state: GameState) {
   if (!state.ironyDue) return;
   for (const [id, n] of Object.entries(state.ironyDue)) {
-    logAfter(state, `↳ Ирония «пущена в народ»: +${talonsText(n)}.`);
+    logAfter(state, `↳ Ирония пущена в народ: +${talonsText(n)}.`);
     earn(state, player(state, id), n, 'irony');
   }
   delete state.ironyDue;

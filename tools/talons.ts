@@ -23,7 +23,7 @@ function seeded(seed: number) {
 }
 
 const NAMES: Record<string, string> = {
-  irony: 'Ирония «пущена в народ»', sideJob: 'Приработок (бонус Ростка)', sprouts: 'Ростки (ступени I)', other: 'прочее (решения, ответы)',
+  irony: 'Ирония пущена в народ', sideJob: 'Приработок (бонус Ростка)', sprouts: 'Ростки (ступени I)', other: 'прочее (решения, ответы)',
 };
 // Завсегдатаи, которые дают или экономят Талоны (ключи в p.talonsBy / p.talonsSaved).
 const PATRON_SOURCES: PatronId[] = ['typist', 'broker', 'tsekhovik', 'professor', 'nesun', 'geologist', 'correspondent', 'zavkhoz', 'buyer', 'veteran', 'zavmag'];

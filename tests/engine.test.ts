@@ -684,7 +684,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     const t = s.players.find((x) => x.id === me)!.talons;
     s = applyAction(s, me, { type: 'place', place: { address: 'zavoz' } });
     expect(s.players.find((x) => x.id === me)!.talons).toBe(t + RULES.zavozIncome + RULES.tsekhovikBonus);
-    // Продажа иронии на Толкучке: Талоны за продажу и Ирония «пущена в народ» — а Цеховик всё равно +1 один раз.
+    // Продажа иронии на Толкучке: Талоны за продажу и Ирония пущена в народ — а Цеховик всё равно +1 один раз.
     let s1 = started();
     const me1 = s1.order[s1.turn];
     connect(s1, 'tsekhovik', [me1]);
