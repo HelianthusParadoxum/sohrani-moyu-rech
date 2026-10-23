@@ -14,7 +14,7 @@ import {
   KontoraWarningPrompt, RescuePanel,
 } from './full-ui';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
-import { Book, GENRE_SHORT, GenreChip, SpeedSelect, Modal, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, toggle } from './ui';
+import { Book, GENRE_SHORT, GenreChip, iconize, SpeedSelect, Modal, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, toggle } from './ui';
 
 type Send = (m: ClientMessage) => void;
 type VPlayer = PlayerView['players'][number];
@@ -287,12 +287,12 @@ function AddressCard(props: AddressProps) {
   // Поручение можно дать нажатием на любое место адреса, не только на кнопку «сюда».
   const open = enabled && !full ? props.onOpen : undefined;
   // На адресе — краткое описание; полное — подсказкой (наведение мышью или удержание пальцем).
-  const tip = info.hint + (props.blocked && !open ? `\nСейчас нельзя: ${props.blocked}` : '');
+  const tip = iconize(info.hint) + (props.blocked && !open ? `\nСейчас нельзя: ${props.blocked}` : '');
   return (
     <div className={`address addr-${id} ${info.safehouse ? 'safehouse' : ''} ${open ? 'can' : ''}`} onClick={open}
       role={open ? 'button' : undefined} title={tip} data-tip={tip}>
       <AddressHead {...props} inlineHint={inlineHint} />
-      {!inlineHint && <div className="hint">{info.short}</div>}
+      {!inlineHint && <div className="hint">{iconize(info.short)}</div>}
       <AddressContents id={id} view={view} seatIndex={seatIndex} me={me} onPatron={props.onPatron} />
     </div>
   );
@@ -307,9 +307,9 @@ function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint, rig
   return (
       <div className="addr-head">
         <b>{info.name}</b>
-        {inlineHint && <span className="hint inline">{info.short}</span>}
+        {inlineHint && <span className="hint inline">{iconize(info.short)}</span>}
         <span className="workers">
-          {rightHint && <span className="hint inline right" title={rightHint} data-tip={rightHint}>{info.short}</span>}
+          {rightHint && <span className="hint inline right" title={iconize(rightHint)} data-tip={iconize(rightHint)}>{iconize(info.short)}</span>}
           {!rightHint && here.map((pid, i) => {
             // Номер на жетоне — каким по счёту в Пятилетке было это действие игрока.
             const k = here.slice(0, i).filter((x) => x === pid).length;
@@ -628,7 +628,7 @@ const SPROUTS_TIP = `${ADDRESSES.sprouts.hint}. Гласность: ${RULES.glas
 function Sprouts({ view, me, beside, seatIndex, head, onOpen }: { view: PlayerView; me: VPlayer | null; beside: boolean; seatIndex: (id: string) => number; head: ReactNode; onOpen?: (sprout?: string) => void }) {
   return (
     <div className={`sprouts-panel address addr-sprouts ${beside ? 'beside' : ''} ${onOpen ? 'can' : ''}`} onClick={onOpen ? () => onOpen() : undefined}
-      role={onOpen ? 'button' : undefined} title={SPROUTS_TIP} data-tip={SPROUTS_TIP}>
+      role={onOpen ? 'button' : undefined} title={iconize(SPROUTS_TIP)} data-tip={iconize(SPROUTS_TIP)}>
       {head}
       <div className="sprouts">
       {view.sprouts.map((sp) => {
@@ -1074,20 +1074,8 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
 
 // Значки жанров в журнале: «[ПР ФА]» → цветные значки, как в Клубе. Прочие пометки («[Нагрузка]») — как есть.
 const SHORT_TO_GENRE = new Map(GENRES.map((g) => [GENRE_SHORT[g], g] as const));
-// Те же значки, что на планшетах игроков: Талоны, очки, склад, Тайник, связи; книги Непечатные (самиздат) и Нагрузка.
-const LOG_ICONS: [RegExp, string][] = [
-  [/\[Нагрузка\] /g, '📕 '],
-  [/(\d+) Талон(?:а|ов)?/g, '$1 🎫'],
-  [/(\d+) очк(?:о|а|ов)(?: Гласности)?/g, '$1 ★'],
-  [/склад увеличен до/g, '📚 увеличен до'],
-  [/Тайник увеличен до/g, '🔒 увеличен до'],
-  [/заводит связь в Клубе:/g, '🤝'],
-  [/Нагрузк[а-я]*/g, '📕'],
-  [/Непечатн[а-я]*/g, '📃'],
-];
-
 function withGenreChips(raw: string): ReactNode {
-  const text = LOG_ICONS.reduce((t, [re, to]) => t.replace(re, to), raw);
+  const text = iconize(raw);
   const parts = text.split(/(\[[^\]]+\])/);
   return parts.map((part, i) => {
     const tokens = /^\[(.+)\]$/.exec(part)?.[1].split(' ');
