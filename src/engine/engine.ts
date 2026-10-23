@@ -1,7 +1,7 @@
 // Движок правил: создание партии и применение действий.
 // applyAction не меняет переданное состояние, а возвращает новое.
 import {
-  ADDRESSES, CARDS, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, KEEPERS, PASSIONS, PATRONS, PERMANENT_ADDRESSES, RULES, SAFEHOUSES,
+  ADDRESSES, CARDS, COPY_TEXT_ADDRESSES, GENRE_NAMES, GENRE_SHORT, GROUP_ACTIONS, KEEPERS, PASSIONS, PATRONS, PERMANENT_ADDRESSES, RULES, SAFEHOUSES,
   SPECIALS, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, sproutBonusOptions, FIRST_FEED_POINTS, addressInGame, groupInGame, limitFor,
 } from './content';
 import { finalScoring } from './scoring';
@@ -316,6 +316,11 @@ function tsekhovikBonus(state: GameState) {
 
 // ---------- Пятилетка ----------
 
+// Жанр в журнале: значок (в клиенте — цветной) и название — «[ПО] Поэзия».
+function genreLabel(g: Genre): string {
+  return `[${GENRE_SHORT[g]}] ${GENRE_NAMES[g]}`;
+}
+
 function startRound(state: GameState, newSafehouse?: AddressId) {
   state.phase = 'orders';
   state.ready = [];
@@ -349,13 +354,13 @@ function startRound(state: GameState, newSafehouse?: AddressId) {
     const back = released && fresh.includes(released);
     const out = fresh.filter((g) => g !== released);
     change = back
-      ? ` Опала остаётся: ${GENRE_NAMES[released]}${out.length ? `; в опалу попадает: ${out.map((g) => GENRE_NAMES[g]).join(', ')}` : ''}.`
-      : ` Из опалы выходит: ${released ? GENRE_NAMES[released] : '—'}; в опалу попадает: ${fresh.map((g) => GENRE_NAMES[g]).join(', ') || '—'}.`;
+      ? ` Опала остаётся: ${genreLabel(released)}${out.length ? `; в опалу попадает: ${out.map(genreLabel).join(', ')}` : ''}.`
+      : ` Из опалы выходит: ${released ? genreLabel(released) : '—'}; в опалу попадает: ${fresh.map(genreLabel).join(', ') || '—'}.`;
   } else if (!state.banned.length) {
     state.banned = shuffle(state, [...GENRES]).slice(0, state.censorship);
   }
   logEvent(state, `Пятилетка ${state.round}.`);
-  log(state, `Цензура: ${state.censorship}. В опале: ${state.banned.map((g) => GENRE_NAMES[g]).join(', ')}.${change}`);
+  log(state, `Цензура: ${state.censorship}. В опале: ${state.banned.map(genreLabel).join(', ')}.${change}`);
   if (newSafehouse) log(state, `Открылся новый явочный адрес: ${ADDRESSES[newSafehouse].name}.`);
 
   refreshChannels(state, state.round === 1);
@@ -1524,7 +1529,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       check(GENRES.includes(action.to) && !state.banned.includes(action.to), 'Наложить опалу можно только на жанр, который сейчас не в опале');
       // Новая опала — самая свежая: из опалы она выйдет последней.
       state.banned = [...state.banned.filter((g) => g !== action.from), action.to];
-      log(state, `${p.name} (Главлитовец): опала снята с жанра «${GENRE_NAMES[action.from]}» и наложена на «${GENRE_NAMES[action.to]}».`);
+      log(state, `${p.name} (Главлитовец): опала снята с жанра ${genreLabel(action.from)} и наложена на ${genreLabel(action.to)}.`);
       state.pending.shift();
       if (pend.roundStart) state.holdTurn = true; // Пятилетка только началась — первый ход ещё впереди
       return;
