@@ -89,7 +89,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
         <div className="title">Сохрани мою речь</div>
         <div>{view.reserve && <>Заповедник · </>}{view.solo && <>Несистемный · </>}Пятилетка <b>{view.round}</b>/{RULES.rounds}</div>
         <div className="banned">Цензура {view.censorship}: {view.banned.map((g) => <GenreChip key={g} g={g} banned />)}</div>
-        <div className="muted small">Непечатные: {view.deckCount} (сброс {view.discardCount}) · Нагрузка: {view.loadDeckCount}</div>
+        <div className="muted small">📃 Непечатные: {view.deckCount} (сброс {view.discardCount}) · 📕 Нагрузка: {view.loadDeckCount} (сброс {view.loadDiscardCount})</div>
         {isHost && (
           <div className="host-tools">
             <label className="row small">
