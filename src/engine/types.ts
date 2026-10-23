@@ -165,6 +165,7 @@ export interface LogEntry {
   em?: boolean; // пояснение — курсивом
   strong?: boolean; // выделить жирным (начало Пятилетки, Пристрастие Куратора)
   club?: { player: string; round: number }; // связь в Клубе: жетон «П<Пятилетка>», как у Завсегдатая
+  order?: string[]; // строка «Порядок хода»: в клиенте перед именами — кружки игроков
 }
 
 export interface GameState {

@@ -1393,7 +1393,9 @@ function Log({ view, seatIndex }: { view: PlayerView; seatIndex: (id: string) =>
           {l.who && !l.act && <span className="dot" style={{ background: PLAYER_COLORS[seatIndex(l.who)] }} />}
           {l.club && <span className="dot num wide" style={{ background: PLAYER_COLORS[seatIndex(l.club.player)] }} title={`Связь с ${l.club.round}-й Пятилетки`}>П{l.club.round}</span>}
           {/* На экране журнал идёт снизу вверх: следствие стоит над своим действием — стрелка ведёт снизу вправо. */}
-          {withGenreChips(l.text.replace(/^↳/, '↱'))}
+          {l.order
+            ? <>Порядок хода: {l.order.map((id, k) => <Fragment key={id}>{k ? ', ' : ''}<span className="dot" style={{ background: PLAYER_COLORS[seatIndex(id)] }} /> {view.players.find((x) => x.id === id)?.name}</Fragment>)}.</>
+            : withGenreChips(l.text.replace(/^↳/, '↱'))}
         </div>
       ))}
     </div>

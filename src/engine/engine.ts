@@ -110,7 +110,8 @@ export function createGame(opts: NewGameOptions): GameState {
       if (c) state.spetskhran.push(c);
     }
   }
-  log(state, `Партия началась. Порядок хода: ${state.order.map((id) => player(state, id).name).join(', ')}.`);
+  log(state, 'Партия началась.');
+  logOrder(state);
   logSetup(state);
   // Опала первой Пятилетки известна до выбора Пристрастий (остальной стол откроется после выбора).
   state.banned = shuffle(state, [...GENRES]).slice(0, state.censorship);
@@ -316,6 +317,13 @@ function tsekhovikBonus(state: GameState) {
 
 // ---------- Пятилетка ----------
 
+// Порядок хода — отдельной строкой (в одиночной игре не нужен); в клиенте перед именами — кружки игроков.
+function logOrder(state: GameState) {
+  if (state.players.length < 2) return;
+  log(state, `Порядок хода: ${state.order.map((id) => player(state, id).name).join(', ')}.`);
+  state.log[state.log.length - 1].order = [...state.order];
+}
+
 // Жанр в журнале: значок (в клиенте — цветной) и название — «[ПО] Поэзия».
 function genreLabel(g: Genre): string {
   return `[${GENRE_SHORT[g]}] ${GENRE_NAMES[g]}`;
@@ -355,6 +363,7 @@ function startRound(state: GameState, newSafehouse?: AddressId) {
     state.banned = shuffle(state, [...GENRES]).slice(0, state.censorship);
   }
   logEvent(state, `Пятилетка ${state.round}.`);
+  if (state.round > 1) logOrder(state);
   // Цензура списком: что вышло из опалы, что попало, что в опале теперь.
   const list = (gs: Genre[]) => gs.map(genreLabel).join(' ') || '—';
   log(state, state.round > 1
