@@ -560,7 +560,10 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
     if ((state.phase === 'gathering' || state.phase === 'ambush') && shownHere.length && state.curatorPossible && !state.curatorRevealed) {
       const sus = Math.max(0, ...Object.values(ctx.suspect));
       const risk = Math.min(1, BOT_BASE.ambushRisk + BOT_BASE.ambushRiskSuspect * sus);
-      const book = Math.max(...shownHere.map((c) => Math.max(0, ownBookValue(state, p, c, ctx))));
+      // Книга, которой всё равно не хватит места в Тайнике, уйдёт при облаве и так — показ её ничем не рискует.
+      const value = (c: string) => ownBookValue(state, p, c, ctx);
+      const lost = new Set(atRisk(state, p, value));
+      const book = Math.max(0, ...shownHere.filter((c) => !lost.has(c)).map(value));
       const worker = hasPatron(state, me, 'psychiatrist') ? 0 : left * BOT_BASE.action;
       v -= risk * (book + worker) * ctx.preset.character.caution;
     }
@@ -1294,8 +1297,11 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       const hidden = new Set(p.warehouse.filter((s) => s.hidden).map((s) => s.card));
       const unsafe = !ctx.curator && state.curatorPossible && !state.curatorRevealed && full && !state.reserve
         && Math.max(0, ...Object.values(ctx.suspect)) >= BOT_BASE.gatheringUnsafe;
-      if (unsafe) return [{ type: 'gathering', show: show.filter((c) => !isRisky(c)) }];
-      const variants = [show, show.filter((c) => !isRisky(c) || !hidden.has(c)), show.filter((c) => !isRisky(c))];
+      // Опальное, которому не хватит места в Тайнике, облава изымет и так — его показать ничем не хуже (и в Засаду, и без).
+      const doomed = new Set(atRisk(state, p, (c) => ownBookValue(state, p, c, ctx)));
+      const safe = (c: string) => !isRisky(c) || doomed.has(c);
+      if (unsafe) return [{ type: 'gathering', show: show.filter(safe) }];
+      const variants = [show, show.filter((c) => safe(c) || !hidden.has(c)), show.filter(safe)];
       return [...new Map(variants.map((v) => [v.join(','), { type: 'gathering' as const, show: v }])).values()];
     }
     case 'ambush': {

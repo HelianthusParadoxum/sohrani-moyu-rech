@@ -210,6 +210,29 @@ describe('думающий бот', () => {
   }, 60_000);
 });
 
+describe('Посиделки в последней Пятилетке', () => {
+  it('книги, которые всё равно изымут при облаве (в Тайник не влезают), показывает — даже подозревая Куратора', () => {
+    let s = createGame({ players: players(3), seed: 7, mode: 'full', curator: true });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions.find((x) => x !== 'curator')! });
+    for (const p of s.players) if (s.phase === 'setupCache') s = applyAction(s, p.id, { type: 'hiding', hidden: [] });
+    s.curatorPossible = true;
+    s.round = 5;
+    s.phase = 'gathering';
+    s.ready = [];
+    s.pending = [];
+    const me = s.players[0];
+    s.players[1].cacheUnshown = 3; // подозрение на соседа
+    me.cache = 0;
+    me.capacity = 10;
+    const banned = s.deck.filter((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.some((g) => s.banned.includes(g))).slice(0, 2);
+    s.deck = s.deck.filter((c) => !banned.includes(c));
+    me.warehouse = banned.map((card) => ({ card, hidden: false }));
+    const before = me.points;
+    s = botMove(s, me.id, seeded(7));
+    expect(s.players[0].points).toBeGreaterThan(before);
+  });
+});
+
 describe('думающий бот в полном режиме', () => {
   it('все пресеты доигрывают полный режим на 3 и 4 игроков', () => {
     for (const n of [3, 4]) {
