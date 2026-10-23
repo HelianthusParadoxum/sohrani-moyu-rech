@@ -464,7 +464,7 @@ function logSetup(state: GameState) {
   const sprouts = state.sprouts.map((sp) => {
     const info = SPROUTS.find((x) => x.id === sp.id)!;
     const sup = info.steps.map((st) => st.support).filter((g): g is Genre => !!g).map(genreLabel);
-    return `• «${info.name}» — ${genreLabel(info.main)}; поддержка по ступеням: ${sup.join(', ')}`;
+    return `• «${info.name}» — ${genreLabel(info.main)}; поддержка по ступеням: ${sup.join(' ')}`;
   });
   log(state, `Ростки Гласности:\n${sprouts.join('\n')}`);
   if (state.patrons?.length) {
