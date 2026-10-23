@@ -61,12 +61,14 @@ export function holdWorker(state: GameState, p: PlayerState, reason: string): bo
   if (state.reserve) return false; // «Заповедник»: Конторы нет — никого не удерживают
   if (hasPatron(state, p.id, 'psychiatrist')) {
     log(state, `${p.name}: Психиатр не даёт Конторе удержать Единомышленника.`);
+    state.log[state.log.length - 1].who = p.id;
     return false;
   }
   if (p.held >= p.workers) return false;
   p.held++;
   if (p.available > 0) p.available--;
   log(state, `Контора удерживает Единомышленника ${p.name} (${reason}). Всего удержано: ${heldTotal(state)}.`);
+  state.log[state.log.length - 1].who = p.id;
   return true;
 }
 
@@ -285,7 +287,10 @@ export function afterRaid(state: GameState) {
       shuffle(state, state.discard);
       let n = 0;
       while (n < 2 && freeSlots(p) > 0 && state.discard.length) { addSecretBook(state, p, state.discard.pop()!); n++; }
-      if (n) log(state, `${p.name}: Библиотекарь приносит книг из сброса: ${n}.`);
+      if (n) {
+        log(state, `${p.name}: Библиотекарь приносит книг из сброса: ${n}.`);
+        state.log[state.log.length - 1].who = p.id;
+      }
     }
   }
 }
@@ -300,7 +305,10 @@ export function partorgFill(state: GameState, p: PlayerState) {
     addBook(p, c);
     n++;
   }
-  if (n) log(state, `${p.name}: Парторг заполняет склад Нагрузкой (${n}).`);
+  if (n) {
+    log(state, `${p.name}: Парторг заполняет склад Нагрузкой (${n}).`);
+    state.log[state.log.length - 1].who = p.id;
+  }
 }
 
 // Покупки за одно действие. Скупщик: первая — на 1 дешевле (минимум 1). Ветеран: в сумме на 1 Талон дешевле (минимум 1) —

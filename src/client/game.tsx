@@ -1078,6 +1078,10 @@ function withGenreChips(raw: string): ReactNode {
   const text = iconize(raw);
   const parts = text.split(/(\[[^\]]+\])/);
   return parts.map((part, i) => {
+    // «[ПО] Поэзия» — достаточно значка: название жанра сразу после него не повторяем.
+    const prev = /^\[(.+)\]$/.exec(parts[i - 1] ?? '')?.[1];
+    const g = prev && SHORT_TO_GENRE.get(prev);
+    if (g && part.startsWith(` ${GENRE_NAMES[g]}`)) part = part.slice(GENRE_NAMES[g].length + 1);
     const tokens = /^\[(.+)\]$/.exec(part)?.[1].split(' ');
     if (!tokens || !tokens.every((t) => SHORT_TO_GENRE.has(t))) return part;
     return <span key={i} className="log-genres">{tokens.map((t, j) => <GenreChip key={j} g={SHORT_TO_GENRE.get(t)!} />)}</span>;

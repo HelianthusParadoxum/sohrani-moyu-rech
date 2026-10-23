@@ -584,7 +584,7 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
   gain(p, pts, 'gathering');
   state.ready.push(p.id);
   if (show.length) {
-    log(state, `${p.name} показывает на Посиделках: ${titles(state, show)} — +${pointsText(pts)}.`);
+    log(state, `${p.name} показывает на Посиделках на +${pointsText(pts)}:\n${show.map((c) => `• ${title(state, c)}`).join('\n')}`);
   } else {
     log(state, `${p.name} ничего не показывает на Посиделках.`);
   }
@@ -707,6 +707,7 @@ function raid(state: GameState) {
     p.warehouse = p.warehouse.filter((s) => !seized.includes(s));
     toSpetskhranPublic(state, seized.map((s) => s.card));
     log(state, `У ${p.name} изъято в Спецхран: ${titles(state, seized.map((s) => s.card))}.`);
+    state.log[state.log.length - 1].who = p.id;
     if (isFull(state)) holdWorker(state, p, 'изъятие при облаве');
   }
   // Лейтенант: после изъятий — одна из книг, изъятых с адресов.
@@ -1544,6 +1545,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         addBook(p, action.card);
         autoHide(state, p, action.card);
         log(state, `${p.name}: Лейтенант приносит изъятую книгу ${title(state, action.card)}.`);
+        state.log[state.log.length - 1].who = p.id;
       }
       state.pending.shift();
       if (!state.pending.length) {
