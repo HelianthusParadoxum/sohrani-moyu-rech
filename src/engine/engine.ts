@@ -459,7 +459,7 @@ function logSetup(state: GameState) {
   });
   log(state, `Ростки Гласности:\n${sprouts.join('\n')}`);
   if (state.patrons?.length) {
-    const patrons = state.patrons.map((pt) => `• ${PATRONS[pt.id].name} (${GENRE_NAMES[pt.genre]}) — ${PATRONS[pt.id].hint}`);
+    const patrons = state.patrons.map((pt) => `• ${PATRONS[pt.id].name} (${genreLabel(pt.genre)}) — ${PATRONS[pt.id].hint}`);
     log(state, `Завсегдатаи Клуба (в скобках — жанр книги, за которую заводится связь):\n${patrons.join('\n')}`);
   }
 }
