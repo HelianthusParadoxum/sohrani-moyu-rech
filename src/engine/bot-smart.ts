@@ -687,14 +687,15 @@ function score(state: GameState, me: string, a: Action, ctx: Ctx, depth: number)
 
 // Честные к концу партии отбирают у Куратора Пропаганду: держать её (и Разоблачения) у себя — значит не дать ему срезов.
 function denyActive(state: GameState, ctx: Ctx): boolean {
-  return !ctx.curator && state.mode === 'full' && !!state.curatorPossible && !state.curatorRevealed && ctx.round >= BOT_BASE.denyFromRound;
+  // Раскрывшийся (Засадой) Куратор опасен не меньше: его срезы в конце никуда не делись.
+  return !ctx.curator && state.mode === 'full' && !!state.curatorPossible && ctx.round >= BOT_BASE.denyFromRound;
 }
 
 // Ожидаемая польза Макулатуры: тянет, пока не найдёт Пропаганду (или не кончатся попытки).
 // Состав стопки бот знает (порядок — нет): шанс Пропаганды на каждую попытку — её доля среди закрытых Непечатных.
 // Сколько Куратор готов тянуть в Макулатуре: в последней Пятилетке Талоны больше ни на что не нужны — до последнего.
 function curatorDig(ctx: Ctx): { max: number; reserve: number } {
-  if (!ctx.curator) return { max: BOT_BASE.denyDigMax, reserve: BOT_BASE.denyDigReserve };
+  if (!ctx.curator) return { max: BOT_BASE.denyDigMax, reserve: ctx.round >= RULES.rounds ? 0 : BOT_BASE.denyDigReserve };
   return ctx.round >= RULES.rounds
     ? { max: BOT_BASE.curatorMakulaturaMaxLast, reserve: 0 }
     : { max: BOT_BASE.curatorMakulaturaMax, reserve: BOT_BASE.curatorMakulaturaReserve };
@@ -1193,7 +1194,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
           const found = pend.cards.find((c) => isPropaganda(state, c));
           if (found) return [{ type: 'makulaturaKeep', card: found }];
           const deck = propagandaSearch(determinize(state, () => 0.5, me), BOT_BASE.denyDigMax).best;
-          if (pend.cards.length < BOT_BASE.denyDigMax && p.talons - RULES.makulaturaPrice >= BOT_BASE.denyDigReserve) return [{ type: 'makulaturaDraw', deck }];
+          if (pend.cards.length < BOT_BASE.denyDigMax && p.talons - RULES.makulaturaPrice >= curatorDig(ctx).reserve) return [{ type: 'makulaturaDraw', deck }];
         }
         // Сколько книг тянуть: при запасе Талонов — больше выбор (не больше BOT_BASE.makulaturaMax), потом оставить лучшую.
         const target = Math.min(BOT_BASE.makulaturaMax, Math.max(1, Math.floor((p.talons + pend.cards.length) / 3)));
