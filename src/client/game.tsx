@@ -137,7 +137,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
             <Sprouts view={view} me={me} beside={full && !view.reserve} seatIndex={seatIndex}
               onOpen={enabledFor('sprouts') ? (sprout) => setPanel({ kind: 'address', id: 'sprouts', sprout }) : undefined}
               head={<AddressHead id="sprouts" view={view} seatIndex={seatIndex} me={me} enabled={enabledFor('sprouts')} onOpen={() => setPanel({ kind: 'address', id: 'sprouts' })}
-                rightHint={`${ADDRESSES.sprouts.hint}. Гласность: ${RULES.glasnostAllSprouts ? 'все Ростки' : 'хотя бы один Росток'} до ступени ${roman(RULES.glasnostStep)}.`} />} />
+                rightHint={SPROUTS_TIP} />} />
             {full && !view.reserve && card('kontora')}
             {addresses.map(card)}
           </div>
@@ -622,10 +622,13 @@ function stepText(main: Genre, step: { main: number; support?: Genre }) {
 
 // Ростки Гласности вместе с их действием («сюда →» — закрыть ступени).
 // onOpen — поручение на Ростки: нажатие на конкретный Росток — сразу к его ступени (на панель — общий выбор).
+// Полное описание Ростков — подсказкой со всей их зоны.
+const SPROUTS_TIP = `${ADDRESSES.sprouts.hint}. Гласность: ${RULES.glasnostAllSprouts ? 'все Ростки' : 'хотя бы один Росток'} до ступени ${roman(RULES.glasnostStep)}.`;
+
 function Sprouts({ view, me, beside, seatIndex, head, onOpen }: { view: PlayerView; me: VPlayer | null; beside: boolean; seatIndex: (id: string) => number; head: ReactNode; onOpen?: (sprout?: string) => void }) {
   return (
     <div className={`sprouts-panel address addr-sprouts ${beside ? 'beside' : ''} ${onOpen ? 'can' : ''}`} onClick={onOpen ? () => onOpen() : undefined}
-      role={onOpen ? 'button' : undefined} title={onOpen ? 'Отправить Единомышленника питать Ростки' : undefined}>
+      role={onOpen ? 'button' : undefined} title={SPROUTS_TIP} data-tip={SPROUTS_TIP}>
       {head}
       <div className="sprouts">
       {view.sprouts.map((sp) => {
@@ -634,7 +637,7 @@ function Sprouts({ view, me, beside, seatIndex, head, onOpen }: { view: PlayerVi
         const open = !!onOpen && !!me && sproutOpen(view, me, sp);
         return (
           <div key={sp.id} className={`sprout ${sp.progress >= RULES.glasnostStep ? 'grown' : ''} ${open ? 'can' : ''} ${sp.progress >= 4 ? 'off' : ''}`}
-            role={open ? 'button' : undefined} title={open ? `Закрыть ступень Ростка «${info.name}»` : undefined}
+            role={open ? 'button' : undefined}
             onClick={onOpen ? (e) => { e.stopPropagation(); if (open) onOpen(sp.id); } : undefined}>
             <div className="addr-head"><b>{info.name}</b>
               <span className="workers" title={`Места в эту Пятилетку: не больше ${RULES.sproutSlotsPerRound} ступеней`}>
