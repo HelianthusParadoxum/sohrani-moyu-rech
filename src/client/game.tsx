@@ -14,7 +14,7 @@ import {
   KontoraWarningPrompt, RescuePanel,
 } from './full-ui';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
-import { Book, GenreChip, SpeedSelect, Modal, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, toggle } from './ui';
+import { Book, GENRE_SHORT, GenreChip, SpeedSelect, Modal, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, toggle } from './ui';
 
 type Send = (m: ClientMessage) => void;
 type VPlayer = PlayerView['players'][number];
@@ -1072,6 +1072,17 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
   }
 }
 
+// Значки жанров в журнале: «[ПР ФА]» → цветные значки, как в Клубе. Прочие пометки («[Нагрузка]») — как есть.
+const SHORT_TO_GENRE = new Map(GENRES.map((g) => [GENRE_SHORT[g], g] as const));
+function withGenreChips(text: string): ReactNode {
+  const parts = text.split(/(\[[^\]]+\])/);
+  return parts.map((part, i) => {
+    const tokens = /^\[(.+)\]$/.exec(part)?.[1].split(' ');
+    if (!tokens || !tokens.every((t) => SHORT_TO_GENRE.has(t))) return part;
+    return <span key={i} className="log-genres">{tokens.map((t, j) => <GenreChip key={j} g={SHORT_TO_GENRE.get(t)!} />)}</span>;
+  });
+}
+
 function PassionPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
   return (
     <Modal title="Тайное Пристрастие" wide>
@@ -1376,7 +1387,7 @@ function Log({ view, seatIndex }: { view: PlayerView; seatIndex: (id: string) =>
           {l.act && <span className="dot num" style={{ background: PLAYER_COLORS[seatIndex(l.act.player)] }} title={`${l.act.n}-е действие игрока в Пятилетке`}>{l.act.n}</span>}
           {l.who && !l.act && <span className="dot" style={{ background: PLAYER_COLORS[seatIndex(l.who)] }} />}
           {l.club && <span className="dot num wide" style={{ background: PLAYER_COLORS[seatIndex(l.club.player)] }} title={`Связь с ${l.club.round}-й Пятилетки`}>П{l.club.round}</span>}
-          {l.text}
+          {withGenreChips(l.text)}
         </div>
       ))}
     </div>
