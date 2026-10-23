@@ -364,8 +364,9 @@ function startRound(state: GameState, newSafehouse?: AddressId) {
   if (newSafehouse) log(state, `Открылся новый явочный адрес: ${ADDRESSES[newSafehouse].name}.`);
 
   refreshChannels(state, state.round === 1);
-  // В первой Пятилетке стол открывается после выбора Пристрастий — перечислим, что лежит на открытых адресах.
-  if (state.round === 1) logArrivals(state, new Set());
+  // Все открытые адреса обновлены полностью — перечислим всё, что на них лежит. (Раньше книги, лежавшие на столе и
+  // в прошлой Пятилетке, — например, вернувшиеся после перетасовки сброса, — в перечень не попадали.)
+  logArrivals(state, new Set());
   if (state.solo && isFull(state) && state.round >= 2) soloPressure(state);
   // Главлитовец: после Обстановки — в порядке, обратном порядку хода.
   if (isFull(state)) {

@@ -1493,6 +1493,17 @@ describe('Спецхран и Проза', () => {
   });
 });
 
+describe('Журнал: выкладка в начале Пятилетки', () => {
+  it('перечисляет все книги на открытых адресах, и те, что уже бывали на столе', () => {
+    const s = playOut(createGame({ players: players(3), seed: 905, mode: 'full' }));
+    for (let i = 0; i < s.log.length; i++) {
+      if (!/^Пятилетка [2-5]\.$/.test(s.log[i].text)) continue;
+      const line = s.log.slice(i, i + 6).find((l) => l.text.startsWith('На Толкучку'));
+      expect(line?.text.match(/•/g)?.length).toBe(RULES.displaySize);
+    }
+  });
+});
+
 describe('Журнал: возвращаемая Нагрузка', () => {
   it('пишется со второй книгой и её значками, пока смыслы не возвращены', () => {
     const s = createGame({ players: players(2), seed: 1 });
