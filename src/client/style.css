@@ -273,9 +273,9 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 
 /* Журнал: поручения игроков — с кружком номера действия */
 .log .act { font-weight: 600; }
-.log .act .dot.num { margin-right: 6px; vertical-align: -3px; }
-.log .dot { margin-right: 4px; vertical-align: -1px; }
-.log .dot.num.wide { margin-right: 6px; vertical-align: -3px; }
+.log .act .dot.num { margin-right: 6px; }
+.log .dot { margin-right: 4px; }
+.log .dot.num.wide { margin-right: 6px; }
 
 /* «Закончить ход» выезжает панелью снизу экрана — видна, куда бы ни прокрутили страницу. */
 .end-turn-sheet {
@@ -323,7 +323,12 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 .status .dot { vertical-align: -1px; }
 [data-tip] { -webkit-touch-callout: none; }
 .touch-tip { white-space: pre-line; position: fixed; z-index: 1000; max-width: min(320px, 85vw); padding: 8px 10px; background: #2b2b2b; color: #fff; border-radius: 6px; font-size: 0.85rem; line-height: 1.3; box-shadow: 0 2px 8px rgba(0,0,0,.3); pointer-events: none; }
-.log-genres { display: inline-flex; gap: 2px; vertical-align: 1px; }
+.log-genres { display: inline-flex; gap: 2px; }
 .log-genres .chip { font-size: 0.62rem; min-width: 18px; }
 /* Кружок перед именем внутри строки — с тем же промежутком, что пробел на планшетах и в строке статуса. */
 .log .dot.tight { margin-right: 4px; }
+
+/* Журнал: строки одной высоты, кружки, жетоны и значки жанров — по центру строки (не выше и не ниже текста). */
+.log div { line-height: 18px; }
+.log .dot, .log .log-genres { vertical-align: middle; position: relative; top: -1px; }
+.log .dot.num { margin-top: -2px; margin-bottom: -2px; }
