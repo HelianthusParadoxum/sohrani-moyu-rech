@@ -48,17 +48,19 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
   // Имя игрока в строке статуса — с его цветным кружком.
   const who = (id: string) => <Fragment key={id}><span className="dot" style={{ background: PLAYER_COLORS[seatIndex(id)] }} /> {nameOf(id)}</Fragment>;
   const whoList = (ids: string[]) => ids.map((id, i) => <Fragment key={id}>{i ? ', ' : ''}{who(id)}</Fragment>);
+  // Строка статуса начинается с того, кто действует; ждём нескольких сразу — «Ждём: …».
+  const mine = (text: string) => <>{you && who(you)} (вы): {text}</>;
   let status: ReactNode;
   if (view.phase === 'end') status = view.result?.note ?? 'Партия окончена';
   else if (head && head.player !== you) status = <>{who(head.player)} принимает решение…</>;
-  else if (myPending) status = 'Примите решение';
+  else if (myPending) status = mine('примите решение');
   else if (view.phase === 'orders') {
-    if (afterAction) status = 'Действие сделано. Можно ' + (copyFollow ? 'тиражировать книгу оттуда же (Инициативная группа), ' : '') + 'пересобрать Тайник' + (view.mode === 'full' ? ', заучить сборник поэзии, отдать книгу в Клуб' : '') + ' — или закончите ход';
-    else if (canPlace) status = mustRed ? 'Ваш ход: последнего Единомышленника — в Красный уголок' : 'Ваш ход: отправьте Единомышленника по адресу или в Инициативную группу';
-    else if (bonusTurn) status = 'Ваш ход: дополнительное действие Группы с явочного адреса — или откажитесь';
-    else status = <>Ходит {whoList(view.active)}</>;
-  } else if (you && view.active.includes(you)) status = 'Ваше решение';
-  else status = <>Ждём: {whoList(view.active)}</>;
+    if (afterAction) status = mine('действие сделано. Можно ' + (copyFollow ? 'тиражировать книгу оттуда же (Инициативная группа), ' : '') + 'пересобрать Тайник' + (view.mode === 'full' ? ', заучить сборник поэзии, отдать книгу в Клуб' : '') + ' — или закончите ход');
+    else if (canPlace) status = mine(mustRed ? 'последнего Единомышленника — в Красный уголок' : 'отправьте Единомышленника по адресу или в Инициативную группу');
+    else if (bonusTurn) status = mine('дополнительное действие Группы с явочного адреса — или откажитесь');
+    else status = view.active.length === 1 ? <>{who(view.active[0])} ходит</> : <>Ходят: {whoList(view.active)}</>;
+  } else if (you && view.active.includes(you)) status = mine('ваше решение');
+  else status = view.active.length === 1 ? <>{who(view.active[0])} принимает решение…</> : <>Ждём: {whoList(view.active)}</>;
 
   // Порядок на столе: Клуб на всю ширину, под ним Контора и Ростки (вместе с их действием), затем адреса и явочные.
   const full = view.mode === 'full';
