@@ -320,3 +320,4 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 .sprout.can { box-shadow: 0 0 0 2px #e6b35a; cursor: pointer; }
 .sprout.off { opacity: 0.55; }
 .turn-order .dot { margin-left: 3px; vertical-align: -1px; }
+.status .dot { vertical-align: -1px; }

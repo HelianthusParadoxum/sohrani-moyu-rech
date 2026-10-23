@@ -45,17 +45,20 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
 
   useEffect(() => { if (!canPlace && !bonusTurn && !canGift && !afterAction) setPanel(null); }, [canPlace, bonusTurn, canGift, afterAction]);
 
-  let status: string;
+  // Имя игрока в строке статуса — с его цветным кружком.
+  const who = (id: string) => <Fragment key={id}><span className="dot" style={{ background: PLAYER_COLORS[seatIndex(id)] }} /> {nameOf(id)}</Fragment>;
+  const whoList = (ids: string[]) => ids.map((id, i) => <Fragment key={id}>{i ? ', ' : ''}{who(id)}</Fragment>);
+  let status: ReactNode;
   if (view.phase === 'end') status = view.result?.note ?? 'Партия окончена';
-  else if (head && head.player !== you) status = `${nameOf(head.player)} принимает решение…`;
+  else if (head && head.player !== you) status = <>{who(head.player)} принимает решение…</>;
   else if (myPending) status = 'Примите решение';
   else if (view.phase === 'orders') {
     if (afterAction) status = 'Действие сделано. Можно ' + (copyFollow ? 'тиражировать книгу оттуда же (Инициативная группа), ' : '') + 'пересобрать Тайник' + (view.mode === 'full' ? ', заучить сборник поэзии, отдать книгу в Клуб' : '') + ' — или закончите ход';
     else if (canPlace) status = mustRed ? 'Ваш ход: последнего Единомышленника — в Красный уголок' : 'Ваш ход: отправьте Единомышленника по адресу или в Инициативную группу';
     else if (bonusTurn) status = 'Ваш ход: дополнительное действие Группы с явочного адреса — или откажитесь';
-    else status = `Ходит ${view.active.map(nameOf).join(', ')}`;
+    else status = <>Ходит {whoList(view.active)}</>;
   } else if (you && view.active.includes(you)) status = 'Ваше решение';
-  else status = `Ждём: ${view.active.map(nameOf).join(', ')}`;
+  else status = <>Ждём: {whoList(view.active)}</>;
 
   // Порядок на столе: Клуб на всю ширину, под ним Контора и Ростки (вместе с их действием), затем адреса и явочные.
   const full = view.mode === 'full';
@@ -82,16 +85,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
     <div className="game">
       <header className="topbar">
         <div className="title">Сохрани мою речь</div>
-        <div>{view.reserve && <>Заповедник · </>}{view.solo && <>Несистемный · </>}Пятилетка <b>{view.round}</b>/{RULES.rounds}
-          {view.order.length > 1 && (
-            <span className="turn-order"> · Порядок:{' '}
-              {view.order.map((id) => {
-                const p = view.players.find((x) => x.id === id);
-                return <span key={id} className="dot" style={{ background: PLAYER_COLORS[seatIndex(id)] }} title={p?.name} />;
-              })}
-            </span>
-          )}
-        </div>
+        <div>{view.reserve && <>Заповедник · </>}{view.solo && <>Несистемный · </>}Пятилетка <b>{view.round}</b>/{RULES.rounds}</div>
         <div className="banned">Цензура {view.censorship}: {view.banned.map((g) => <GenreChip key={g} g={g} banned />)}</div>
         <div className="muted small">Непечатные: {view.deckCount} (сброс {view.discardCount}) · Нагрузка: {view.loadDeckCount}</div>
         {isHost && (
@@ -110,6 +104,12 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
         )}
       </header>
       <div className={`status ${myTurn ? 'mine' : ''}`}>
+        {view.order.length > 1 && (
+          <span className="turn-order">Порядок:{' '}
+            {view.order.map((id) => <span key={id} className="dot" style={{ background: PLAYER_COLORS[seatIndex(id)] }} title={nameOf(id)} />)}
+            {' · '}
+          </span>
+        )}
         <b className="phase">{PHASE_NAMES[view.phase]}.</b> {status}
         {bonusTurn && <button className="small" onClick={() => act({ type: 'pass' })}>Отказаться</button>}
         {afterAction && <button className="primary small end-turn-inline" onClick={() => act({ type: 'endTurn' })}>Закончить ход</button>}
