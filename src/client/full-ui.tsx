@@ -5,7 +5,7 @@ import type { Action, ClubGift, Genre, GroupAction, KontoraChoice, PatronId, Pla
 import type { PlayerView } from '../engine/view';
 import { cacheLimit } from '../engine/util';
 import { kontoraTargets } from '../engine/full';
-import { Book, GenreChip, Modal, PLAYER_COLORS, iconsOf, isBanned, toggle } from './ui';
+import { Book, GenreChip, Modal, PLAYER_COLORS, iconize, iconsOf, isBanned, toggle } from './ui';
 
 type VPlayer = PlayerView['players'][number];
 
@@ -31,7 +31,7 @@ export function ClubContents({ view, seatIndex, me, onPatron }: { view: PlayerVi
         const can = !!onPatron && !!me && patronOpen(view, me, pt);
         return (
         <li key={pt.id} className={`${pt.removed ? 'removed' : ''} ${pt.turned ? 'turned' : ''} ${can ? 'can' : ''} ${onPatron && !can ? 'off' : ''}`}
-          title={PATRONS[pt.id].hint} role={can ? 'button' : undefined}
+          title={iconize(PATRONS[pt.id].hint)} role={can ? 'button' : undefined}
           onClick={can ? (e) => { e.stopPropagation(); onPatron!(pt.id); } : onPatron ? (e) => e.stopPropagation() : undefined}>
           <GenreChip g={pt.genre} /> <b>{PATRONS[pt.id].name}</b>
           {pt.connections.map((pid) => (
@@ -40,7 +40,7 @@ export function ClubContents({ view, seatIndex, me, onPatron }: { view: PlayerVi
               title={pt.since?.[pid] ? `Связь с ${pt.since[pid]}-й Пятилетки` : undefined}>{pt.since?.[pid] ? `П${pt.since[pid]}` : ''}</span>
           ))}
           {pt.removed && <span className="muted small"> — профилактика</span>}
-          <div className="muted small">{PATRONS[pt.id].hint}</div>
+          <div className="muted small">{iconize(PATRONS[pt.id].hint)}</div>
         </li>
         );
       })}
@@ -100,7 +100,7 @@ export function GiftPicker({ view, me, single, onDone, initialPatron }: { view: 
       <div className="genres">
         {open.length === 0 && <span className="muted">Свободных Завсегдатаев нет</span>}
         {open.map((x) => (
-          <button key={x.id} className={patron === x.id ? 'selected' : ''} onClick={() => choosePatron(x.id, x.genre)} title={PATRONS[x.id].hint}>
+          <button key={x.id} className={patron === x.id ? 'selected' : ''} onClick={() => choosePatron(x.id, x.genre)} title={iconize(PATRONS[x.id].hint)}>
             <GenreChip g={x.genre} /> {PATRONS[x.id].name}
           </button>
         ))}
@@ -148,9 +148,9 @@ export function BefriendPicker({ view, me, onPick, close }: { view: PlayerView; 
       <p className="muted small">Связь с любым Завсегдатаем — без книги, даже если он занят на эту Пятилетку.</p>
       <ul className="patrons">
         {open.map((pt) => (
-          <li key={pt.id} className="can" role="button" onClick={() => onPick(pt.id)} title={PATRONS[pt.id].hint}>
+          <li key={pt.id} className="can" role="button" onClick={() => onPick(pt.id)} title={iconize(PATRONS[pt.id].hint)}>
             <GenreChip g={pt.genre} /> <b>{PATRONS[pt.id].name}</b>
-            <div className="muted small">{PATRONS[pt.id].hint}</div>
+            <div className="muted small">{iconize(PATRONS[pt.id].hint)}</div>
           </li>
         ))}
       </ul>
