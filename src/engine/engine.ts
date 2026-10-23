@@ -377,8 +377,8 @@ function startRound(state: GameState, newSafehouse?: AddressId, prevCensorship?:
   // Цензура списком: что вышло из опалы, что попало, что в опале теперь.
   const list = (gs: Genre[]) => gs.map(genreLabel).join(' ') || '—';
   log(state, state.round > 1
-    ? `Цензура: ${state.censorship}\n• Из опалы выходят: ${list(before.filter((g) => !state.banned.includes(g)))}`
-      + `\n• В опалу попадают: ${list(state.banned.filter((g) => !before.includes(g)))}\n• В опале теперь: ${list(state.banned)}`
+    ? `Цензура: ${state.censorship}\n• Из опалы выходит: ${list(before.filter((g) => !state.banned.includes(g)))}`
+      + `\n• В опалу попадает: ${list(state.banned.filter((g) => !before.includes(g)))}\n• В опале теперь: ${list(state.banned)}`
     : `Цензура: ${state.censorship}\n• В опале: ${list(state.banned)}`);
   if (newSafehouse) log(state, `Открылся новый явочный адрес: ${ADDRESSES[newSafehouse].name}.`);
 
