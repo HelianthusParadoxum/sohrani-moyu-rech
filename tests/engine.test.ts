@@ -3,7 +3,7 @@ import { applyAction, createGame, startHide } from '../src/engine/engine';
 import { playOut } from '../src/engine/bot';
 import { curatorSuspicion, curatorSuspicionDetail } from '../src/engine/bot-smart';
 import { gainedInfo, viewFor } from '../src/engine/view';
-import { RuleError, cacheLimit, coversStep, title, iconsOf, isBanned, isEvidence, isLoad, isPropaganda, discard, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
+import { RuleError, cacheLimit, bestFeedBooks, coversStep, title, iconsOf, isBanned, isEvidence, isLoad, isPropaganda, discard, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
 import { finalScoring, passionPoints, scoreLine } from '../src/engine/scoring';
 import { PASSIONS, RULES, SPROUTS, limitFor, sproutBonusOptions } from '../src/engine/content';
 import type { GameState, Genre, PatronId } from '../src/engine/types';
@@ -1767,5 +1767,26 @@ describe('Впятером', () => {
     expect(limitFor('agitpunkt', 5)).toBe(2);
     expect(limitFor('razval', 5)).toBe(limitFor('razval', 4));
     expect(createGame({ players: players(4), seed: 3, mode: 'full' }).players[0].workers).toBe(RULES.startWorkers);
+  });
+});
+
+describe('подсказка книг для Ростка', () => {
+  const info = {
+    restored: {},
+    cards: {
+      a: { kind: 'book', icons: ['poetry', 'poetry'] },
+      b: { kind: 'book', icons: ['poetry'] },
+      c: { kind: 'book', icons: ['poetry', 'prose'] },
+      d: { kind: 'book', icons: ['prose', 'prose', 'prose'] },
+      e: { kind: 'book', icons: ['scifi'] },
+    },
+  } as unknown as Pick<GameState, 'cards' | 'restored'>;
+  it('выбирает набор с наименьшим числом значков', () => {
+    // Ступень: 2 значка Поэзии + Проза. Лучше всего «c» и «b» (3 значка), а не «a» и «d» (5).
+    expect(bestFeedBooks(info, ['a', 'b', 'c', 'd'], 'poetry', 2, 'prose')!.books.sort()).toEqual(['b', 'c']);
+    expect(bestFeedBooks(info, ['a', 'b'], 'poetry', 2, 'prose')).toBeNull();
+    // Фантастика-джокер и Лаборант.
+    expect(bestFeedBooks(info, ['a', 'e'], 'poetry', 2, 'prose', { wildScifi: true })!.books.sort()).toEqual(['a', 'e']);
+    expect(bestFeedBooks(info, ['a', 'd'], 'poetry', 2, 'prose', { labtech: true })).toEqual({ books: ['a'], labtech: true });
   });
 });

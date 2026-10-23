@@ -140,6 +140,22 @@ export function coversStep(state: CardsInfo, books: string[], main: Genre, need:
   return go(0, []);
 }
 
+// Лучший набор книг для ступени Ростка: меньше всего значков суммарно, при равенстве — меньше книг
+// и без скидки Лаборанта. null — книг не хватает.
+export function bestFeedBooks(state: CardsInfo, books: string[], main: Genre, need: number, support?: Genre, opts: StepOptions = {}): { books: string[]; labtech: boolean } | null {
+  const icons = (b: string) => Math.max(...iconVariants(state, b).map((v) => v.length));
+  const pool = books.filter((b) => icons(b) > 0).slice(0, 14);
+  let best: { books: string[]; labtech: boolean; key: number } | null = null;
+  for (let mask = 1; mask < 1 << pool.length; mask++) {
+    const set = pool.filter((_, i) => mask & (1 << i));
+    const key = (set.reduce((a, b) => a + icons(b), 0) * 100 + set.length) * 2;
+    if (best && key >= best.key) continue;
+    if (coversStep(state, set, main, need, support, { ...opts, labtech: false })) best = { books: set, labtech: false, key };
+    else if (opts.labtech && (!best || key + 1 < best.key) && coversStep(state, set, main, need, support, opts)) best = { books: set, labtech: true, key: key + 1 };
+  }
+  return best && { books: best.books, labtech: best.labtech };
+}
+
 // Есть ли у игрока связь с Завсегдатаем (только полный режим).
 export function hasPatron(state: Partial<Pick<GameState, 'patrons' | 'mode'>>, pid: string, id: PatronId): boolean {
   return state.mode === 'full' && !!state.patrons?.some((x) => x.id === id && !x.removed && x.connections.includes(pid));

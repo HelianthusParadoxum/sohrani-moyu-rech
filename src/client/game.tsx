@@ -7,7 +7,7 @@ import {
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
-import { coversStep, hasPatron, isEvidence, isExposed, loadCover, roman } from '../engine/util';
+import { bestFeedBooks, coversStep, hasPatron, isEvidence, isExposed, loadCover, roman } from '../engine/util';
 import { kontoraTargets } from '../engine/full';
 import {
   BefriendPicker, ClubContents, fittingBooks, patronOpen, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
@@ -677,14 +677,24 @@ function Sprouts({ view, me, beside, seatIndex, head, onOpen }: { view: PlayerVi
 
 function SproutFeeder({ view, me, place, initial }: { view: PlayerView; me: VPlayer; place: (p: PlaceAction) => void; initial?: string }) {
   const [feeds, setFeeds] = useState<{ sprout: string; books: string[]; labtech?: boolean }[]>([]);
+  const progressOf = (id: string, fs = feeds) => view.sprouts.find((s) => s.id === id)!.progress + fs.filter((f) => f.sprout === id).length;
+  const wildScifi = view.mode === 'full';
+  // Сразу отмечаем лучшие книги для ступени: меньше всего значков суммарно.
+  const suggest = (id: string, fs = feeds): string[] => {
+    const inf = SPROUTS.find((s) => s.id === id);
+    const st = inf?.steps[progressOf(id, fs)];
+    if (!inf || !st) return [];
+    const taken = fs.flatMap((f) => f.books);
+    const pool = me.warehouse.map((s) => s.card!).filter((c) => c && !taken.includes(c));
+    const labtech = hasPatron(view, me.id, 'labtech') && !fs.some((f) => f.labtech);
+    return bestFeedBooks(view, pool, inf.main, st.main, st.support, { wildScifi, labtech })?.books ?? [];
+  };
   const [sprout, setSprout] = useState<string>(initial ?? '');
-  const [books, setBooks] = useState<string[]>([]);
+  const [books, setBooks] = useState<string[]>(() => (initial ? suggest(initial) : []));
   const used = feeds.flatMap((f) => f.books);
   const mine = me.warehouse.map((s) => s.card!).filter((c) => c && !used.includes(c));
-  const progressOf = (id: string) => view.sprouts.find((s) => s.id === id)!.progress + feeds.filter((f) => f.sprout === id).length;
   const info = SPROUTS.find((s) => s.id === sprout);
   const step = info && info.steps[progressOf(sprout)];
-  const wildScifi = view.mode === 'full';
   const plain = !!info && !!step && coversStep(view, books, info.main, step.main, step.support, { wildScifi });
   // Лаборант: скидка в 1 значок — один раз за поручение.
   const discount = !plain && !!info && !!step && hasPatron(view, me.id, 'labtech') && !feeds.some((f) => f.labtech)
@@ -692,13 +702,13 @@ function SproutFeeder({ view, me, place, initial }: { view: PlayerView; me: VPla
   const ok = plain || discount;
   return (
     <>
-      <p>Закройте ступень: отдайте книги, на которых есть все значки ступени. {RULES.sproutFeedsPerAction === 1 ? 'За одно поручение — только 1 ступень одного Ростка.' : `За одно поручение — до ${RULES.sproutFeedsPerAction} ступеней у разных Ростков.`}</p>
+      <p>Питайте ступень: отдайте книги, на которых есть все значки ступени. Лучшие книги (меньше всего значков) уже отмечены — их можно заменить. {RULES.sproutFeedsPerAction === 1 ? 'За одно поручение — только 1 ступень одного Ростка.' : `За одно поручение — до ${RULES.sproutFeedsPerAction} ступеней у разных Ростков.`}</p>
       <div className="genres">
         {view.sprouts.map((sp) => {
           const inf = SPROUTS.find((s) => s.id === sp.id)!;
           const pr = progressOf(sp.id);
           return (
-            <button key={sp.id} disabled={pr >= 4 || (view.sproutRound?.[sp.id]?.length ?? 0) >= RULES.sproutSlotsPerRound} className={sprout === sp.id ? 'selected' : ''} onClick={() => { setSprout(sp.id); setBooks([]); }}>
+            <button key={sp.id} disabled={pr >= 4 || (view.sproutRound?.[sp.id]?.length ?? 0) >= RULES.sproutSlotsPerRound} className={sprout === sp.id ? 'selected' : ''} onClick={() => { setSprout(sp.id); setBooks(suggest(sp.id)); }}>
               {inf.name} · ступень {roman(pr + 1)}: {pr < 4 ? stepText(inf.main, inf.steps[pr]) : '—'}
             </button>
           );
@@ -712,7 +722,7 @@ function SproutFeeder({ view, me, place, initial }: { view: PlayerView; me: VPla
           </div>
           {feeds.length + 1 >= RULES.sproutFeedsPerAction
             ? <button className="primary" disabled={!ok} onClick={() => place({ address: 'sprouts', feeds: [...feeds, { sprout, books }] })}>Питать ступень{discount ? ' (скидка Лаборанта)' : ''}</button>
-            : <button disabled={!ok} onClick={() => { setFeeds([...feeds, { sprout, books, labtech: discount }]); setBooks([]); }}>Добавить ступень{discount ? ' (скидка Лаборанта)' : ''}</button>}
+            : <button disabled={!ok} onClick={() => { const fs = [...feeds, { sprout, books, labtech: discount }]; setFeeds(fs); setBooks(suggest(sprout, fs)); }}>Добавить ступень{discount ? ' (скидка Лаборанта)' : ''}</button>}
         </>
       )}
       {feeds.length > 0 && (
