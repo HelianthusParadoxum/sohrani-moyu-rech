@@ -84,7 +84,7 @@ function blockBonus(state: GameState, a: Action, ctx: Ctx): number {
   if (here + 1 < limitFor(a.place.address, state.players.length)) return 0;
   return BOT_BASE.blockCurator * enemy[1];
 }
-const BLOCK_ADDRESSES: string[] = ['baraholka', 'spisanie', 'nasledniki', 'posrednichestvo', 'raspredelitel'];
+const BLOCK_ADDRESSES: string[] = ['baraholka', 'spisanie', 'nasledniki', 'posrednichestvo', 'raspredelitel', 'makulatura'];
 
 // Сколько пользы Завсегдатай даёт остальным: его сила × число связанных с ним игроков (кроме me).
 function patronWorthToOthers(pt: GameState['patrons'][number], me: string): number {
@@ -130,7 +130,10 @@ function reachablePropaganda(state: GameState, left: number): number {
   const open = [...state.tolkuchka, ...state.razval, ...state.raspredelitel, ...state.knigoobmen]
     .filter((c): c is string => !!c && isPropaganda(state, c)).length;
   const discard = left > 0 && state.safehouses.includes('nasledniki') ? state.discard.filter((c) => isPropaganda(state, c)).length : 0;
-  return open + 0.5 * discard;
+  // Через Макулатуру Куратор дотягивается и до закрытых стопок (со сбросом — их перетасуют, когда стопка кончится).
+  const decks = addressInGame(state, 'makulatura')
+    ? [...state.deck, ...state.discard, ...state.loadDeck, ...state.loadDiscard].filter((c) => isPropaganda(state, c)).length : 0;
+  return open + 0.5 * discard + BOT_BASE.denyDeckShare * decks;
 }
 
 // Подозрение, что соперник — Куратор. Только то, что видели все: Пропаганда, открыто взятая со стола или лежащая
@@ -650,9 +653,10 @@ function tryApply(state: GameState, me: string, a: Action): GameState | null {
 function score(state: GameState, me: string, a: Action, ctx: Ctx, depth: number): number | null {
   let next = tryApply(state, me, a);
   if (!next) return null;
-  // Куратор в Макулатуре: одной примерки мало (Пропаганда выпадает редко) — считаем ожидание по составу стопки.
-  if (ctx.curator && a.type === 'place' && a.place.address === 'makulatura' && next.pending[0]?.kind === 'makulatura') {
-    return curatorMakulaturaValue(next, me, ctx);
+  // Поиск Пропаганды в Макулатуре (Куратору — за срезами, честному — чтобы она не досталась Куратору): одной примерки мало
+  // (Пропаганда выпадает редко) — считаем ожидание по составу стопки.
+  if (a.type === 'place' && a.place.address === 'makulatura' && next.pending[0]?.kind === 'makulatura' && (ctx.curator || denyActive(state, ctx))) {
+    return makulaturaDigValue(next, me, ctx);
   }
   // Поход в Контору: при примерке считаем, что соперники перепрячут всё, что поместится (самое значкастое — первым).
   while (next && next.pending[0]?.kind === 'kontoraWarning' && next.pending[0].player !== me) {
@@ -680,10 +684,16 @@ function score(state: GameState, me: string, a: Action, ctx: Ctx, depth: number)
   return evaluate(next, me, ctx);
 }
 
-// Ожидаемая польза Макулатуры для Куратора: тянет из Непечатных, пока не найдёт Пропаганду (или не кончатся попытки).
+// Честные к концу партии отбирают у Куратора Пропаганду: держать её (и Разоблачения) у себя — значит не дать ему срезов.
+function denyActive(state: GameState, ctx: Ctx): boolean {
+  return !ctx.curator && state.mode === 'full' && !!state.curatorPossible && !state.curatorRevealed && ctx.round >= BOT_BASE.denyFromRound;
+}
+
+// Ожидаемая польза Макулатуры: тянет, пока не найдёт Пропаганду (или не кончатся попытки).
 // Состав стопки бот знает (порядок — нет): шанс Пропаганды на каждую попытку — её доля среди закрытых Непечатных.
 // Сколько Куратор готов тянуть в Макулатуре: в последней Пятилетке Талоны больше ни на что не нужны — до последнего.
 function curatorDig(ctx: Ctx): { max: number; reserve: number } {
+  if (!ctx.curator) return { max: BOT_BASE.denyDigMax, reserve: BOT_BASE.denyDigReserve };
   return ctx.round >= RULES.rounds
     ? { max: BOT_BASE.curatorMakulaturaMaxLast, reserve: 0 }
     : { max: BOT_BASE.curatorMakulaturaMax, reserve: BOT_BASE.curatorMakulaturaReserve };
@@ -710,7 +720,7 @@ function propagandaSearch(s: GameState, tries: number): { best: 'unprinted' | 'l
   return l.hit > u.hit ? { best: 'load', ...l } : { best: 'unprinted', ...u };
 }
 
-function curatorMakulaturaValue(next: GameState, me: string, ctx: Ctx): number {
+function makulaturaDigValue(next: GameState, me: string, ctx: Ctx): number {
   const p = player(next, me);
   const price = RULES.makulaturaPrice;
   const { max, reserve } = curatorDig(ctx);
@@ -1172,6 +1182,13 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
             return [{ type: 'makulaturaDraw', deck }];
           }
           return pend.cards.map((card) => ({ type: 'makulaturaKeep' as const, card }));
+        }
+        // Честный к концу партии тоже ищет Пропаганду — чтобы не досталась Куратору; нашёл — оставляет её.
+        if (denyActive(state, ctx)) {
+          const found = pend.cards.find((c) => isPropaganda(state, c));
+          if (found) return [{ type: 'makulaturaKeep', card: found }];
+          const deck = propagandaSearch(determinize(state, () => 0.5, me), BOT_BASE.denyDigMax).best;
+          if (pend.cards.length < BOT_BASE.denyDigMax && p.talons - RULES.makulaturaPrice >= BOT_BASE.denyDigReserve) return [{ type: 'makulaturaDraw', deck }];
         }
         // Сколько книг тянуть: при запасе Талонов — больше выбор (не больше BOT_BASE.makulaturaMax), потом оставить лучшую.
         const target = Math.min(BOT_BASE.makulaturaMax, Math.max(1, Math.floor((p.talons + pend.cards.length) / 3)));
