@@ -109,8 +109,9 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
             {view.order.map((id) => <span key={id} className="dot" style={{ background: PLAYER_COLORS[seatIndex(id)] }} title={nameOf(id)} />)}
           </span>
         )}
+        <b className="phase">{PHASE_NAMES[view.phase]}</b>
         {/* Один элемент строки: иначе flex разносит кружок и имя игрока на ширину промежутка. */}
-        <span><b className="phase">{PHASE_NAMES[view.phase]}</b> {status}</span>
+        <span>{status}</span>
         {bonusTurn && <button className="small" onClick={() => act({ type: 'pass' })}>Отказаться</button>}
         {afterAction && <button className="primary small end-turn-inline" onClick={() => act({ type: 'endTurn' })}>Закончить ход</button>}
         {view.phase === 'end' && view.result && <button className="small" onClick={() => setShowResult(true)}>Таблица счёта</button>}

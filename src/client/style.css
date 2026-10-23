@@ -71,7 +71,7 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .topbar .muted { color: #b8ad98; }
 .host-tools { margin-left: auto; display: flex; gap: 6px; }
 .banned { display: flex; gap: 4px; align-items: center; }
-.status { padding: 8px 16px; background: var(--paper-2); border-bottom: 1px solid var(--line); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.status { padding: 8px 16px; background: var(--paper-2); border-bottom: 1px solid var(--line); display: flex; gap: 8px 20px; align-items: center; flex-wrap: wrap; }
 .status.mine { background: #f6d9a8; font-weight: 700; }
 
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; padding: 12px 16px; }
