@@ -150,6 +150,7 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .player { border-width: 2px; }
 .player.active { box-shadow: 0 0 0 3px #e6b35a; }
 .stats { display: flex; gap: 10px; flex-wrap: wrap; font-family: 'PT Mono', monospace; font-size: 0.85rem; }
+.stats i { font-style: normal; margin-right: 2px; }
 .passion-tag { font-size: 0.8rem; background: var(--paper-2); padding: 1px 6px; border-radius: 3px; }
 .group-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .published { border-top: 1px dashed var(--line); padding-top: 4px; }
