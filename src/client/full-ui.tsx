@@ -1,6 +1,6 @@
 // Интерфейс полного режима: Клуб книголюбов, Контора.
 import { useState } from 'react';
-import { GENRE_NAMES, KONTORA_LOSS, PATRONS, RULES } from '../engine/content';
+import { CLUB_ORDER, GENRE_NAMES, KONTORA_LOSS, PATRONS, RULES } from '../engine/content';
 import type { Action, ClubGift, Genre, GroupAction, KontoraChoice, PatronId, PlaceAction } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import { cacheLimit } from '../engine/util';
@@ -10,7 +10,6 @@ import { Book, GenreChip, Modal, PLAYER_COLORS, iconize, iconsOf, isBanned, togg
 type VPlayer = PlayerView['players'][number];
 
 // Порядок жанровых слотов Клуба — как на планшете: верхний ряд, затем нижний.
-const CLUB_ORDER: Genre[] = ['prose', 'irony', 'drama', 'poetry', 'testimony', 'foreign', 'scifi', 'album'];
 const byClubOrder = <T extends { genre: Genre }>(list: T[]) => [...list].sort((a, b) => CLUB_ORDER.indexOf(a.genre) - CLUB_ORDER.indexOf(b.genre));
 
 // Книги игрока, которые подходят Завсегдатаю: его жанра или Альбом (Альбом подходит любому).

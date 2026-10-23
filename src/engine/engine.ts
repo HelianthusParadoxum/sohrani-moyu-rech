@@ -1,7 +1,7 @@
 // Движок правил: создание партии и применение действий.
 // applyAction не меняет переданное состояние, а возвращает новое.
 import {
-  ADDRESSES, CARDS, COPY_TEXT_ADDRESSES, GENRE_NAMES, GENRE_SHORT, GROUP_ACTIONS, KEEPERS, PASSIONS, PATRONS, PERMANENT_ADDRESSES, RULES, SAFEHOUSES,
+  ADDRESSES, CARDS, CLUB_ORDER, COPY_TEXT_ADDRESSES, GENRE_NAMES, GENRE_SHORT, GROUP_ACTIONS, KEEPERS, PASSIONS, PATRONS, PERMANENT_ADDRESSES, RULES, SAFEHOUSES,
   SPECIALS, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, sproutBonusOptions, FIRST_FEED_POINTS, addressInGame, groupInGame, limitFor,
 } from './content';
 import { finalScoring } from './scoring';
@@ -459,7 +459,7 @@ function logSetup(state: GameState) {
   });
   log(state, `Ростки Гласности:\n${sprouts.join('\n')}`);
   if (state.patrons?.length) {
-    const patrons = state.patrons.map((pt) => `• ${PATRONS[pt.id].name} (${genreLabel(pt.genre)}) — ${PATRONS[pt.id].hint}`);
+    const patrons = [...state.patrons].sort((a, b) => CLUB_ORDER.indexOf(a.genre) - CLUB_ORDER.indexOf(b.genre)).map((pt) => `• ${PATRONS[pt.id].name} (${genreLabel(pt.genre)}) — ${PATRONS[pt.id].hint}`);
     log(state, `Завсегдатаи Клуба (в скобках — жанр книги, за которую заводится связь):\n${patrons.join('\n')}`);
   }
 }

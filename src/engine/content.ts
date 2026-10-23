@@ -273,6 +273,9 @@ export interface PatronInfo { id: PatronId; name: string; hint: string; implemen
 const P = (id: PatronId, name: string, hint: string, implemented = true): PatronInfo => ({ id, name, hint, implemented });
 
 // implemented: false — эффект ещё не запрограммирован, такой Завсегдатай не попадает в партию.
+// Порядок жанров на планшете Клуба книголюбов (и в списке Завсегдатаев в журнале).
+export const CLUB_ORDER: Genre[] = ['prose', 'irony', 'drama', 'poetry', 'testimony', 'foreign', 'scifi', 'album'];
+
 export const PATRONS: Record<PatronId, PatronInfo> = Object.fromEntries([
   P('binder', 'Переплётчик', 'В одно место склада помещаются 2 книги с общим жанром', false),
   P('carpenter', 'Столяр', `Закладка Тайника бесплатна и увеличивает Тайник на ${RULES.carpenterCache} (до 5)`),
