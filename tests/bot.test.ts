@@ -322,7 +322,7 @@ describe('думающий бот в полном режиме', () => {
       s = playOut(s, seeded(seed), 8000, 'bookman');
       const cur = s.players[0];
       curators++;
-      feeds += s.log.filter((l) => l.text.startsWith(`${cur.name} питает Росток`)).length;
+      feeds += s.log.filter((l) => l.text.startsWith(`${cur.name} питает ступень`)).length;
       // Пропаганда в конце срезает Ростки — Куратор её в макулатуру не сдаёт.
       const propaganda = Object.values(s.cards).filter((c) => c.kind === 'propaganda').map((c) => `«${c.title}»`);
       recycled += s.log.filter((l) => l.text.startsWith(`${cur.name} в Красном уголке`) && propaganda.some((t) => l.text.includes(t))).length;

@@ -658,7 +658,7 @@ function Sprouts({ view, me, beside, seatIndex, head, onOpen }: { view: PlayerVi
                 </li>
               ))}
             </ol>
-            <div className="muted bonus" title="Бонус за закрытие ступени (одно на выбор)">Бонус: {sproutBonusOptions(view, info).map((b) => SPROUT_BONUS_NAMES[b]).join(' / ')}</div>
+            <div className="muted bonus" title="Бонус за питание ступени (одно на выбор)">Бонус: {sproutBonusOptions(view, info).map((b) => SPROUT_BONUS_NAMES[b]).join(' / ')}</div>
             {/* Кто хоть раз вкладывался в этот Росток (+2 очка за первое питание): слот на каждого игрока. */}
             <div className="fed-row muted small" title={`Вложились в этот Росток (+${FIRST_FEED_POINTS} очка за первое вложение)`}>
               Вложились:{' '}
@@ -711,7 +711,7 @@ function SproutFeeder({ view, me, place, initial }: { view: PlayerView; me: VPla
             {mine.map((c) => <Book key={c} v={view} id={c} selected={books.includes(c)} onClick={() => setBooks(toggle(books, c))} />)}
           </div>
           {feeds.length + 1 >= RULES.sproutFeedsPerAction
-            ? <button className="primary" disabled={!ok} onClick={() => place({ address: 'sprouts', feeds: [...feeds, { sprout, books }] })}>Закрыть ступень{discount ? ' (скидка Лаборанта)' : ''}</button>
+            ? <button className="primary" disabled={!ok} onClick={() => place({ address: 'sprouts', feeds: [...feeds, { sprout, books }] })}>Питать ступень{discount ? ' (скидка Лаборанта)' : ''}</button>
             : <button disabled={!ok} onClick={() => { setFeeds([...feeds, { sprout, books, labtech: discount }]); setBooks([]); }}>Добавить ступень{discount ? ' (скидка Лаборанта)' : ''}</button>}
         </>
       )}
@@ -720,7 +720,7 @@ function SproutFeeder({ view, me, place, initial }: { view: PlayerView; me: VPla
       )}
       {RULES.sproutFeedsPerAction > 1 && (
         <div className="modal-foot">
-          <button className="primary" disabled={!feeds.length} onClick={() => place({ address: 'sprouts', feeds })}>Закрыть ступени ({feeds.length})</button>
+          <button className="primary" disabled={!feeds.length} onClick={() => place({ address: 'sprouts', feeds })}>Питать ступени ({feeds.length})</button>
         </div>
       )}
     </>

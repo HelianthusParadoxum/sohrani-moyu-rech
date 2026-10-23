@@ -1004,9 +1004,9 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       return;
     }
     case 'sprouts': {
-      check(a.feeds.length > 0, 'Выберите, какие ступени закрыть');
+      check(a.feeds.length > 0, 'Выберите, какие ступени питать');
       check(a.feeds.length <= RULES.sproutFeedsPerAction, RULES.sproutFeedsPerAction === 1
-        ? 'За одно поручение можно закрыть только 1 ступень одного Ростка'
+        ? 'За одно поручение можно питать только 1 ступень одного Ростка'
         : `За одно поручение — не больше ${RULES.sproutFeedsPerAction} ступеней`);
       const used = new Set<string>();
       let labtechUsed = false;
@@ -1014,10 +1014,10 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         const sp = state.sprouts.find((s) => s.id === f.sprout);
         check(sp, 'Этого Ростка нет в игре');
         const info = SPROUTS.find((s) => s.id === sp.id)!;
-        check(sp.progress < 4, `${info.name}: все ступени уже закрыты`);
+        check(sp.progress < 4, `${info.name}: все ступени уже напитаны`);
         // Росток растёт постепенно: за Пятилетку — не больше RULES.sproutSlotsPerRound ступеней.
         const fedNow = (state.sproutRound ??= {})[sp.id] ?? [];
-        check(fedNow.length < RULES.sproutSlotsPerRound, `${info.name}: в эту Пятилетку на этом Ростке уже закрыто ${RULES.sproutSlotsPerRound} ступени — ждите следующей`);
+        check(fedNow.length < RULES.sproutSlotsPerRound, `${info.name}: в эту Пятилетку на этом Ростке уже напитано ${RULES.sproutSlotsPerRound} ступени — ждите следующей`);
         state.sproutRound[sp.id] = [...fedNow, p.id];
         // Поручение ещё не записано в p.actions (это делается после doPlace) — его номер следующий.
         (state.sproutRoundN ??= {})[sp.id] = [...(state.sproutRoundN[sp.id] ?? []), p.actions.length + 1];
@@ -1042,7 +1042,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         earn(state, p, 0, { sprouts: reward.talons, professor: prof ? RULES.professorTalons : 0 });
         gain(p, reward.points, 'sprouts');
         if (prof) gain(p, RULES.professorPoints, 'professor');
-        let text = `${p.name} питает Росток «${info.name}»: ступень ${roman(sp.progress)} закрыта (${titles(state, f.books)})`;
+        let text = `${p.name} питает ступень ${roman(sp.progress)} Ростка «${info.name}» (${titles(state, f.books)})`;
         text += reward.talons ? `, +${talonsText(reward.talons)}` : `, +${pointsText(reward.points)}`;
         if (!p.sproutsFed.includes(sp.id)) {
           p.sproutsFed.push(sp.id);
