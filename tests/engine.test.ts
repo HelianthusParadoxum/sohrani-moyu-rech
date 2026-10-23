@@ -1497,12 +1497,21 @@ describe('Спецхран и Проза', () => {
   });
 });
 
+describe('Журнал: усилилась ли Цензура', () => {
+  it('в каждой новой Пятилетке — отдельной строкой; в одиночной игре — нет', () => {
+    const s = playOut(createGame({ players: players(3), seed: 905, mode: 'full' }));
+    expect(s.log.filter((l) => /^Цензура (усилилась: \d → \d|не усилилась: \d)\.$/.test(l.text)).length).toBe(RULES.rounds - 1);
+    const solo = playOut(createGame({ players: players(1), seed: 905, mode: 'full' }));
+    expect(solo.log.some((l) => /^Цензура (не )?усилилась/.test(l.text))).toBe(false);
+  });
+});
+
 describe('Журнал: выкладка в начале Пятилетки', () => {
   it('перечисляет все книги на открытых адресах, и те, что уже бывали на столе', () => {
     const s = playOut(createGame({ players: players(3), seed: 905, mode: 'full' }));
     for (let i = 0; i < s.log.length; i++) {
       if (!/^Пятилетка [2-5]\.$/.test(s.log[i].text)) continue;
-      const line = s.log.slice(i, i + 6).find((l) => l.text.startsWith('На Толкучку'));
+      const line = s.log.slice(i, i + 10).find((l) => l.text.startsWith('На Толкучку'));
       expect(line?.text.match(/•/g)?.length).toBe(RULES.displaySize);
     }
   });

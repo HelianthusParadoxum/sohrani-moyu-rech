@@ -329,7 +329,7 @@ function genreLabel(g: Genre): string {
   return `[${GENRE_SHORT[g]}] ${GENRE_NAMES[g]}`;
 }
 
-function startRound(state: GameState, newSafehouse?: AddressId) {
+function startRound(state: GameState, newSafehouse?: AddressId, prevCensorship?: number) {
   state.phase = 'orders';
   state.ready = [];
   state.occupancy = {};
@@ -364,6 +364,10 @@ function startRound(state: GameState, newSafehouse?: AddressId) {
   }
   logEvent(state, `Пятилетка ${state.round}.`);
   if (state.round > 1) logOrder(state);
+  // Усилилась ли Цензура (в одиночной игре она растёт всегда — не пишем).
+  if (prevCensorship !== undefined && !state.solo) {
+    log(state, state.censorship > prevCensorship ? `Цензура усилилась: ${prevCensorship} → ${state.censorship}.` : `Цензура не усилилась: ${state.censorship}.`);
+  }
   // Цензура списком: что вышло из опалы, что попало, что в опале теперь.
   const list = (gs: Genre[]) => gs.map(genreLabel).join(' ') || '—';
   log(state, state.round > 1
@@ -750,6 +754,7 @@ function changeRound(state: GameState) {
   const safe = state.safehouseDeck.pop();
   if (safe) state.safehouses.push(safe); // в журнале — после строки о цензуре новой Пятилетки
   // Масштаб цензуры: прежний жетон и жетон на 1 больше — случайный из двух (в одиночной игре — всегда больший).
+  const prevCensorship = state.censorship;
   const next = state.censorshipPool.find((t) => t === state.censorship + 1);
   if (next !== undefined) {
     const pick = state.solo ? next : random(state) < 0.5 ? state.censorship : next;
@@ -759,7 +764,7 @@ function changeRound(state: GameState) {
     }
   }
   state.round++;
-  startRound(state, safe);
+  startRound(state, safe, prevCensorship);
 }
 
 // ---------- Фаза поручений ----------
