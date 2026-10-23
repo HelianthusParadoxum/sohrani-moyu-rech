@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { applyAction, createGame, startHide } from '../src/engine/engine';
 import { playOut } from '../src/engine/bot';
+import { curatorSuspicionDetail } from '../src/engine/bot-smart';
 import { gainedInfo, viewFor } from '../src/engine/view';
 import { RuleError, cacheLimit, coversStep, iconsOf, isBanned, isEvidence, isLoad, isPropaganda, discard, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
 import { finalScoring, passionPoints, scoreLine } from '../src/engine/scoring';
@@ -1489,6 +1490,23 @@ describe('Спецхран и Проза', () => {
     const prose = Object.keys(s.cards).filter((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.includes('prose')).slice(0, 3);
     p.warehouse = prose.map((card) => ({ card, hidden: false }));
     expect(proseBonus(s, p)).toBe(1);
+  });
+});
+
+describe('Пропаганда, розданная при раскладке', () => {
+  it('все видели её на складе — подозрение «держит известную всем Пропаганду», пока её не сдали и не разоблачили', () => {
+    let s = createGame({ players: players(3), seed: 15, mode: 'full', forceCurator: true });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    const p = s.players[1];
+    const lenin = Object.keys(s.cards).find((c) => s.cards[c].kind === 'loadPropaganda')!;
+    for (const zone of [s.deck, s.loadDeck, s.discard, s.loadDiscard]) { const i = zone.indexOf(lenin); if (i >= 0) zone.splice(i, 1); }
+    for (const q of s.players) q.warehouse = q.warehouse.filter((w) => w.card !== lenin);
+    p.warehouse.push({ card: lenin, hidden: false });
+    s = startOrders(s);
+    expect(s.players[1].propagandaDealt).toBe(1);
+    const other = s.players.find((x) => x.id !== p.id)!;
+    const detail = curatorSuspicionDetail(s, other.id)[p.id];
+    expect(detail.parts.some((x) => x.startsWith('держит известную всем Пропаганду'))).toBe(true);
   });
 });
 

@@ -466,6 +466,9 @@ function logStartBooks(state: GameState) {
     const hidden = p.warehouse.filter((s) => s.hidden).map((s) => s.card);
     log(state, open.length ? `${p.name} на складе на виду: ${titles(state, open)}.` : `${p.name}: на складе на виду ничего.`);
     state.log[state.log.length - 1].who = p.id;
+    // Пропаганда, которую все видели на складе при раскладке, — как взятая открыто: все знают, что она у него.
+    const seen = open.filter((c) => isPropaganda(state, c)).length;
+    if (seen) p.propagandaDealt = (p.propagandaDealt ?? 0) + seen;
     if (hidden.length) {
       log(state, `${p.name} прячет в Тайнике: ${titles(state, hidden)}.`, [p.id]);
       state.log[state.log.length - 1].who = p.id;

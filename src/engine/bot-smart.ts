@@ -180,9 +180,10 @@ export function curatorSuspicionDetail(state: GameState, me: string): Record<str
     const times = (n: number) => (n > 1 ? ` ×${n}` : '');
     // Открыто взятая Пропаганда подозрительна и у кормившего Ростки (слабее, чем прочие улики, не обесценивается).
     add(Math.max(trust, BOT_BASE.suspectTakenTrust) * BOT_BASE.suspectTaken * (o.propagandaTaken ?? 0), `взял Пропаганду со стола${times(o.propagandaTaken ?? 0)}`);
-    // ...а если так и не сдал её и не разоблачил — держит у себя: так делает Куратор.
-    const kept = Math.max(0, (o.propagandaTaken ?? 0) - (o.propagandaDumped ?? 0) - (o.propagandaExposed ?? 0));
-    add(BOT_BASE.suspectKept * kept, `держит взятую Пропаганду${times(kept)}`);
+    // ...а если так и не сдал её и не разоблачил — держит у себя: так делает Куратор. Так же и Пропаганда, которую все
+    // видели у него при раскладке стартовых книг.
+    const kept = Math.max(0, (o.propagandaTaken ?? 0) + (o.propagandaDealt ?? 0) - (o.propagandaDumped ?? 0) - (o.propagandaExposed ?? 0));
+    add(BOT_BASE.suspectKept * kept, `держит известную всем Пропаганду${times(kept)}`);
     add(trust * BOT_BASE.suspectHolds * open, `Пропаганда на виду${times(open)}`);
     add(trust * BOT_BASE.suspectCacheUnshown * (o.cacheUnshown ?? 0), `не показал опальное из Тайника${times(o.cacheUnshown ?? 0)}`);
     add(Math.max(trust, BOT_BASE.suspectTakenTrust) * BOT_BASE.suspectDenounce * (o.denounces ?? 0), `доносил в Контору${times(o.denounces ?? 0)}`);
@@ -731,7 +732,11 @@ function makulaturaDigValue(next: GameState, me: string, ctx: Ctx): number {
     const q = player(s, me);
     s.pending = s.pending.slice(1);
     q.talons = Math.max(0, q.talons - Math.round(spent * price));
-    if (withProp && prop) addSecretBook(s, q, prop);
+    if (withProp && prop) {
+      // Найденная Пропаганда уходит из стопки (для честного это и есть цель — её больше не достать Куратору).
+      for (const k of ['deck', 'discard', 'loadDeck', 'loadDiscard'] as const) s[k] = s[k].filter((c) => c !== prop);
+      addSecretBook(s, q, prop);
+    }
     return evaluate(s, me, ctx);
   };
   return prop && hit > 0 ? hit * after(true) + (1 - hit) * after(false) : after(false);

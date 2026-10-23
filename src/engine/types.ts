@@ -115,6 +115,7 @@ export interface PlayerState {
   // Что все видели (для подозрений ботов): сколько Пропаганды игрок открыто взял со стола и сколько сдал в Красный уголок.
   propagandaTaken?: number;
   propagandaExposed?: number; // сколько Пропаганды разоблачил (Возвращение смыслов)
+  propagandaDealt?: number; // сколько Пропаганды все видели у него на складе при раскладке стартовых книг
   denounces?: number;
   talonsBy?: Record<string, number>; // откуда пришли Талоны (статистика): адрес, бонус, Завсегдатай
   talonsSaved?: Record<string, number>; // сколько Талонов сэкономили Завсегдатаи (статистика)
