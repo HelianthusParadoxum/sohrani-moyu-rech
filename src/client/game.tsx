@@ -283,11 +283,13 @@ function AddressCard(props: AddressProps) {
   const inlineHint = id === 'club'; // у Клуба описание — в строке заголовка, справа
   // Поручение можно дать нажатием на любое место адреса, не только на кнопку «сюда».
   const open = enabled && !full ? props.onOpen : undefined;
+  // На адресе — краткое описание; полное — подсказкой (наведение мышью или удержание пальцем).
+  const tip = info.hint + (props.blocked && !open ? `\nСейчас нельзя: ${props.blocked}` : '');
   return (
     <div className={`address addr-${id} ${info.safehouse ? 'safehouse' : ''} ${open ? 'can' : ''}`} onClick={open}
-      role={open ? 'button' : undefined} title={open ? 'Отправить Единомышленника сюда' : props.blocked ? `Сейчас нельзя: ${props.blocked}` : undefined}>
+      role={open ? 'button' : undefined} title={tip} data-tip={tip}>
       <AddressHead {...props} inlineHint={inlineHint} />
-      {!inlineHint && <div className="hint">{info.hint}</div>}
+      {!inlineHint && <div className="hint">{info.short}</div>}
       <AddressContents id={id} view={view} seatIndex={seatIndex} me={me} onPatron={props.onPatron} />
     </div>
   );
@@ -302,9 +304,9 @@ function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint, rig
   return (
       <div className="addr-head">
         <b>{info.name}</b>
-        {inlineHint && <span className="hint inline">{info.hint}</span>}
+        {inlineHint && <span className="hint inline">{info.short}</span>}
         <span className="workers">
-          {rightHint && <span className="hint inline right">{rightHint}</span>}
+          {rightHint && <span className="hint inline right" title={rightHint} data-tip={rightHint}>{info.short}</span>}
           {!rightHint && here.map((pid, i) => {
             // Номер на жетоне — каким по счёту в Пятилетке было это действие игрока.
             const k = here.slice(0, i).filter((x) => x === pid).length;

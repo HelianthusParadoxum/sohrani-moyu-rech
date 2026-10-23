@@ -122,33 +122,34 @@ export interface AddressInfo {
   safehouse?: boolean;
   fullOnly?: boolean;
   perPlayer?: boolean; // не больше 1 Единомышленника от игрока
-  hint: string;
+  hint: string; // полное описание (подсказка при наведении / удержании пальцем)
+  short: string; // предельно краткое — на самом адресе
 }
 
 export const ADDRESSES: Record<AddressId, AddressInfo> = {
-  gostorg: { id: 'gostorg', name: 'Госкниготорг', limits: [2, 3, 4], hint: '−1т за пару: Нагрузка + Непечатное, любое число пар' },
-  tolkuchka: { id: 'tolkuchka', name: 'Толкучка', limits: [2, 3, 4], hint: 'Купить 1 книгу: −2т. Продать: +2т за книгу опального жанра, +1т за прочие' },
-  redCorner: { id: 'redCorner', name: 'Красный уголок', limits: [INF, INF, INF], perPlayer: true, hint: `Очередь хода на следующую Пятилетку; сдать до 1 Непечатной (+${RULES.redCornerUnprinted}т) и до 1 Нагрузки (+${RULES.redCornerLoad}т)` },
-  razval: { id: 'razval', name: 'Развал', limits: [2, 3, 4], hint: 'Купить 1 книгу: −2/−2/−1/−1т по свежести' },
-  zavoz: { id: 'zavoz', name: 'Завоз', limits: [1, 1, 2], hint: '+2т, Развал полностью обновляется' },
-  baraholka: { id: 'baraholka', name: 'Барахолка', limits: [4, 4, 4], hint: 'Тайно посмотреть 2 из 4 закрытых книг и купить одну из них за 1т' },
-  podpiska: { id: 'podpiska', name: 'Подписка', limits: [1, 1, 1], safehouse: true, hint: 'Заказать жанр: −1т за каждую Пятилетку доставки' },
-  sprouts: { id: 'sprouts', name: 'Ростки Гласности', limits: [INF, INF, INF], hint: (RULES.sproutFeedsPerAction === 1 ? 'Закрыть 1 ступень одного Ростка' : `Закрыть до ${RULES.sproutFeedsPerAction} ступеней Ростков`) + `; у каждого Ростка — не больше ${RULES.sproutSlotsPerRound} ступеней за Пятилетку` },
-  samizdat: { id: 'samizdat', name: 'Самиздат', limits: [2, 2, 3], hint: `Издать книгу: +${RULES.samizdatTalons}т/значок` },
-  tamizdat: { id: 'tamizdat', name: 'Тамиздат', limits: [1, 1, 2], hint: `Издать книгу: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка/значок` },
-  glavlit: { id: 'glavlit', name: 'Главлит', limits: [1, 1, 2], hint: `Отдать любое число подцензурных книг (+${RULES.glavlitTalons}т за каждую) и взять столько же из стопок Непечатных и Нагрузки на выбор` },
-  makulatura: { id: 'makulatura', name: 'Макулатура', limits: [1, 1, 2], hint: `По ${RULES.makulaturaPrice}т за книгу: тяните тайно сколько угодно книг из стопок Непечатных и Нагрузки (из любой), затем оставьте себе одну, остальные — в сброс` },
-  knigoobmen: { id: 'knigoobmen', name: 'Книгообмен', limits: [1, 1, 1], safehouse: true, hint: 'Отдать 1 жанровую книгу — взять 1 с витрины; когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы' },
-  kvartirnik: { id: 'kvartirnik', name: 'Квартирник', limits: [1, 1, 1], safehouse: true, hint: 'Обмен книгами с другим игроком по согласию; когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы' },
-  raspredelitel: { id: 'raspredelitel', name: 'Распределитель', limits: [1, 1, 1], safehouse: true, hint: `Купить 1 выдающуюся книгу за ${RULES.raspredelitelPrice}т` },
-  agitpunkt: { id: 'agitpunkt', name: 'Агитпункт', limits: [1, 1, 1], safehouse: true, hint: 'Свой человек в агитпункте: взять 1 книгу Нагрузки с витрины бесплатно; когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы' },
-  nasledniki: { id: 'nasledniki', name: 'Наследники', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.safehousePrice}т: тайно взять 1–2 книги из сброса Непечатных; остаток сброса замешивается в стопку` },
-  posrednichestvo: { id: 'posrednichestvo', name: 'Посредничество авторам', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.posrednichestvoPrice}т: тайно вытянуть ${RULES.posrednichestvoDraw}, оставить ${RULES.posrednichestvoKeep}, затем 1 любое действие Группы (даже уже сделанное)` },
-  spisanie: { id: 'spisanie', name: 'Библиотечное списание', limits: [1, 1, 1], safehouse: true, hint: `−${RULES.spisaniePrice}т: тайно взять ${RULES.spisanieDraw} книги сверху стопки Непечатных, оставить сколько угодно, остальные — в сброс` },
-  club: { id: 'club', name: 'Клуб книголюбов', limits: [2, 3, 4], fullOnly: true, hint: RULES.clubFreeGift
+  gostorg: { id: 'gostorg', name: 'Госкниготорг', limits: [2, 3, 4], short: 'Пара вслепую: Нагрузка + Непечатное, 1т', hint: '−1т за пару: Нагрузка + Непечатное, любое число пар' },
+  tolkuchka: { id: 'tolkuchka', name: 'Толкучка', limits: [2, 3, 4], short: `Купить ${RULES.tolkuchkaBuy}т · продать ${RULES.tolkuchkaSellFree}–${RULES.tolkuchkaSellBanned}т`, hint: 'Купить 1 книгу: −2т. Продать: +2т за книгу опального жанра, +1т за прочие' },
+  redCorner: { id: 'redCorner', name: 'Красный уголок', limits: [INF, INF, INF], perPlayer: true, short: 'Очередь хода; сдать книги за Талоны', hint: `Очередь хода на следующую Пятилетку; сдать до 1 Непечатной (+${RULES.redCornerUnprinted}т) и до 1 Нагрузки (+${RULES.redCornerLoad}т)` },
+  razval: { id: 'razval', name: 'Развал', limits: [2, 3, 4], short: 'Купить: 2/2/1/1т', hint: 'Купить 1 книгу: −2/−2/−1/−1т по свежести' },
+  zavoz: { id: 'zavoz', name: 'Завоз', limits: [1, 1, 2], short: '+2т, новый Развал', hint: '+2т, Развал полностью обновляется' },
+  baraholka: { id: 'baraholka', name: 'Барахолка', limits: [4, 4, 4], short: 'Глянуть 2 вслепую, купить 1 за 1т', hint: 'Тайно посмотреть 2 из 4 закрытых книг и купить одну из них за 1т' },
+  podpiska: { id: 'podpiska', name: 'Подписка', limits: [1, 1, 1], safehouse: true, short: 'Заказать жанр', hint: 'Заказать жанр: −1т за каждую Пятилетку доставки' },
+  sprouts: { id: 'sprouts', name: 'Ростки Гласности', limits: [INF, INF, INF], short: 'Закрыть ступень Ростка', hint: (RULES.sproutFeedsPerAction === 1 ? 'Закрыть 1 ступень одного Ростка' : `Закрыть до ${RULES.sproutFeedsPerAction} ступеней Ростков`) + `; у каждого Ростка — не больше ${RULES.sproutSlotsPerRound} ступеней за Пятилетку` },
+  samizdat: { id: 'samizdat', name: 'Самиздат', limits: [2, 2, 3], short: `Издать: +${RULES.samizdatTalons}т/значок`, hint: `Издать книгу: +${RULES.samizdatTalons}т/значок` },
+  tamizdat: { id: 'tamizdat', name: 'Тамиздат', limits: [1, 1, 2], short: `Издать: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка/значок`, hint: `Издать книгу: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка/значок` },
+  glavlit: { id: 'glavlit', name: 'Главлит', limits: [1, 1, 2], short: `Сдать опальные (+${RULES.glavlitTalons}т) — взять столько же вслепую`, hint: `Отдать любое число подцензурных книг (+${RULES.glavlitTalons}т за каждую) и взять столько же из стопок Непечатных и Нагрузки на выбор` },
+  makulatura: { id: 'makulatura', name: 'Макулатура', limits: [1, 1, 2], short: `Тянуть вслепую по ${RULES.makulaturaPrice}т, оставить 1`, hint: `По ${RULES.makulaturaPrice}т за книгу: тяните тайно сколько угодно книг из стопок Непечатных и Нагрузки (из любой), затем оставьте себе одну, остальные — в сброс` },
+  knigoobmen: { id: 'knigoobmen', name: 'Книгообмен', limits: [1, 1, 1], safehouse: true, short: 'Обменять книгу на книгу с витрины', hint: 'Отдать 1 жанровую книгу — взять 1 с витрины; когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы' },
+  kvartirnik: { id: 'kvartirnik', name: 'Квартирник', limits: [1, 1, 1], safehouse: true, short: 'Обмен с игроком', hint: 'Обмен книгами с другим игроком по согласию; когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы' },
+  raspredelitel: { id: 'raspredelitel', name: 'Распределитель', limits: [1, 1, 1], safehouse: true, short: `Выдающаяся книга за ${RULES.raspredelitelPrice}т`, hint: `Купить 1 выдающуюся книгу за ${RULES.raspredelitelPrice}т` },
+  agitpunkt: { id: 'agitpunkt', name: 'Агитпункт', limits: [1, 1, 1], safehouse: true, short: 'Нагрузка с витрины даром', hint: 'Свой человек в агитпункте: взять 1 книгу Нагрузки с витрины бесплатно; когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы' },
+  nasledniki: { id: 'nasledniki', name: 'Наследники', limits: [1, 1, 1], safehouse: true, short: `${RULES.safehousePrice}т: 1–2 книги из сброса`, hint: `−${RULES.safehousePrice}т: тайно взять 1–2 книги из сброса Непечатных; остаток сброса замешивается в стопку` },
+  posrednichestvo: { id: 'posrednichestvo', name: 'Посредничество авторам', limits: [1, 1, 1], safehouse: true, short: `${RULES.posrednichestvoPrice}т: вытянуть ${RULES.posrednichestvoDraw}, оставить ${RULES.posrednichestvoKeep} + действие Группы`, hint: `−${RULES.posrednichestvoPrice}т: тайно вытянуть ${RULES.posrednichestvoDraw}, оставить ${RULES.posrednichestvoKeep}, затем 1 любое действие Группы (даже уже сделанное)` },
+  spisanie: { id: 'spisanie', name: 'Библиотечное списание', limits: [1, 1, 1], safehouse: true, short: `${RULES.spisaniePrice}т: ${RULES.spisanieDraw} сверху, оставить любые`, hint: `−${RULES.spisaniePrice}т: тайно взять ${RULES.spisanieDraw} книги сверху стопки Непечатных, оставить сколько угодно, остальные — в сброс` },
+  club: { id: 'club', name: 'Клуб книголюбов', limits: [2, 3, 4], fullOnly: true, short: 'Связь: книга жанра Завсегдатая', hint: RULES.clubFreeGift
     ? 'Без Единомышленника: за свой ход отдайте 1 книгу 1 Завсегдатаю (его жанра или Альбом) — завяжите связь'
     : 'Отдайте Завсегдатаям книги их жанров — завяжите связи' },
-  kontora: { id: 'kontora', name: 'Контора', limits: [INF, INF, INF], fullOnly: true, perPlayer: true, hint: 'Цена — донос на открытую опальную книгу соперника; Ходатайство, Выдача на руки, Профилактика; в конце — обязательно Сигнал на него и Изъятие книги' },
+  kontora: { id: 'kontora', name: 'Контора', limits: [INF, INF, INF], fullOnly: true, perPlayer: true, short: 'Донос: Сигнал и Изъятие', hint: 'Цена — донос на открытую опальную книгу соперника; Ходатайство, Выдача на руки, Профилактика; в конце — обязательно Сигнал на него и Изъятие книги' },
 };
 
 // Тиражирование текста: адреса, где книги покупают в открытую.

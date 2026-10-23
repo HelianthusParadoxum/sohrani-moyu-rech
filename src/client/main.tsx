@@ -5,6 +5,7 @@ import { Game } from './game';
 import { RULES } from '../engine/content';
 import { Modal, PLAYER_COLORS, PresetSelect, SpeedSelect } from './ui';
 import './style.css';
+import './tips';
 
 function useHashCode(): string | null {
   const read = () => decodeURIComponent(location.hash).match(/^#\/r\/(.+)$/)?.[1] ?? null;
