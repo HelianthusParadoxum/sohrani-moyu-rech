@@ -24,6 +24,7 @@ interface Seat { id: string; name: string; token: string; bot: boolean; preset?:
 interface Room {
   code: string; host: string; seats: Seat[]; mode: Mode; state: GameState | null; history: GameState[]; updated: number;
   botDelay?: number;
+  paused?: boolean; // ходы ботов остановлены
   noCurator?: boolean; // настройка: без Куратора в колоде Пристрастий
   forceCurator?: boolean; // для тестов: первый игрок — Куратор
   curatorStyle?: 'open' | 'ambush' | 'boa'; // для тестов: стратегия Куратора-бота
@@ -130,6 +131,7 @@ function roomInfo(room: Room): RoomInfo {
     canUndo: room.history.length > 0,
     hostBot: hostSeat(room)?.bot ?? false,
     botDelay: room.botDelay ?? 700,
+    paused: !!room.paused,
     curator: !room.noCurator,
     forceCurator: !!room.forceCurator,
     curatorStyle: room.curatorStyle ?? '',
@@ -168,7 +170,7 @@ function broadcast(room: Room) {
 
 const botTimers = new Map<string, NodeJS.Timeout>();
 function scheduleBots(room: Room) {
-  if (!room.state || room.state.phase === 'end') return;
+  if (!room.state || room.state.phase === 'end' || room.paused) return;
   const bots = new Set(room.seats.filter((s) => s.bot).map((s) => s.id));
   const who = activePlayers(room.state).find((id) => bots.has(id));
   if (!who) return;
@@ -357,6 +359,15 @@ function handle(ws: WebSocket, msg: ClientMessage) {
       if (!isHost || !seat) return;
       seat.bot = msg.on;
       for (const [, c] of sockets) if (c.room === room.code && c.host) c.seat = msg.on ? null : seat.id;
+      break;
+    }
+    case 'botPause': {
+      if (!isHost) return;
+      room.paused = msg.on;
+      if (msg.on) {
+        clearTimeout(botTimers.get(room.code));
+        botTimers.delete(room.code);
+      }
       break;
     }
     case 'botDelay': {

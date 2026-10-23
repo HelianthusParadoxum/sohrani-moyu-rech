@@ -12,6 +12,7 @@ export interface RoomInfo {
   canUndo: boolean;
   hostBot: boolean; // за хоста играет бот, хост смотрит со стороны
   botDelay: number; // пауза между ходами ботов, мс
+  paused?: boolean; // ходы ботов остановлены (кнопка «Пауза» у хоста)
   curator: boolean; // Куратор в колоде Пристрастий (полный режим)
   forceCurator?: boolean; // для тестов: первый игрок — Куратор
   curatorStyle?: '' | 'open' | 'ambush' | 'boa'; // для тестов: стратегия Куратора-бота ('' — случайная)
@@ -35,6 +36,7 @@ export type ClientMessage =
   | { t: 'restart' }
   | { t: 'hostBot'; on: boolean }
   | { t: 'botDelay'; ms: number }
+  | { t: 'botPause'; on: boolean }
   | { t: 'botPreset'; seat: string; preset: string };
 
 export type ServerMessage =

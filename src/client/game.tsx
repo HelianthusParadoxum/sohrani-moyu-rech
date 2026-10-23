@@ -92,6 +92,9 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
               за меня бот
             </label>
             <SpeedSelect room={room} send={send} />
+            <button className="small" onClick={() => send({ t: 'botPause', on: !room.paused })} title="Остановить или продолжить ходы ботов">
+              {room.paused ? '▶ Продолжить' : '⏸ Пауза'}
+            </button>
             <button className="small" disabled={!room.canUndo} onClick={() => send({ t: 'undo' })} title="Отменить последнее действие (для плейтеста)">↶ Отмена</button>
             <button className="small" onClick={() => confirm('Вернуть комнату в лобби? Текущая партия будет потеряна.') && send({ t: 'restart' })}>В лобби</button>
           </div>
@@ -1308,7 +1311,10 @@ function MyPanel({ view, me, color, groupEnabled, onlyHire, onlyCopy, onGroup, o
 function OtherPlayer({ view, p, color, active, first }: { view: PlayerView; p: VPlayer; color: string; active: boolean; first: boolean }) {
   return (
     <div className={`player ${active ? 'active' : ''}`} style={{ borderColor: color }}>
-      <div className="addr-head"><b style={{ color }}><span className="dot" style={{ background: color }} /> {p.name}</b>{first && <span className="muted small">ходит первым</span>}</div>
+      <div className="addr-head"><b style={{ color }}><span className="dot" style={{ background: color }} /> {p.name}</b>
+        {/* Зрителю видно всё — и Пристрастия. */}
+        {view.me === null && p.passion && <span className="muted small" title={PASSIONS[p.passion].hint}>({PASSIONS[p.passion].name})</span>}
+        {first && <span className="muted small">ходит первым</span>}</div>
       <Stats p={p} view={view} />
       <div className="shelf wrap">{p.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}{emptySlots(freeShelf(p))}</div>
       <Published view={view} p={p} />

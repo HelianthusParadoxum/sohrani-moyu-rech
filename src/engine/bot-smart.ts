@@ -656,8 +656,8 @@ function score(state: GameState, me: string, a: Action, ctx: Ctx, depth: number)
   if (!next) return null;
   // Поиск Пропаганды в Макулатуре (Куратору — за срезами, честному — чтобы она не досталась Куратору): одной примерки мало
   // (Пропаганда выпадает редко) — считаем ожидание по составу стопки.
-  if (a.type === 'place' && a.place.address === 'makulatura' && next.pending[0]?.kind === 'makulatura' && (ctx.curator || denyActive(state, ctx))) {
-    return makulaturaDigValue(next, me, ctx);
+  if (a.type === 'place' && a.place.address === 'makulatura' && next.pending[0]?.kind === 'makulatura') {
+    return ctx.curator ? makulaturaDigValue(next, me, ctx) : honestDig(next, me, ctx).value;
   }
   // Поход в Контору: при примерке считаем, что соперники перепрячут всё, что поместится (самое значкастое — первым).
   while (next && next.pending[0]?.kind === 'kontoraWarning' && next.pending[0].player !== me) {
@@ -685,17 +685,50 @@ function score(state: GameState, me: string, a: Action, ctx: Ctx, depth: number)
   return evaluate(next, me, ctx);
 }
 
-// Честные к концу партии отбирают у Куратора Пропаганду: держать её (и Разоблачения) у себя — значит не дать ему срезов.
-function denyActive(state: GameState, ctx: Ctx): boolean {
-  // Раскрывшийся (Засадой) Куратор опасен не меньше: его срезы в конце никуда не делись.
-  return !ctx.curator && state.mode === 'full' && !!state.curatorPossible && ctx.round >= BOT_BASE.denyFromRound;
+// Честный в Макулатуре: сколько ещё тянуть и чего это стоит. Ожидание лучшей книги из вытянутых (уже вытянутые + ещё k)
+// минус цена k Талонов — по нескольким выборкам из закрытой стопки (состав известен, порядок — нет). Ценность книги —
+// оценка положения с ней на складе; найденная Пропаганда уходит из стопки (её не достанется Куратору).
+function honestDig(s: GameState, me: string, ctx: Ctx): { value: number; extra: number } {
+  const pend = s.pending[0] as Extract<GameState['pending'][number], { kind: 'makulatura' }>;
+  const p = player(s, me);
+  const price = RULES.makulaturaPrice;
+  const reserve = ctx.round >= RULES.rounds ? 0 : BOT_BASE.honestDigReserve;
+  const maxExtra = Math.max(0, Math.min(BOT_BASE.honestDigMax - pend.cards.length, Math.floor((p.talons - reserve) / price)));
+  const base = cloneLight(s);
+  base.pending = base.pending.slice(1);
+  const withCard = (card: string, spend: number) => {
+    const x = cloneLight(base);
+    const q = player(x, me);
+    q.talons -= spend;
+    for (const k of ['deck', 'discard', 'loadDeck', 'loadDiscard'] as const) x[k] = x[k].filter((c) => c !== card);
+    addSecretBook(x, q, card);
+    return evaluate(x, me, ctx);
+  };
+  const cost = Array.from({ length: maxExtra + 1 }, (_, k) => {
+    if (!k) return 0;
+    const x = cloneLight(base);
+    player(x, me).talons -= k * price;
+    return evaluate(base, me, ctx) - evaluate(x, me, ctx);
+  });
+  const value = new Map<string, number>();
+  const val = (c: string) => value.get(c) ?? (value.set(c, withCard(c, 0)), value.get(c)!);
+  const drawnBest = pend.cards.length ? Math.max(...pend.cards.map(val)) : -Infinity;
+  const pool = [...s.deck].reverse();
+  const samples = Math.max(1, Math.min(BOT_BASE.honestDigSamples, Math.floor(pool.length / Math.max(1, maxExtra))));
+  let best = { value: drawnBest, extra: 0 };
+  for (let k = 1; k <= maxExtra; k++) {
+    let sum = 0;
+    for (let i = 0; i < samples; i++) sum += Math.max(drawnBest, ...pool.slice(i * maxExtra, i * maxExtra + k).map(val));
+    const v = sum / samples - cost[k];
+    if (v > best.value) best = { value: v, extra: k };
+  }
+  return best;
 }
 
 // Ожидаемая польза Макулатуры: тянет, пока не найдёт Пропаганду (или не кончатся попытки).
 // Состав стопки бот знает (порядок — нет): шанс Пропаганды на каждую попытку — её доля среди закрытых Непечатных.
 // Сколько Куратор готов тянуть в Макулатуре: в последней Пятилетке Талоны больше ни на что не нужны — до последнего.
 function curatorDig(ctx: Ctx): { max: number; reserve: number } {
-  if (!ctx.curator) return { max: BOT_BASE.denyDigMax, reserve: ctx.round >= RULES.rounds ? 0 : BOT_BASE.denyDigReserve };
   return ctx.round >= RULES.rounds
     ? { max: BOT_BASE.curatorMakulaturaMaxLast, reserve: 0 }
     : { max: BOT_BASE.curatorMakulaturaMax, reserve: BOT_BASE.curatorMakulaturaReserve };
@@ -1189,18 +1222,11 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
           }
           return pend.cards.map((card) => ({ type: 'makulaturaKeep' as const, card }));
         }
-        // Честный к концу партии тоже ищет Пропаганду — чтобы не досталась Куратору; нашёл — оставляет её.
-        if (denyActive(state, ctx)) {
-          const found = pend.cards.find((c) => isPropaganda(state, c));
-          if (found) return [{ type: 'makulaturaKeep', card: found }];
-          const deck = propagandaSearch(determinize(state, () => 0.5, me), BOT_BASE.denyDigMax).best;
-          if (pend.cards.length < BOT_BASE.denyDigMax && p.talons - RULES.makulaturaPrice >= curatorDig(ctx).reserve) return [{ type: 'makulaturaDraw', deck }];
+        // Честный: тянет, пока ожидание лучшей книги перевешивает цену (`honestDig`), потом оставляет лучшую.
+        const canDraw = p.talons >= RULES.makulaturaPrice;
+        if (canDraw && (!pend.cards.length || honestDig(determinize(state, () => 0.5, me), me, ctx).extra > 0)) {
+          return [{ type: 'makulaturaDraw', deck: 'unprinted' }];
         }
-        // Сколько книг тянуть: при запасе Талонов — больше выбор (не больше BOT_BASE.makulaturaMax), потом оставить лучшую.
-        const target = Math.min(BOT_BASE.makulaturaMax, Math.max(1, Math.floor((p.talons + pend.cards.length) / 3)));
-        const draws: Action[] = p.talons >= RULES.makulaturaPrice
-          ? [{ type: 'makulaturaDraw', deck: 'unprinted' }, { type: 'makulaturaDraw', deck: 'load' }] : [];
-        if (pend.cards.length < target && draws.length) return pend.cards.length ? [draws[0]] : draws;
         return pend.cards.map((card) => ({ type: 'makulaturaKeep' as const, card }));
       }
       case 'spisanieKeep': {
