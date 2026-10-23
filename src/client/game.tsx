@@ -82,7 +82,16 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
     <div className="game">
       <header className="topbar">
         <div className="title">Сохрани мою речь</div>
-        <div>{view.reserve && <>Заповедник · </>}{view.solo && <>Несистемный · </>}Пятилетка <b>{view.round}</b>/{RULES.rounds} · {PHASE_NAMES[view.phase]}</div>
+        <div>{view.reserve && <>Заповедник · </>}{view.solo && <>Несистемный · </>}Пятилетка <b>{view.round}</b>/{RULES.rounds} · {PHASE_NAMES[view.phase]}
+          {view.order.length > 1 && (
+            <span className="turn-order"> · Порядок:{' '}
+              {view.order.map((id) => {
+                const p = view.players.find((x) => x.id === id);
+                return <span key={id} className="dot" style={{ background: PLAYER_COLORS[seatIndex(id)] }} title={p?.name} />;
+              })}
+            </span>
+          )}
+        </div>
         <div className="banned">Цензура {view.censorship}: {view.banned.map((g) => <GenreChip key={g} g={g} banned />)}</div>
         <div className="muted small">Непечатные: {view.deckCount} (сброс {view.discardCount}) · Нагрузка: {view.loadDeckCount}</div>
         {isHost && (
@@ -138,7 +147,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
               onCache={canPlace || bonusTurn || afterAction ? () => setPanel({ kind: 'cache' }) : null} />
           )}
           {view.players.filter((p) => p.id !== you).map((p) => (
-            <OtherPlayer key={p.id} view={view} p={p} color={PLAYER_COLORS[seatIndex(p.id)]} active={view.active.includes(p.id)} first={view.order[0] === p.id} />
+            <OtherPlayer key={p.id} view={view} p={p} color={PLAYER_COLORS[seatIndex(p.id)]} active={view.active.includes(p.id)} />
           ))}
           <Log view={view} seatIndex={seatIndex} />
         </aside>
@@ -1308,13 +1317,13 @@ function MyPanel({ view, me, color, groupEnabled, onlyHire, onlyCopy, onGroup, o
   );
 }
 
-function OtherPlayer({ view, p, color, active, first }: { view: PlayerView; p: VPlayer; color: string; active: boolean; first: boolean }) {
+function OtherPlayer({ view, p, color, active }: { view: PlayerView; p: VPlayer; color: string; active: boolean }) {
   return (
     <div className={`player ${active ? 'active' : ''}`} style={{ borderColor: color }}>
       <div className="addr-head"><b style={{ color }}><span className="dot" style={{ background: color }} /> {p.name}</b>
         {/* Зрителю видно всё — и Пристрастия. */}
         {view.me === null && p.passion && <span className="muted small" title={PASSIONS[p.passion].hint}>({PASSIONS[p.passion].name})</span>}
-        {first && <span className="muted small">ходит первым</span>}</div>
+      </div>
       <Stats p={p} view={view} />
       <div className="shelf wrap">{p.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}{emptySlots(freeShelf(p))}</div>
       <Published view={view} p={p} />
