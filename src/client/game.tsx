@@ -1388,7 +1388,8 @@ function Log({ view, seatIndex }: { view: PlayerView; seatIndex: (id: string) =>
           {l.act && <span className="dot num" style={{ background: PLAYER_COLORS[seatIndex(l.act.player)] }} title={`${l.act.n}-е действие игрока в Пятилетке`}>{l.act.n}</span>}
           {l.who && !l.act && <span className="dot" style={{ background: PLAYER_COLORS[seatIndex(l.who)] }} />}
           {l.club && <span className="dot num wide" style={{ background: PLAYER_COLORS[seatIndex(l.club.player)] }} title={`Связь с ${l.club.round}-й Пятилетки`}>П{l.club.round}</span>}
-          {withGenreChips(l.text)}
+          {/* На экране журнал идёт снизу вверх: следствие стоит над своим действием — стрелка ведёт снизу вправо. */}
+          {withGenreChips(l.text.replace(/^↳/, '↱'))}
         </div>
       ))}
     </div>
