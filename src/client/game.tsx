@@ -1074,7 +1074,20 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
 
 // Значки жанров в журнале: «[ПР ФА]» → цветные значки, как в Клубе. Прочие пометки («[Нагрузка]») — как есть.
 const SHORT_TO_GENRE = new Map(GENRES.map((g) => [GENRE_SHORT[g], g] as const));
-function withGenreChips(text: string): ReactNode {
+// Те же значки, что на планшетах игроков: Талоны, очки, склад, Тайник, связи; книги Непечатные (самиздат) и Нагрузка.
+const LOG_ICONS: [RegExp, string][] = [
+  [/\[Нагрузка\] /g, '📕 '],
+  [/(\d+) Талон(?:а|ов)?/g, '$1 🎫'],
+  [/(\d+) очк(?:о|а|ов)(?: Гласности)?/g, '$1 ★'],
+  [/склад увеличен до/g, '📚 увеличен до'],
+  [/Тайник увеличен до/g, '🔒 увеличен до'],
+  [/заводит связь в Клубе:/g, '🤝'],
+  [/Нагрузк[а-я]*/g, '📕'],
+  [/Непечатн[а-я]*/g, '📃'],
+];
+
+function withGenreChips(raw: string): ReactNode {
+  const text = LOG_ICONS.reduce((t, [re, to]) => t.replace(re, to), raw);
   const parts = text.split(/(\[[^\]]+\])/);
   return parts.map((part, i) => {
     const tokens = /^\[(.+)\]$/.exec(part)?.[1].split(' ');
