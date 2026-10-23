@@ -356,7 +356,7 @@ function startRound(state: GameState, newSafehouse?: AddressId) {
   }
   logEvent(state, `Пятилетка ${state.round}.`);
   // Цензура списком: что вышло из опалы, что попало, что в опале теперь.
-  const list = (gs: Genre[]) => gs.map(genreLabel).join(', ') || '—';
+  const list = (gs: Genre[]) => gs.map(genreLabel).join(' ') || '—';
   log(state, state.round > 1
     ? `Цензура: ${state.censorship}\n• Из опалы выходят: ${list(before.filter((g) => !state.banned.includes(g)))}`
       + `\n• В опалу попадают: ${list(state.banned.filter((g) => !before.includes(g)))}\n• В опале теперь: ${list(state.banned)}`
@@ -459,8 +459,8 @@ function logSetup(state: GameState) {
   });
   log(state, `Ростки Гласности:\n${sprouts.join('\n')}`);
   if (state.patrons?.length) {
-    const patrons = [...state.patrons].sort((a, b) => CLUB_ORDER.indexOf(a.genre) - CLUB_ORDER.indexOf(b.genre)).map((pt) => `• ${PATRONS[pt.id].name} (${genreLabel(pt.genre)}) — ${PATRONS[pt.id].hint}`);
-    log(state, `Завсегдатаи Клуба (в скобках — жанр книги, за которую заводится связь):\n${patrons.join('\n')}`);
+    const patrons = [...state.patrons].sort((a, b) => CLUB_ORDER.indexOf(a.genre) - CLUB_ORDER.indexOf(b.genre)).map((pt) => `• [${GENRE_SHORT[pt.genre]}] ${PATRONS[pt.id].name} — ${PATRONS[pt.id].hint}`);
+    log(state, `Завсегдатаи Клуба (значок — жанр книги, за которую заводится связь):\n${patrons.join('\n')}`);
   }
 }
 
@@ -560,6 +560,7 @@ function dramaBonus(state: GameState) {
     if (!cards.length) continue;
     gain(p, cards.length, 'drama');
     log(state, `${p.name} разыгрывает драматургию: ${titles(state, cards)} — +${pointsText(cards.length)}.`);
+    state.log[state.log.length - 1].who = p.id;
   }
 }
 
