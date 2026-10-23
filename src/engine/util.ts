@@ -76,7 +76,10 @@ export function title(state: GameState, id: string): string {
   const kind = isPropaganda(state, id) ? 'Пропаганда' : isExposed(state, id) ? 'Разоблачение' : isEvidence(state, id) ? 'Улика'
     : isLoad(state, id) ? 'Нагрузка' : '';
   const tag = icons.length ? icons.map((g) => GENRE_SHORT[g]).join(' ') : kind;
-  return `${tag ? `[${tag}] ` : ''}«${c.title}»`;
+  // Возвращаемая Нагрузка: на обороте — вторая книга (3 значка её жанра после Возвращения смыслов).
+  const back = c.kind === 'loadReturnable' && !state.restored[id] && c.returned
+    ? ` / [${[c.genre!, c.genre!, c.genre!].map((g) => GENRE_SHORT[g]).join(' ')}] «${c.returned}»` : '';
+  return `${tag ? `[${tag}] ` : ''}«${c.title}»${back}`;
 }
 
 // Несколько книг: до двух — через запятую, больше — списком, каждая с новой строки.

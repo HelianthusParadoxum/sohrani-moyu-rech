@@ -3,7 +3,7 @@ import { applyAction, createGame, startHide } from '../src/engine/engine';
 import { playOut } from '../src/engine/bot';
 import { curatorSuspicionDetail } from '../src/engine/bot-smart';
 import { gainedInfo, viewFor } from '../src/engine/view';
-import { RuleError, cacheLimit, coversStep, iconsOf, isBanned, isEvidence, isLoad, isPropaganda, discard, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
+import { RuleError, cacheLimit, coversStep, title, iconsOf, isBanned, isEvidence, isLoad, isPropaganda, discard, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
 import { finalScoring, passionPoints, scoreLine } from '../src/engine/scoring';
 import { PASSIONS, RULES, SPROUTS, limitFor, sproutBonusOptions } from '../src/engine/content';
 import type { GameState, Genre, PatronId } from '../src/engine/types';
@@ -1490,6 +1490,16 @@ describe('Спецхран и Проза', () => {
     const prose = Object.keys(s.cards).filter((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.includes('prose')).slice(0, 3);
     p.warehouse = prose.map((card) => ({ card, hidden: false }));
     expect(proseBonus(s, p)).toBe(1);
+  });
+});
+
+describe('Журнал: возвращаемая Нагрузка', () => {
+  it('пишется со второй книгой и её значками, пока смыслы не возвращены', () => {
+    const s = createGame({ players: players(2), seed: 1 });
+    const id = Object.keys(s.cards).find((c) => s.cards[c].kind === 'loadReturnable' && s.cards[c].title === 'Туманность Андромеды')!;
+    expect(title(s, id)).toBe('[Нагрузка] «Туманность Андромеды» / [ФА ФА ФА] «Час Быка»');
+    s.restored[id] = true;
+    expect(title(s, id)).toBe('[ФА ФА ФА] «Туманность Андромеды»');
   });
 });
 
