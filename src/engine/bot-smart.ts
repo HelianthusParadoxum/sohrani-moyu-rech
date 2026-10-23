@@ -198,6 +198,8 @@ export function curatorSuspicionDetail(state: GameState, me: string): Record<str
       if (state.round >= 3 && state.players.filter((x) => x.id !== o.id && !x.sproutsFed.length).length === 0) add(BOT_BASE.suspectOnlyNoFeed, '...единственный за столом');
     } else {
       add(-BOT_BASE.suspectFeeds * o.sproutsFed.length, `кормил Ростки (${o.sproutsFed.length})`);
+      const high = (o.fedSteps ?? []).filter((x) => x >= 2).length;
+      add(-BOT_BASE.suspectFeedHigh * high, `питал ступени II–IV${times(high)}`);
       if (trust < 1 && parts.some((x) => x.includes('+'))) parts.push(`(у кормившего Ростки улики весят ${Math.round(trust * 100)}%)`);
     }
     out[o.id] = { value: Math.min(1, Math.max(0, v)), parts };

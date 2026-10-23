@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { applyAction, createGame, startHide } from '../src/engine/engine';
 import { playOut } from '../src/engine/bot';
-import { curatorSuspicionDetail } from '../src/engine/bot-smart';
+import { curatorSuspicion, curatorSuspicionDetail } from '../src/engine/bot-smart';
 import { gainedInfo, viewFor } from '../src/engine/view';
 import { RuleError, cacheLimit, coversStep, title, iconsOf, isBanned, isEvidence, isLoad, isPropaganda, discard, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
 import { finalScoring, passionPoints, scoreLine } from '../src/engine/scoring';
@@ -1515,6 +1515,25 @@ describe('Журнал: возвращаемая Нагрузка', () => {
     expect(title(s, id)).toBe('[Нагрузка] «Туманность Андромеды» / [ФА ФА ФА] «Час Быка»');
     s.restored[id] = true;
     expect(title(s, id)).toBe('[ФА ФА ФА] «Туманность Андромеды»');
+  });
+});
+
+describe('Подозрение: питание ступеней II–IV', () => {
+  it('каждое питание ступени II–IV немного снижает подозрение', () => {
+    let s = createGame({ players: players(3), seed: 15, mode: 'full', forceCurator: true });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const [a, b] = s.players;
+    b.denounces = 2; // подозрение +50%, без потолка в 100%
+    const base = curatorSuspicion(s, a.id)[b.id];
+    b.sproutsFed = [s.sprouts[0].id];
+    b.fedSteps = [1];
+    const low = curatorSuspicion(s, a.id)[b.id];
+    b.fedSteps = [1, 2, 3];
+    const high = curatorSuspicion(s, a.id)[b.id];
+    expect(low).toBeLessThan(base);
+    expect(high).toBeLessThan(low);
+    expect(curatorSuspicionDetail(s, a.id)[b.id].parts.some((x) => x.startsWith('питал ступени II–IV ×2'))).toBe(true);
   });
 });
 
