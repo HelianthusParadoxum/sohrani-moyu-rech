@@ -1149,17 +1149,18 @@ function GatheringPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act
   const cands = me.warehouse.map((s) => s.card!).filter((c) => c && (iconsOf(view, c).length > 0 || isEvidence(view, c)) && isBanned(view, c));
   // По умолчанию к показу выбрано всё, что приносит очки: опальные книги и Улики.
   const [sel, setSel] = useState<string[]>(() => cands);
-  const per = full && !view.reserve ? RULES.gatheringPointsFull : RULES.gatheringPoints;
+  const per = RULES.gatheringPoints;
   const pts = sel.length * per;
+  const geo = hasPatron(view, me.id, 'geologist');
   return (
     <Modal title="Посиделки" wide>
-      <p>Покажите опальные жанровые книги и Улики: +{per} {per === 1 ? 'очко' : 'очка'} за каждую.
+      <p>Покажите опальные жанровые книги и Улики: +{per}★ за каждую{geo ? ' и ещё +1🎫 от Геолога' : ''}.
         {full && !view.reserve && view.curatorPossible && !view.curatorRevealed && ' Осторожно: Куратор может раскрыться и устроить Засаду — показавшим опальное грозит Контора (показанная книга не считается спрятанной).'} Показанные книги остаются на складе — не забудьте укрыть их перед облавой.</p>
       <div className="shelf wrap">
         {cands.length === 0 && <span className="muted">Опальных жанровых книг нет</span>}
         {cands.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} onClick={() => setSel(toggle(sel, c))} />)}
       </div>
-      <div className="modal-foot"><button className="primary" onClick={() => act({ type: 'gathering', show: sel })}>{sel.length ? `Показать (+${pts} оч.)` : 'Ничего не показывать'}</button></div>
+      <div className="modal-foot"><button className="primary" onClick={() => act({ type: 'gathering', show: sel })}>{sel.length ? `Показать (+${pts}★${geo ? `, +${sel.length}🎫` : ''})` : 'Ничего не показывать'}</button></div>
     </Modal>
   );
 }

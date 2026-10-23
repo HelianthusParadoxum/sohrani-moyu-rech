@@ -913,7 +913,7 @@ describe('Засада на Посиделках', () => {
     let { s, cur, a, b, book } = atGathering();
     const pts = s.players.find((x) => x.id === a)!.points;
     s = applyAction(s, a, { type: 'gathering', show: [book] });
-    expect(s.players.find((x) => x.id === a)!.points).toBe(pts + RULES.gatheringPointsFull);
+    expect(s.players.find((x) => x.id === a)!.points).toBe(pts + RULES.gatheringPoints);
     s = applyAction(s, b, { type: 'gathering', show: [] });
     s = applyAction(s, cur, { type: 'gathering', show: [] });
     expect(s.phase).toBe('ambush');
@@ -1107,7 +1107,7 @@ describe('Тиражирование вдогонку', () => {
 });
 
 describe('Посиделки и Улики', () => {
-  it('на Посиделках можно показать Улику: +1 очко', () => {
+  it('на Посиделках можно показать Улику: +2 очка', () => {
     let s = createGame({ players: players(2), seed: 3 });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
     s = startOrders(s);
@@ -1120,7 +1120,7 @@ describe('Посиделки и Улики', () => {
     s.pending = [];
     const before = p.points;
     s = applyAction(s, p.id, { type: 'gathering', show: [ev] });
-    expect(s.players[0].points).toBe(before + 1);
+    expect(s.players[0].points).toBe(before + RULES.gatheringPoints);
     // В журнале строка Посиделок — с кружком игрока.
     expect(s.log.find((l) => l.text.includes('показывает на Посиделках'))?.who).toBe(p.id);
   });

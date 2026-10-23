@@ -560,7 +560,7 @@ function endOrders(state: GameState) {
   state.ready = [];
   state.shownAtGathering = {};
   logEvent(state, 'Посиделки.');
-  const pts = gatheringPoints(state);
+  const pts = RULES.gatheringPoints;
   logNote(state, `Можно показать опальные книги и Улики со склада — ${pointsText(pts)} за каждую.${ambushPossible(state) ? ' Но Куратор может раскрыться и устроить Засаду: всех, кто показал опальное, ждёт Контора.' : ''}`);
   // Раскрывшийся Куратор на Посиделки не допускается: выбора у него нет.
   const cur = state.curatorRevealed && state.players.find((x) => x.id === state.curatorRevealed);
@@ -595,7 +595,7 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
     const banned = (isGenreBook(state, id) || isEvidence(state, id)) && isBanned(state, id);
     check(hasBook(p, id), 'Показывать можно только книги со своего склада');
     check(banned, `${title(state, id)} — не опальная жанровая книга и не Улика`);
-    pts += gatheringPoints(state);
+    pts += RULES.gatheringPoints;
     (state.shownAtGathering ??= {})[p.id] = [...(state.shownAtGathering[p.id] ?? []), id];
     if (hasPatron(state, p.id, 'geologist')) geo++;
   }
@@ -624,9 +624,6 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
   }
 }
 
-function gatheringPoints(state: GameState): number {
-  return isFull(state) && !state.reserve ? RULES.gatheringPointsFull : RULES.gatheringPoints;
-}
 
 // Засада: в полном режиме с Конторой, пока Куратор не раскрылся (есть ли он на самом деле — не выдаём).
 function ambushPossible(state: GameState): boolean {
