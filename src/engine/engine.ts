@@ -341,7 +341,7 @@ function startRound(state: GameState, newSafehouse?: AddressId) {
     p.visitedRedCorner = false;
   }
   // Обстановка: опала и обновление каналов.
-  let change = '';
+  const before = [...state.banned];
   if (state.round > 1) {
     // Инерция: самый старый опальный жанр выходит из опалы, взамен (и при росте Цензуры — сверх того) в опалу попадают
     // новые, только что освобождённый в ту же Пятилетку не возвращается. Окостенение: давно ненавистное так и остаётся —
@@ -351,16 +351,16 @@ function startRound(state: GameState, newSafehouse?: AddressId) {
     const released = ossified ? state.banned[state.banned.length - 1] : state.banned[0];
     const fresh = shuffle(state, GENRES.filter((g) => !kept.includes(g) && (ossified || g !== released))).slice(0, Math.max(0, state.censorship - kept.length));
     state.banned = [...kept, ...fresh].slice(-state.censorship);
-    const back = released && fresh.includes(released);
-    const out = fresh.filter((g) => g !== released);
-    change = back
-      ? ` Опала остаётся: ${genreLabel(released)}${out.length ? `; в опалу попадает: ${out.map(genreLabel).join(', ')}` : ''}.`
-      : ` Из опалы выходит: ${released ? genreLabel(released) : '—'}; в опалу попадает: ${fresh.map(genreLabel).join(', ') || '—'}.`;
   } else if (!state.banned.length) {
     state.banned = shuffle(state, [...GENRES]).slice(0, state.censorship);
   }
   logEvent(state, `Пятилетка ${state.round}.`);
-  log(state, `Цензура: ${state.censorship}. В опале: ${state.banned.map(genreLabel).join(', ')}.${change}`);
+  // Цензура списком: что вышло из опалы, что попало, что в опале теперь.
+  const list = (gs: Genre[]) => gs.map(genreLabel).join(', ') || '—';
+  log(state, state.round > 1
+    ? `Цензура: ${state.censorship}\n• Из опалы выходят: ${list(before.filter((g) => !state.banned.includes(g)))}`
+      + `\n• В опалу попадают: ${list(state.banned.filter((g) => !before.includes(g)))}\n• В опале теперь: ${list(state.banned)}`
+    : `Цензура: ${state.censorship}\n• В опале: ${list(state.banned)}`);
   if (newSafehouse) log(state, `Открылся новый явочный адрес: ${ADDRESSES[newSafehouse].name}.`);
 
   refreshChannels(state, state.round === 1);
