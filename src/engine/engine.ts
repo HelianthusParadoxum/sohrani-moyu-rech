@@ -520,10 +520,13 @@ function endOrders(state: GameState) {
       if (freeSlots(p) > 0) {
         addSecretBook(state, p, got);
         log(state, `${p.name} получает по Подписке книгу жанра ${GENRE_NAMES[sub.genre]}.`);
+        state.log[state.log.length - 1].who = p.id;
         log(state, `По Подписке пришла ${title(state, got)}.`, [p.id]);
+        state.log[state.log.length - 1].who = p.id;
       } else {
         discard(state, got);
         log(state, `${p.name}: книга по Подписке ушла в сброс — нет места на складе.`);
+        state.log[state.log.length - 1].who = p.id;
       }
     }
     p.subscriptions = p.subscriptions.filter((s) => s.rounds > 0);
