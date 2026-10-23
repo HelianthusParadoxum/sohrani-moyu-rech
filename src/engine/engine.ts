@@ -293,8 +293,14 @@ function finishAction(state: GameState, p: PlayerState, pointsBefore: number, lo
       winners: curator ? [curator.id] : [],
       scores: [],
       note: `Контора удерживает ${7} Единомышленников — подполье разгромлено.${curator ? ` Побеждает Куратор — ${curator.name}.` : ' Все проиграли.'}`,
+      summary: `Контора удерживает ${7} Единомышленников — подполье разгромлено.${curator ? '' : ' Все проиграли.'}`,
+      winTail: ' (Куратор).',
     };
-    log(state, state.result.note);
+    log(state, state.result.summary);
+    if (curator) {
+      log(state, `Победа: ${curator.name} (Куратор).`);
+      state.log[state.log.length - 1].winners = [curator.id];
+    }
   }
   return state;
 }
@@ -746,7 +752,13 @@ function changeRound(state: GameState) {
     state.phase = 'end';
     flushIrony(state);
     state.result = finalScoring(state);
-    log(state, `Конец Застоя. ${state.result.note}`);
+    // Итог — и самой последней строкой победитель (с кружком игрока в клиенте).
+    const r = state.result!;
+    log(state, `Конец Застоя. ${r.summary}`);
+    if (r.winners.length) {
+      log(state, `Победа: ${r.winners.map((id) => player(state, id).name).join(', ')}${r.winTail ?? '.'}`);
+      state.log[state.log.length - 1].winners = [...r.winners];
+    }
     return;
   }
   // Новый порядок хода: сперва посетившие Красный уголок, затем остальные в прежнем порядке.
@@ -1403,11 +1415,11 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         pay(p, cost);
         state.baraholka[slot] = null;
         for (const id of Object.keys(state.baraholkaSeen ?? {})) state.baraholkaSeen![id] = state.baraholkaSeen![id].filter((x) => x !== slot);
-        addSecretBook(state, p, card);
         pend.seen.splice(i, 1);
         pend.bought = bought + 1;
         log(state, `${p.name} покупает книгу на Барахолке.`);
         log(state, `Вы купили ${title(state, card)}.`, [p.id]);
+        addSecretBook(state, p, card, 'взакрытую');
       }
       if (action.next !== undefined) {
         check(veteran, 'Смотреть ещё книги может только игрок со связью с Ветераном');

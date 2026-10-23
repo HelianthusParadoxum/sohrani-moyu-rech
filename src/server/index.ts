@@ -54,7 +54,10 @@ function noteCuratorStyle(room: Room) {
   const cur = s.players.find((p) => p.passion === 'curator');
   if (!cur || !room.seats.find((x) => x.id === cur.id)?.bot) return;
   const text = curatorStyleNote(s, cur.id, cur.name, effectiveCuratorStyle(s, cur.id) === 'open');
-  if (!s.log.some((l) => l.text === text)) s.log.push({ round: s.round, text });
+  if (s.log.some((l) => l.text === text)) return;
+  // Строка о победителе — самая последняя: заметку о стратегии ставим перед ней.
+  const win = s.log.findIndex((l) => l.winners);
+  s.log.splice(win >= 0 ? win : s.log.length, 0, { round: s.round, text });
 }
 
 // Записи только для зрителя (хост без места видит всё): стратегия Куратора-бота сразу после выбора Пристрастия

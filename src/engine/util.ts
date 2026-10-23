@@ -237,13 +237,14 @@ export function addBook(p: PlayerState, id: string) {
 
 // Книга, взятая взакрытую (из стопки, сброса, Спецхрана, с Барахолки): если в Тайнике есть место, она сразу ложится туда,
 // и соперники так и не узнают, что это за книга. Нагрузку не прячем — от облавы её укрывать незачем.
-export function addSecretBook(state: GameState, p: PlayerState, id: string) {
+// how — как взята книга: «вслепую» (из стопки, не глядя) или «взакрытую» (сам видел, соперники — нет: Барахолка).
+export function addSecretBook(state: GameState, p: PlayerState, id: string, how = 'вслепую') {
   addBook(p, id);
   if (isLoad(state, id)) return;
   const used = p.warehouse.filter((s) => s.hidden).length;
   if (used < cacheLimit(state, p)) {
     p.warehouse[p.warehouse.length - 1].hidden = true;
-    log(state, `${p.name} берёт книгу вслепую и кладёт в Тайник.`);
+    log(state, `${p.name} берёт книгу ${how} и кладёт в Тайник.`);
   }
 }
 

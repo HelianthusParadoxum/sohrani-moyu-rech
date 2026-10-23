@@ -1393,8 +1393,15 @@ function Log({ view, seatIndex }: { view: PlayerView; seatIndex: (id: string) =>
           {l.who && !l.act && <span className="dot" style={{ background: PLAYER_COLORS[seatIndex(l.who)] }} />}
           {l.club && <span className="dot num wide" style={{ background: PLAYER_COLORS[seatIndex(l.club.player)] }} title={`Связь с ${l.club.round}-й Пятилетки`}>П{l.club.round}</span>}
           {/* На экране журнал идёт снизу вверх: следствие стоит над своим действием — стрелка ведёт снизу вправо. */}
-          {l.order
-            ? <>Порядок хода: {l.order.map((id, k) => <Fragment key={id}>{k ? ', ' : ''}<span className="dot tight" style={{ background: PLAYER_COLORS[seatIndex(id)] }} />{view.players.find((x) => x.id === id)?.name}</Fragment>)}.</>
+          {l.order || l.winners
+            ? (() => {
+                // «Порядок хода: …» и «Победа: …» — перед каждым именем кружок игрока.
+                const ids = (l.order ?? l.winners)!;
+                const names = ids.map((id) => view.players.find((x) => x.id === id)?.name ?? '?');
+                const head = l.order ? 'Порядок хода: ' : 'Победа: ';
+                const tail = l.text.slice(head.length + names.join(', ').length);
+                return <>{head}{ids.map((id, k) => <Fragment key={id}>{k ? ', ' : ''}<span className="dot tight" style={{ background: PLAYER_COLORS[seatIndex(id)] }} />{names[k]}</Fragment>)}{withGenreChips(tail)}</>;
+              })()
             : withGenreChips(l.text.replace(/^↳/, '↱'))}
         </div>
       ))}

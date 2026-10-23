@@ -126,6 +126,8 @@ export function finalScoring(state: GameState): GameResult {
       note: curator
         ? `Гласность не наступила. Побеждает Куратор — ${curator.name}.`
         : 'Гласность не наступила: все Единомышленники проиграли.',
+      summary: curator ? 'Гласность не наступила.' : 'Гласность не наступила: все Единомышленники проиграли.',
+      winTail: ' (Куратор).',
     };
   }
   if (curator) {
@@ -143,6 +145,8 @@ export function finalScoring(state: GameState): GameResult {
       return {
         glasnost: false, scores, winners: [curator.id],
         note: `Куратор (${curator.name}) срезал Ростки (${cutLog.join(', ')}) — Гласность не устояла. Куратор побеждает в одиночку.`,
+        summary: `Куратор (${curator.name}) срезал Ростки (${cutLog.join(', ')}) — Гласность не устояла.`,
+        winTail: ' (Куратор, в одиночку).',
       };
     }
   }
@@ -179,7 +183,10 @@ export function finalScoring(state: GameState): GameResult {
     if (contenders.length > 1) steps.push('полная ничья — победа делится');
   }
   const tie = steps.length ? ` ${steps.join(' → ').replace(/^./, (ch) => ch.toUpperCase())}.` : '';
-  return { glasnost: true, scores, winners, note: `Гласность наступила! Победа: ${names} (${top.s.total} очков).${tie}` };
+  return {
+    glasnost: true, scores, winners, note: `Гласность наступила! Победа: ${names} (${top.s.total} очков).${tie}`,
+    summary: `Гласность наступила!${tie}`, winTail: ` (${top.s.total} очков).`,
+  };
 }
 
 // Несистемный: вскрываются верхние Непечатные, каждая Пропаганда срезает ступень у самого развитого Ростка.
@@ -188,7 +195,8 @@ function soloResult(state: GameState, scores: ScoreLine[], sproutName: (id: stri
   const me = state.players[0];
   const total = scores[0].total;
   if (!glasnostReached(state)) {
-    return { glasnost: false, scores, winners: [], note: `Гласность не наступила — поражение (${total} очк.).` };
+    const note = `Гласность не наступила — поражение (${total} очк.).`;
+    return { glasnost: false, scores, winners: [], note, summary: note };
   }
   let propaganda = 0;
   const cards = RULES.soloEndCards[state.mode];
@@ -212,5 +220,7 @@ function soloResult(state: GameState, scores: ScoreLine[], sproutName: (id: stri
     note: won
       ? `Гласность устояла (Пропаганды: ${propaganda}). Победа! Итог: ${total} очк.`
       : `Пропаганда (${propaganda}) срезала Ростки — Гласность не устояла. Поражение (${total} очк.).`,
+    summary: won ? `Гласность устояла (Пропаганды: ${propaganda}).` : `Пропаганда (${propaganda}) срезала Ростки — Гласность не устояла. Поражение (${total} очк.).`,
+    winTail: ` (итог: ${total} очк.).`,
   };
 }

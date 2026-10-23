@@ -166,6 +166,7 @@ export interface LogEntry {
   strong?: boolean; // выделить жирным (начало Пятилетки, Пристрастие Куратора)
   club?: { player: string; round: number }; // связь в Клубе: жетон «П<Пятилетка>», как у Завсегдатая
   order?: string[]; // строка «Порядок хода»: в клиенте перед именами — кружки игроков
+  winners?: string[]; // последняя строка «Победа: …»: в клиенте перед именами — кружки игроков
 }
 
 export interface GameState {
@@ -244,6 +245,8 @@ export interface GameResult {
   winners: string[];
   scores: ScoreLine[];
   note: string;
+  summary: string; // для журнала: итог без строки о победителе
+  winTail?: string; // для журнала: что идёт после имён победителей («(71 очков)», «(Куратор)»)
 }
 
 // ---------- Действия игроков ----------

@@ -1497,6 +1497,17 @@ describe('Спецхран и Проза', () => {
   });
 });
 
+describe('Журнал: конец партии и Барахолка', () => {
+  it('победитель — самой последней строкой (с кружком); на Барахолке — сначала покупка, потом «взакрытую в Тайник»', () => {
+    const s = playOut(createGame({ players: players(3), seed: 905, mode: 'full' }));
+    const last = s.log[s.log.length - 1];
+    expect(s.result!.winners.length).toBeGreaterThan(0);
+    expect(last.winners).toEqual(s.result!.winners);
+    expect(last.text).toMatch(/^Победа: /);
+    expect(s.log.some((l) => l.text.includes('вслепую') && s.log[s.log.indexOf(l) + 1]?.text.includes('покупает книгу на Барахолке'))).toBe(false);
+  });
+});
+
 describe('Журнал: усилилась ли Цензура', () => {
   it('в каждой новой Пятилетке — отдельной строкой; в одиночной игре — нет', () => {
     const s = playOut(createGame({ players: players(3), seed: 905, mode: 'full' }));
