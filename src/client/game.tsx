@@ -82,7 +82,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
     <div className="game">
       <header className="topbar">
         <div className="title">Сохрани мою речь</div>
-        <div>{view.reserve && <>Заповедник · </>}{view.solo && <>Несистемный · </>}Пятилетка <b>{view.round}</b>/{RULES.rounds} · {PHASE_NAMES[view.phase]}
+        <div>{view.reserve && <>Заповедник · </>}{view.solo && <>Несистемный · </>}Пятилетка <b>{view.round}</b>/{RULES.rounds}
           {view.order.length > 1 && (
             <span className="turn-order"> · Порядок:{' '}
               {view.order.map((id) => {
@@ -110,7 +110,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
         )}
       </header>
       <div className={`status ${myTurn ? 'mine' : ''}`}>
-        {status}
+        <b className="phase">{PHASE_NAMES[view.phase]}.</b> {status}
         {bonusTurn && <button className="small" onClick={() => act({ type: 'pass' })}>Отказаться</button>}
         {afterAction && <button className="primary small end-turn-inline" onClick={() => act({ type: 'endTurn' })}>Закончить ход</button>}
         {view.phase === 'end' && view.result && <button className="small" onClick={() => setShowResult(true)}>Таблица счёта</button>}
