@@ -480,7 +480,7 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
     case 'razval':
       body = (
         <>
-          <p>{veteran ? 'Ветеран: купите сколько угодно книг, в сумме на 1 Талон дешевле (минимум 1).' : 'Купите 1 книгу.'} Цена зависит от свежести.</p>
+          <p>{veteran ? 'Ветеран: купите сколько угодно книг, в сумме на 1 Талон дешевле.' : 'Купите 1 книгу.'} Цена зависит от свежести.</p>
           <div className="shelf wrap">
             {view.razval.map((c, i) => c && (
               <Book key={i} v={view} id={c} price={RULES.razvalPrices[i]} selected={sel.includes(String(i))}
@@ -597,7 +597,7 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
     case 'raspredelitel':
       body = (
         <>
-          {veteran && <p className="muted small">Ветеран: купите сколько угодно книг, в сумме на 1 Талон дешевле (минимум 1).</p>}
+          {veteran && <p className="muted small">Ветеран: купите сколько угодно книг, в сумме на 1 Талон дешевле.</p>}
           {pickList(view.raspredelitel, sel, setSel, veteran ? {} : { max: 1 })}
           {confirmBtn(veteran && sel.length > 1 ? 'Купить' : `Купить за ${RULES.raspredelitelPrice}т`, sel.length && free >= sel.length
             ? { address: 'raspredelitel', card: sel[0], ...(sel.length > 1 ? { cards: sel } : {}) } : null)}

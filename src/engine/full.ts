@@ -315,14 +315,13 @@ export function partorgFill(state: GameState, p: PlayerState) {
 // Покупки за одно действие. Скупщик: первая — на 1 дешевле (минимум 1). Ветеран: в сумме на 1 Талон дешевле (минимум 1) —
 // скидка достаётся первой покупке, после которой сумма всё ещё не меньше 1 Талона.
 export function purchases(state: GameState, p: PlayerState) {
-  let spent = 0;
   let count = 0;
   let veteran = hasPatron(state, p.id, 'veteran');
   return (cost: number): number => {
     let c = count === 0 ? price(state, p, cost) : cost;
-    if (veteran && c > 0 && spent + c - 1 >= 1) { c--; veteran = false; saved(p, 'veteran', 1); }
+    // Ветеран: всё действие на 1 Талон дешевле — и одна книга за 1 Талон выходит даром.
+    if (veteran && c > 0) { c--; veteran = false; saved(p, 'veteran', 1); }
     pay(p, c);
-    spent += c;
     count++;
     return c;
   };

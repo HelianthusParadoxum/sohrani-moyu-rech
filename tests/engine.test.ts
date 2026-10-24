@@ -580,6 +580,19 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     for (const i of slots) expect(s.razval[i]).toBeNull();
   });
 
+  it('Ветеран: скидка без минимума — одна книга за 1 Талон достаётся даром', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    connect(s, 'veteran', [me]);
+    const p0 = s.players.find((x) => x.id === me)!;
+    p0.capacity = 10;
+    p0.talons = 5;
+    const slot = RULES.razvalPrices.findIndex((c, i) => c === 1 && s.razval[i]);
+    expect(slot).toBeGreaterThanOrEqual(0);
+    s = applyAction(s, me, { type: 'place', place: { address: 'razval', slot } });
+    expect(s.players.find((x) => x.id === me)!.talons).toBe(5);
+  });
+
   it('Корреспондент: +1 Талон и +1 очко за издание; Столяр: Закладка Тайника — +2 места', () => {
     let s = started();
     const me = s.order[s.turn];
