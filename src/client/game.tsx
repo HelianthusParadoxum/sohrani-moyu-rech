@@ -211,11 +211,11 @@ function groupPrice(view: PlayerView, p: VPlayer | null, id: string): string {
   let cost = groupCost(id);
   if (p && id === 'expandCache' && hasPatron(view, p.id, 'carpenter')) cost = 0;
   if (p) cost = priceFor(view, p, cost);
-  return cost ? `−${cost}🎫` : '';
+  return cost ? `${cost}🎫` : '';
 }
 const withPrice = (view: PlayerView, p: VPlayer | null, id: string) => {
   const price = groupPrice(view, p, id);
-  return `${SPROUT_BONUS_NAMES[id as SproutBonusId]}${price ? ` (${price})` : ''}`;
+  return `${price ? `${price} ` : ''}${SPROUT_BONUS_NAMES[id as SproutBonusId]}`;
 };
 
 // Цена с учётом Скупщика (на 1 Талон дешевле, минимум 1).
@@ -1383,7 +1383,7 @@ function MyPanel({ view, me, color, groupEnabled, onlyHire, onlyCopy, onGroup, o
             <button key={g} className={`small ${groupBlocker(view, me, g) ? 'short' : ''}`}
               title={me.groupUsed.includes(g) ? 'Уже сделано в эту Пятилетку' : groupBlocker(view, me, g) ?? GROUP_ACTIONS[g].hint}
               disabled={!groupEnabled || me.groupUsed.includes(g) || !!groupBlocker(view, me, g) || (onlyHire && g !== 'hire') || (onlyCopy && g !== 'copyText')} onClick={() => onGroup(g)}>
-              {GROUP_ACTIONS[g].name}{groupPrice(view, me, g) && <span className="gprice"> {groupPrice(view, me, g)}</span>}<GroupSlot p={me} g={g} color={color} />
+              {groupPrice(view, me, g) && <span className="gprice">{groupPrice(view, me, g)} </span>}{GROUP_ACTIONS[g].name}<GroupSlot p={me} g={g} color={color} />
             </button>
           ))}
         </div>
@@ -1405,7 +1405,7 @@ function OtherPlayer({ view, p, color, active }: { view: PlayerView; p: VPlayer;
       <div className="group-actions readonly" title="Действия Инициативной группы в эту Пятилетку">
         {(Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => groupInGame(view, g)).map((g) => (
           <span key={g} className={`gact ${p.groupUsed.includes(g) ? 'used' : ''}`} title={GROUP_ACTIONS[g].hint}>
-            {GROUP_ACTIONS[g].name}{groupPrice(view, p, g) && <span className="gprice"> {groupPrice(view, p, g)}</span>}<GroupSlot p={p} g={g} color={color} />
+            {groupPrice(view, p, g) && <span className="gprice">{groupPrice(view, p, g)} </span>}{GROUP_ACTIONS[g].name}<GroupSlot p={p} g={g} color={color} />
           </span>
         ))}
       </div>
