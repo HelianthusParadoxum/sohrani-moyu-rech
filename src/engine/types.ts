@@ -29,7 +29,7 @@ export type AddressId =
   | 'tolkuchka' // Толкучка
   | 'redCorner' // Красный уголок
   | 'razval' // Развал
-  | 'zavoz' // Завоз
+  | 'zavoz' // Развоз (бывший Завоз)
   | 'baraholka' // Барахолка
   | 'podpiska' // Подписка
   | 'sprouts' // Ростки Гласности

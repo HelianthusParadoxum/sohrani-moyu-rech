@@ -1003,7 +1003,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       state.razval.forEach((c) => c && discard(state, c));
       state.razval = [null, null, null, null];
       fillRazval(state);
-      log(state, `${p.name} подрабатывает на Завозе: +${talonsText(RULES.zavozIncome)}, Развал обновлён.`);
+      log(state, `${p.name} подрабатывает развозом книг на точки: +${talonsText(RULES.zavozIncome)}, Развал обновлён.`);
       return;
     }
     case 'baraholka': {

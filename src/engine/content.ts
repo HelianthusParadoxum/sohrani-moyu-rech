@@ -131,7 +131,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   tolkuchka: { id: 'tolkuchka', name: 'Толкучка', limits: [2, 3, 4], short: `Купить ${RULES.tolkuchkaBuy}т · продать ${RULES.tolkuchkaSellFree}–${RULES.tolkuchkaSellBanned}т`, hint: 'Купить 1 книгу: −2т. Продать: +2т за книгу опального жанра, +1т за прочие' },
   redCorner: { id: 'redCorner', name: 'Красный уголок', limits: [INF, INF, INF], perPlayer: true, short: 'Очередь хода; сдать книги за Талоны', hint: `Очередь хода на следующую Пятилетку; сдать до 1 Непечатной (+${RULES.redCornerUnprinted}т) и до 1 Нагрузки (+${RULES.redCornerLoad}т)` },
   razval: { id: 'razval', name: 'Развал', limits: [2, 3, 4], short: 'Купить: 2/2/1/1т', hint: 'Купить 1 книгу: −2/−2/−1/−1т по свежести' },
-  zavoz: { id: 'zavoz', name: 'Завоз', limits: [1, 1, 2], short: '+2т, новый Развал', hint: '+2т, Развал полностью обновляется' },
+  zavoz: { id: 'zavoz', name: 'Развоз', limits: [1, 1, 2], short: '+2т, новый Развал', hint: '+2т, Развал полностью обновляется' },
   baraholka: { id: 'baraholka', name: 'Барахолка', limits: [4, 4, 4], short: 'Глянуть 2 вслепую, купить 1 за 1т', hint: 'Тайно посмотреть 2 из 4 закрытых книг и купить одну из них за 1т' },
   podpiska: { id: 'podpiska', name: 'Подписка', limits: [1, 1, 1], safehouse: true, short: 'Заказать жанр', hint: 'Заказать жанр: −1т за каждую Пятилетку доставки' },
   sprouts: { id: 'sprouts', name: 'Ростки Гласности', limits: [INF, INF, INF], short: 'Питать ступень Ростка', hint: (RULES.sproutFeedsPerAction === 1 ? 'Питать 1 ступень одного Ростка' : `Питать до ${RULES.sproutFeedsPerAction} ступеней Ростков`) + `; у каждого Ростка — не больше ${RULES.sproutSlotsPerRound} ступеней за Пятилетку` },

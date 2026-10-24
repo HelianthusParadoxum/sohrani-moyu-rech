@@ -1178,7 +1178,7 @@ describe('Журнал поручений', () => {
     s = applyAction(s, me, { type: 'place', place: { address: 'zavoz' } });
     const entry = s.log.find((l) => l.act);
     expect(entry).toMatchObject({ act: { player: me, n: 1 } });
-    expect(entry!.text).toContain('Завозе');
+    expect(entry!.text).toContain('развозом книг на точки');
   });
 });
 
@@ -1399,7 +1399,7 @@ describe('«Назад» в своём ходу: узнал ли игрок но
     expect(gainedInfo(s, next, me)).toBe(true);
   });
 
-  it('Завоз: Развал обновился новыми книгами — новое', () => {
+  it('Развоз: Развал обновился новыми книгами — новое', () => {
     const s = start();
     const me = s.order[s.turn];
     const next = applyAction(s, me, { type: 'place', place: { address: 'zavoz' } });
