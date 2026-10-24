@@ -123,7 +123,8 @@ export interface StepOptions {
 // Закрывают ли книги ступень Ростка: перебираем выбор жанра гибких значков и Фантастики.
 export function coversStep(state: CardsInfo, books: string[], main: Genre, need: number, support?: Genre, opts: StepOptions = {}): boolean {
   const reqs: { need: number; support?: Genre }[] = [{ need, support }];
-  if (opts.labtech && support) reqs.push({ need });
+  if (opts.labtech && RULES.labtechDiscount === 'support' && support) reqs.push({ need });
+  if (opts.labtech && RULES.labtechDiscount === 'main' && need > 1) reqs.push({ need: need - 1, support });
   const options = books.map((b) => iconVariants(state, b));
   const ok = (icons: Genre[], r: { need: number; support?: Genre }) => {
     let m = icons.filter((g) => g === main).length;

@@ -1055,10 +1055,11 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
           used.add(b);
         }
         const need = `${info.name}: нужно значков «${GENRE_NAMES[info.main]}»: ${step.main}` + (step.support ? ` и значок поддержки «${GENRE_NAMES[step.support]}»` : '');
-        if (!coversStep(state, f.books, info.main, step.main, step.support, { wildScifi: isFull(state) })) {
-          // Лаборант: можно не сдавать значок поддержки — один раз на всё поручение, а не на каждой ступени.
+        const lab = !coversStep(state, f.books, info.main, step.main, step.support, { wildScifi: isFull(state) });
+        if (lab) {
+          // Скидка Лаборанта (RULES.labtechDiscount) — один раз на всё поручение, а не на каждой ступени.
           check(hasPatron(state, p.id, 'labtech') && coversStep(state, f.books, info.main, step.main, step.support, { wildScifi: isFull(state), labtech: true }), need);
-          check(!labtechUsed, 'Лаборант позволяет не сдавать значок поддержки только один раз за поручение');
+          check(!labtechUsed, 'Скидка Лаборанта — только один раз за поручение');
           labtechUsed = true;
         }
         for (const b of f.books) { removeBook(p, b); discard(state, b); gaveAway(state, p, b); }
@@ -1069,7 +1070,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         earn(state, p, 0, { sprouts: reward.talons, professor: prof ? RULES.professorTalons : 0 });
         gain(p, reward.points, 'sprouts');
         if (prof) gain(p, RULES.professorPoints, 'professor');
-        let text = `${p.name} питает ступень ${roman(sp.progress)} Ростка «${info.name}» (${titles(state, f.books)})`;
+        let text = `${p.name} питает ступень ${roman(sp.progress)} Ростка «${info.name}» (${titles(state, f.books)}${lab ? '; скидка Лаборанта' : ''})`;
         text += reward.talons ? `, +${talonsText(reward.talons)}` : `, +${pointsText(reward.points)}`;
         if (!p.sproutsFed.includes(sp.id)) {
           p.sproutsFed.push(sp.id);

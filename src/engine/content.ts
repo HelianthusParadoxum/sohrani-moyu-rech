@@ -41,6 +41,7 @@ export const RULES = {
   expandCacheCost: 1, // Закладка Тайника: цена в Талонах
   professorTalons: 1, // Профессор: за каждую закрытую ступень Ростка — Талонов
   professorPoints: 2, // ...и очков Гласности
+  labtechDiscount: 'support' as 'support' | 'main', // Лаборант: 'support' — можно не сдавать значок поддержки; 'main' — на 1 значок основного жанра меньше (не меньше 1)
   restoreCost: 0, // Возвращение смыслов: цена в Талонах (0 — бесплатно)
   tolkuchkaBuy: 2, // за книгу
   tolkuchkaSellBanned: 2, // книга с опальным жанром
