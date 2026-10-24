@@ -292,7 +292,7 @@ describe('Посредничество авторам и Библиотечно�
     s = applyAction(s, p.id, { type: 'place', place: { address: 'gostorg', pairs: 1 } });
     const line = s.log.find((l) => l.text.includes('в Госкниготорге'))!;
     expect(line.only).toBeUndefined();
-    expect(line.text).toMatch(/2 книги за 1 Талон\. На склад: .+; в Тайник: 1 книга\.$/);
+    expect(line.text).toMatch(/2 книги за 1 Талон:\n• .+\n• В Тайник: 1 книга$/);
     const secret = s.log.find((l) => l.only?.includes(p.id) && l.text.startsWith('В Тайник:'))!;
     expect(secret.text).toMatch(/^В Тайник: .+\.$/);
     // Книга в Тайнике чужим в журнале не видна.

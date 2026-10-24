@@ -910,8 +910,9 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       for (const c of got) addSecretBook(state, p, c, null);
       const cached = got.filter((c) => p.warehouse.find((x) => x.card === c)?.hidden);
       const open = got.filter((c) => !cached.includes(c));
-      const where = [...(open.length ? [`на склад: ${titles(state, open)}`] : []), ...(cached.length ? [`в Тайник: ${plural(cached.length, 'книга', 'книги', 'книг')}`] : [])].join('; ');
-      log(state, `${p.name} в Госкниготорге: ${plural(got.length, 'книга', 'книги', 'книг')} за ${talonsText(cost)}.${where ? ` ${where[0].toUpperCase()}${where.slice(1)}.` : ''}`);
+      // Списком: открытые книги на склад, последней строкой — сколько ушло в Тайник.
+      const items = [...open.map((c) => title(state, c)), ...(cached.length ? [`В Тайник: ${plural(cached.length, 'книга', 'книги', 'книг')}`] : [])];
+      log(state, `${p.name} в Госкниготорге: ${plural(got.length, 'книга', 'книги', 'книг')} за ${talonsText(cost)}${items.length ? `:\n${items.map((x) => `• ${x}`).join('\n')}` : '.'}`);
       if (cached.length) log(state, `В Тайник: ${titles(state, cached)}.`, [p.id]);
       return;
     }

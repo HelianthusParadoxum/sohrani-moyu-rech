@@ -769,7 +769,7 @@ describe('Тайник и закрытые книги', () => {
     const theirs = viewFor(s, other);
     expect(theirs.players.find((x) => x.id === me)!.warehouse.map((x) => x.card)).not.toContain(card);
     expect(theirs.log.map((l) => l.text).join('\n')).not.toContain(s.cards[card].title);
-    expect(theirs.log.map((l) => l.text).join('\n')).toMatch(/в Тайник: 1 книга/);
+    expect(theirs.log.map((l) => l.text).join('\n')).toMatch(/• В Тайник: 1 книга/);
     expect(viewFor(s, me).players.find((x) => x.id === me)!.warehouse.map((x) => x.card)).toContain(card);
   });
 });
