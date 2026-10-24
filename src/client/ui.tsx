@@ -1,5 +1,5 @@
 // Общие элементы интерфейса: карты книг, окна, жанры.
-import type { ReactNode } from 'react';
+import { createContext, useContext, useEffect, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { GENRE_NAMES, GENRE_SHORT, PASSIONS } from '../engine/content';
 import { BOT_PRESETS, presetById } from '../engine/bot-presets';
 import type { Genre } from '../engine/types';
@@ -111,13 +111,25 @@ export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
   );
 }
 
+// Свёрнутое окно (по заголовку): в партии окно можно свернуть, чтобы посмотреть на поле, — «Развернуть» внизу экрана.
+export const ModalCollapse = createContext<{ collapsed: string | null; set: Dispatch<SetStateAction<string | null>> } | null>(null);
+
 export function Modal({ title, children, onClose, wide }: { title: string; children: ReactNode; onClose?: () => void; wide?: boolean }) {
+  const collapse = useContext(ModalCollapse);
+  const hidden = collapse?.collapsed === title;
+  const set = collapse?.set;
+  // Окно закрылось само (ход сменился) — свёрнутым оно больше не числится.
+  useEffect(() => () => set?.((c) => (c === title ? null : c)), [set, title]);
   return (
-    <div className="modal-bg" onClick={onClose}>
+    // Свёрнутое окно не размонтируем: выбор в нём сохраняется.
+    <div className="modal-bg" onClick={onClose} style={hidden ? { display: 'none' } : undefined}>
       <div className={`modal ${wide ? 'wide' : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>{title}</h3>
-          {onClose && <button className="close" onClick={onClose} aria-label="Закрыть">×</button>}
+          <span className="modal-head-buttons">
+            {set && <button className="small" onClick={() => set(title)} title="Посмотреть на поле; вернуться к окну — кнопкой «Развернуть» внизу">Свернуть</button>}
+            {onClose && <button className="close" onClick={onClose} aria-label="Закрыть">×</button>}
+          </span>
         </div>
         {children}
       </div>

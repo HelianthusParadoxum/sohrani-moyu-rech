@@ -7,14 +7,14 @@ import {
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
-import { bestFeedBooks, coversStep, hasPatron, isEvidence, isExposed, loadCover, roman } from '../engine/util';
+import { bestFeedBooks, coversStep, hasPatron, isEvidence, isExposed, isPropaganda, loadCover, roman } from '../engine/util';
 import { kontoraTargets } from '../engine/full';
 import {
   BefriendPicker, ClubContents, fittingBooks, patronOpen, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
   KontoraWarningPrompt, RescuePanel,
 } from './full-ui';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
-import { Book, GENRE_SHORT, GenreChip, iconize, SpeedSelect, Modal, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, toggle } from './ui';
+import { Book, GENRE_SHORT, GenreChip, iconize, SpeedSelect, Modal, ModalCollapse, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, toggle } from './ui';
 
 type Send = (m: ClientMessage) => void;
 type VPlayer = PlayerView['players'][number];
@@ -29,6 +29,8 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
   const act = (action: Action) => send({ t: 'action', action });
   const [panel, setPanel] = useState<Panel>(null);
   const [showResult, setShowResult] = useState(true);
+  const [collapsed, setCollapsed] = useState<string | null>(null);
+  const collapse = useMemo(() => ({ collapsed, set: setCollapsed }), [collapsed]);
   const seatIndex = (id: string) => room.seats.findIndex((s) => s.id === id);
   const nameOf = (id: string) => view.players.find((p) => p.id === id)?.name ?? '?';
   const myTurn = !!you && view.active.includes(you);
@@ -84,6 +86,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
   );
 
   return (
+    <ModalCollapse.Provider value={collapse}>
     <div className="game">
       <header className="topbar">
         <div className="title">Сохрани мою речь</div>
@@ -120,12 +123,21 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
         {canPlace && me.visitedRedCorner && <button className="small" onClick={() => confirm('Спасовать до конца Пятилетки? Оставшиеся Единомышленники не будут действовать.') && act({ type: 'pass' })}>Спасовать</button>}
       </div>
 
-      {/* На телефоне «Закончить ход» выезжает снизу экрана, чтобы не листать к строке статуса. */}
-      <div className={`end-turn-sheet ${afterAction ? 'show' : ''}`} aria-hidden={!afterAction}>
-        {canStepBack
-          ? <button tabIndex={afterAction ? 0 : -1} onClick={() => send({ t: 'stepBack' })} title="Отменить действия этого хода — до момента, когда вы узнали что-то новое">← Назад</button>
-          : <span className="muted small" title="Вы уже узнали новое (например, увидели закрытые книги) — отменить ход нельзя">Действие сделано</span>}
-        <button className="primary" tabIndex={afterAction ? 0 : -1} onClick={() => act({ type: 'endTurn' })}>Закончить ход</button>
+      {/* На телефоне «Закончить ход» выезжает снизу экрана, чтобы не листать к строке статуса. Там же — «Развернуть» свёрнутое окно. */}
+      <div className={`end-turn-sheet ${afterAction || collapsed ? 'show' : ''}`} aria-hidden={!afterAction && !collapsed}>
+        {collapsed ? (
+          <>
+            <span className="muted small">Окно «{collapsed}» свёрнуто</span>
+            <button className="primary" onClick={() => setCollapsed(null)}>Развернуть</button>
+          </>
+        ) : (
+          <>
+            {canStepBack
+              ? <button tabIndex={afterAction ? 0 : -1} onClick={() => send({ t: 'stepBack' })} title="Отменить действия этого хода — до момента, когда вы узнали что-то новое">← Назад</button>
+              : <span className="muted small" title="Вы уже узнали новое (например, увидели закрытые книги) — отменить ход нельзя">Действие сделано</span>}
+            <button className="primary" tabIndex={afterAction ? 0 : -1} onClick={() => act({ type: 'endTurn' })}>Закончить ход</button>
+          </>
+        )}
       </div>
       {view.phase === 'passion' && me ? (
         <p className="center muted">Стол откроется, когда все выберут Пристрастия.</p>
@@ -180,6 +192,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
       )}
       {view.phase === 'end' && view.result && showResult && <Results view={view} seatIndex={seatIndex} close={() => setShowResult(false)} />}
     </div>
+    </ModalCollapse.Provider>
   );
 }
 
@@ -1198,9 +1211,23 @@ function CacheModal({ view, me, close, done, title, note }: {
   );
 }
 
+// Что сразу спрятать к облаве: сначала опальное, самое ценное вперёд (Куратору — Пропаганда, затем Улики, затем книги
+// с большим числом значков), потом то, что уже лежит в Тайнике (иначе соперники его увидят).
+// Честному свою Пропаганду прятать незачем, если всё опальное не помещается: Единомышленника всё равно удержат.
+function bestHiding(view: PlayerView, me: VPlayer, limit: number): string[] {
+  const curator = me.passion === 'curator';
+  const free = me.warehouse.filter((s) => s.card && !s.memorized);
+  const banned = free.map((s) => s.card!).filter((c) => isBanned(view, c));
+  const value = (c: string) => (isPropaganda(view, c) ? (curator ? 1000 : -1) : isEvidence(view, c) ? 100 : 10 + iconsOf(view, c).length);
+  const fits = banned.length <= limit;
+  const order = banned.filter((c) => fits || value(c) > 0).sort((x, y) => value(y) - value(x));
+  const kept = free.filter((s) => s.hidden && !order.includes(s.card!)).map((s) => s.card!);
+  return [...order, ...kept].slice(0, limit);
+}
+
 function HidingPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
   const cards = me.warehouse.map((s) => s.card!).filter(Boolean);
-  const [sel, setSel] = useState<string[]>(() => me.warehouse.filter((s) => s.hidden).map((s) => s.card!));
+  const [sel, setSel] = useState<string[]>(() => bestHiding(view, me, me.cache + loadCover(view, me.warehouse)));
   const [memo, setMemo] = useState<string | null>(() => me.warehouse.find((s) => s.memorized)?.card ?? null);
   const [fill, setFill] = useState(false);
   const full = view.mode === 'full';
@@ -1214,6 +1241,7 @@ function HidingPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (
     <Modal title="Укрытие" wide>
       <BannedLine view={view} />
       <p>Отметьте книги, которые прячете в Тайник. Мест в Тайнике: {me.cache}, ещё {cover} — за Нагрузку на складе (каждые 2 Нагрузки дают +1 место). Сейчас спрятано {sel.length} из {limit}.</p>
+      <p className="muted small">Самое ценное опальное уже отмечено — выбор можно поменять.</p>
       <div className="shelf wrap">
         {cards.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} hidden={sel.includes(c)} onClick={() => setSel(toggle(sel, c))} />)}
       </div>

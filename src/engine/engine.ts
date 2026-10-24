@@ -16,7 +16,7 @@ import { GENRES } from './types';
 import {
   addBook, addOpenBook, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isPropagandaKind, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
-  talonsText, title, titles, logEvent, logNote, logAfter, toSpetskhranPublic, isExposed, saved,
+  talonsText, title, titles, logEvent, logNote, logAfter, toSpetskhranPublic, isExposed, saved, logRecap,
 } from './util';
 
 export interface NewGameOptions {
@@ -904,10 +904,14 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       const kinds = mix.length ? mix : Array.from({ length: a.pairs }, () => ['load', 'unprinted'] as const).flat();
       for (const k of kinds) {
         const c = k === 'load' ? drawLoad(state) : draw(state);
-        if (c) { addSecretBook(state, p, c); got.push(c); }
+        if (c) got.push(c);
       }
+      // Сначала — покупка, затем — что легло в Тайник, и тайно — что именно куда.
       log(state, `${p.name} в Госкниготорге: ${got.length} книг(и) за ${talonsText(cost)}.`);
-      log(state, `Вы получили: ${titles(state, got)}.`, [p.id]);
+      for (const c of got) addSecretBook(state, p, c);
+      const cached = got.filter((c) => p.warehouse.find((x) => x.card === c)?.hidden);
+      const open = got.filter((c) => !cached.includes(c));
+      if (got.length) log(state, `Вы получили${open.length ? ` на склад: ${titles(state, open)}` : ''}${open.length && cached.length ? '; ' : ''}${cached.length ? `${open.length ? '' : ' '}в Тайник: ${titles(state, cached)}` : ''}.`, [p.id]);
       return;
     }
     case 'tolkuchka': {
@@ -1460,7 +1464,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       state.deck = shuffle(state, [...state.deck, ...state.discard]);
       state.discard = [];
       log(state, `${p.name} берёт у Наследников ${action.cards.length} книг(и); сброс замешан в стопку.`);
-      log(state, `Вы взяли: ${titles(state, action.cards)}.`, [p.id]);
+      logRecap(state, `Вы взяли: ${titles(state, action.cards)}.`, [p.id]);
       break;
     }
     case 'posrednichestvoKeep': {
@@ -1474,7 +1478,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         else discard(state, c);
       }
       log(state, `${p.name} оставляет себе ${action.keep.length} книг(и).`);
-      log(state, `Вы оставили: ${titles(state, action.keep)}.`, [p.id]);
+      logRecap(state, `Вы оставили: ${titles(state, action.keep)}.`, [p.id]);
       state.pending.shift();
       state.pending.unshift({ kind: 'posrednichestvoGroup', player: p.id });
       return;
@@ -1494,7 +1498,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       for (const c of pend.cards) if (c !== action.card) discard(state, c);
       addSecretBook(state, p, action.card);
       log(state, `${p.name} оставляет себе одну книгу из Макулатуры (вытянуто: ${pend.cards.length}).`);
-      log(state, `Вы оставили ${title(state, action.card)}.`, [p.id]);
+      logRecap(state, `Вы оставили ${title(state, action.card)}.`, [p.id]);
       break;
     }
     case 'spisanieKeep': {
@@ -1507,7 +1511,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         else discard(state, c);
       }
       log(state, `${p.name} оставляет себе из Библиотечного списания ${action.keep.length} книг(и).`);
-      if (action.keep.length) log(state, `Вы оставили: ${titles(state, action.keep)}.`, [p.id]);
+      if (action.keep.length) logRecap(state, `Вы оставили: ${titles(state, action.keep)}.`, [p.id]);
       break;
     }
     case 'posrednichestvoGroup': {

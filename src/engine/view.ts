@@ -63,7 +63,7 @@ function seenBy(state: GameState, me: string): { cards: Set<string>; notes: numb
   const { cards: _all, ...v } = viewFor(state, me);
   return {
     cards: new Set(JSON.stringify(v).match(/c\d{3}/g) ?? []),
-    notes: state.log.filter((l) => l.only?.includes(me)).length,
+    notes: state.log.filter((l) => l.only?.includes(me) && !l.recap).length,
   };
 }
 

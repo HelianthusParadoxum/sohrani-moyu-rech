@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { applyAction, createGame } from '../src/engine/engine';
 import { RULES } from '../src/engine/content';
 import { RuleError, iconsOf } from '../src/engine/util';
-import { viewFor } from '../src/engine/view';
+import { gainedInfo, viewFor } from '../src/engine/view';
 import { passionPoints } from '../src/engine/scoring';
 import type { Action, GameState } from '../src/engine/types';
 
@@ -275,9 +275,25 @@ describe('Посредничество авторам и Библиотечно�
     // Чужим не видно, что взято.
     expect(viewFor(s, s.players.find((x) => x.id !== p.id)!.id).pending[0]).toMatchObject({ kind: 'spisanieKeep', secret: true });
     const keep = pend.cards.slice(0, pend.cards.length - 1);
+    const prev = s;
     s = applyAction(s, p.id, { type: 'spisanieKeep', keep });
     expect(byId(s, p.id).warehouse.map((w) => w.card)).toEqual(expect.arrayContaining(keep));
     expect(s.discard).toContain(pend.cards[pend.cards.length - 1]);
+    // Выбор из уже увиденных книг нового знания не даёт: «Назад» вернёт к окну выбора.
+    expect(gainedInfo(prev, s, p.id)).toBe(false);
+  });
+
+  it('Госкниготорг: сначала покупка, потом Тайник; тайно — что легло на склад и что в Тайник', () => {
+    let s = started();
+    const p = me(s);
+    p.talons = 5;
+    p.cache = 1;
+    p.warehouse = [];
+    s = applyAction(s, p.id, { type: 'place', place: { address: 'gostorg', pairs: 1 } });
+    const i = s.log.findIndex((l) => l.text.includes('в Госкниготорге'));
+    expect(s.log[i + 1].text).toMatch(/кладёт в Тайник/);
+    const note = s.log.find((l) => l.only?.includes(p.id) && l.text.startsWith('Вы получили'))!;
+    expect(note.text).toMatch(/^Вы получили на склад: .+; в Тайник: .+\.$/);
   });
 });
 
