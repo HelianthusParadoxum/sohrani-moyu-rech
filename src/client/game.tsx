@@ -1,7 +1,7 @@
 // Игровой стол.
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  ADDRESSES, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
+  ADDRESSES, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, groupCost, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
   groupInGame, sproutBonusOptions,
 } from '../engine/content';
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
@@ -205,6 +205,18 @@ type AddressProps = { id: AddressId; view: PlayerView; seatIndex: (id: string) =
 
 // Каким книгам можно вернуть смыслы.
 const restorable = (kind: string) => ['genre', 'loadReturnable', 'loadEvidence', ...(RULES.exposePropaganda ? ['propaganda', 'loadPropaganda'] : [])].includes(kind);
+
+// Цена действия Группы (или бонуса Ростка) для игрока: со Скупщиком и Столяром. Пусто — бесплатно.
+function groupPrice(view: PlayerView, p: VPlayer | null, id: string): string {
+  let cost = groupCost(id);
+  if (p && id === 'expandCache' && hasPatron(view, p.id, 'carpenter')) cost = 0;
+  if (p) cost = priceFor(view, p, cost);
+  return cost ? `−${cost}🎫` : '';
+}
+const withPrice = (view: PlayerView, p: VPlayer | null, id: string) => {
+  const price = groupPrice(view, p, id);
+  return `${SPROUT_BONUS_NAMES[id as SproutBonusId]}${price ? ` (${price})` : ''}`;
+};
 
 // Цена с учётом Скупщика (на 1 Талон дешевле, минимум 1).
 function priceFor(view: PlayerView, me: VPlayer, cost: number): number {
@@ -671,7 +683,7 @@ function Sprouts({ view, me, beside, seatIndex, head, onOpen }: { view: PlayerVi
                 </li>
               ))}
             </ol>
-            <div className="muted bonus" title="Бонус за питание ступени (одно на выбор)">Бонус: {sproutBonusOptions(view, info).map((b) => SPROUT_BONUS_NAMES[b]).join(' / ')}</div>
+            <div className="muted bonus" title="Бонус за питание ступени (одно на выбор)">Бонус: {sproutBonusOptions(view, info).map((b) => withPrice(view, me, b)).join(' / ')}</div>
             {/* Кто хоть раз вкладывался в этот Росток (+2 очка за первое питание): слот на каждого игрока. */}
             <div className="fed-row muted small" title={`Вложились в этот Росток (+${FIRST_FEED_POINTS} очка за первое вложение)`}>
               Вложились:{' '}
@@ -1085,7 +1097,7 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
                 else if (o === 'acquaintance') setGroupFor(o);
                 else if (o === 'copyText' || o === 'restore' || o === 'rescue' || groupBlocker(view, me, o as GroupActionId)) setGroupFor(o);
                 else sendGroup({ action: o } as GroupAction);
-              }}>{SPROUT_BONUS_NAMES[o as SproutBonusId]}</button>
+              }}>{withPrice(view, me, o)}</button>
             ))}
           </div>
           <div className="modal-foot"><button onClick={() => act({ type: 'pass' })}>Отказаться</button></div>
@@ -1371,7 +1383,7 @@ function MyPanel({ view, me, color, groupEnabled, onlyHire, onlyCopy, onGroup, o
             <button key={g} className={`small ${groupBlocker(view, me, g) ? 'short' : ''}`}
               title={me.groupUsed.includes(g) ? 'Уже сделано в эту Пятилетку' : groupBlocker(view, me, g) ?? GROUP_ACTIONS[g].hint}
               disabled={!groupEnabled || me.groupUsed.includes(g) || !!groupBlocker(view, me, g) || (onlyHire && g !== 'hire') || (onlyCopy && g !== 'copyText')} onClick={() => onGroup(g)}>
-              {GROUP_ACTIONS[g].name}<GroupSlot p={me} g={g} color={color} />
+              {GROUP_ACTIONS[g].name}{groupPrice(view, me, g) && <span className="gprice"> {groupPrice(view, me, g)}</span>}<GroupSlot p={me} g={g} color={color} />
             </button>
           ))}
         </div>
@@ -1393,7 +1405,7 @@ function OtherPlayer({ view, p, color, active }: { view: PlayerView; p: VPlayer;
       <div className="group-actions readonly" title="Действия Инициативной группы в эту Пятилетку">
         {(Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => groupInGame(view, g)).map((g) => (
           <span key={g} className={`gact ${p.groupUsed.includes(g) ? 'used' : ''}`} title={GROUP_ACTIONS[g].hint}>
-            {GROUP_ACTIONS[g].name}<GroupSlot p={p} g={g} color={color} />
+            {GROUP_ACTIONS[g].name}{groupPrice(view, p, g) && <span className="gprice"> {groupPrice(view, p, g)}</span>}<GroupSlot p={p} g={g} color={color} />
           </span>
         ))}
       </div>

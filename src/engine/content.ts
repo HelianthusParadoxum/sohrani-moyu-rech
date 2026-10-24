@@ -198,8 +198,14 @@ export const GROUP_ACTIONS: Record<GroupActionId, { name: string; hint: string; 
   copyText: { name: 'Тиражирование текста', hint: 'Покупая книгу на Развале, Толкучке, в Распределителе (или меняясь на Книгообмене), поставьте ещё одного Единомышленника на Тиражирование — и возьмите с этого адреса ещё одну жанровую книгу бесплатно (не Улику и не Пропаганду)' },
   rescue: { name: 'Вызволение из бед', hint: `Вернуть из Конторы до ${RULES.rescueMax} Единомышленников (своих или чужих): +${RULES.rescuePoints} очка за каждого`, fullOnly: true },
   restore: { name: 'Возвращение смыслов', hint: `${RULES.restoreCost ? `${RULES.restoreCost}т: ` : ''}+1 значок жанровой книге или 3 значка возвращаемой Нагрузке` },
-  hire: { name: 'Расширение сети', hint: '6т: +1 Единомышленник, сразу доступен (до 7)' },
+  hire: { name: 'Расширение сети', hint: `−${RULES.hireCost}т: +1 Единомышленник, сразу доступен (до 7)` },
 };
+
+// Цена действия Группы в Талонах (без скидок Завсегдатаев); 0 — бесплатно.
+export function groupCost(id: string): number {
+  return id === 'expandWarehouse' ? RULES.expandWarehouseCost : id === 'expandCache' ? RULES.expandCacheCost
+    : id === 'restore' ? RULES.restoreCost : id === 'hire' ? RULES.hireCost : 0;
+}
 
 export const SPROUT_BONUS_NAMES: Record<SproutBonusId, string> = {
   ...Object.fromEntries(Object.entries(GROUP_ACTIONS).map(([k, v]) => [k, v.name])),
