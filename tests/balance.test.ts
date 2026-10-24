@@ -283,17 +283,21 @@ describe('Посредничество авторам и Библиотечно�
     expect(gainedInfo(prev, s, p.id)).toBe(false);
   });
 
-  it('Госкниготорг: сначала покупка, потом Тайник; тайно — что легло на склад и что в Тайник', () => {
+  it('Госкниготорг: всем — что легло на склад и сколько в Тайник; тайно — что именно в Тайнике', () => {
     let s = started();
     const p = me(s);
     p.talons = 5;
     p.cache = 1;
     p.warehouse = [];
     s = applyAction(s, p.id, { type: 'place', place: { address: 'gostorg', pairs: 1 } });
-    const i = s.log.findIndex((l) => l.text.includes('в Госкниготорге'));
-    expect(s.log[i + 1].text).toMatch(/кладёт в Тайник/);
-    const note = s.log.find((l) => l.only?.includes(p.id) && l.text.startsWith('Вы получили'))!;
-    expect(note.text).toMatch(/^Вы получили на склад: .+; в Тайник: .+\.$/);
+    const line = s.log.find((l) => l.text.includes('в Госкниготорге'))!;
+    expect(line.only).toBeUndefined();
+    expect(line.text).toMatch(/2 книги за 1 Талон\. На склад: .+; в Тайник: 1 книга\.$/);
+    const secret = s.log.find((l) => l.only?.includes(p.id) && l.text.startsWith('В Тайник:'))!;
+    expect(secret.text).toMatch(/^В Тайник: .+\.$/);
+    // Книга в Тайнике чужим в журнале не видна.
+    const hidden = byId(s, p.id).warehouse.find((w) => w.hidden)!.card;
+    expect(line.text).not.toContain(s.cards[hidden].title);
   });
 });
 

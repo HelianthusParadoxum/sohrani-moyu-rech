@@ -16,7 +16,7 @@ import { GENRES } from './types';
 import {
   addBook, addOpenBook, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isPropagandaKind, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
-  talonsText, title, titles, logEvent, logNote, logAfter, toSpetskhranPublic, isExposed, saved, logRecap,
+  talonsText, title, titles, logEvent, logNote, logAfter, toSpetskhranPublic, isExposed, saved, logRecap, plural,
 } from './util';
 
 export interface NewGameOptions {
@@ -906,12 +906,13 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         const c = k === 'load' ? drawLoad(state) : draw(state);
         if (c) got.push(c);
       }
-      // Сначала — покупка, затем — что легло в Тайник, и тайно — что именно куда.
-      log(state, `${p.name} в Госкниготорге: ${got.length} книг(и) за ${talonsText(cost)}.`);
-      for (const c of got) addSecretBook(state, p, c);
+      // Всем — что легло на склад открыто и сколько книг ушло в Тайник; тайно — какие именно в Тайнике.
+      for (const c of got) addSecretBook(state, p, c, null);
       const cached = got.filter((c) => p.warehouse.find((x) => x.card === c)?.hidden);
       const open = got.filter((c) => !cached.includes(c));
-      if (got.length) log(state, `Вы получили${open.length ? ` на склад: ${titles(state, open)}` : ''}${open.length && cached.length ? '; ' : ''}${cached.length ? `${open.length ? '' : ' '}в Тайник: ${titles(state, cached)}` : ''}.`, [p.id]);
+      const where = [...(open.length ? [`на склад: ${titles(state, open)}`] : []), ...(cached.length ? [`в Тайник: ${plural(cached.length, 'книга', 'книги', 'книг')}`] : [])].join('; ');
+      log(state, `${p.name} в Госкниготорге: ${plural(got.length, 'книга', 'книги', 'книг')} за ${talonsText(cost)}.${where ? ` ${where[0].toUpperCase()}${where.slice(1)}.` : ''}`);
+      if (cached.length) log(state, `В Тайник: ${titles(state, cached)}.`, [p.id]);
       return;
     }
     case 'tolkuchka': {
