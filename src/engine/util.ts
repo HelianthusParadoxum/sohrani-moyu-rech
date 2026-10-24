@@ -125,6 +125,8 @@ export function coversStep(state: CardsInfo, books: string[], main: Genre, need:
   const reqs: { need: number; support?: Genre }[] = [{ need, support }];
   if (opts.labtech && RULES.labtechDiscount === 'support' && support) reqs.push({ need });
   if (opts.labtech && RULES.labtechDiscount === 'main' && need > 1) reqs.push({ need: need - 1, support });
+  // Ступень IV — единственная, где основного жанра нужно 2 значка.
+  if (opts.labtech && RULES.labtechDiscount === 'step4' && need > 1) reqs.push({ need: need - 1, support }, { need });
   const options = books.map((b) => iconVariants(state, b));
   const ok = (icons: Genre[], r: { need: number; support?: Genre }) => {
     let m = icons.filter((g) => g === main).length;
