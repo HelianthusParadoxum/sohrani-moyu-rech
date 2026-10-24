@@ -871,8 +871,7 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
   doPlace(state, p, a);
   // Купил на адресе Тиражирования — можно следом (до конца хода) взять оттуда же книгу даром.
   if ((COPY_TEXT_ADDRESSES as readonly string[]).includes(a.address) && (a.address !== 'tolkuchka' || a.ops.some((op) => op.op === 'buy'))) {
-    const exclude = a.address === 'tolkuchka' ? a.ops.filter((op) => op.op === 'sell').map((op) => op.card)
-      : a.address === 'knigoobmen' ? [a.give] : [];
+    const exclude = a.address === 'knigoobmen' ? [a.give] : [];
     state.lastBuy = { player: p.id, address: a.address as CopyTextAddress, exclude };
   }
   if (buzoter) { p.buzoterUsed = true; log(state, `${p.name}: Бузотёр пробивается на занятый адрес.`); }
@@ -940,10 +939,8 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
           parts.push(`продал(а) ${title(state, op.card)} за ${talonsText(gain)}`);
         }
       }
-      for (const c of sold) {
-        state.tolkuchka.push(c);
-        if (state.tolkuchka.length > RULES.displaySize) discard(state, state.tolkuchka.shift()!);
-      }
+      // Проданное на Толкучке уходит в сброс, а не на прилавок.
+      for (const c of sold) discard(state, c);
       log(state, `${p.name} на Толкучке: ${parts.join('; ')}.`);
       earn(state, p, income, 'tolkuchka');
       return;

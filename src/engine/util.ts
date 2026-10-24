@@ -117,7 +117,7 @@ export function flexGenres(state: CardsInfo, id: string): Genre[] | null {
 
 export interface StepOptions {
   wildScifi?: boolean; // «Заронить зерно»: значки Фантастики — значки любого жанра
-  labtech?: boolean; // Лаборант: можно не сдавать значок поддержки (жанр сверх основного)
+  labtech?: boolean; // Лаборант: скидка в значках, вид — RULES.labtechDiscount
 }
 
 // Закрывают ли книги ступень Ростка: перебираем выбор жанра гибких значков и Фантастики.

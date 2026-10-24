@@ -79,18 +79,20 @@ describe('Тиражирование текста', () => {
     expect(() => applyAction(s, p.id, copy('razval', { address: 'razval', slot: 0 }, s.razval[1]!))).toThrow(/два Единомышленника/);
   });
 
-  it('на Толкучке можно освободить место продажей, но проданное не забрать обратно', () => {
+  it('на Толкучке можно освободить место продажей; проданное уходит в сброс, а не на прилавок', () => {
     const s = started();
     const p = me(s);
     p.talons = 10;
     const sell = giveBook(s, p.id);
     const [buy, gift] = s.tolkuchka;
     const ops = [{ op: 'sell', card: sell }, { op: 'buy', card: buy }];
-    expect(() => applyAction(s, p.id, copy('tolkuchka', { address: 'tolkuchka', ops }, sell))).toThrow(/обратно/);
+    expect(() => applyAction(s, p.id, copy('tolkuchka', { address: 'tolkuchka', ops }, sell))).toThrow();
     const after = applyAction(s, p.id, copy('tolkuchka', { address: 'tolkuchka', ops }, gift));
     const w = byId(after, p.id).warehouse.map((x) => x.card);
     expect(w).toEqual(expect.arrayContaining([buy, gift]));
     expect(w).not.toContain(sell);
+    expect(after.tolkuchka).not.toContain(sell);
+    expect(after.discard).toContain(sell);
   });
 
   it('на Книгообмене: обменяться и взять ещё одну даром, отданную не забрать', () => {

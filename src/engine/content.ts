@@ -41,7 +41,7 @@ export const RULES = {
   expandCacheCost: 1, // Закладка Тайника: цена в Талонах
   professorTalons: 1, // Профессор: за каждую закрытую ступень Ростка — Талонов
   professorPoints: 2, // ...и очков Гласности
-  labtechDiscount: 'support' as 'support' | 'main' | 'step4', // Лаборант: 'support' — можно не сдавать значок поддержки; 'main' — на 1 значок основного жанра меньше (не меньше 1); 'step4' — на ступени IV на 1 любой жанровый значок меньше
+  labtechDiscount: 'step4' as 'support' | 'main' | 'step4', // Лаборант: 'support' — можно не сдавать значок поддержки; 'main' — на 1 значок основного жанра меньше (не меньше 1); 'step4' — на ступени IV на 1 любой жанровый значок меньше
   restoreCost: 0, // Возвращение смыслов: цена в Талонах (0 — бесплатно)
   tolkuchkaBuy: 2, // за книгу
   tolkuchkaSellBanned: 2, // книга с опальным жанром
@@ -129,7 +129,7 @@ export interface AddressInfo {
 
 export const ADDRESSES: Record<AddressId, AddressInfo> = {
   gostorg: { id: 'gostorg', name: 'Госкниготорг', limits: [2, 3, 4], short: 'Пара вслепую: Нагрузка + Непечатное, 1т', hint: '−1т за пару: Нагрузка + Непечатное, любое число пар' },
-  tolkuchka: { id: 'tolkuchka', name: 'Толкучка', limits: [2, 3, 4], short: `Купить ${RULES.tolkuchkaBuy}т · продать ${RULES.tolkuchkaSellFree}–${RULES.tolkuchkaSellBanned}т`, hint: 'Купить 1 книгу: −2т. Продать: +2т за книгу опального жанра, +1т за прочие' },
+  tolkuchka: { id: 'tolkuchka', name: 'Толкучка', limits: [2, 3, 4], short: `Купить ${RULES.tolkuchkaBuy}т · продать ${RULES.tolkuchkaSellFree}–${RULES.tolkuchkaSellBanned}т`, hint: 'Купить 1 книгу: −2т. Продать: +2т за книгу опального жанра, +1т за прочие (проданное уходит в сброс)' },
   redCorner: { id: 'redCorner', name: 'Красный уголок', limits: [INF, INF, INF], perPlayer: true, short: 'Очередь хода; сдать книги за Талоны', hint: `Очередь хода на следующую Пятилетку; сдать до 1 Непечатной (+${RULES.redCornerUnprinted}т) и до 1 Нагрузки (+${RULES.redCornerLoad}т)` },
   razval: { id: 'razval', name: 'Развал', limits: [2, 3, 4], short: 'Купить: 2/2/1/1т', hint: 'Купить 1 книгу: −2/−2/−1/−1т по свежести' },
   zavoz: { id: 'zavoz', name: 'Развоз', limits: [1, 1, 2], short: '+2т, новый Развал', hint: '+2т, Развал полностью обновляется' },
@@ -306,7 +306,7 @@ export const PATRONS: Record<PatronId, PatronInfo> = Object.fromEntries([
   P('komsorg', 'Комсорг', `Красный уголок: сдавать любое число книг, за каждую — +${RULES.komsorgPoints} очко Гласности`),
   P('typist', 'Машинистка', `Тиражирование: +${RULES.typistTalons} Талона; можно без покупки — взять любую жанровую книгу с поля, не отправляя Единомышленника на адрес`),
   P('editor', 'Главред', 'За каждую сданную в Главлит книгу — +1 очко Гласности за значок'),
-  P('labtech', 'Лаборант', 'Питая Ростки, можно не сдавать значок поддержки (жанр сверх основного жанра Ростка)'),
+  P('labtech', 'Лаборант', 'Питая ступень IV Ростка, можно сдать на 1 жанровый значок меньше (любой: основного жанра или поддержки)'),
   P('psychiatrist', 'Психиатр', 'Контора не может удерживать ваших Единомышленников (и в том походе в Контору, которым Психиатра профилактируют)'),
   P('nesun', 'Несун', 'В конце Пятилетки +1 Талон за каждое пустое место Тайника'),
   P('geologist', 'Геолог', 'Посиделки: +1 Талон за каждую показанную опальную книгу'),

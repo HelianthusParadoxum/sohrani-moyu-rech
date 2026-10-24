@@ -1183,35 +1183,23 @@ describe('Журнал поручений', () => {
 });
 
 describe('Лаборант', () => {
-  it('можно не сдавать значок поддержки — один раз на всё поручение', () => {
+  it('на ступени IV — на 1 любой жанровый значок меньше, один раз на всё поручение', () => {
     let s = createGame({ players: players(2), seed: 33, mode: 'full' });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
     s = startOrders(s);
     const me = s.order[s.turn];
     s.patrons[0] = { id: 'labtech', genre: s.patrons[0].genre, connections: [me], turned: false, removed: false };
-    // Два Ростка на II ступени (нужен 1 значок основного жанра и значок поддержки). С Лаборантом хватит значка основного жанра.
-    const supOf = (id: string) => {
-      const info = SPROUTS.find((x) => x.id === id)!;
-      return { main: info.main as string, support: info.steps[1].support! as string };
-    };
-    const single = (genre: string, bad: string[], not = '') => Object.keys(s.cards).find((c) => {
-      const icons = iconsOf(s, c);
-      return c !== not && icons.length === 1 && icons[0] === genre && !bad.includes(genre);
-    });
-    let a = s.sprouts[0], b = s.sprouts[1], ka = '', kb = '';
-    for (const x of s.sprouts) for (const y of s.sprouts) {
-      if (x === y || ka) continue;
-      const bad = [supOf(x.id).support, supOf(y.id).support, 'scifi'];
-      const k1 = single(supOf(x.id).main, bad);
-      const k2 = k1 && single(supOf(y.id).main, bad, k1);
-      if (k1 && k2) { a = x; b = y; ka = k1; kb = k2; }
-    }
-    a.progress = 1;
-    b.progress = 1;
-    expect(ka && kb).toBeTruthy();
-    for (const zone of [s.deck, s.discard, s.tolkuchka, s.knigoobmen, s.raspredelitel]) {
+    // Два Ростка на ступени IV (2 значка основного жанра + поддержка). С Лаборантом хватит двух значков основного жанра.
+    const [a, b] = s.sprouts;
+    a.progress = 3;
+    b.progress = 3;
+    const mainOf = (id: string) => SPROUTS.find((x) => x.id === id)!.main;
+    const [ka, kb] = Object.keys(s.cards).filter((c) => s.cards[c].kind === 'genre').slice(0, 2);
+    for (const zone of [s.deck, s.discard, s.tolkuchka, s.knigoobmen, s.raspredelitel, s.razval]) {
       for (const c of [ka, kb]) { const i = zone.indexOf(c); if (i >= 0) zone.splice(i, 1, null as never); }
     }
+    s.cards[ka] = { ...s.cards[ka], icons: [mainOf(a.id), mainOf(a.id)] };
+    s.cards[kb] = { ...s.cards[kb], icons: [mainOf(b.id), mainOf(b.id)] };
     const p = s.players.find((x) => x.id === me)!;
     p.warehouse = [{ card: ka, hidden: false }, { card: kb, hidden: false }];
     // Сейчас за поручение и так только 1 ступень; проверяем Лаборанта при правиле «несколько ступеней за поручение».
@@ -1223,22 +1211,26 @@ describe('Лаборант', () => {
     } finally {
       RULES.sproutFeedsPerAction = limit;
     }
-    expect(() => applyAction(s, me, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: a.id, books: [ka] }, { sprout: b.id, books: [kb] }] } }))
-      .toThrow(/только 1 ступень/);
     const t = applyAction(s, me, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: a.id, books: [ka] }] } });
-    expect(t.sprouts.find((x) => x.id === a.id)!.progress).toBe(2);
-    // Без Лаборанта одного значка основного жанра мало.
+    expect(t.sprouts.find((x) => x.id === a.id)!.progress).toBe(4);
+    expect(t.log.some((l) => l.text.includes('скидка Лаборанта'))).toBe(true);
+    // Без Лаборанта не хватает значка поддержки.
     s.patrons[0] = { ...s.patrons[0], connections: [] };
     expect(() => applyAction(s, me, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: a.id, books: [ka] }] } })).toThrow();
   });
 
-  it('значок основного жанра Лаборант не заменяет', () => {
-    // II ступень: 1 значок основного жанра + поддержка. Только значок поддержки — мало и с Лаборантом.
-    const cards = { cards: { a: { kind: 'genre', icons: ['poetry'] }, b: { kind: 'genre', icons: ['testimony'] } }, restored: {} } as never;
-    expect(coversStep(cards, ['b'], 'poetry', 1, 'testimony', { labtech: true })).toBe(false);
-    expect(coversStep(cards, ['a'], 'poetry', 1, 'testimony', { labtech: true })).toBe(true);
-    // IV ступень: 2 значка основного жанра — и с Лаборантом нужны оба.
-    expect(coversStep(cards, ['a'], 'poetry', 2, 'testimony', { labtech: true })).toBe(false);
+  it('скидка — только на ступени IV, любой значок, но не два', () => {
+    const cards = { cards: {
+      p: { kind: 'genre', icons: ['poetry'] }, t: { kind: 'genre', icons: ['testimony'] }, pp: { kind: 'genre', icons: ['poetry', 'poetry'] },
+    }, restored: {} } as never;
+    // II ступень: 1 значок основного жанра + поддержка — Лаборант не помогает.
+    expect(coversStep(cards, ['p'], 'poetry', 1, 'testimony', { labtech: true })).toBe(false);
+    expect(coversStep(cards, ['t'], 'poetry', 1, 'testimony', { labtech: true })).toBe(false);
+    // IV ступень: 2 основного + поддержка. Можно без поддержки или с одним значком основного жанра.
+    expect(coversStep(cards, ['pp'], 'poetry', 2, 'testimony', { labtech: true })).toBe(true);
+    expect(coversStep(cards, ['p', 't'], 'poetry', 2, 'testimony', { labtech: true })).toBe(true);
+    expect(coversStep(cards, ['p'], 'poetry', 2, 'testimony', { labtech: true })).toBe(false);
+    expect(coversStep(cards, ['p', 't'], 'poetry', 2, 'testimony')).toBe(false);
   });
 });
 
