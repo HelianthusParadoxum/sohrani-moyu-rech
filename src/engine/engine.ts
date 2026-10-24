@@ -912,7 +912,9 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     }
     case 'tolkuchka': {
       check(a.ops.length > 0, 'Купите или продайте хотя бы одну книгу');
-      check(a.ops.filter((op) => op.op === 'buy').length <= 1 || hasPatron(state, p.id, 'veteran'), 'Несколько книг за одно действие — только со связью с Ветераном');
+      const veteran = hasPatron(state, p.id, 'veteran');
+      check(a.ops.filter((op) => op.op === 'buy').length <= 1 || veteran, 'Купить несколько книг за одно действие — только со связью с Ветераном');
+      check(a.ops.filter((op) => op.op === 'sell').length <= 1 || veteran, 'Продать несколько книг за одно действие — только со связью с Ветераном');
       const sold: string[] = [];
       const parts: string[] = [];
       let income = 0;

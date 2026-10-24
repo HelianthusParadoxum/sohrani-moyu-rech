@@ -429,8 +429,8 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
         <>
           <h4>{veteran ? `Купить (−${RULES.tolkuchkaBuy}т за книгу; Ветеран: сколько угодно, в сумме на 1 Талон дешевле)` : `Купить 1 книгу (−${RULES.tolkuchkaBuy}т)`}</h4>
           {pickList(view.tolkuchka, sel, setSel, { note: () => `${RULES.tolkuchkaBuy}т`, ...(veteran ? {} : { max: 1 }) })}
-          <h4>Продать (+{RULES.tolkuchkaSellBanned}т за книгу опального жанра, +{RULES.tolkuchkaSellFree}т за прочие)</h4>
-          {pickList(sellable, sel2, setSel2, { note: (c) => `+${price(c)}т` })}
+          <h4>{veteran ? 'Продать (Ветеран: сколько угодно)' : 'Продать 1 книгу'} (+{RULES.tolkuchkaSellBanned}т за книгу опального жанра, +{RULES.tolkuchkaSellFree}т за прочие)</h4>
+          {pickList(sellable, sel2, setSel2, { note: (c) => `+${price(c)}т`, ...(veteran ? {} : { max: 1 }) })}
           {confirmBtn('Совершить сделки', ops.length ? { address: 'tolkuchka', ops } : null, `Итого: ${gain - cost >= 0 ? '+' : ''}${gain - cost}т (у вас ${me.talons}т)`)}
         </>
       );
@@ -895,7 +895,7 @@ function CopyTextPanel({ view, me, done }: { view: PlayerView; me: VPlayer; done
           <div className="shelf wrap">
             {(swap ? genreBooks : sellable).map((c) => (
               <Book key={c} v={view} id={c} note={swap ? 'отдать' : `+${sellPrice(c)}т`} selected={sell.includes(c)}
-                onClick={() => setSell(swap ? (sell.includes(c) ? [] : [c]) : toggle(sell, c))} />
+                onClick={() => setSell(swap || !multiBuy ? (sell.includes(c) ? [] : [c]) : toggle(sell, c))} />
             ))}
           </div>
         </>

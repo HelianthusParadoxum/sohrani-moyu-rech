@@ -179,6 +179,15 @@ describe('правила редакции октября', () => {
     const two = { type: 'place' as const, place: { address: 'tolkuchka' as const, ops: s.tolkuchka.slice(0, 2).map((c) => ({ op: 'buy' as const, card: c })) } };
     s.players.find((p) => p.id === me)!.talons = 10;
     expect(() => applyAction(s, me, two)).toThrow(/Ветераном/);
+    // Продать тоже можно только одну книгу.
+    const p = s.players.find((x) => x.id === me)!;
+    const genre = s.deck.filter((c) => s.cards[c].kind === 'genre').slice(0, 2);
+    s.deck = s.deck.filter((c) => !genre.includes(c));
+    p.capacity = 10;
+    p.warehouse.push(...genre.map((card) => ({ card, hidden: false })));
+    const sellTwo = { type: 'place' as const, place: { address: 'tolkuchka' as const, ops: genre.map((c) => ({ op: 'sell' as const, card: c })) } };
+    expect(() => applyAction(s, me, sellTwo)).toThrow(/Продать несколько/);
+    expect(() => applyAction(s, me, { type: 'place', place: { address: 'tolkuchka', ops: [{ op: 'sell', card: genre[0] }, { op: 'buy', card }] } })).not.toThrow();
   });
 
   it('пасовать можно только после Красного уголка, и пас — до конца Пятилетки', () => {

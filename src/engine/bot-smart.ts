@@ -1358,10 +1358,13 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
             const sellable = genreBooks.filter((b) => !isEvidence(state, b));
             for (const b of sellable) out.push({ type: 'place', place: { address: 'tolkuchka', ops: [{ op: 'sell', card: b }] } });
             const risky = atRisk(state, p, (c) => keepMap().get(c) ?? 0).filter((c) => sellable.includes(c));
-            if (risky.length > 1) out.push({ type: 'place', place: { address: 'tolkuchka', ops: risky.map((card) => ({ op: 'sell' as const, card })) } });
+            // Продать за раз больше одной книги — только с Ветераном.
+            const veteran = hasPatron(state, me, 'veteran');
+            const sales = veteran ? (risky.length ? [risky] : []) : risky.map((c) => [c]);
+            if (veteran && risky.length > 1) out.push({ type: 'place', place: { address: 'tolkuchka', ops: risky.map((card) => ({ op: 'sell' as const, card })) } });
             for (const c of state.tolkuchka) {
               out.push({ type: 'place', place: { address: 'tolkuchka', ops: [{ op: 'buy', card: c }] } });
-              if (risky.length) out.push({ type: 'place', place: { address: 'tolkuchka', ops: [...risky.map((card) => ({ op: 'sell' as const, card })), { op: 'buy', card: c }] } });
+              for (const set of sales) out.push({ type: 'place', place: { address: 'tolkuchka', ops: [...set.map((card) => ({ op: 'sell' as const, card })), { op: 'buy', card: c }] } });
             }
             break;
           }
