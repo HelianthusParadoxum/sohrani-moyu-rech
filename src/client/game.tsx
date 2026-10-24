@@ -2,7 +2,7 @@
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   ADDRESSES, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, groupCost, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
-  groupInGame, sproutBonusOptions,
+  groupInGame, PATRONS, sproutBonusOptions,
 } from '../engine/content';
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
@@ -1276,13 +1276,34 @@ function HidingPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (
 // Источники очков «по ходу», возможные в этом режиме.
 const BEGINNER_SOURCES: PointSource[] = ['sprouts', 'firstFeed', 'gathering', 'tamizdat'];
 
+// Источники очков «по ходу» для итоговой таблицы: очки Завсегдатая — только если он был в Клубе, Вызволение — где есть Контора.
+function scoreSources(view: PlayerView): PointSource[] {
+  if (view.mode !== 'full') return BEGINNER_SOURCES;
+  return (Object.keys(POINT_SOURCES) as PointSource[]).filter((k) => {
+    if (k in PATRONS) return view.patrons.some((pt) => pt.id === k);
+    return k !== 'rescue' || !view.reserve;
+  });
+}
+
+// Итоговый подсчёт очков для скачиваемого журнала.
+function resultText(view: PlayerView): string {
+  const r = view.result;
+  if (!r) return '';
+  const full = view.mode === 'full';
+  const sources = scoreSources(view);
+  const lines = r.scores.map((s) => {
+    const p = view.players.find((x) => x.id === s.player)!;
+    const by = sources.map((k) => `${POINT_SOURCES[k]} ${s.duringBy?.[k] ?? 0}`).join(', ');
+    const parts = [`по ходу ${s.during}${by ? ` (${by})` : ''}`, ...(full ? [`связи ${s.connections ?? 0}`] : []),
+      `за Пристрастие ${s.passion}`, `Улики ${s.evidence}`, `за Талоны ${s.talonPoints ?? 0}`, `Пропаганда ${s.propaganda}`];
+    return `• ${p.name}${r.winners.includes(s.player) ? ' (победа)' : ''}, ${p.passion ? passionLabel(p.passion) : '—'}: итого ${s.total} — ${parts.join('; ')}.`;
+  });
+  return `\n\nИтоговый подсчёт очков. ${r.note}\n${lines.join('\n')}`;
+}
+
 function Results({ view, seatIndex, close }: { view: PlayerView; seatIndex: (id: string) => number; close: () => void }) {
   const full = view.mode === 'full';
-  // Очки от Завсегдатаев показываем, только если этот Завсегдатай был в Клубе.
-  const PATRON_SOURCES: Partial<Record<PointSource, string>> = { editor: 'editor', postgrad: 'postgrad', komsorg: 'komsorg' };
-  const sources = view.mode === 'full'
-    ? (Object.keys(POINT_SOURCES) as PointSource[]).filter((k) => !PATRON_SOURCES[k] || view.patrons.some((pt) => pt.id === PATRON_SOURCES[k]))
-    : BEGINNER_SOURCES;
+  const sources = scoreSources(view);
   const r = view.result!;
   const name = (id: string) => view.players.find((p) => p.id === id)!.name;
   return (
@@ -1428,7 +1449,7 @@ function groupN(p: VPlayer, g: GroupActionId): number | undefined {
 function Log({ view, seatIndex }: { view: PlayerView; seatIndex: (id: string) => number }) {
   const entries = useMemo(() => [...view.log].reverse(), [view.log]);
   const download = () => {
-    const text = view.log.map((l) => `[Пятилетка ${l.round}] ${l.strong ? `**${l.text}**` : l.em ? `_${l.text}_` : l.text}`).join('\n');
+    const text = view.log.map((l) => `[Пятилетка ${l.round}] ${l.strong ? `**${l.text}**` : l.em ? `_${l.text}_` : l.text}`).join('\n') + resultText(view);
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
     a.download = `журнал-партии.txt`;
