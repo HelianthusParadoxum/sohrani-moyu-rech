@@ -1,5 +1,5 @@
 // Игровой стол.
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   ADDRESSES, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, groupCost, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
   groupInGame, PATRONS, sproutBonusOptions,
@@ -1453,6 +1453,16 @@ function groupN(p: VPlayer, g: GroupActionId): number | undefined {
 
 function Log({ view, seatIndex }: { view: PlayerView; seatIndex: (id: string) => number }) {
   const entries = useMemo(() => [...view.log].reverse(), [view.log]);
+  // Новые записи появляются сверху. Если журнал прокручен вниз от верха — держим ту же позицию:
+  // сдвигаем прокрутку на высоту добавленного. Наверху — новые записи видны сразу.
+  const box = useRef<HTMLDivElement>(null);
+  const last = useRef({ top: 0, height: 0 });
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    if (last.current.top > 2) el.scrollTop = last.current.top + (el.scrollHeight - last.current.height);
+    last.current = { top: el.scrollTop, height: el.scrollHeight };
+  }, [entries]);
   const download = () => {
     const text = view.log.map((l) => `[Пятилетка ${l.round}] ${l.strong ? `**${l.text}**` : l.em ? `_${l.text}_` : l.text}`).join('\n') + resultText(view);
     const a = document.createElement('a');
@@ -1462,10 +1472,10 @@ function Log({ view, seatIndex }: { view: PlayerView; seatIndex: (id: string) =>
     URL.revokeObjectURL(a.href);
   };
   return (
-    <div className="log">
+    <div className="log" ref={box} onScroll={(e) => { last.current = { top: e.currentTarget.scrollTop, height: e.currentTarget.scrollHeight }; }}>
       <div className="addr-head"><h3>Журнал</h3><button className="small" onClick={download}>Скачать .txt</button></div>
       {entries.map((l, i) => (
-        <div key={i} className={`${l.only ? 'secret' : ''} ${l.act ? 'act' : ''}`} style={{ whiteSpace: 'pre-line', ...(l.strong ? { fontWeight: 700 } : {}), ...(l.em ? { fontStyle: 'italic' } : {}) }}>
+        <div key={entries.length - i} className={`${l.only ? 'secret' : ''} ${l.act ? 'act' : ''}`} style={{ whiteSpace: 'pre-line', ...(l.strong ? { fontWeight: 700 } : {}), ...(l.em ? { fontStyle: 'italic' } : {}) }}>
           {l.act && <span className="dot num" style={{ background: PLAYER_COLORS[seatIndex(l.act.player)] }} title={`${l.act.n}-е действие игрока в Пятилетке`}>{l.act.n}</span>}
           {l.who && !l.act && <span className="dot" style={{ background: PLAYER_COLORS[seatIndex(l.who)] }} />}
           {l.club && <span className="dot num wide" style={{ background: PLAYER_COLORS[seatIndex(l.club.player)] }} title={`Связь с ${l.club.round}-й Пятилетки`}>П{l.club.round}</span>}
