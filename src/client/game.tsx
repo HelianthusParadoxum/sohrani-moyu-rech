@@ -1119,7 +1119,10 @@ function withGenreChips(raw: string): ReactNode {
     if (g && part.startsWith(` ${GENRE_NAMES[g]}`)) part = part.slice(GENRE_NAMES[g].length + 1);
     if (part === '[Любой жанр]' || part === '[Любой жанр ×2]') return <span key={i} className="log-genres">{(part.includes('×2') ? [0, 1] : [0]).map((j) => <span key={j} className="chip wild">ЛЮБОЙ</span>)}</span>;
     const tokens = /^\[(.+)\]$/.exec(part)?.[1].split(' ');
-    if (part === '[ЧНЛ]' || part === '[УЛ]') return <span key={i} className="log-genres"><KindChip k={part === '[ЧНЛ]' ? 'chnl' : 'ul'} /></span>;
+    // ЧНЛ и Улики; «[Пропаганда]», «[Улика]» — строки партий, начатых до переименования.
+    if (['[ЧНЛ]', '[Пропаганда]', '[УЛ]', '[Улика]'].includes(part)) {
+      return <span key={i} className="log-genres"><KindChip k={part === '[ЧНЛ]' || part === '[Пропаганда]' ? 'chnl' : 'ul'} /></span>;
+    }
     if (!tokens || !tokens.every((t) => SHORT_TO_GENRE.has(t))) return part;
     return <span key={i} className="log-genres">{tokens.map((t, j) => <GenreChip key={j} g={SHORT_TO_GENRE.get(t)!} />)}</span>;
   });
