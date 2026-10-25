@@ -165,6 +165,8 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .modal.wide { max-width: 860px; }
 .modal-head { display: flex; justify-content: space-between; align-items: center; }
 .modal-head h3 { margin: 0; }
+.chip.k-chnl { background: #7a4a1f; }
+.chip.k-ul { background: #8a8a8a; }
 .chip.wild { background: linear-gradient(90deg, #8a5a2b, #3d6b8f, #6b3d8f); color: #fff; }
 .gprice { font-size: 0.85em; opacity: .8; white-space: nowrap; }
 .modal-head-buttons { display: flex; gap: 8px; align-items: center; }

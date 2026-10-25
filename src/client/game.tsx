@@ -14,7 +14,7 @@ import {
   KontoraWarningPrompt, RescuePanel,
 } from './full-ui';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
-import { Book, GENRE_SHORT, GenreChip, iconize, SpeedSelect, Modal, ModalCollapse, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, toggle } from './ui';
+import { Book, GENRE_SHORT, GenreChip, KindChip, iconize, SpeedSelect, Modal, ModalCollapse, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, toggle } from './ui';
 
 type Send = (m: ClientMessage) => void;
 type VPlayer = PlayerView['players'][number];
@@ -1119,6 +1119,7 @@ function withGenreChips(raw: string): ReactNode {
     if (g && part.startsWith(` ${GENRE_NAMES[g]}`)) part = part.slice(GENRE_NAMES[g].length + 1);
     if (part === '[Любой жанр]' || part === '[Любой жанр ×2]') return <span key={i} className="log-genres">{(part.includes('×2') ? [0, 1] : [0]).map((j) => <span key={j} className="chip wild">ЛЮБОЙ</span>)}</span>;
     const tokens = /^\[(.+)\]$/.exec(part)?.[1].split(' ');
+    if (part === '[ЧНЛ]' || part === '[УЛ]') return <span key={i} className="log-genres"><KindChip k={part === '[ЧНЛ]' ? 'chnl' : 'ul'} /></span>;
     if (!tokens || !tokens.every((t) => SHORT_TO_GENRE.has(t))) return part;
     return <span key={i} className="log-genres">{tokens.map((t, j) => <GenreChip key={j} g={SHORT_TO_GENRE.get(t)!} />)}</span>;
   });
@@ -1510,7 +1511,7 @@ function Published({ view, p }: { view: PlayerView; p: VPlayer }) {
         const icons = iconsOf(view, c);
         return (
           <span key={c} className="pub-book" title={view.cards[c].title}>
-            {icons.length ? icons.map((g, i) => <GenreChip key={i} g={g} />) : <span className="kind">{isEvidence(view, c) ? 'Улика' : '—'}</span>}
+            {icons.length ? icons.map((g, i) => <GenreChip key={i} g={g} />) : isEvidence(view, c) ? <KindChip k="ul" /> : <span className="kind">—</span>}
           </span>
         );
       })}

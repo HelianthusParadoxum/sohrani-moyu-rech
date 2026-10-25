@@ -80,7 +80,7 @@ export function player(state: GameState, id: string): PlayerState {
 export function title(state: GameState, id: string): string {
   const c = state.cards[id];
   const icons = iconsOf(state, id);
-  const kind = isPropaganda(state, id) ? 'Пропаганда' : isExposed(state, id) ? 'Разоблачение' : isEvidence(state, id) ? 'Улика'
+  const kind = isPropaganda(state, id) ? 'ЧНЛ' : isExposed(state, id) ? 'Разоблачение' : isEvidence(state, id) ? 'УЛ'
     : isLoad(state, id) ? 'Нагрузка' : '';
   const tag = c.wild ? (state.restored[id] ? 'Любой жанр ×2' : 'Любой жанр') : icons.length ? icons.map((g) => GENRE_SHORT[g]).join(' ') : kind;
   // Возвращаемая Нагрузка: на обороте — вторая книга (3 значка её жанра после Возвращения смыслов).

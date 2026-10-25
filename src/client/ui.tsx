@@ -49,6 +49,16 @@ export function favoredGenres(v: PlayerView): Genre[] {
   return (passion && PASSIONS[passion].genres) || [];
 }
 
+// Значки Пропаганды (ЧНЛ — человеконенавистническая литература) и Улик (УЛ).
+export function KindChip({ k, banned }: { k: 'chnl' | 'ul'; banned?: boolean }) {
+  return (
+    <span className={`chip k-${k} ${banned ? 'banned' : ''}`}
+      title={k === 'chnl' ? 'ЧНЛ — человеконенавистническая литература (Пропаганда)' : 'УЛ — Улика'}>
+      {k === 'chnl' ? 'ЧНЛ' : 'УЛ'}
+    </span>
+  );
+}
+
 export function GenreChip({ g, banned, favored }: { g: Genre; banned?: boolean; favored?: boolean }) {
   return (
     <span className={`chip g-${g} ${banned ? 'banned' : ''} ${favored ? 'favored' : ''}`}
@@ -59,7 +69,7 @@ export function GenreChip({ g, banned, favored }: { g: Genre; banned?: boolean; 
 }
 
 const KIND_LABEL: Record<string, string> = {
-  propaganda: 'Пропаганда', evidence: 'Улика', load: 'Нагрузка', loadReturnable: 'Нагрузка', loadEvidence: 'Нагрузка', loadPropaganda: 'Нагрузка · Пропаганда',
+  load: 'Нагрузка', loadReturnable: 'Нагрузка', loadEvidence: 'Нагрузка', loadPropaganda: 'Нагрузка',
 };
 
 export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
@@ -73,7 +83,10 @@ export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
   const banned = isBanned(v, id);
   const restored = !!v.restored[id];
   const flex = flexGenres(v, id);
-  const label = c.kind === 'loadReturnable' && restored ? null : c.kind === 'loadEvidence' && restored ? 'Улика' : (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && restored ? 'Разоблачение' : KIND_LABEL[c.kind];
+  const label = c.kind === 'loadReturnable' && restored ? null : c.kind === 'loadEvidence' && restored ? null : (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && restored ? 'Разоблачение' : KIND_LABEL[c.kind];
+  // Значки вида: ЧНЛ — у Пропаганды (и Нагрузки-пропаганды), УЛ — у Улик (и Нагрузки-улики после Возвращения смыслов).
+  const kindChip = (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && !restored ? 'chnl' as const
+    : c.kind === 'evidence' || (c.kind === 'loadEvidence' && restored) ? 'ul' as const : null;
   const t = c.kind === 'loadReturnable' && restored ? c.returned! : c.title;
   return (
     <button
@@ -100,6 +113,7 @@ export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
             {[0, 1, 2].map((i) => <GenreChip key={i} g={c.genre!} />)}
           </span>
         )}
+        {kindChip && <KindChip k={kindChip} banned={banned} />}
         {label && <span className="kind">{label}</span>}
         {restored && <span className="restored" title="Смыслы возвращены">↺</span>}
         {price !== undefined && <span className="book-price" title="Цена в Талонах">{price}т</span>}
