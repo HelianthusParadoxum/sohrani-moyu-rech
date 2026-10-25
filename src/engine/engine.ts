@@ -116,12 +116,12 @@ export function createGame(opts: NewGameOptions): GameState {
   // Опала первой Пятилетки известна до выбора Пристрастий (остальной стол откроется после выбора).
   state.banned = shuffle(state, [...GENRES]).slice(0, state.censorship);
   logNote(state, solo
-    ? `Несистемный: одиночная игра. Цензура растёт на 1 каждую Пятилетку; в конце вскроются ${RULES.soloEndCards[mode]} Непечатных — каждая Пропаганда срежет ступень Ростка.`
+    ? `Несистемный: одиночная игра. Цензура растёт на 1 каждую Пятилетку; в конце вскроются ${RULES.soloEndCards[mode]} Непечатных — каждая ЧНЛ срежет ступень Ростка.`
     : 'Каждый игрок тайно выбирает одно из двух Пристрастий.');
   return state;
 }
 
-// Стартовый Тайник: опальные книги (не Пропаганда) по порядку — больше значков, затем жанр Пристрастия, затем случайно.
+// Стартовый Тайник: опальные книги (не ЧНЛ) по порядку — больше значков, затем жанр Пристрастия, затем случайно.
 export function startHide(state: GameState, p: PlayerState) {
   const favored: Genre[] = (p.passion && PASSIONS[p.passion].genres) || [];
   const fits = (c: string) => (genresOf(state, c).some((g) => favored.includes(g)) ? 1 : 0);
@@ -491,7 +491,7 @@ function logStartBooks(state: GameState) {
     const hidden = p.warehouse.filter((s) => s.hidden).map((s) => s.card);
     log(state, open.length ? `${p.name} на складе на виду: ${titles(state, open)}.` : `${p.name}: на складе на виду ничего.`);
     state.log[state.log.length - 1].who = p.id;
-    // Пропаганда, которую все видели на складе при раскладке, — как взятая открыто: все знают, что она у него.
+    // ЧНЛ, которую все видели на складе при раскладке, — как взятая открыто: все знают, что она у него.
     const seen = open.filter((c) => isPropaganda(state, c)).length;
     if (seen) p.propagandaDealt = (p.propagandaDealt ?? 0) + seen;
     if (hidden.length) {
@@ -601,7 +601,7 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
     if (hasPatron(state, p.id, 'geologist')) geo++;
   }
   // Опальные книги из Тайника, которые игрок не показал (честному показывать опальное выгодно; у Куратора в Тайнике —
-  // Пропаганда). Неопальные книги в Тайнике (спрятанные впрок) показать нельзя — они не в счёт.
+  // ЧНЛ). Неопальные книги в Тайнике (спрятанные впрок) показать нельзя — они не в счёт.
   const unshown = p.warehouse.filter((s) => s.hidden && !s.memorized && !show.includes(s.card) && isBanned(state, s.card)).length;
   if (unshown) p.cacheUnshown = (p.cacheUnshown ?? 0) + unshown;
   const shownCached = p.warehouse.filter((s) => s.hidden && show.includes(s.card)).length;
@@ -949,7 +949,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         } else {
           check(hasBook(p, op.card), 'Продавать можно только книги со своего склада');
           check(!isEvidence(state, op.card), 'Улики нельзя продать — у них ноль подпольного спроса');
-          check(!isPropaganda(state, op.card), 'Пропаганду можно сбыть только в Красном уголке');
+          check(!isPropaganda(state, op.card), 'ЧНЛ можно сбыть только в Красном уголке');
           check(isGenreBook(state, op.card), 'Книгу без жанра не продать');
           const demand = genresOf(state, op.card).some((g) => state.banned.includes(g)) || hasPatron(state, p.id, 'fartsovshchik');
           const gain = demand ? RULES.tolkuchkaSellBanned : RULES.tolkuchkaSellFree;
@@ -1104,7 +1104,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     case 'samizdat':
     case 'tamizdat': {
       check(hasBook(p, a.card), 'Издавать можно только книги со своего склада');
-      check(!isPropaganda(state, a.card), 'Пропаганду нельзя издать');
+      check(!isPropaganda(state, a.card), 'ЧНЛ нельзя издать');
       // Разоблачение издают как книгу с одним значком (без жанра).
       const icons = iconCount(state, a.card) + (isExposed(state, a.card) ? 1 : 0);
       if (a.address === 'samizdat') {
@@ -1319,7 +1319,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
         check(p.available >= 1, 'Нет свободного Единомышленника для Тиражирования');
         check(p.visitedRedCorner || hasPatron(state, p.id, 'doctor') || p.available > 1, 'Последнего Единомышленника нужно отправить в Красный уголок');
         check(!last.exclude.includes(g.card), 'Только что отданную книгу нельзя забрать обратно');
-        check(isGenreBook(state, g.card), 'Тиражировать можно только жанровую книгу — не Улику и не Пропаганду');
+        check(isGenreBook(state, g.card), 'Тиражировать можно только жанровую книгу — не Улику и не ЧНЛ');
         takeCopy(state, p, addr, g.card);
         break;
       }
@@ -1328,7 +1328,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       // Машинистка: без покупки — книгу с поля берёт сам Единомышленник на Тиражировании, на адрес никто не идёт.
       if (!g.buy && hasPatron(state, p.id, 'typist')) {
         check(g.card, 'Выберите книгу, которую взять бесплатно');
-        check(isGenreBook(state, g.card), 'Тиражировать можно только жанровую книгу — не Улику и не Пропаганду');
+        check(isGenreBook(state, g.card), 'Тиражировать можно только жанровую книгу — не Улику и не ЧНЛ');
         if (opts.worker) check(p.visitedRedCorner || hasPatron(state, p.id, 'doctor') || p.available > 1, 'Последнего Единомышленника нужно отправить в Красный уголок');
         takeCopy(state, p, addr, g.card, true);
         typistBonus(state, p);
@@ -1352,7 +1352,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
         const own = g.buy?.address === 'tolkuchka' ? g.buy.ops.some((op) => op.op === 'sell' && op.card === c)
           : g.buy?.address === 'knigoobmen' ? g.buy.give === c : false;
         check(!own, 'Только что отданную книгу нельзя забрать обратно');
-        check(isGenreBook(state, c), 'Тиражировать можно только жанровую книгу — не Улику и не Пропаганду');
+        check(isGenreBook(state, c), 'Тиражировать можно только жанровую книгу — не Улику и не ЧНЛ');
         takeCopy(state, p, addr, c, true);
       } else {
         log(state, `${p.name} тиражирует: ${name}.`);
@@ -1371,7 +1371,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       check(!state.restored[g.card], 'Этой книге смыслы уже возвращены');
       check(c.kind === 'genre' || c.kind === 'loadReturnable' || c.kind === 'loadEvidence' || (isPropagandaKind(c.kind) && RULES.exposePropaganda),
         RULES.exposePropaganda
-          ? 'Смыслы можно вернуть только жанровой книге, возвращаемой Нагрузке, Нагрузке-улике или Пропаганде'
+          ? 'Смыслы можно вернуть только жанровой книге, возвращаемой Нагрузке, Нагрузке-улике или ЧНЛ'
           : 'Смыслы можно вернуть только жанровой книге, возвращаемой Нагрузке или Нагрузке-улике');
       state.restored[g.card] = true;
       if (isPropagandaKind(c.kind)) {

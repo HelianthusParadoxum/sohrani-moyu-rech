@@ -125,7 +125,7 @@ describe('думающий бот', () => {
         a = botMove(a, activePlayersOf(a)[0], rand);
       }
       if (a.phase !== 'orders' || a.order[a.turn] !== me) continue;
-      // В одном варианте вся Пропаганда из стопки — в незнакомой ему части Спецхрана, в другом её там нет.
+      // В одном варианте вся ЧНЛ из стопки — в незнакомой ему части Спецхрана, в другом её там нет.
       // Куратору это очень важно (Выдача на руки), но знать этого он не может.
       const known = a.spetskhranSeen?.[me] ?? [];
       const unknown = a.spetskhran.filter((c) => !known.includes(c));
@@ -262,10 +262,10 @@ describe('думающий бот в полном режиме', () => {
     expect(s.players.find((p) => p.id === me.id)!.warehouse.find((w) => w.card === book)!.hidden).toBe(true);
   });
 
-  it('подозревает в Кураторе того, кто открыто берёт Пропаганду, — и только по открытой информации', () => {
+  it('подозревает в Кураторе того, кто открыто берёт ЧНЛ, — и только по открытой информации', () => {
     const s = createGame({ players: players(3), seed: 5, mode: 'full' });
     const [me, x, y] = s.players;
-    // Раздача от сида не зависит: стартовой Пропаганды ни у кого нет.
+    // Раздача от сида не зависит: стартовой ЧНЛ ни у кого нет.
     for (const p of s.players) { p.propagandaDealt = 0; p.warehouse = p.warehouse.filter((w) => !['propaganda', 'loadPropaganda'].includes(s.cards[w.card].kind)); }
     x.propagandaTaken = 1;
     const prop = s.deck.find((c) => s.cards[c].kind === 'propaganda')!;
@@ -274,7 +274,7 @@ describe('думающий бот в полном режиме', () => {
     const sus = curatorSuspicion(s, me.id);
     expect(sus[x.id]).toBeGreaterThanOrEqual(0.5);
     expect(sus[y.id]).toBe(0);
-    // Спрятанная Пропаганда не видна — и не выдаёт.
+    // Спрятанная ЧНЛ не видна — и не выдаёт.
     x.propagandaTaken = 0;
     x.warehouse[x.warehouse.length - 1].hidden = true;
     expect(curatorSuspicion(s, me.id)[x.id]).toBe(0);
@@ -336,7 +336,7 @@ describe('думающий бот в полном режиме', () => {
     expect(s.curatorUnmask!.round).toBeLessThanOrEqual(3);
   }, 120_000);
 
-  it('Куратор кормит Ростки разве что один раз (маскировка) и бережёт Пропаганду', () => {
+  it('Куратор кормит Ростки разве что один раз (маскировка) и бережёт ЧНЛ', () => {
     let feeds = 0;
     let curators = 0;
     let recycled = 0;
@@ -352,7 +352,7 @@ describe('думающий бот в полном режиме', () => {
       const cur = s.players[0];
       curators++;
       feeds += s.log.filter((l) => l.text.startsWith(`${cur.name} питает ступень`)).length;
-      // Пропаганда в конце срезает Ростки — Куратор её в макулатуру не сдаёт.
+      // ЧНЛ в конце срезает Ростки — Куратор её в макулатуру не сдаёт.
       const propaganda = Object.values(s.cards).filter((c) => c.kind === 'propaganda').map((c) => `«${c.title}»`);
       recycled += s.log.filter((l) => l.text.startsWith(`${cur.name} в Красном уголке`) && propaganda.some((t) => l.text.includes(t))).length;
     }
@@ -364,7 +364,7 @@ describe('думающий бот в полном режиме', () => {
 });
 
 describe('Куратор: маскировка до первого явного зла', () => {
-  it('Удав и Хищник, открыто взявшие Пропаганду, играют «открытым забралом»', () => {
+  it('Удав и Хищник, открыто взявшие ЧНЛ, играют «открытым забралом»', () => {
     const seen = new Set<string>();
     for (let seed = 1; seed <= 60 && seen.size < 2; seed++) {
       const s = createGame({ players: players(3), seed, mode: 'full' });

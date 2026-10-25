@@ -51,7 +51,7 @@ for (let i = 0; i < games; i++) {
       st.total.push(line.total);
       const parts: Record<string, number> = {
         'по ходу игры': line.during, 'Пристрастие': line.passion,
-        'Пропаганда': line.propaganda, 'Улики': line.evidence,
+        'ЧНЛ': line.propaganda, 'Улики': line.evidence,
       };
       for (const [k, v] of Object.entries(parts)) st.sources[k] = (st.sources[k] ?? 0) + v;
     }

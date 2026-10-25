@@ -76,7 +76,7 @@ export function player(state: GameState, id: string): PlayerState {
   return p;
 }
 
-// Название книги для журнала — со значками: «[ПР ФА] «Название»» (у Пропаганды, Улик и Нагрузки — их вид).
+// Название книги для журнала — со значками: «[ПР ФА] «Название»» (у ЧНЛ, Улик и Нагрузки — их вид).
 export function title(state: GameState, id: string): string {
   const c = state.cards[id];
   const icons = iconsOf(state, id);
@@ -207,7 +207,7 @@ export function isEvidence(state: CardsInfo, id: string): boolean {
   return k === 'evidence' || (k === 'loadEvidence' && !!state.restored[id]);
 }
 
-// Пропаганда: обычная (ЧНЛ) и Нагрузка-пропаганда (ПСС Ленина — из стопки Нагрузки, сдаётся в Красный уголок как Нагрузка,
+// ЧНЛ: обычная (ЧНЛ) и Нагрузка-ЧНЛ (ПСС Ленина — из стопки Нагрузки, сдаётся в Красный уголок как Нагрузка,
 // но Тайник не прикрывает).
 export function isPropagandaKind(kind: string): boolean {
   return kind === 'propaganda' || kind === 'loadPropaganda';
@@ -217,12 +217,12 @@ export function isPropaganda(state: CardsInfo, id: string): boolean {
   return isPropagandaKind(state.cards[id].kind) && !state.restored[id];
 }
 
-// «Разоблачение» — Пропаганда, которой вернули смыслы: +2 очка в конце (на складе или изданная).
+// «Разоблачение» — ЧНЛ, которой вернули смыслы: +2 очка в конце (на складе или изданная).
 export function isExposed(state: CardsInfo, id: string): boolean {
   return isPropagandaKind(state.cards[id].kind) && !!state.restored[id];
 }
 
-// Опальная книга: Пропаганда, Улики и книги со значком опального жанра.
+// Опальная книга: ЧНЛ, Улики и книги со значком опального жанра.
 export function isBanned(state: CardsInfo & Pick<GameState, 'banned'>, id: string): boolean {
   if (isPropaganda(state, id) || isEvidence(state, id)) return true;
   return genresOf(state, id).some((g) => state.banned.includes(g));
@@ -257,7 +257,7 @@ export function drawLoad(state: GameState): string | null {
   return state.loadDeck.pop() ?? null;
 }
 
-// В сброс книга уходит без жетона Возвращения смыслов (Разоблачение снова становится Пропагандой).
+// В сброс книга уходит без жетона Возвращения смыслов (Разоблачение снова становится ЧНЛ).
 export function discard(state: GameState, id: string) {
   delete state.restored[id];
   if (isFromLoadDeck(state, id)) {
@@ -293,14 +293,14 @@ export function addSecretBook(state: GameState, p: PlayerState, id: string, how:
   }
 }
 
-// Книга, открыто взятая со стола: все видят, что это. Пропаганду запоминаем — так ведёт себя Куратор.
+// Книга, открыто взятая со стола: все видят, что это. ЧНЛ запоминаем — так ведёт себя Куратор.
 export function addOpenBook(state: GameState, p: PlayerState, id: string) {
   addBook(p, id);
   if (isPropaganda(state, id)) p.propagandaTaken = (p.propagandaTaken ?? 0) + 1;
   autoHide(state, p, id);
 }
 
-// По умолчанию: опальная книга (не Пропаганда — её изъятие обычному игроку на руку) сразу ложится в Тайник, если там есть место.
+// По умолчанию: опальная книга (не ЧНЛ — её изъятие обычному игроку на руку) сразу ложится в Тайник, если там есть место.
 // Тайник можно пересобрать в свой ход. Соперники и так видели, что это за книга, — прячем от облавы и Конторы.
 export function autoHide(state: GameState, p: PlayerState, id: string) {
   const slot = p.warehouse.find((s) => s.card === id);

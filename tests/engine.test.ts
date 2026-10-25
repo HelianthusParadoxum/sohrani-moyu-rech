@@ -24,7 +24,7 @@ function startOrders(s: GameState): GameState {
 }
 
 
-// Колонка «Пропаганда» финального подсчёта для игрока (минус Пропаганда, плюс Разоблачения).
+// Колонка «ЧНЛ» финального подсчёта для игрока (минус ЧНЛ, плюс Разоблачения).
 function finalScoringLine(s: GameState, id: string): number {
   return scoreLine(s, s.players.find((p) => p.id === id)!).propaganda;
 }
@@ -491,7 +491,7 @@ describe('разбивка очков по источникам', () => {
 });
 
 describe('Тиражирование', () => {
-  it('нельзя бесплатно взять Улику или Пропаганду', () => {
+  it('нельзя бесплатно взять Улику или ЧНЛ', () => {
     let s = createGame({ players: players(2), seed: 12 });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
     s = startOrders(s);
@@ -759,7 +759,7 @@ describe('Тайник и закрытые книги', () => {
     const p0 = s.players.find((p) => p.id === me)!;
     p0.cache = 1;
     p0.capacity = 10;
-    // Обычная Нагрузка (ПСС Ленина — Пропаганда, она тоже ушла бы в Тайник).
+    // Обычная Нагрузка (ПСС Ленина — ЧНЛ, она тоже ушла бы в Тайник).
     s.loadDeck = s.loadDeck.filter((c) => s.cards[c].kind !== 'loadPropaganda');
     s = applyAction(s, me, { type: 'place', place: { address: 'gostorg', pairs: 1 } });
     const p = s.players.find((x) => x.id === me)!;
@@ -798,7 +798,7 @@ describe('Тайник в свой ход', () => {
 });
 
 describe('Срезы Куратора', () => {
-  it('в журнале видно, сколько Пропаганды у Куратора и какие ступени он срезал', () => {
+  it('в журнале видно, сколько ЧНЛ у Куратора и какие ступени он срезал', () => {
     const s = createGame({ players: players(3), seed: 4, mode: 'full' });
     const [cur] = s.players;
     cur.passion = 'curator';
@@ -808,12 +808,12 @@ describe('Срезы Куратора', () => {
     const r = finalScoring(s);
     expect(r.glasnost).toBe(true);
     const text = s.log.map((l) => l.text).join('\n');
-    expect(text).toContain('Пропаганды у него на Складе и в Тайнике: 2');
+    expect(text).toContain('ЧНЛ у него на Складе и в Тайнике: 2');
     expect(text.match(/Срез: Росток/g)).toHaveLength(2);
     expect(text).toContain('ступень IV → III');
   });
 
-  it('ПСС Ленина — Пропаганда у всех: срез у Куратора, −5 у книжника; Тайник не прикрывает; смыслы → Разоблачение', () => {
+  it('ПСС Ленина — ЧНЛ у всех: срез у Куратора, −5 у книжника; Тайник не прикрывает; смыслы → Разоблачение', () => {
     const s = createGame({ players: players(3), seed: 4, mode: 'full' });
     const [cur, honest] = s.players;
     cur.passion = 'curator';
@@ -831,7 +831,7 @@ describe('Срезы Куратора', () => {
     for (const sp of s.sprouts) sp.progress = 4;
     finalScoring(s);
     const text = s.log.map((l) => l.text).join('\n');
-    expect(text).toContain('Пропаганды у него на Складе и в Тайнике: 1');
+    expect(text).toContain('ЧНЛ у него на Складе и в Тайнике: 1');
     expect(text.match(/Срез: Росток/g)).toHaveLength(1);
   });
 
@@ -1029,7 +1029,7 @@ describe('Разоблачение', () => {
     return { s, me, prop };
   }
 
-  it('Возвращение смыслов делает Пропаганду Разоблачением: +2 очка, не опальна, издаётся как книга с 1 значком', () => {
+  it('Возвращение смыслов делает ЧНЛ Разоблачением: +2 очка, не опальна, издаётся как книга с 1 значком', () => {
     let { s, me, prop } = withPropaganda();
     expect(isBanned(s, prop)).toBe(true);
     s = applyAction(s, me, { type: 'group', group: { action: 'restore', card: prop } });
@@ -1047,7 +1047,7 @@ describe('Разоблачение', () => {
     expect(finalScoringLine(s, me)).toBe(RULES.exposePoints);
   });
 
-  it('в сброс книга уходит без жетона смыслов: Разоблачение снова Пропаганда', () => {
+  it('в сброс книга уходит без жетона смыслов: Разоблачение снова ЧНЛ', () => {
     const { s, prop } = withPropaganda();
     const genre = s.deck.find((c) => s.cards[c].kind === 'genre')!;
     s.restored[prop] = true;
@@ -1058,7 +1058,7 @@ describe('Разоблачение', () => {
     expect(s.restored[genre]).toBeUndefined();
   });
 
-  it('с выключенной опцией Пропаганде смыслы не возвращают', () => {
+  it('с выключенной опцией ЧНЛ смыслы не возвращают', () => {
     const { s, me, prop } = withPropaganda();
     (RULES as { exposePropaganda: boolean }).exposePropaganda = false;
     expect(() => applyAction(s, me, { type: 'group', group: { action: 'restore', card: prop } })).toThrow(RuleError);
@@ -1311,14 +1311,14 @@ describe('Несистемный (одиночная игра)', () => {
     for (const t of after) expect(t).toMatch(/^Профилактика|^Контора удерживает|Психиатр/);
   });
 
-  it('в конце вскрываются верхние Непечатные: Пропаганда срезает самый развитый Росток', () => {
+  it('в конце вскрываются верхние Непечатные: ЧНЛ срезает самый развитый Росток', () => {
     let s = solo(3, 'full');
     s = applyAction(s, 'p1', { type: 'choosePassion', passion: s.players[0].passionOptions[0] });
     s = startOrders(s);
     s.sprouts.forEach((sp, i) => { sp.progress = i === 0 ? 4 : 3; });
     const prop = Object.keys(s.cards).filter((c) => s.cards[c].kind === 'propaganda');
     const plain = s.deck.filter((c) => s.cards[c].kind !== 'propaganda');
-    // Сверху колоды две Пропаганды: первая срежет IV ступень, вторая — уже ступень III.
+    // Сверху колоды две ЧНЛ: первая срежет IV ступень, вторая — уже ступень III.
     s.deck = [...plain.slice(0, 40), prop[0], prop[1]];
     const r = finalScoring(s);
     expect(s.sprouts.map((x) => x.progress).sort()).toEqual([2, 3, 3]);
@@ -1571,8 +1571,8 @@ describe('Подозрение: питание ступеней II–IV', () => 
   });
 });
 
-describe('Пропаганда, розданная при раскладке', () => {
-  it('все видели её на складе — подозрение «держит известную всем Пропаганду», пока её не сдали и не разоблачили', () => {
+describe('ЧНЛ, розданная при раскладке', () => {
+  it('все видели её на складе — подозрение «держит известную всем ЧНЛ», пока её не сдали и не разоблачили', () => {
     let s = createGame({ players: players(3), seed: 15, mode: 'full', forceCurator: true });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
     const p = s.players[1];
@@ -1584,7 +1584,7 @@ describe('Пропаганда, розданная при раскладке', (
     expect(s.players[1].propagandaDealt).toBe(1);
     const other = s.players.find((x) => x.id !== p.id)!;
     const detail = curatorSuspicionDetail(s, other.id)[p.id];
-    expect(detail.parts.some((x) => x.startsWith('держит известную всем Пропаганду'))).toBe(true);
+    expect(detail.parts.some((x) => x.startsWith('держит известную всем ЧНЛ'))).toBe(true);
   });
 });
 

@@ -176,8 +176,8 @@ export function kontoraTargets(state: TargetsInfo, exclude?: string | null): { p
     .map((s) => ({ player: o.id, card: s.card! })));
 }
 
-// Сигнал — только на того, кто видимо нарушает: у него на Складе открыто лежит хотя бы одна опальная книга, Улика или Пропаганда
-// (Пропаганду честные органы тоже изымали).
+// Сигнал — только на того, кто видимо нарушает: у него на Складе открыто лежит хотя бы одна опальная книга, Улика или ЧНЛ
+// (ЧНЛ честные органы тоже изымали).
 export function signalable(state: TargetsInfo, playerId: string): boolean {
   const o = state.players.find((x) => x.id === playerId);
   return !!o && o.warehouse.some((s) => s.card && !s.hidden && !s.memorized && (isBanned(state, s.card) || isPropaganda(state, s.card)));

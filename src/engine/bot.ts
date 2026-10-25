@@ -221,7 +221,7 @@ export function botMove(state: GameState, me: string, rand: Rand = Math.random, 
   return randomMove(state, me, rand);
 }
 
-// Куратор-бот впервые решает ход уже без маски: «Удав» и «Хищник» — после открыто взятой Пропаганды,
+// Куратор-бот впервые решает ход уже без маски: «Удав» и «Хищник» — после открыто взятой ЧНЛ,
 // «Удав» — когда его раскусили, «Хищник» — с 3-й Пятилетки (дальше он и так бьёт открыто).
 function curatorUnmask(state: GameState, me: string): GameState['curatorUnmask'] | null {
   if (state.curatorUnmask || state.mode !== 'full') return null;

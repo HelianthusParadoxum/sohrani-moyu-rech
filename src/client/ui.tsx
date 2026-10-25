@@ -49,11 +49,11 @@ export function favoredGenres(v: PlayerView): Genre[] {
   return (passion && PASSIONS[passion].genres) || [];
 }
 
-// Значки Пропаганды (ЧНЛ — человеконенавистническая литература) и Улик (УЛ).
+// Значки ЧНЛ (человеконенавистническая литература) и Улик (УЛ).
 export function KindChip({ k, banned }: { k: 'chnl' | 'ul'; banned?: boolean }) {
   return (
     <span className={`chip k-${k} ${banned ? 'banned' : ''}`}
-      title={k === 'chnl' ? 'ЧНЛ — человеконенавистническая литература (Пропаганда)' : 'УЛ — Улика'}>
+      title={k === 'chnl' ? 'ЧНЛ — человеконенавистническая литература' : 'УЛ — Улика'}>
       {k === 'chnl' ? 'ЧНЛ' : 'УЛ'}
     </span>
   );
@@ -84,7 +84,7 @@ export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
   const restored = !!v.restored[id];
   const flex = flexGenres(v, id);
   const label = c.kind === 'loadReturnable' && restored ? null : c.kind === 'loadEvidence' && restored ? null : (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && restored ? 'Разоблачение' : KIND_LABEL[c.kind];
-  // Значки вида: ЧНЛ — у Пропаганды (и Нагрузки-пропаганды), УЛ — у Улик (и Нагрузки-улики после Возвращения смыслов).
+  // Значки вида: ЧНЛ (и у Нагрузки-ЧНЛ), УЛ — у Улик (и Нагрузки-улики после Возвращения смыслов).
   const kindChip = (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && !restored ? 'chnl' as const
     : c.kind === 'evidence' || (c.kind === 'loadEvidence' && restored) ? 'ul' as const : null;
   const t = c.kind === 'loadReturnable' && restored ? c.returned! : c.title;
@@ -94,7 +94,7 @@ export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
       className={`book k-${c.kind === 'loadEvidence' && !restored ? 'load' : (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && restored ? 'exposed' : c.kind} ${banned ? 'is-banned' : ''} ${selected ? 'selected' : ''} ${hidden ? 'in-cache' : ''} ${small ? 'small' : ''} ${onClick ? 'clickable' : ''}`}
       onClick={onClick}
       disabled={!onClick}
-      title={`${t} — ${c.author}${c.kind === 'loadPropaganda' && !restored ? '. Нагрузка-пропаганда: это Пропаганда (опальна, −5 очков, у Куратора срезает Ростки), но сдаётся в Красный уголок как Нагрузка (+2т); Тайник не прикрывает' : ''}`}
+      title={`${t} — ${c.author}${c.kind === 'loadPropaganda' && !restored ? '. Нагрузка-ЧНЛ: это ЧНЛ (опальна, −5 очков, у Куратора срезает Ростки), но сдаётся в Красный уголок как Нагрузка (+2т); Тайник не прикрывает' : ''}`}
     >
       <div className="book-icons">
         {(flex ? icons.slice(0, -1) : icons).map((g, i) => <GenreChip key={i} g={g} banned={v.banned.includes(g)} favored={favoredGenres(v).includes(g)} />)}

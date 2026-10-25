@@ -467,7 +467,7 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
       const load = sel.filter((c) => fromLoadDeck(view, c)).length;
       body = (
         <>
-          <p>Вы встанете в очередь хода следующей Пятилетки. Можно сдать в макулатуру до 1 Непечатной книги (+{RULES.redCornerUnprinted}т) и до 1 книги Нагрузки (+{RULES.redCornerLoad}т). Пропаганду можно сбыть только здесь.</p>
+          <p>Вы встанете в очередь хода следующей Пятилетки. Можно сдать в макулатуру до 1 Непечатной книги (+{RULES.redCornerUnprinted}т) и до 1 книги Нагрузки (+{RULES.redCornerLoad}т). ЧНЛ можно сбыть только здесь.</p>
           {komsorg && <p className="muted small">Комсорг: можно сдать любое число книг, за каждую — +{RULES.komsorgPoints} очко Гласности.</p>}
           {pickList(mine, sel, setSel)}
           {confirmBtn('Пойти в Красный уголок', (unprinted <= 1 && load <= 1) || komsorg ? { address: 'redCorner', recycle: sel } : null,
@@ -825,7 +825,7 @@ function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; v
     const cands = me.warehouse.map((s) => s.card!).filter((c) => c && !view.restored[c] && restorable(view.cards[c].kind));
     body = (
       <>
-        <p>Жанровая книга получает +1 значок своего жанра; у двужанровой книги жанр этого значка выбирается всякий раз, когда это важно. Нагрузка проглоченного автора становится возвращённым произведением с 3 значками.{RULES.exposePropaganda && ` Пропаганда становится Разоблачением: +${RULES.exposePoints} очка в конце, его можно издать как книгу с 1 значком.`}</p>
+        <p>Жанровая книга получает +1 значок своего жанра; у двужанровой книги жанр этого значка выбирается всякий раз, когда это важно. Нагрузка проглоченного автора становится возвращённым произведением с 3 значками.{RULES.exposePropaganda && ` ЧНЛ становится Разоблачением: +${RULES.exposePoints} очка в конце, его можно издать как книгу с 1 значком.`}</p>
         <div className="shelf wrap">{cands.map((c) => <Book key={c} v={view} id={c} selected={sel === c} onClick={() => setSel(c)} />)}</div>
         <div className="modal-foot"><button className="primary" disabled={!sel} onClick={() => done({ action: 'restore', card: sel })}>Вернуть смыслы</button></div>
       </>
@@ -928,7 +928,7 @@ function CopyTextPanel({ view, me, done }: { view: PlayerView; me: VPlayer; done
       <h4>Взять бесплатно</h4>
       <div className="shelf wrap">
         {shelf.filter((x) => !buy.includes(x.key)).map((x) => {
-          // Тиражировать можно только жанровые книги — Улику и Пропаганду нельзя.
+          // Тиражировать можно только жанровые книги — Улику и ЧНЛ нельзя.
           const genre = iconsOf(view, x.card).length > 0;
           return (
             <Book key={x.key} v={view} id={x.card} note={genre ? 'даром' : 'нельзя: не жанровая'} selected={gift === x.card}
@@ -1225,9 +1225,9 @@ function CacheModal({ view, me, close, done, title, note }: {
   );
 }
 
-// Что сразу спрятать к облаве: сначала опальное, самое ценное вперёд (Куратору — Пропаганда, затем Улики, затем книги
+// Что сразу спрятать к облаве: сначала опальное, самое ценное вперёд (Куратору — ЧНЛ, затем Улики, затем книги
 // с большим числом значков), потом то, что уже лежит в Тайнике (иначе соперники его увидят).
-// Честному свою Пропаганду прятать незачем, если всё опальное не помещается: Единомышленника всё равно удержат.
+// Честному свою ЧНЛ прятать незачем, если всё опальное не помещается: Единомышленника всё равно удержат.
 function bestHiding(view: PlayerView, me: VPlayer, limit: number): string[] {
   const curator = me.passion === 'curator';
   const free = me.warehouse.filter((s) => s.card && !s.memorized);
@@ -1297,7 +1297,7 @@ function resultText(view: PlayerView): string {
     const p = view.players.find((x) => x.id === s.player)!;
     const by = sources.map((k) => `${POINT_SOURCES[k]} ${s.duringBy?.[k] ?? 0}`).join(', ');
     const parts = [`по ходу ${s.during}${by ? ` (${by})` : ''}`, ...(full ? [`связи ${s.connections ?? 0}`] : []),
-      `за Пристрастие ${s.passion}`, `Улики ${s.evidence}`, `за Талоны ${s.talonPoints ?? 0}`, `Пропаганда ${s.propaganda}`];
+      `за Пристрастие ${s.passion}`, `Улики ${s.evidence}`, `за Талоны ${s.talonPoints ?? 0}`, `ЧНЛ ${s.propaganda}`];
     return `• ${p.name}${r.winners.includes(s.player) ? ' (победа)' : ''}, ${p.passion ? passionLabel(p.passion) : '—'}: итого ${s.total} — ${parts.join('; ')}.`;
   });
   return `\n\nИтоговый подсчёт очков. ${r.note}\n${lines.join('\n')}`;
@@ -1312,7 +1312,7 @@ function Results({ view, seatIndex, close }: { view: PlayerView; seatIndex: (id:
     <Modal title="Конец Застоя" onClose={close} wide>
       <p><b>{r.note}</b></p>
       <div className="scores-wrap"><table className="scores">
-        <thead><tr><th>Игрок</th><th>Пристрастие</th><th>По ходу</th>{full && <th>Связи</th>}<th>За Пристрастие</th><th>Улики</th><th title={`1 очко за каждые ${RULES.talonsPerPoint} Талона`}>За Талоны</th><th>Пропаганда</th><th>Итого</th></tr></thead>
+        <thead><tr><th>Игрок</th><th>Пристрастие</th><th>По ходу</th>{full && <th>Связи</th>}<th>За Пристрастие</th><th>Улики</th><th title={`1 очко за каждые ${RULES.talonsPerPoint} Талона`}>За Талоны</th><th>ЧНЛ</th><th>Итого</th></tr></thead>
         <tbody>
           {r.scores.map((s) => {
             const p = view.players.find((x) => x.id === s.player)!;

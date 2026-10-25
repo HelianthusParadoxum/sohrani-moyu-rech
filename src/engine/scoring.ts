@@ -99,7 +99,7 @@ export function glasnostReached(state: GameState, progress = state.sprouts.map((
 export function scoreLine(state: GameState, p: PlayerState): ScoreLine {
   const passion = passionPoints(state, p);
   const stash = p.warehouse.map((s) => s.card);
-  // Колонка «Пропаганда»: минус за Пропаганду на складе, плюс за Разоблачения (на складе и изданные).
+  // Колонка «ЧНЛ»: минус за ЧНЛ на складе, плюс за Разоблачения (на складе и изданные).
   const propaganda = RULES.propagandaPoints * stash.filter((id) => isPropaganda(state, id)).length
     + RULES.exposePoints * [...stash, ...p.published].filter((id) => isExposed(state, id)).length;
   const evidence = RULES.evidencePoints * [...stash, ...p.tamizdat].filter((id) => isEvidence(state, id)).length;
@@ -131,10 +131,10 @@ export function finalScoring(state: GameState): GameResult {
     };
   }
   if (curator) {
-    // Срез: за каждую Пропаганду у Куратора — минус ступень у самого развитого Ростка.
+    // Срез: за каждую ЧНЛ у Куратора — минус ступень у самого развитого Ростка.
     const cuts = curator.warehouse.filter((s) => isPropaganda(state, s.card)).length;
     const cutLog: string[] = [];
-    log(state, `Куратор раскрывается: ${curator.name}. Пропаганды у него на Складе и в Тайнике: ${cuts}${cuts ? ' — столько ступеней он срежет.' : ' — срезать нечем.'}`);
+    log(state, `Куратор раскрывается: ${curator.name}. ЧНЛ у него на Складе и в Тайнике: ${cuts}${cuts ? ' — столько ступеней он срежет.' : ' — срезать нечем.'}`);
     for (let i = 0; i < cuts; i++) {
       const top = [...state.sprouts].sort((a, b) => b.progress - a.progress)[0];
       top.progress--;
@@ -189,7 +189,7 @@ export function finalScoring(state: GameState): GameResult {
   };
 }
 
-// Несистемный: вскрываются верхние Непечатные, каждая Пропаганда срезает ступень у самого развитого Ростка.
+// Несистемный: вскрываются верхние Непечатные, каждая ЧНЛ срезает ступень у самого развитого Ростка.
 // Победа — только если после этого все Ростки не ниже III ступени; дальше важны очки.
 function soloResult(state: GameState, scores: ScoreLine[], sproutName: (id: string) => string): GameResult {
   const me = state.players[0];
@@ -208,19 +208,19 @@ function soloResult(state: GameState, scores: ScoreLine[], sproutName: (id: stri
       const top = [...state.sprouts].sort((a, b) => b.progress - a.progress)[0];
       if (top.progress > 0) {
         top.progress--;
-        log(state, `Пропаганда «${state.cards[c].title}»: Росток «${sproutName(top.id)}» — ступень ${roman(top.progress + 1)} → ${top.progress ? roman(top.progress) : '0'}.`);
+        log(state, `ЧНЛ «${state.cards[c].title}»: Росток «${sproutName(top.id)}» — ступень ${roman(top.progress + 1)} → ${top.progress ? roman(top.progress) : '0'}.`);
       }
     }
     discard(state, c);
   }
-  log(state, `Вскрыто ${cards} Непечатных, Пропаганды среди них: ${propaganda}.`);
+  log(state, `Вскрыто ${cards} Непечатных, ЧНЛ среди них: ${propaganda}.`);
   const won = glasnostReached(state);
   return {
     glasnost: won, scores, winners: won ? [me.id] : [],
     note: won
-      ? `Гласность устояла (Пропаганды: ${propaganda}). Победа! Итог: ${total} очк.`
-      : `Пропаганда (${propaganda}) срезала Ростки — Гласность не устояла. Поражение (${total} очк.).`,
-    summary: won ? `Гласность устояла (Пропаганды: ${propaganda}).` : `Пропаганда (${propaganda}) срезала Ростки — Гласность не устояла. Поражение (${total} очк.).`,
+      ? `Гласность устояла (ЧНЛ: ${propaganda}). Победа! Итог: ${total} очк.`
+      : `ЧНЛ (${propaganda}) срезала Ростки — Гласность не устояла. Поражение (${total} очк.).`,
+    summary: won ? `Гласность устояла (ЧНЛ: ${propaganda}).` : `ЧНЛ (${propaganda}) срезала Ростки — Гласность не устояла. Поражение (${total} очк.).`,
     winTail: ` (итог: ${total} очк.).`,
   };
 }

@@ -50,7 +50,7 @@ describe('Тиражирование текста', () => {
     let s = started();
     const p = me(s);
     p.talons = 10;
-    // Даром — жанровая книга с Развала (не Улика и не Пропаганда); раздача от сида не зависит.
+    // Даром — жанровая книга с Развала (не Улика и не ЧНЛ); раздача от сида не зависит.
     const genreAt = (i: number) => { const c = s.deck.find((x) => s.cards[x].kind === 'genre')!; s.deck = s.deck.filter((x) => x !== c); s.razval[i] = c; return c; };
     const bought = s.razval[3]!;
     const gift = genreAt(0);

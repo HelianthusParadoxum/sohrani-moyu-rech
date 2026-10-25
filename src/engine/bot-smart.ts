@@ -33,7 +33,7 @@ interface Ctx {
 
 const SAMPLES = 2; // сколько раз перемешивать закрытые карты при примерке
 
-// Маскировка до первого явного зла: Куратор, открыто взявший Пропаганду со стола (все это видели), дальше играет
+// Маскировка до первого явного зла: Куратор, открыто взявший ЧНЛ со стола (все это видели), дальше играет
 // «открытым забралом», какой бы стратегии ни держался. Удав сбрасывает маску и когда его и так раскусили.
 export function effectiveCuratorStyle(state: GameState, me: string) {
   const style = curatorStyle(state, me);
@@ -75,7 +75,7 @@ function makeCtx(state: GameState, me: string, preset: BotPreset, honest = false
   };
 }
 
-// На упреждение: занять последнее место на адресе, где Куратор вслепую добывает книги (и Пропаганду для срезов).
+// На упреждение: занять последнее место на адресе, где Куратор вслепую добывает книги (и ЧНЛ для срезов).
 function blockBonus(state: GameState, a: Action, ctx: Ctx): number {
   if (a.type !== 'place' || !BLOCK_ADDRESSES.includes(a.place.address)) return 0;
   const enemy = Object.entries(ctx.suspect).sort((x, y) => y[1] - x[1])[0];
@@ -125,7 +125,7 @@ function feedBooksOnTable(state: GameState): number {
     .filter((c): c is string => !!c && genresOf(state, c).some((g) => need.has(g))).length;
 }
 
-// Сколько Пропаганды может достаться Куратору: открыто на столе и (пока партия не кончилась и есть Наследники) в сбросе.
+// Сколько ЧНЛ может достаться Куратору: открыто на столе и (пока партия не кончилась и есть Наследники) в сбросе.
 function reachablePropaganda(state: GameState, left: number): number {
   const open = [...state.tolkuchka, ...state.razval, ...state.raspredelitel, ...state.knigoobmen]
     .filter((c): c is string => !!c && isPropaganda(state, c)).length;
@@ -136,8 +136,8 @@ function reachablePropaganda(state: GameState, left: number): number {
   return open + 0.5 * discard + BOT_BASE.denyDeckShare * decks;
 }
 
-// Подозрение, что соперник — Куратор. Только то, что видели все: Пропаганда, открыто взятая со стола или лежащая
-// у него на виду (обычному игроку она стоит −5 очков), сданная в Красный уголок Пропаганда (Куратор её бережёт),
+// Подозрение, что соперник — Куратор. Только то, что видели все: ЧНЛ, открыто взятая со стола или лежащая
+// у него на виду (обычному игроку она стоит −5 очков), сданная в Красный уголок ЧНЛ (Куратор её бережёт),
 // и Ростки, которые он так и не кормит.
 // Средний склад остальных игроков (кроме id): у честных склады обычно «поджарее», чем у Куратора.
 function avgCapacity(state: GameState, id: string): number {
@@ -175,16 +175,16 @@ export function curatorSuspicionDetail(state: GameState, me: string): Record<str
       parts.push(`${label} ${x > 0 ? '+' : '−'}${Math.round(Math.abs(x) * 100)}`);
     };
     const open = o.warehouse.filter((s) => !s.hidden && isPropaganda(state, s.card)).length;
-    // Кто кормит Ростки, тот, скорее всего, забирает Пропаганду, чтобы она не досталась Куратору.
+    // Кто кормит Ростки, тот, скорее всего, забирает ЧНЛ, чтобы она не досталась Куратору.
     const trust = fedTrust(o);
     const times = (n: number) => (n > 1 ? ` ×${n}` : '');
-    // Открыто взятая Пропаганда подозрительна и у кормившего Ростки (слабее, чем прочие улики, не обесценивается).
-    add(Math.max(trust, BOT_BASE.suspectTakenTrust) * BOT_BASE.suspectTaken * (o.propagandaTaken ?? 0), `взял Пропаганду со стола${times(o.propagandaTaken ?? 0)}`);
-    // ...а если так и не сдал её и не разоблачил — держит у себя: так делает Куратор. Так же и Пропаганда, которую все
+    // Открыто взятая ЧНЛ подозрительна и у кормившего Ростки (слабее, чем прочие улики, не обесценивается).
+    add(Math.max(trust, BOT_BASE.suspectTakenTrust) * BOT_BASE.suspectTaken * (o.propagandaTaken ?? 0), `взял ЧНЛ со стола${times(o.propagandaTaken ?? 0)}`);
+    // ...а если так и не сдал её и не разоблачил — держит у себя: так делает Куратор. Так же и ЧНЛ, которую все
     // видели у него при раскладке стартовых книг.
     const kept = Math.max(0, (o.propagandaTaken ?? 0) + (o.propagandaDealt ?? 0) - (o.propagandaDumped ?? 0) - (o.propagandaExposed ?? 0));
-    add(BOT_BASE.suspectKept * kept, `держит известную всем Пропаганду${times(kept)}`);
-    add(trust * BOT_BASE.suspectHolds * open, `Пропаганда на виду${times(open)}`);
+    add(BOT_BASE.suspectKept * kept, `держит известную всем ЧНЛ${times(kept)}`);
+    add(trust * BOT_BASE.suspectHolds * open, `ЧНЛ на виду${times(open)}`);
     // Непоказ весит тем меньше, чем больше других на тех же Посиделках тоже прятали опальное: общий страх перед Засадой —
     // не примета Куратора (иначе честные накручивают друг друга без всякого Куратора).
     const unshown = o.cacheUnshown ?? 0;
@@ -197,7 +197,7 @@ export function curatorSuspicionDetail(state: GameState, me: string): Record<str
     add(trust * BOT_BASE.suspectRedEmpty * (o.redEmpty ?? 0), `...ничего не сдав${times(o.redEmpty ?? 0)}`);
     const extra = Math.max(0, o.capacity - avgCapacity(state, o.id) - BOT_BASE.suspectWarehouseFrom);
     add(trust * BOT_BASE.suspectWarehouse * extra, `склад больше, чем у других (${o.capacity} мест)`);
-    add(-BOT_BASE.suspectDumped * (o.propagandaDumped ?? 0), `сдал Пропаганду${times(o.propagandaDumped ?? 0)}`);
+    add(-BOT_BASE.suspectDumped * (o.propagandaDumped ?? 0), `сдал ЧНЛ${times(o.propagandaDumped ?? 0)}`);
     if (!o.sproutsFed.length) {
       add(BOT_BASE.suspectNoFeed[Math.min(state.round, 5)] ?? 0, 'не кормил Ростки');
       // Единственный, кто так и не кормил Ростки, — особенно подозрителен.
@@ -319,7 +319,7 @@ function subscriptionValue(state: GameState, p: PlayerState, sub: { genre: Genre
   return v * 0.8;
 }
 
-// Пропаганда на руках у честного: −5 в конце. Если он ещё успеет вернуть ей смыслы, она нейтральна: специально за ней
+// ЧНЛ на руках у честного: −5 в конце. Если он ещё успеет вернуть ей смыслы, она нейтральна: специально за ней
 // не гоняются, но и не сбрасывают — разоблачат (само Разоблачение стоит +5).
 function canExposeLater(state: GameState, p: PlayerState, ctx: Ctx): boolean {
   return RULES.exposePropaganda && (ctx.round < RULES.rounds || (!p.groupUsed.includes('restore') && p.available > 0));
@@ -338,7 +338,7 @@ function ownBookValue(state: GameState, p: PlayerState, card: string, ctx: Ctx):
 }
 
 // Опальные книги, которые не поместятся в Тайник, — их изымет облава. Возвращает самые дешёвые из них.
-// keepPropaganda — Куратор бережёт Пропаганду (остальным её изъятие только на руку).
+// keepPropaganda — Куратор бережёт ЧНЛ (остальным её изъятие только на руку).
 function atRisk(state: GameState, p: PlayerState, value: (c: string) => number, keepPropaganda = false): string[] {
   const banned = p.warehouse
     .filter((s) => !s.memorized && isBanned(state, s.card) && (keepPropaganda || !isPropaganda(state, s.card)))
@@ -370,7 +370,7 @@ function resources(state: GameState, p: PlayerState, ctx: Ctx, talonShare = 1): 
   return v;
 }
 
-// Куратор: Гласность не должна наступить. Тормозит отстающий Росток, копит Пропаганду, помогает Конторе.
+// Куратор: Гласность не должна наступить. Тормозит отстающий Росток, копит ЧНЛ, помогает Конторе.
 function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   if (state.result) return state.result.winners.includes(p.id) ? BOT_BASE.loss : -BOT_BASE.loss;
   const style = CURATOR_STYLES[ctx.style ?? 'open'];
@@ -384,7 +384,7 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   const maskEnds = ctx.style === 'boa' ? RULES.rounds - 1 : RULES.rounds;
   const conceal = ctx.round >= maskEnds && state.phase !== 'orders' ? 0 : style.conceal[r];
   const others = state.players.filter((o) => o.id !== p.id);
-  // Очки Куратору не нужны: Талоны — лишь средство добыть Пропаганду. В последней Пятилетке они дешевеют,
+  // Очки Куратору не нужны: Талоны — лишь средство добыть ЧНЛ. В последней Пятилетке они дешевеют,
   // а когда ходить больше нечем — не стоят ничего.
   const last = ctx.round >= RULES.rounds;
   const talonShare = last && p.available + p.bonusGroupTurns <= 0 ? 0 : BOT_BASE.curatorTalonByRound[r] ?? 1;
@@ -397,8 +397,8 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
       + BOT_BASE.curatorWeakest * Math.min(...above);
     // Один раз закрытая ступень II «наперерез» сопернику — прикрытие: так выглядит жёсткая борьба книжника.
     if ((p.fedSteps ?? []).includes(2)) v += BOT_BASE.boaCutBonus;
-    // Пропаганда в Тайнике на Посиделках не покажешь — честные это замечают. «Удав» заранее учитывает, как это его выдаст,
-    // и рано Пропагандой не обзаводится (к концу партии маска важна меньше, чем срезы).
+    // ЧНЛ в Тайнике на Посиделках не покажешь — честные это замечают. «Удав» заранее учитывает, как это его выдаст,
+    // и рано ЧНЛ не обзаводится (к концу партии маска важна меньше, чем срезы).
     if (state.phase === 'orders') {
       const hiddenProp = p.warehouse.filter((s) => s.hidden && isPropaganda(state, s.card)).length;
       const trust = fedTrust(p);
@@ -411,16 +411,16 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   v += BOT_BASE.curatorPropaganda * props;
   // Последняя Пятилетка: сколько срезов нужно, чтобы Гласность не устояла (срез бьёт по самому развитому Ростку, так что
   // нужно опустить все Ростки до порога и ещё один — ниже). Отстающие Ростки честные, скорее всего, дотянут до порога —
-  // считаем по ним как по пороговым. Пропаганда, которой хватает до этого числа, — почти победа.
+  // считаем по ним как по пороговым. ЧНЛ, которой хватает до этого числа, — почти победа.
   if (ctx.round >= RULES.rounds) {
     const need = state.sprouts.reduce((s, sp) => s + Math.max(0, sp.progress - RULES.glasnostStep), 0) + 1;
     v += BOT_BASE.curatorFlip * (props >= need ? 1 : BOT_BASE.curatorFlipPartial * props / need);
   }
   v += attack * BOT_BASE.curatorHeld * state.players.filter((o) => o.id !== p.id).reduce((s, o) => s + o.held, 0);
-  // Жанровые книги — разменная монета: Книгообмен на Пропаганду, Главлит «прокруткой», оплата Конторы своей книгой.
+  // Жанровые книги — разменная монета: Книгообмен на ЧНЛ, Главлит «прокруткой», оплата Конторы своей книгой.
   for (const s of p.warehouse) {
     if (!isGenreBook(state, s.card)) continue;
-    // К концу партии книги как «разменная монета» обесцениваются: в последнем действии важна только Пропаганда.
+    // К концу партии книги как «разменная монета» обесцениваются: в последнем действии важна только ЧНЛ.
     v += (BOT_BASE.curatorBook + (isBanned(state, s.card) ? BOT_BASE.curatorBannedBook : 0)) * (BOT_BASE.curatorBookByRound[ctx.round - 1] ?? 1);
   }
   // Книги на столе, которыми честные закроют ближайшие ступени, — лучше забрать себе.
@@ -549,12 +549,12 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
     }
   }
   if (state.solo) {
-    // Одиночная игра: прямая цель — все Ростки до III ступени, а самый развитый — до IV (запас против Пропаганды при вскрытии).
+    // Одиночная игра: прямая цель — все Ростки до III ступени, а самый развитый — до IV (запас против ЧНЛ при вскрытии).
     const prog = state.sprouts.map((sp) => sp.progress).sort((a, b) => b - a);
     v += BOT_BASE.soloGoal * (ctx.preset.soloGoal ?? 1) * prog.reduce((s, x, i) => s + Math.min(x, i === 0 ? 4 : RULES.glasnostStep), 0);
   }
   if (ctx.full || state.solo) {
-    // «Громоотвод»: запасные ступени сверх 3-й на случай срезов Куратора (в одиночной игре — Пропаганды из 30 вскрытых карт).
+    // «Громоотвод»: запасные ступени сверх 3-й на случай срезов Куратора (в одиночной игре — ЧНЛ из 30 вскрытых карт).
     const spare = spareWeight * state.sprouts.reduce((s, sp) => s + Math.max(0, sp.progress - RULES.glasnostStep), 0);
     // Подозревая Куратора (или видя угрозу Гласности), бот страхуется сильнее: срезы бьют по самым развитым Росткам.
     const cap = BOT_BASE.insuranceSteps + Math.round(BOT_BASE.coopInsuranceSteps * ctx.coop);
@@ -593,7 +593,7 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
     // Общая угроза: при 7 удержанных проигрывают все.
     const held = heldTotal(state);
     v -= BOT_BASE.heldDoom * held * held * (held >= KONTORA_LOSS - 1 ? 3 : 1);
-    // Пропаганда, до которой может дотянуться Куратор (на столе, а пока есть Наследники — и в сбросе), — это будущие срезы.
+    // ЧНЛ, до которой может дотянуться Куратор (на столе, а пока есть Наследники — и в сбросе), — это будущие срезы.
     // Подозревая Куратора, бот забирает её себе и сдаёт, когда Куратор уже не доберётся.
     const sus = Math.max(0, ...Object.values(ctx.suspect));
     if (sus > 0) v -= BOT_BASE.denyPropaganda * sus * reachablePropaganda(state, left);
@@ -666,8 +666,8 @@ function tryApply(state: GameState, me: string, a: Action): GameState | null {
 function score(state: GameState, me: string, a: Action, ctx: Ctx, depth: number): number | null {
   let next = tryApply(state, me, a);
   if (!next) return null;
-  // Поиск Пропаганды в Макулатуре (Куратору — за срезами, честному — чтобы она не досталась Куратору): одной примерки мало
-  // (Пропаганда выпадает редко) — считаем ожидание по составу стопки.
+  // Поиск ЧНЛ в Макулатуре (Куратору — за срезами, честному — чтобы она не досталась Куратору): одной примерки мало
+  // (ЧНЛ выпадает редко) — считаем ожидание по составу стопки.
   if (a.type === 'place' && a.place.address === 'makulatura' && next.pending[0]?.kind === 'makulatura') {
     return ctx.curator ? makulaturaDigValue(next, me, ctx) : honestDig(next, me, ctx).value;
   }
@@ -699,7 +699,7 @@ function score(state: GameState, me: string, a: Action, ctx: Ctx, depth: number)
 
 // Честный в Макулатуре: сколько ещё тянуть и чего это стоит. Ожидание лучшей книги из вытянутых (уже вытянутые + ещё k)
 // минус цена k Талонов — по нескольким выборкам из закрытой стопки (состав известен, порядок — нет). Ценность книги —
-// оценка положения с ней на складе; найденная Пропаганда уходит из стопки (её не достанется Куратору).
+// оценка положения с ней на складе; найденная ЧНЛ уходит из стопки (её не достанется Куратору).
 function honestDig(s: GameState, me: string, ctx: Ctx): { value: number; extra: number } {
   const pend = s.pending[0] as Extract<GameState['pending'][number], { kind: 'makulatura' }>;
   const p = player(s, me);
@@ -737,8 +737,8 @@ function honestDig(s: GameState, me: string, ctx: Ctx): { value: number; extra: 
   return best;
 }
 
-// Ожидаемая польза Макулатуры: тянет, пока не найдёт Пропаганду (или не кончатся попытки).
-// Состав стопки бот знает (порядок — нет): шанс Пропаганды на каждую попытку — её доля среди закрытых Непечатных.
+// Ожидаемая польза Макулатуры: тянет, пока не найдёт ЧНЛ (или не кончатся попытки).
+// Состав стопки бот знает (порядок — нет): шанс ЧНЛ на каждую попытку — её доля среди закрытых Непечатных.
 // Сколько Куратор готов тянуть в Макулатуре: в последней Пятилетке Талоны больше ни на что не нужны — до последнего.
 function curatorDig(ctx: Ctx): { max: number; reserve: number } {
   return ctx.round >= RULES.rounds
@@ -746,7 +746,7 @@ function curatorDig(ctx: Ctx): { max: number; reserve: number } {
     : { max: BOT_BASE.curatorMakulaturaMax, reserve: BOT_BASE.curatorMakulaturaReserve };
 }
 
-// Поиск Пропаганды в стопке Непечатных или Нагрузки (в Нагрузке — Ленин): стопка кончится — сброс перетасуют, и поиск
+// Поиск ЧНЛ в стопке Непечатных или Нагрузки (в Нагрузке — Ленин): стопка кончится — сброс перетасуют, и поиск
 // в том же действии продолжается. Для каждой стопки — шанс найти за tries попыток и сколько попыток уйдёт в среднем.
 function propagandaSearch(s: GameState, tries: number): { best: 'unprinted' | 'load'; hit: number; spent: number; card?: string } {
   const of = (deck: string[], disc: string[]) => {
@@ -779,7 +779,7 @@ function makulaturaDigValue(next: GameState, me: string, ctx: Ctx): number {
     s.pending = s.pending.slice(1);
     q.talons = Math.max(0, q.talons - Math.round(spent * price));
     if (withProp && prop) {
-      // Найденная Пропаганда уходит из стопки (для честного это и есть цель — её больше не достать Куратору).
+      // Найденная ЧНЛ уходит из стопки (для честного это и есть цель — её больше не достать Куратору).
       for (const k of ['deck', 'discard', 'loadDeck', 'loadDiscard'] as const) s[k] = s[k].filter((c) => c !== prop);
       addSecretBook(s, q, prop);
     }
@@ -804,7 +804,7 @@ export function rankActions(state: GameState, me: string, preset: BotPreset, ran
   // (самую низкую из тех, что закрыл бы честный на его месте). Ранняя ступень Куратору почти ничего не стоит.
   if (ctx.curator && state.phase === 'orders' && !player(state, me).sproutsFed.length
     && cands.some((a) => a.type === 'place' && a.place.address === 'sprouts')) {
-    // Путь Куратора к этому ходу уже не такой, как у честного (Пропаганда, Контора), поэтому честная оценка одна даёт
+    // Путь Куратора к этому ходу уже не такой, как у честного (ЧНЛ, Контора), поэтому честная оценка одна даёт
     // кормление реже, чем у честных книжников; добавка «просто покормить» выравнивает частоту (`curatorMimicFeed`).
     const mimic = rand() < BOT_BASE.curatorMimicFeed;
     const top = mimic
@@ -969,7 +969,7 @@ function sproutCandidates(state: GameState, me: string, keep: Map<string, number
 export function copyTextOptions(state: GameState, me: string): GroupAction[] {
   const out: GroupAction[] = [];
   const p = player(state, me);
-  // Бесплатно тиражировать можно только жанровые книги (не Улики и не Пропаганду).
+  // Бесплатно тиражировать можно только жанровые книги (не Улики и не ЧНЛ).
   const others = (list: (string | null)[], taken?: string) => list.filter((c): c is string => !!c && c !== taken && isGenreBook(state, c));
   // Машинистка: без покупки — любая жанровая книга с открытого адреса.
   if (hasPatron(state, me, 'typist')) {
@@ -1018,7 +1018,7 @@ function groupCandidates(state: GameState, me: string, ctx: Ctx, free = false): 
   if (ctx.w.network > 0) out.push({ action: 'hire' });
   out.push(...copyTextOptions(state, me));
   for (const s of p.warehouse) {
-    // Куратор свою Пропаганду в Разоблачение не превращает — это его срезы.
+    // Куратор свою ЧНЛ в Разоблачение не превращает — это его срезы.
     const ownWeapon = p.passion === 'curator' && isPropaganda(state, s.card);
     if (!state.restored[s.card] && !ownWeapon && ['genre', 'loadReturnable', 'loadEvidence', ...(RULES.exposePropaganda ? ['propaganda', 'loadPropaganda'] : [])].includes(state.cards[s.card].kind)) out.push({ action: 'restore', card: s.card });
   }
@@ -1161,10 +1161,10 @@ function byValue(keep: Map<string, number>, cards: string[]): string[] {
 
 function redCornerCandidates(state: GameState, me: string, keep: Map<string, number>, ctx: Ctx): Action[] {
   const p = player(state, me);
-  // Куратор Пропаганду не сдаёт: в конце она срезает Ростки. Честный не сдаёт её, пока успеет разоблачить.
+  // Куратор ЧНЛ не сдаёт: в конце она срезает Ростки. Честный не сдаёт её, пока успеет разоблачить.
   const cards = p.warehouse.map((s) => s.card)
     .filter((c) => !isPropaganda(state, c) || (p.passion !== 'curator' && !canExposeLater(state, p, ctx)));
-  // ПСС Ленина (Нагрузка-пропаганда) сдаётся как Нагрузка, остальная Пропаганда — как Непечатная.
+  // ПСС Ленина (Нагрузка-ЧНЛ) сдаётся как Нагрузка, остальная ЧНЛ — как Непечатная.
   const prop = cards.find((c) => isPropaganda(state, c) && state.cards[c].kind === 'propaganda');
   const leninProp = cards.find((c) => isPropaganda(state, c) && state.cards[c].kind === 'loadPropaganda');
   const unprinted = byValue(keep, cards.filter((c) => !isLoad(state, c) && !isEvidence(state, c) && state.cards[c].kind !== 'loadEvidence' && state.cards[c].kind !== 'loadReturnable'));
@@ -1178,7 +1178,7 @@ function redCornerCandidates(state: GameState, me: string, keep: Map<string, num
   return out.map((recycle) => ({ type: 'place', place: { address: 'redCorner', recycle } }));
 }
 
-// Что спрятать в Тайник: самое ценное из опального, сколько поместится. Куратор прячет и Пропаганду.
+// Что спрятать в Тайник: самое ценное из опального, сколько поместится. Куратор прячет и ЧНЛ.
 function hideList(state: GameState, me: string, ctx: Ctx, keep: Map<string, number>, opts: { exclude?: string; extraLoad?: number; noSpare?: boolean } = {}): string[] {
   const p = player(state, me);
   const loads = p.warehouse.filter((s) => isLoad(state, s.card)).length + (opts.extraLoad ?? 0);
@@ -1240,7 +1240,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         return subsets(pend.cards, need).filter((x) => x.length === need).map((keep) => ({ type: 'posrednichestvoKeep', keep }));
       }
       case 'makulatura': {
-        // Куратор ищет Пропаганду: нашёл — оставляет её; нет — тянет из Непечатных дальше, пока хватает Талонов
+        // Куратор ищет ЧНЛ: нашёл — оставляет её; нет — тянет из Непечатных дальше, пока хватает Талонов
         // (не больше BOT_BASE.curatorMakulaturaMax и не тратя последние BOT_BASE.curatorMakulaturaReserve).
         if (ctx.curator) {
           const found = pend.cards.find((c) => isPropaganda(state, c));
