@@ -1369,7 +1369,6 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       check(slot, 'Возвращать смыслы можно книге со своего склада');
       const c = state.cards[g.card];
       check(!state.restored[g.card], 'Этой книге смыслы уже возвращены');
-      check(!c.wild, '«Чукоккале» смыслы возвращать не нужно: в ней и так все жанры');
       check(c.kind === 'genre' || c.kind === 'loadReturnable' || c.kind === 'loadEvidence' || (isPropagandaKind(c.kind) && RULES.exposePropaganda),
         RULES.exposePropaganda
           ? 'Смыслы можно вернуть только жанровой книге, возвращаемой Нагрузке, Нагрузке-улике или Пропаганде'
@@ -1383,7 +1382,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       } else if (c.kind === 'loadReturnable') {
         log(state, `${p.name} возвращает смыслы: ${title(state, g.card)} становится «${c.returned}» (3 значка).`);
       } else {
-        log(state, `${p.name} возвращает смыслы книге ${title(state, g.card)}: +1 значок.`);
+        log(state, `${p.name} возвращает смыслы книге ${title(state, g.card)}: +1 значок${c.wild ? ' любого жанра' : ''}.`);
       }
       payPrice(state, p, RULES.restoreCost);
       if (hasPatron(state, p.id, 'postgrad')) {

@@ -3,7 +3,7 @@ import { applyAction, createGame, startHide } from '../src/engine/engine';
 import { playOut } from '../src/engine/bot';
 import { curatorSuspicion, curatorSuspicionDetail } from '../src/engine/bot-smart';
 import { gainedInfo, viewFor } from '../src/engine/view';
-import { RuleError, cacheLimit, bestFeedBooks, coversStep, title, iconsOf, isBanned, isEvidence, isLoad, isPropaganda, discard, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
+import { RuleError, cacheLimit, bestFeedBooks, coversStep, iconCount, title, iconsOf, isBanned, isEvidence, isLoad, isPropaganda, discard, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
 import { finalScoring, passionPoints, scoreLine } from '../src/engine/scoring';
 import { PASSIONS, RULES, SPROUTS, limitFor, sproutBonusOptions } from '../src/engine/content';
 import type { GameState, Genre, PatronId } from '../src/engine/types';
@@ -1835,13 +1835,21 @@ describe('«Чукоккала» — значок любого жанра', () =
     expect(proseBonus(s, p)).toBe(0);
   });
 
-  it('в Клубе — связь с любым Завсегдатаем; смыслы ей не возвращают', () => {
+  it('в Клубе — связь с любым Завсегдатаем; Возвращение смыслов — ещё значок любого жанра', () => {
     const { s, p, ch } = setup();
     s.phase = 'orders';
     s.turn = s.order.indexOf(p.id);
     const pt = s.patrons.find((x) => x.genre !== 'album')!;
     const t = applyAction(s, p.id, { type: 'clubGift', gift: { patron: pt.id, card: ch } } as never);
     expect(t.patrons.find((x) => x.id === pt.id)!.connections).toContain(p.id);
-    expect(() => applyAction(s, p.id, { type: 'group', group: { action: 'restore', card: ch } } as never)).toThrow(/Чукоккал/);
+    const r = applyAction(s, p.id, { type: 'group', group: { action: 'restore', card: ch } } as never);
+    expect(iconCount(r, ch)).toBe(2);
+    expect(title(r, ch)).toBe('[Любой жанр ×2] «Чукоккала»');
+    // Два значка — любых жанров: и два основного, и основной с поддержкой.
+    expect(coversStep(r, [ch], 'drama', 2)).toBe(true);
+    expect(coversStep(r, [ch], 'drama', 1, 'poetry')).toBe(true);
+    const q = r.players.find((x) => x.id === p.id)!;
+    q.passion = 'keeper_golden';
+    expect(passionPoints(r, q)).toBe(2 * RULES.passionKeeper);
   });
 });

@@ -85,6 +85,7 @@ export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
     >
       <div className="book-icons">
         {(flex ? icons.slice(0, -1) : icons).map((g, i) => <GenreChip key={i} g={g} banned={v.banned.includes(g)} favored={favoredGenres(v).includes(g)} />)}
+        {c.wild && restored && <span className={`chip wild ${v.banned.length ? 'banned' : ''}`} title="Второй значок любого жанра (Возвращение смыслов)">ЛЮБОЙ</span>}
         {c.wild && <span className={`chip wild ${v.banned.length ? 'banned' : ''}`} title="Значок любого жанра: в каждом подсчёте — того, что выгоднее (Ростки, Пристрастия, Клуб). Жанровых свойств нет; опальна, если в опале хоть один жанр">ЛЮБОЙ</span>}
         {flex && (
           <span className="chip flex" title={`Значок возвращения: ${flex.map((g) => GENRE_NAMES[g]).join(' или ')}`}>

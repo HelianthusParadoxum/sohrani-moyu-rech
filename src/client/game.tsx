@@ -795,7 +795,7 @@ function groupBlocker(view: PlayerView, me: VPlayer, id: GroupActionId): string 
       return view.players.some((p) => p.held > 0) ? null : 'Контора никого не удерживает.';
     case 'restore':
       if (me.talons < RULES.restoreCost) return `Нужно ${RULES.restoreCost}т, у вас ${me.talons}.`;
-      return me.warehouse.some((s) => s.card && !view.restored[s.card] && !view.cards[s.card].wild && restorable(view.cards[s.card].kind))
+      return me.warehouse.some((s) => s.card && !view.restored[s.card] && restorable(view.cards[s.card].kind))
         ? null : 'На складе нет книги, которой можно вернуть смыслы.';
     default:
       return null;
@@ -822,7 +822,7 @@ function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; v
   } else if (id === 'copyText') {
     body = <CopyTextPanel view={view} me={me} done={done} />;
   } else if (id === 'restore') {
-    const cands = me.warehouse.map((s) => s.card!).filter((c) => c && !view.restored[c] && !view.cards[c].wild && restorable(view.cards[c].kind));
+    const cands = me.warehouse.map((s) => s.card!).filter((c) => c && !view.restored[c] && restorable(view.cards[c].kind));
     body = (
       <>
         <p>Жанровая книга получает +1 значок своего жанра; у двужанровой книги жанр этого значка выбирается всякий раз, когда это важно. Нагрузка проглоченного автора становится возвращённым произведением с 3 значками.{RULES.exposePropaganda && ` Пропаганда становится Разоблачением: +${RULES.exposePoints} очка в конце, его можно издать как книгу с 1 значком.`}</p>
@@ -1117,7 +1117,7 @@ function withGenreChips(raw: string): ReactNode {
     const prev = /^\[(.+)\]$/.exec(parts[i - 1] ?? '')?.[1];
     const g = prev && SHORT_TO_GENRE.get(prev);
     if (g && part.startsWith(` ${GENRE_NAMES[g]}`)) part = part.slice(GENRE_NAMES[g].length + 1);
-    if (part === '[Любой жанр]') return <span key={i} className="log-genres"><span className="chip wild">ЛЮБОЙ</span></span>;
+    if (part === '[Любой жанр]' || part === '[Любой жанр ×2]') return <span key={i} className="log-genres">{(part.includes('×2') ? [0, 1] : [0]).map((j) => <span key={j} className="chip wild">ЛЮБОЙ</span>)}</span>;
     const tokens = /^\[(.+)\]$/.exec(part)?.[1].split(' ');
     if (!tokens || !tokens.every((t) => SHORT_TO_GENRE.has(t))) return part;
     return <span key={i} className="log-genres">{tokens.map((t, j) => <GenreChip key={j} g={SHORT_TO_GENRE.get(t)!} />)}</span>;

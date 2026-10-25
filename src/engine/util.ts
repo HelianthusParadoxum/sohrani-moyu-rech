@@ -82,7 +82,7 @@ export function title(state: GameState, id: string): string {
   const icons = iconsOf(state, id);
   const kind = isPropaganda(state, id) ? 'Пропаганда' : isExposed(state, id) ? 'Разоблачение' : isEvidence(state, id) ? 'Улика'
     : isLoad(state, id) ? 'Нагрузка' : '';
-  const tag = c.wild ? 'Любой жанр' : icons.length ? icons.map((g) => GENRE_SHORT[g]).join(' ') : kind;
+  const tag = c.wild ? (state.restored[id] ? 'Любой жанр ×2' : 'Любой жанр') : icons.length ? icons.map((g) => GENRE_SHORT[g]).join(' ') : kind;
   // Возвращаемая Нагрузка: на обороте — вторая книга (3 значка её жанра после Возвращения смыслов).
   const back = c.kind === 'loadReturnable' && !state.restored[id] && c.returned
     ? ` / [${[c.genre!, c.genre!, c.genre!].map((g) => GENRE_SHORT[g]).join(' ')}] «${c.returned}»` : '';
@@ -104,7 +104,8 @@ type CardsInfo = Pick<GameState, 'cards' | 'restored'>;
 // поэтому вариантов два. У прочих книг вариант один.
 export function iconVariants(state: CardsInfo, id: string): Genre[][] {
   const c = state.cards[id];
-  if (c.wild) return GENRES.map((g) => [g]); // «Чукоккала»: значок любого жанра
+  // «Чукоккала»: значок любого жанра; после Возвращения смыслов — два, каждый любого жанра.
+  if (c.wild) return state.restored[id] ? GENRES.flatMap((g, i) => GENRES.slice(i).map((h) => [g, h])) : GENRES.map((g) => [g]);
   const restored = !!state.restored[id];
   if (c.kind === 'loadReturnable') return [restored ? [c.genre!, c.genre!, c.genre!] : []];
   if (c.kind === 'loadEvidence' || isPropagandaKind(c.kind)) return [[]]; // Нагрузка-улика и Разоблачение жанровых значков не получают
@@ -125,7 +126,7 @@ export function isWild(state: CardsInfo, id: string): boolean {
 
 // Сколько у книги жанровых значков.
 export function iconCount(state: CardsInfo, id: string): number {
-  return state.cards[id].wild ? 1 : iconsOf(state, id).length;
+  return state.cards[id].wild ? (state.restored[id] ? 2 : 1) : iconsOf(state, id).length;
 }
 
 // К каким жанрам книга относится (опала, Клуб, Подписка): у «Чукоккалы» — ко всем.
