@@ -11,7 +11,7 @@ import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
-  addSecretBook, cacheLimit, cloneJson, coversStep, freeSlots, hasPatron, iconsOf, isBanned, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
+  addSecretBook, cacheLimit, cloneJson, coversStep, freeSlots, genresOf, hasPatron, iconCount, iconsOf, isBanned, isWild, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
 } from './util';
 
 type Rand = () => number;
@@ -93,18 +93,18 @@ function patronWorthToOthers(pt: GameState['patrons'][number], me: string): numb
 
 // Согласится ли сосед на обмен на Квартирнике — догадка по открытому: получит не меньше значков, чем отдаст.
 function kvartirnikLikely(state: GameState, give: string, want: string): boolean {
-  return iconsOf(state, give).length >= iconsOf(state, want).length;
+  return iconCount(state, give) >= iconCount(state, want);
 }
 
 // Книга годится честным для ближайшей ступени какого-нибудь Ростка до порога Гласности (основной жанр или поддержка).
 // Кто-то из соперников держит открыто книгу основного жанра этого Ростка — и сам бы его покормил.
 function othersCanFeed(state: GameState, me: string, sproutId: string): boolean {
   const info = SPROUTS.find((s) => s.id === sproutId)!;
-  return state.players.some((o) => o.id !== me && o.warehouse.some((s) => !s.hidden && iconsOf(state, s.card).includes(info.main)));
+  return state.players.some((o) => o.id !== me && o.warehouse.some((s) => !s.hidden && genresOf(state, s.card).includes(info.main)));
 }
 
 function feedUseful(state: GameState, card: string): boolean {
-  const icons = iconsOf(state, card);
+  const icons = genresOf(state, card);
   if (!icons.length) return false;
   return state.sprouts.some((sp) => {
     if (sp.progress >= RULES.glasnostStep) return false;
@@ -122,7 +122,7 @@ function feedBooksOnTable(state: GameState): number {
     need.add(SPROUTS.find((s) => s.id === sp.id)!.main);
   }
   return [...state.tolkuchka, ...state.razval, ...state.raspredelitel, ...state.knigoobmen]
-    .filter((c): c is string => !!c && iconsOf(state, c).some((g) => need.has(g))).length;
+    .filter((c): c is string => !!c && genresOf(state, c).some((g) => need.has(g))).length;
 }
 
 // Сколько Пропаганды может достаться Куратору: открыто на столе и (пока партия не кончилась и есть Наследники) в сбросе.
@@ -247,7 +247,8 @@ function feedPotential(state: GameState, p: PlayerState, ctx: Ctx): number {
     // Фантастика в полном режиме — джокер: закрывает недостающие значки (сначала поддержку, потом основной жанр).
     const icons = books.flatMap((b) => iconsOf(state, b));
     const scifiWild = state.mode === 'full' && info.main !== 'scifi' && step.support !== 'scifi';
-    let wild = scifiWild ? icons.filter((g) => g === 'scifi').length * tune(ctx, 'feedScifi') : 0;
+    // «Чукоккала» — значок любого жанра.
+    let wild = (scifiWild ? icons.filter((g) => g === 'scifi').length * tune(ctx, 'feedScifi') : 0) + books.filter((b) => isWild(state, b)).length;
     let sup = step.support && icons.includes(step.support) ? 1 : 0;
     if (step.support && !sup && wild > 0) { const k = Math.min(1, wild); sup = k; wild -= k; }
     const main = Math.min(1, (icons.filter((g) => g === info.main).length + wild) / step.main);
@@ -280,7 +281,7 @@ function shopValue(state: GameState, p: PlayerState, ctx: Ctx): number {
   let best = 0;
   for (const o of offers) {
     const q = { ...p, warehouse: [...p.warehouse, { card: o.card, hidden: false }] };
-    const gain = (feedPotential(state, q, ctx) - base) * ctx.w.sproutBooks + iconsOf(state, o.card).length * BOT_BASE.bookLatent * ctx.w.publish;
+    const gain = (feedPotential(state, q, ctx) - base) * ctx.w.sproutBooks + iconCount(state, o.card) * BOT_BASE.bookLatent * ctx.w.publish;
     best = Math.max(best, gain - o.price * ctx.talon * ctx.w.talons);
   }
   return best * BOT_BASE.shopReach;
@@ -331,7 +332,7 @@ function heldPropagandaValue(state: GameState, p: PlayerState, ctx: Ctx): number
 function ownBookValue(state: GameState, p: PlayerState, card: string, ctx: Ctx): number {
   if (isPropaganda(state, card)) return ctx.curator ? BOT_BASE.curatorPropaganda : heldPropagandaValue(state, p, ctx);
   if (isExposed(state, card)) return RULES.exposePoints;
-  let v = iconsOf(state, card).length * BOT_BASE.bookLatent * ctx.w.publish;
+  let v = iconCount(state, card) * BOT_BASE.bookLatent * ctx.w.publish;
   if (isEvidence(state, card)) v += RULES.evidencePoints;
   return v;
 }
@@ -464,7 +465,7 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
 // Отдать Альбом туда, куда можно отдать жанровую книгу, — значит потерять эту долю.
 function albumReserve(state: GameState, me: string, cards: string[], link: number, left: number, option: number): number {
   if (state.mode !== 'full' || (left === 0 && state.phase !== 'orders')) return 0;
-  const albums = cards.filter((c) => iconsOf(state, c).includes('album')).length;
+  const albums = cards.filter((c) => iconsOf(state, c).includes('album') || isWild(state, c)).length;
   if (!albums) return 0;
   const genres = new Set(cards.flatMap((c) => iconsOf(state, c).includes('album') ? [] : iconsOf(state, c)));
   const out = state.patrons.filter((pt) => !pt.removed && !pt.connections.includes(me) && !genres.has(pt.genre)).length;
@@ -513,8 +514,8 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   }
   for (const sub of p.subscriptions) v += subscriptionValue(state, p, sub, ctx);
   // Книги.
-  for (const c of cards) v += iconsOf(state, c).length * BOT_BASE.bookLatent * w.publish;
-  v += p.published.reduce((s, c) => s + iconsOf(state, c).length, 0) * BOT_BASE.published * w.publish;
+  for (const c of cards) v += iconCount(state, c) * BOT_BASE.bookLatent * w.publish;
+  v += p.published.reduce((s, c) => s + iconCount(state, c), 0) * BOT_BASE.published * w.publish;
   v += feedPotential(state, p, ctx) * w.sproutBooks;
   v += shopValue(state, p, ctx);
   // Ростки — общее дело: без Гласности проигрывают все.
@@ -675,7 +676,7 @@ function score(state: GameState, me: string, a: Action, ctx: Ctx, depth: number)
     const o = player(next, next.pending[0].player);
     const limit = cacheLimit(next, o);
     const hidden = o.warehouse.filter((x) => !x.memorized && isBanned(next!, x.card)).map((x) => x.card)
-      .sort((x, y) => iconsOf(next!, y).length - iconsOf(next!, x).length).slice(0, limit);
+      .sort((x, y) => iconCount(next!, y) - iconCount(next!, x)).slice(0, limit);
     next = tryApply(next, o.id, { type: 'kontoraHide', hidden });
   }
   // Квартирник: ответ соседа угадываем по открытому — согласится, если получит не меньше значков, чем отдаст.
@@ -915,7 +916,7 @@ function cheapestFeed(state: GameState, me: string, books: string[], sproutId: s
   if (!step) return null;
   const opts = { ...stepOpts(state, me), ...(discount ? {} : { labtech: false }) };
   const useful = books.filter((b) => {
-    const icons = iconsOf(state, b);
+    const icons = genresOf(state, b);
     return icons.includes(info.main) || (step.support && icons.includes(step.support)) || (opts.wildScifi && icons.includes('scifi'));
   });
   if (!coversStep(state, useful, info.main, step.main, step.support, opts)) return null;
@@ -1003,7 +1004,7 @@ export function copyTextOptions(state: GameState, me: string): GroupAction[] {
   if (state.safehouses.includes('knigoobmen')) {
     // Обменять одну из двух самых скромных своих книг и взять ещё одну даром.
     const give = p.warehouse.map((s) => s.card).filter((c) => isGenreBook(state, c))
-      .sort((x, y) => iconsOf(state, x).length - iconsOf(state, y).length).slice(0, 2);
+      .sort((x, y) => iconCount(state, x) - iconCount(state, y)).slice(0, 2);
     for (const g of give) for (const take of state.knigoobmen) {
       for (const card of others(state.knigoobmen, take)) out.push({ action: 'copyText', address: 'knigoobmen', buy: { address: 'knigoobmen', give: g, take }, card });
     }
@@ -1054,7 +1055,7 @@ function clubGifts(state: GameState, me: string): ClubGift[] {
     if (pt.removed || pt.turned || pt.connections.includes(me)) continue;
     // Завсегдатай берёт книгу своего жанра или Альбом.
     for (const s of p.warehouse) {
-      const icons = iconsOf(state, s.card);
+      const icons = genresOf(state, s.card);
       if (icons.includes(pt.genre) || icons.includes('album')) out.push({ patron: pt.id, card: s.card });
     }
   }
@@ -1103,7 +1104,7 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
   for (const o of state.players) {
     const mine = targets.filter((t) => t.player === o.id);
     if (!mine.length) continue;
-    seizes.push([...mine].sort((a, b) => iconsOf(state, b.card).length - iconsOf(state, a.card).length)[0]);
+    seizes.push([...mine].sort((a, b) => iconCount(state, b.card) - iconCount(state, a.card))[0]);
   }
   // Против подозреваемого Куратора на своих не доносят.
   const enemy = Object.entries(ctx.suspect).sort((a, b) => b[1] - a[1])[0];
@@ -1406,7 +1407,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
           case 'glavlit':
           {
             // Сдать самые ненужные подцензурные книги (1, 2, все) и взять взамен Непечатные — или Нагрузку (прикрывает Тайник).
-            const banned = byValue(keepMap(), genreBooks.filter((b) => iconsOf(state, b).some((g) => state.banned.includes(g))));
+            const banned = byValue(keepMap(), genreBooks.filter((b) => genresOf(state, b).some((g) => state.banned.includes(g))));
             for (const n of new Set([1, 2, banned.length])) {
               if (n < 1 || n > banned.length) continue;
               const cards = banned.slice(0, n);

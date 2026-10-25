@@ -4,6 +4,7 @@ import { botMove, playOut } from '../src/engine/bot';
 import { curatorSuspicion, effectiveCuratorStyle, rankActions } from '../src/engine/bot-smart';
 import { BOT_BASE, BOT_GOALS, BOT_PRESETS, CURATOR_STYLES, curatorStyle, curatorStyleNote, presetById } from '../src/engine/bot-presets';
 import { isBanned, isGenreBook } from '../src/engine/util';
+import { RULES } from '../src/engine/content';
 import type { GameState } from '../src/engine/types';
 
 // Пропустить раскладку стартовых Тайников: всё остаётся на виду.
@@ -68,8 +69,8 @@ describe('думающий бот', () => {
         expect(s.phase).toBe('end');
         expect(s.round).toBe(5);
         const cards = allCards(s);
-        expect(cards.length).toBe(132);
-        expect(new Set(cards).size).toBe(132);
+        expect(cards.length).toBe(133);
+        expect(new Set(cards).size).toBe(133);
       }
     }, 60_000);
   }
@@ -207,7 +208,7 @@ describe('думающий бот', () => {
     const banned = before.warehouse.filter((w) => isGenreBook(s, w.card) && isBanned(s, w.card)).length;
     const points = before.points;
     s = botMove(s, me, rand);
-    expect(s.players.find((p) => p.id === me)!.points).toBe(points + banned);
+    expect(s.players.find((p) => p.id === me)!.points).toBe(points + banned * RULES.gatheringPoints);
   }, 60_000);
 });
 
@@ -264,6 +265,8 @@ describe('думающий бот в полном режиме', () => {
   it('подозревает в Кураторе того, кто открыто берёт Пропаганду, — и только по открытой информации', () => {
     const s = createGame({ players: players(3), seed: 5, mode: 'full' });
     const [me, x, y] = s.players;
+    // Раздача от сида не зависит: стартовой Пропаганды ни у кого нет.
+    for (const p of s.players) { p.propagandaDealt = 0; p.warehouse = p.warehouse.filter((w) => !['propaganda', 'loadPropaganda'].includes(s.cards[w.card].kind)); }
     x.propagandaTaken = 1;
     const prop = s.deck.find((c) => s.cards[c].kind === 'propaganda')!;
     x.warehouse.push({ card: prop, hidden: false });

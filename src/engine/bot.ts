@@ -8,7 +8,7 @@ import { PERMANENT_ADDRESSES, RULES, SPROUTS } from './content';
 import { befriendTargets } from './full';
 import type { Action, ClubGift, GameState, Genre, GroupAction } from './types';
 import { GENRES } from './types';
-import { cacheLimit, freeSlots, iconsOf, isBanned, isLoad, isPropaganda, player, RuleError } from './util';
+import { cacheLimit, freeSlots, genresOf, iconCount, iconsOf, isBanned, isLoad, isPropaganda, player, RuleError } from './util';
 
 type Rand = () => number;
 
@@ -32,8 +32,8 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
       case 'kontoraWarning':
         return [{ type: 'kontoraHide', hidden: p.warehouse.filter((s) => s.hidden).map((s) => s.card) }];
       case 'kontoraDecide': {
-        const victim = state.players.find((o) => o.id !== me && o.warehouse.some((s) => !s.hidden && !s.memorized && iconsOf(state, s.card).length > 0 && isBanned(state, s.card)));
-        const card = victim?.warehouse.find((s) => !s.hidden && !s.memorized && iconsOf(state, s.card).length > 0 && isBanned(state, s.card))?.card;
+        const victim = state.players.find((o) => o.id !== me && o.warehouse.some((s) => !s.hidden && !s.memorized && iconCount(state, s.card) > 0 && isBanned(state, s.card)));
+        const card = victim?.warehouse.find((s) => !s.hidden && !s.memorized && iconCount(state, s.card) > 0 && isBanned(state, s.card))?.card;
         const held = state.players.find((o) => o.held > 0);
         const choice = held ? { petition: [held.id] } : { handout: true };
         return [
@@ -65,7 +65,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
     case 'passion':
       return p.passionOptions.map((x) => ({ type: 'choosePassion', passion: x }));
     case 'gathering':
-      return [{ type: 'gathering', show: books.filter((b) => (iconsOf(state, b).length > 0 || state.cards[b].kind === 'evidence' || (state.cards[b].kind === 'loadEvidence' && state.restored[b])) && isBanned(state, b) && rand() < 0.6) }];
+      return [{ type: 'gathering', show: books.filter((b) => (iconCount(state, b) > 0 || state.cards[b].kind === 'evidence' || (state.cards[b].kind === 'loadEvidence' && state.restored[b])) && isBanned(state, b) && rand() < 0.6) }];
     case 'ambush':
       return [{ type: 'ambush', go: p.passion === 'curator' && !state.curatorRevealed && rand() < 0.3
         && state.players.some((o) => o.id !== p.id && (state.shownAtGathering?.[o.id] ?? []).length > 0) }];
@@ -85,7 +85,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
         switch (a) {
           case 'gostorg': out.push({ type: 'place', place: { address: 'gostorg', pairs: 1 } }); break;
           case 'tolkuchka': {
-            const sell = pick(books.filter((b) => iconsOf(state, b).length > 0), rand);
+            const sell = pick(books.filter((b) => iconCount(state, b) > 0), rand);
             if (sell) out.push({ type: 'place', place: { address: 'tolkuchka', ops: [{ op: 'sell', card: sell }] } });
             const buy = pick(state.tolkuchka, rand);
             if (buy) out.push({ type: 'place', place: { address: 'tolkuchka', ops: [{ op: 'buy', card: buy }] } });
@@ -107,13 +107,13 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
           }
           case 'samizdat':
           case 'tamizdat':
-            for (const b of books) if (iconsOf(state, b).length > 0) out.push({ type: 'place', place: { address: a, card: b } });
+            for (const b of books) if (iconCount(state, b) > 0) out.push({ type: 'place', place: { address: a, card: b } });
             break;
           case 'glavlit':
-            for (const b of books) if (state.cards[b].kind === 'genre' && iconsOf(state, b).some((g) => state.banned.includes(g))) out.push({ type: 'place', place: { address: 'glavlit', cards: [b], draws: ['unprinted'] } });
+            for (const b of books) if (state.cards[b].kind === 'genre' && genresOf(state, b).some((g) => state.banned.includes(g))) out.push({ type: 'place', place: { address: 'glavlit', cards: [b], draws: ['unprinted'] } });
             break;
           case 'knigoobmen': {
-            const give = pick(books.filter((b) => iconsOf(state, b).length > 0), rand);
+            const give = pick(books.filter((b) => iconCount(state, b) > 0), rand);
             const take = pick(state.knigoobmen, rand);
             if (give && take) out.push({ type: 'place', place: { address: 'knigoobmen', give, take } });
             break;
@@ -171,7 +171,7 @@ function clubGifts(state: GameState, me: string): ClubGift[] {
   const out: ClubGift[] = [];
   for (const pt of state.patrons) {
     if (pt.removed || pt.turned || pt.connections.includes(me)) continue;
-    const card = p.warehouse.find((s) => iconsOf(state, s.card).includes(pt.genre))?.card;
+    const card = p.warehouse.find((s) => genresOf(state, s.card).includes(pt.genre))?.card;
     if (card) out.push({ patron: pt.id, card });
   }
   return out;

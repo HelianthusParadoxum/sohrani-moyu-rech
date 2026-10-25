@@ -50,8 +50,10 @@ describe('Тиражирование текста', () => {
     let s = started();
     const p = me(s);
     p.talons = 10;
+    // Даром — жанровая книга с Развала (не Улика и не Пропаганда); раздача от сида не зависит.
+    const genreAt = (i: number) => { const c = s.deck.find((x) => s.cards[x].kind === 'genre')!; s.deck = s.deck.filter((x) => x !== c); s.razval[i] = c; return c; };
     const bought = s.razval[3]!;
-    const gift = s.razval[0]!;
+    const gift = genreAt(0);
     s = applyAction(s, p.id, copy('razval', { address: 'razval', slot: 3 }, gift));
     const after = byId(s, p.id);
     expect(after.talons).toBe(10 - RULES.razvalPrices[3]);
@@ -146,6 +148,9 @@ describe('Тиражирование текста', () => {
     s.pending = [{ kind: 'extraGroup', player: p.id }];
     p.groupUsed = ['copyText']; // Подмастерье повторяет уже сделанное
     const avail = p.available;
+    const gift = s.deck.find((x) => s.cards[x].kind === 'genre')!;
+    s.deck = s.deck.filter((x) => x !== gift);
+    s.razval[0] = gift;
     const after = applyAction(s, p.id, copy('razval', { address: 'razval', slot: 1 }, s.razval[0]!));
     expect(byId(after, p.id).available).toBe(avail - 1);
     expect(after.occupancy.razval).toEqual([p.id]);

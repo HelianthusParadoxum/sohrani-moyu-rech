@@ -20,6 +20,7 @@ export interface Card {
   icons: Genre[];
   genre?: Genre; // для loadReturnable
   returned?: string; // название возвращённого произведения
+  wild?: boolean; // «Чукоккала»: 1 значок любого жанра (в каждом подсчёте — какого выгоднее), без жанровых свойств
 }
 
 export type Mode = 'beginner' | 'full';

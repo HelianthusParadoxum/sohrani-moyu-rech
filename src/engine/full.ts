@@ -3,7 +3,7 @@ import { CLUB_SIZE, GENRE_NAMES, KONTORA_LOSS, KONTORA_PATRONS, PATRONS, RULES }
 import type { ClubGift, GameState, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
-  addBook, addSecretBook, check, discard, drawLoad, earn, freeSlots, hasBook, hasPatron, iconsOf, isBanned, isGenreBook, isPropaganda, log, pay, player,
+  addBook, addSecretBook, check, discard, drawLoad, earn, freeSlots, hasBook, hasPatron, iconsOf, genresOf, isBanned, isGenreBook, isPropaganda, log, pay, player,
   removeBook, saved, shuffle, talonsText, title, titles, logAfter,
   forgetSpetskhran, seeSpetskhran, toSpetskhranPublic,
 } from './util';
@@ -88,7 +88,7 @@ export function giveToPatron(state: GameState, p: PlayerState, gift: ClubGift) {
   check(!patron.turned, `${name}: занят на Пятилетку`);
   check(!patron.connections.includes(p.id), `У вас уже есть связь с Завсегдатаем «${name}»`);
   check(hasBook(p, gift.card), 'Отдать можно только книгу со своего склада');
-  const icons = iconsOf(state, gift.card);
+  const icons = genresOf(state, gift.card);
   check(icons.includes(patron.genre) || icons.includes('album'),
     `${name} ждёт книгу жанра «${GENRE_NAMES[patron.genre]}» (или Альбом)`);
   removeBook(p, gift.card);

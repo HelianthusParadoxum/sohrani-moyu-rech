@@ -7,7 +7,7 @@ import {
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
-import { bestFeedBooks, coversStep, hasPatron, isEvidence, isExposed, isPropaganda, loadCover, roman } from '../engine/util';
+import { bestFeedBooks, coversStep, genresOf, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, roman } from '../engine/util';
 import { kontoraTargets } from '../engine/full';
 import {
   BefriendPicker, ClubContents, fittingBooks, patronOpen, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
@@ -235,7 +235,7 @@ function sproutOpen(view: PlayerView, me: VPlayer, sp: PlayerView['sprouts'][num
 // Можно ли издать книгу через Самиздат / Тамиздат.
 function publishable(view: PlayerView, c: string, tamizdat: boolean): boolean {
   return isExposed(view, c) || !['propaganda', 'loadPropaganda'].includes(view.cards[c].kind)
-    && (iconsOf(view, c).length > 0 && !isEvidence(view, c) || (tamizdat && isEvidence(view, c)));
+    && (isGenreBook(view, c) && !isEvidence(view, c) || (tamizdat && isEvidence(view, c)));
 }
 
 // Почему поручение на адрес сейчас невозможно — не хватает Талонов, книг, места (null — можно).
@@ -244,7 +244,7 @@ function addressBlocker(view: PlayerView, me: VPlayer, id: AddressId): string | 
   const books = me.warehouse.map((s) => s.card!).filter(Boolean);
   const talons = (cost: number) => (me.talons >= priceFor(view, me, cost) ? null : `Нужно ${priceFor(view, me, cost)}т, у вас ${me.talons}.`);
   const room = free > 0 ? null : 'На складе нет места.';
-  const sellable = books.filter((c) => iconsOf(view, c).length > 0 && !['evidence', 'loadEvidence', 'propaganda', 'loadPropaganda'].includes(view.cards[c].kind));
+  const sellable = books.filter((c) => isGenreBook(view, c) && !['evidence', 'loadEvidence', 'propaganda', 'loadPropaganda'].includes(view.cards[c].kind));
   switch (id) {
     case 'gostorg':
       if (free < 2) return 'Нужно 2 свободных места на складе.';
@@ -269,12 +269,12 @@ function addressBlocker(view: PlayerView, me: VPlayer, id: AddressId): string | 
     case 'tamizdat':
       return books.some((c) => publishable(view, c, id === 'tamizdat')) ? null : 'Нет книги, которую можно издать.';
     case 'glavlit':
-      return books.some((c) => iconsOf(view, c).some((g) => view.banned.includes(g))) ? null : 'Нет книги опального жанра.';
+      return books.some((c) => genresOf(view, c).some((g) => view.banned.includes(g))) ? null : 'Нет книги опального жанра.';
     case 'makulatura':
       return room ?? talons(RULES.makulaturaPrice);
     case 'knigoobmen':
       if (!view.knigoobmen.length) return 'Витрина пуста.';
-      return books.some((c) => iconsOf(view, c).length > 0) ? null : 'Нет жанровой книги для обмена.';
+      return books.some((c) => isGenreBook(view, c)) ? null : 'Нет жанровой книги для обмена.';
     case 'kvartirnik':
       if (!books.length) return 'Нечего предложить.';
       return view.players.some((o) => o.id !== me.id && o.warehouse.some((s) => s.card && !s.hidden)) ? null : 'Ни у кого нет книг на виду.';
@@ -445,8 +445,8 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
       break;
     }
     case 'tolkuchka': {
-      const sellable = mine.filter((c) => iconsOf(view, c).length > 0 && !['evidence', 'loadEvidence', 'propaganda', 'loadPropaganda'].includes(view.cards[c].kind));
-      const price = (c: string) => (iconsOf(view, c).some((g) => view.banned.includes(g)) ? RULES.tolkuchkaSellBanned : RULES.tolkuchkaSellFree);
+      const sellable = mine.filter((c) => isGenreBook(view, c) && !['evidence', 'loadEvidence', 'propaganda', 'loadPropaganda'].includes(view.cards[c].kind));
+      const price = (c: string) => (genresOf(view, c).some((g) => view.banned.includes(g)) ? RULES.tolkuchkaSellBanned : RULES.tolkuchkaSellFree);
       const gain = sel2.reduce((s, c) => s + price(c), 0);
       const cost = sel.length * RULES.tolkuchkaBuy;
       const ops = [...sel2.map((card) => ({ op: 'sell' as const, card })), ...sel.map((card) => ({ op: 'buy' as const, card }))];
@@ -531,7 +531,7 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
       break;
     case 'samizdat':
     case 'tamizdat': {
-      const ok = (c: string) => isExposed(view, c) || !['propaganda', 'loadPropaganda'].includes(view.cards[c].kind) && (iconsOf(view, c).length > 0 && !isEvidence(view, c) || (id === 'tamizdat' && isEvidence(view, c)));
+      const ok = (c: string) => isExposed(view, c) || !['propaganda', 'loadPropaganda'].includes(view.cards[c].kind) && (isGenreBook(view, c) && !isEvidence(view, c) || (id === 'tamizdat' && isEvidence(view, c)));
       const n = sel[0] ? iconsOf(view, sel[0]).length + (isExposed(view, sel[0]) ? 1 : 0) : 0;
       body = (
         <>
@@ -544,9 +544,9 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
     }
     case 'glavlit': {
       // Подцензурные книги: жанровые, хотя бы один жанр которых сейчас под цензурой.
-      const ok = (c: string) => view.cards[c].kind === 'genre' && iconsOf(view, c).some((g) => view.banned.includes(g));
+      const ok = (c: string) => view.cards[c].kind === 'genre' && genresOf(view, c).some((g) => view.banned.includes(g));
       const editor = hasPatron(view, me.id, 'editor');
-      const pts = sel.reduce((s, c) => s + iconsOf(view, c).length, 0);
+      const pts = sel.reduce((s, c) => s + iconCount(view, c), 0);
       const loads = Math.min(loadN, sel.length);
       const draws = sel.map((_, i) => (i < loads ? 'load' as const : 'unprinted' as const));
       body = (
@@ -570,7 +570,7 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
       body = (
         <>
           <h4>Отдайте жанровую книгу</h4>
-          {pickList(mine.filter((c) => iconsOf(view, c).length > 0), sel, setSel, { max: 1 })}
+          {pickList(mine.filter((c) => isGenreBook(view, c)), sel, setSel, { max: 1 })}
           <h4>Возьмите книгу с витрины</h4>
           {pickList(view.knigoobmen, sel2, setSel2, { max: 1 })}
           {confirmBtn('Обменять', sel.length && sel2.length ? { address: 'knigoobmen', give: sel[0], take: sel2[0] } : null)}
@@ -788,14 +788,14 @@ function groupBlocker(view: PlayerView, me: VPlayer, id: GroupActionId): string 
       // Машинистка: можно без покупки — достаточно жанровой книги на любом открытом адресе.
       const anyFree = hasPatron(view, me.id, 'typist') && [...view.razval, ...view.tolkuchka,
         ...(view.safehouses.includes('raspredelitel') ? view.raspredelitel : []), ...(view.safehouses.includes('knigoobmen') ? view.knigoobmen : [])]
-        .some((c) => c && iconsOf(view, c).length > 0);
+        .some((c) => c && isGenreBook(view, c));
       return any || anyFree ? null : 'Не на что купить книгу ни на одном адресе.';
     }
     case 'rescue':
       return view.players.some((p) => p.held > 0) ? null : 'Контора никого не удерживает.';
     case 'restore':
       if (me.talons < RULES.restoreCost) return `Нужно ${RULES.restoreCost}т, у вас ${me.talons}.`;
-      return me.warehouse.some((s) => s.card && !view.restored[s.card] && restorable(view.cards[s.card].kind))
+      return me.warehouse.some((s) => s.card && !view.restored[s.card] && !view.cards[s.card].wild && restorable(view.cards[s.card].kind))
         ? null : 'На складе нет книги, которой можно вернуть смыслы.';
     default:
       return null;
@@ -822,7 +822,7 @@ function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; v
   } else if (id === 'copyText') {
     body = <CopyTextPanel view={view} me={me} done={done} />;
   } else if (id === 'restore') {
-    const cands = me.warehouse.map((s) => s.card!).filter((c) => c && !view.restored[c] && restorable(view.cards[c].kind));
+    const cands = me.warehouse.map((s) => s.card!).filter((c) => c && !view.restored[c] && !view.cards[c].wild && restorable(view.cards[c].kind));
     body = (
       <>
         <p>Жанровая книга получает +1 значок своего жанра; у двужанровой книги жанр этого значка выбирается всякий раз, когда это важно. Нагрузка проглоченного автора становится возвращённым произведением с 3 значками.{RULES.exposePropaganda && ` Пропаганда становится Разоблачением: +${RULES.exposePoints} очка в конце, его можно издать как книгу с 1 значком.`}</p>
@@ -852,7 +852,7 @@ function CopyFollowPanel({ view, done }: { view: PlayerView; done: (g: GroupActi
       <div className="shelf wrap">
         {shelf.length === 0 && <span className="muted">Здесь больше нет книг</span>}
         {shelf.map((c) => {
-          const genre = iconsOf(view, c).length > 0;
+          const genre = isGenreBook(view, c);
           return <Book key={c} v={view} id={c} note={genre ? 'даром' : 'нельзя: не жанровая'} selected={gift === c} onClick={genre ? () => setGift(gift === c ? '' : c) : undefined} />;
         })}
       </div>
@@ -871,9 +871,9 @@ function CopyTextPanel({ view, me, done }: { view: PlayerView; me: VPlayer; done
   const choose = (a: CopyTextAddress) => { setAddr(a); setBuy([]); setGift(''); setSell([]); };
   const free = me.capacity - me.warehouse.filter((s) => !s.memorized).length;
   const mine = me.warehouse.map((s) => s.card).filter((c): c is string => !!c);
-  const genreBooks = mine.filter((c) => iconsOf(view, c).length > 0);
+  const genreBooks = mine.filter((c) => isGenreBook(view, c));
   const sellable = genreBooks.filter((c) => !['evidence', 'loadEvidence', 'propaganda', 'loadPropaganda'].includes(view.cards[c].kind));
-  const sellPrice = (c: string) => (iconsOf(view, c).some((g) => view.banned.includes(g)) ? RULES.tolkuchkaSellBanned : RULES.tolkuchkaSellFree);
+  const sellPrice = (c: string) => (genresOf(view, c).some((g) => view.banned.includes(g)) ? RULES.tolkuchkaSellBanned : RULES.tolkuchkaSellFree);
   const shelf: { key: string; card: string; price: number }[] =
     addr === 'razval' ? view.razval.flatMap((c, i) => (c ? [{ key: String(i), card: c, price: RULES.razvalPrices[i] }] : []))
       : addr === 'tolkuchka' ? view.tolkuchka.map((c) => ({ key: c, card: c, price: RULES.tolkuchkaBuy }))
@@ -1117,6 +1117,7 @@ function withGenreChips(raw: string): ReactNode {
     const prev = /^\[(.+)\]$/.exec(parts[i - 1] ?? '')?.[1];
     const g = prev && SHORT_TO_GENRE.get(prev);
     if (g && part.startsWith(` ${GENRE_NAMES[g]}`)) part = part.slice(GENRE_NAMES[g].length + 1);
+    if (part === '[Любой жанр]') return <span key={i} className="log-genres"><span className="chip wild">ЛЮБОЙ</span></span>;
     const tokens = /^\[(.+)\]$/.exec(part)?.[1].split(' ');
     if (!tokens || !tokens.every((t) => SHORT_TO_GENRE.has(t))) return part;
     return <span key={i} className="log-genres">{tokens.map((t, j) => <GenreChip key={j} g={SHORT_TO_GENRE.get(t)!} />)}</span>;
@@ -1171,7 +1172,7 @@ function AmbushPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (
 
 function GatheringPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
   const full = view.mode === 'full';
-  const cands = me.warehouse.map((s) => s.card!).filter((c) => c && (iconsOf(view, c).length > 0 || isEvidence(view, c)) && isBanned(view, c));
+  const cands = me.warehouse.map((s) => s.card!).filter((c) => c && (isGenreBook(view, c) || isEvidence(view, c)) && isBanned(view, c));
   // По умолчанию к показу выбрано всё, что приносит очки: опальные книги и Улики.
   const [sel, setSel] = useState<string[]>(() => cands);
   const per = RULES.gatheringPoints;
@@ -1230,7 +1231,7 @@ function bestHiding(view: PlayerView, me: VPlayer, limit: number): string[] {
   const curator = me.passion === 'curator';
   const free = me.warehouse.filter((s) => s.card && !s.memorized);
   const banned = free.map((s) => s.card!).filter((c) => isBanned(view, c));
-  const value = (c: string) => (isPropaganda(view, c) ? (curator ? 1000 : -1) : isEvidence(view, c) ? 100 : 10 + iconsOf(view, c).length);
+  const value = (c: string) => (isPropaganda(view, c) ? (curator ? 1000 : -1) : isEvidence(view, c) ? 100 : 10 + iconCount(view, c));
   const fits = banned.length <= limit;
   const order = banned.filter((c) => fits || value(c) > 0).sort((x, y) => value(y) - value(x));
   const kept = free.filter((s) => s.hidden && !order.includes(s.card!)).map((s) => s.card!);

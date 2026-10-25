@@ -1,6 +1,7 @@
 // Вспомогательные функции: случайность, карты, игроки.
 import { GENRE_SHORT, RULES } from './content';
 import type { GameState, Genre, PatronId, PlayerState, PointSource } from './types';
+import { GENRES } from './types';
 
 export class RuleError extends Error {}
 
@@ -81,7 +82,7 @@ export function title(state: GameState, id: string): string {
   const icons = iconsOf(state, id);
   const kind = isPropaganda(state, id) ? 'Пропаганда' : isExposed(state, id) ? 'Разоблачение' : isEvidence(state, id) ? 'Улика'
     : isLoad(state, id) ? 'Нагрузка' : '';
-  const tag = icons.length ? icons.map((g) => GENRE_SHORT[g]).join(' ') : kind;
+  const tag = c.wild ? 'Любой жанр' : icons.length ? icons.map((g) => GENRE_SHORT[g]).join(' ') : kind;
   // Возвращаемая Нагрузка: на обороте — вторая книга (3 значка её жанра после Возвращения смыслов).
   const back = c.kind === 'loadReturnable' && !state.restored[id] && c.returned
     ? ` / [${[c.genre!, c.genre!, c.genre!].map((g) => GENRE_SHORT[g]).join(' ')}] «${c.returned}»` : '';
@@ -103,6 +104,7 @@ type CardsInfo = Pick<GameState, 'cards' | 'restored'>;
 // поэтому вариантов два. У прочих книг вариант один.
 export function iconVariants(state: CardsInfo, id: string): Genre[][] {
   const c = state.cards[id];
+  if (c.wild) return GENRES.map((g) => [g]); // «Чукоккала»: значок любого жанра
   const restored = !!state.restored[id];
   if (c.kind === 'loadReturnable') return [restored ? [c.genre!, c.genre!, c.genre!] : []];
   if (c.kind === 'loadEvidence' || isPropagandaKind(c.kind)) return [[]]; // Нагрузка-улика и Разоблачение жанровых значков не получают
@@ -111,8 +113,24 @@ export function iconVariants(state: CardsInfo, id: string): Genre[][] {
 }
 
 // Значки книги (первый вариант). Число значков и набор жанров у всех вариантов одинаковы.
+// У «Чукоккалы» — пусто: жанровых свойств у неё нет (Проза «Вдохновиться» и т. п.); число значков — iconCount,
+// принадлежность к жанру (опала, Клуб, Подписка) — genresOf, подсчёты с выбором жанра — iconVariants.
 export function iconsOf(state: CardsInfo, id: string): Genre[] {
-  return iconVariants(state, id)[0];
+  return state.cards[id].wild ? [] : iconVariants(state, id)[0];
+}
+
+export function isWild(state: CardsInfo, id: string): boolean {
+  return !!state.cards[id].wild;
+}
+
+// Сколько у книги жанровых значков.
+export function iconCount(state: CardsInfo, id: string): number {
+  return state.cards[id].wild ? 1 : iconsOf(state, id).length;
+}
+
+// К каким жанрам книга относится (опала, Клуб, Подписка): у «Чукоккалы» — ко всем.
+export function genresOf(state: CardsInfo, id: string): Genre[] {
+  return state.cards[id].wild ? [...GENRES] : iconsOf(state, id);
 }
 
 // Жанры гибкого значка возвращения (если он есть).
@@ -206,16 +224,16 @@ export function isExposed(state: CardsInfo, id: string): boolean {
 // Опальная книга: Пропаганда, Улики и книги со значком опального жанра.
 export function isBanned(state: CardsInfo & Pick<GameState, 'banned'>, id: string): boolean {
   if (isPropaganda(state, id) || isEvidence(state, id)) return true;
-  return iconsOf(state, id).some((g) => state.banned.includes(g));
+  return genresOf(state, id).some((g) => state.banned.includes(g));
 }
 
 export function isGenreBook(state: CardsInfo, id: string): boolean {
-  return iconsOf(state, id).length > 0;
+  return iconCount(state, id) > 0;
 }
 
 // «Одиночная» книга — ровно 1 значок.
 export function isSingle(state: CardsInfo, id: string): boolean {
-  return state.cards[id].kind === 'genre' && iconsOf(state, id).length === 1;
+  return state.cards[id].kind === 'genre' && iconCount(state, id) === 1;
 }
 
 // ---------- Стопки ----------

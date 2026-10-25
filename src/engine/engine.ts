@@ -16,7 +16,7 @@ import { GENRES } from './types';
 import {
   addBook, addOpenBook, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isPropagandaKind, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
-  talonsText, title, titles, logEvent, logNote, logAfter, toSpetskhranPublic, isExposed, saved, logRecap, plural,
+  talonsText, title, titles, logEvent, logNote, logAfter, toSpetskhranPublic, isExposed, saved, logRecap, plural, iconCount, genresOf,
 } from './util';
 
 export interface NewGameOptions {
@@ -124,9 +124,9 @@ export function createGame(opts: NewGameOptions): GameState {
 // Стартовый Тайник: опальные книги (не Пропаганда) по порядку — больше значков, затем жанр Пристрастия, затем случайно.
 export function startHide(state: GameState, p: PlayerState) {
   const favored: Genre[] = (p.passion && PASSIONS[p.passion].genres) || [];
-  const fits = (c: string) => (iconsOf(state, c).some((g) => favored.includes(g)) ? 1 : 0);
+  const fits = (c: string) => (genresOf(state, c).some((g) => favored.includes(g)) ? 1 : 0);
   const books = shuffle(state, p.warehouse.filter((w) => !w.hidden && !w.memorized && isBanned(state, w.card) && !isPropaganda(state, w.card)))
-    .sort((a, b) => iconsOf(state, b.card).length - iconsOf(state, a.card).length || fits(b.card) - fits(a.card));
+    .sort((a, b) => iconCount(state, b.card) - iconCount(state, a.card) || fits(b.card) - fits(a.card));
   let room = cacheLimit(state, p) - p.warehouse.filter((w) => w.hidden).length;
   for (const w of books) if (room-- > 0) w.hidden = true;
 }
@@ -532,7 +532,7 @@ function endOrders(state: GameState) {
       for (let guard = 0; guard < 200 && !got; guard++) {
         const c = draw(state);
         if (!c) break;
-        if (iconsOf(state, c).includes(sub.genre)) got = c;
+        if (genresOf(state, c).includes(sub.genre)) got = c;
         else discard(state, c);
       }
       if (!got) continue;
@@ -668,7 +668,7 @@ function doAmbush(state: GameState, p: PlayerState, go: boolean, picks: Record<s
       if (!shown.length) continue;
       // Книгу выбирает Куратор лично (не выбрал — самая «значкастая»).
       if (picks[o.id]) check(shown.includes(picks[o.id]), `У ${o.name} изымают только книгу, показанную на Посиделках`);
-      const card = picks[o.id] ?? [...shown].sort((a, b) => iconsOf(state, b).length - iconsOf(state, a).length)[0];
+      const card = picks[o.id] ?? [...shown].sort((a, b) => iconCount(state, b) - iconCount(state, a))[0];
       holdWorker(state, o, `Засада: ${p.name}`);
       removeBook(o, card);
       toSpetskhranPublic(state, [card]);
@@ -951,9 +951,8 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
           check(hasBook(p, op.card), 'Продавать можно только книги со своего склада');
           check(!isEvidence(state, op.card), 'Улики нельзя продать — у них ноль подпольного спроса');
           check(!isPropaganda(state, op.card), 'Пропаганду можно сбыть только в Красном уголке');
-          const icons = iconsOf(state, op.card);
-          check(icons.length > 0, 'Книгу без жанра не продать');
-          const demand = icons.some((g) => state.banned.includes(g)) || hasPatron(state, p.id, 'fartsovshchik');
+          check(isGenreBook(state, op.card), 'Книгу без жанра не продать');
+          const demand = genresOf(state, op.card).some((g) => state.banned.includes(g)) || hasPatron(state, p.id, 'fartsovshchik');
           const gain = demand ? RULES.tolkuchkaSellBanned : RULES.tolkuchkaSellFree;
           removeBook(p, op.card);
           income += gain;
@@ -1108,7 +1107,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       check(hasBook(p, a.card), 'Издавать можно только книги со своего склада');
       check(!isPropaganda(state, a.card), 'Пропаганду нельзя издать');
       // Разоблачение издают как книгу с одним значком (без жанра).
-      const icons = iconsOf(state, a.card).length + (isExposed(state, a.card) ? 1 : 0);
+      const icons = iconCount(state, a.card) + (isExposed(state, a.card) ? 1 : 0);
       if (a.address === 'samizdat') {
         check(icons > 0 && !isEvidence(state, a.card), 'Через Самиздат можно издать только книгу с жанровым значком');
       } else {
@@ -1144,8 +1143,8 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       let pts = 0;
       for (const c of cards) {
         check(hasBook(p, c), 'Отдать можно только книги со своего склада');
-        check(isGenreBook(state, c) && iconsOf(state, c).some((g) => state.banned.includes(g)), `${title(state, c)} — не подцензурная книга`);
-        if (editor) pts += iconsOf(state, c).length;
+        check(isGenreBook(state, c) && genresOf(state, c).some((g) => state.banned.includes(g)), `${title(state, c)} — не подцензурная книга`);
+        if (editor) pts += iconCount(state, c);
         removeBook(p, c);
         discard(state, c);
         gaveAway(state, p, c);
@@ -1369,6 +1368,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       check(slot, 'Возвращать смыслы можно книге со своего склада');
       const c = state.cards[g.card];
       check(!state.restored[g.card], 'Этой книге смыслы уже возвращены');
+      check(!c.wild, '«Чукоккале» смыслы возвращать не нужно: в ней и так все жанры');
       check(c.kind === 'genre' || c.kind === 'loadReturnable' || c.kind === 'loadEvidence' || (isPropagandaKind(c.kind) && RULES.exposePropaganda),
         RULES.exposePropaganda
           ? 'Смыслы можно вернуть только жанровой книге, возвращаемой Нагрузке, Нагрузке-улике или Пропаганде'

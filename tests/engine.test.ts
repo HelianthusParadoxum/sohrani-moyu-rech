@@ -63,7 +63,7 @@ describe('подготовка', () => {
     expect(s.sprouts).toHaveLength(3); // Райцентр: Ростков по числу игроков
     expect(createGame({ players: players(3), seed: 1, mode: 'full' }).sprouts).toHaveLength(3); // полный: по числу игроков (в «Заповеднике» +1)
     expect(s.razval.every(Boolean)).toBe(true);
-    expect(new Set(allCards(s)).size).toBe(132);
+    expect(new Set(allCards(s)).size).toBe(133);
   });
 
   it('скрывает чужие Пристрастия и колоды', () => {
@@ -93,8 +93,8 @@ describe('партия ботами', () => {
         expect(s.result).toBeDefined();
         expect(s.round).toBe(5);
         const cards = allCards(s);
-        expect(cards.length).toBe(132);
-        expect(new Set(cards).size).toBe(132);
+        expect(cards.length).toBe(133);
+        expect(new Set(cards).size).toBe(133);
       }
     });
   }
@@ -265,7 +265,7 @@ describe('полный режим', () => {
         expect(s.phase).toBe('end');
         const cards = allCards(s);
         expect(new Set(cards).size).toBe(cards.length);
-        expect(cards.length).toBe(132);
+        expect(cards.length).toBe(133);
       }
     });
   }
@@ -1802,5 +1802,46 @@ describe('подсказка книг для Ростка', () => {
     // Фантастика-джокер и Лаборант.
     expect(bestFeedBooks(info, ['a', 'e'], 'poetry', 2, 'prose', { wildScifi: true })!.books.sort()).toEqual(['a', 'e']);
     expect(bestFeedBooks(info, ['a', 'd'], 'poetry', 2, 'prose', { labtech: true })).toEqual({ books: ['a'], labtech: true });
+  });
+});
+
+describe('«Чукоккала» — значок любого жанра', () => {
+  const setup = () => {
+    let s = createGame({ players: players(3), seed: 9, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    const ch = Object.keys(s.cards).find((c) => s.cards[c].wild)!;
+    s.deck = s.deck.filter((c) => c !== ch);
+    const p = s.players[0];
+    p.warehouse = [{ card: ch, hidden: false }];
+    return { s, p, ch };
+  };
+
+  it('один значок: жанра нужного в каждом подсчёте; опальна, если в опале хоть один жанр; свойств жанров нет', () => {
+    const { s, p, ch } = setup();
+    expect(s.cards[ch].title).toBe('Чукоккала');
+    expect(iconsOf(s, ch)).toEqual([]); // для жанровых свойств значков нет
+    expect(isBanned(s, ch)).toBe(true);
+    expect(isBanned({ ...s, banned: [] }, ch)).toBe(false);
+    expect(title(s, ch)).toBe('[Любой жанр] «Чукоккала»');
+    // Ростки: закрывает 1 значок основного жанра или поддержки — но не два сразу.
+    expect(coversStep(s, [ch], 'drama', 1)).toBe(true);
+    const other = Object.keys(s.cards).find((c) => s.cards[c].kind === 'genre' && iconsOf(s, c).length === 1 && iconsOf(s, c)[0] === 'drama')!;
+    expect(coversStep(s, [other, ch], 'drama', 1, 'poetry')).toBe(true);
+    expect(coversStep(s, [ch], 'drama', 1, 'poetry')).toBe(false);
+    // Пристрастия: 1 значок нужного жанра.
+    p.passion = 'keeper_golden';
+    expect(passionPoints(s, p)).toBe(RULES.passionKeeper);
+    // Проза «Вдохновиться» её не считает.
+    expect(proseBonus(s, p)).toBe(0);
+  });
+
+  it('в Клубе — связь с любым Завсегдатаем; смыслы ей не возвращают', () => {
+    const { s, p, ch } = setup();
+    s.phase = 'orders';
+    s.turn = s.order.indexOf(p.id);
+    const pt = s.patrons.find((x) => x.genre !== 'album')!;
+    const t = applyAction(s, p.id, { type: 'clubGift', gift: { patron: pt.id, card: ch } } as never);
+    expect(t.patrons.find((x) => x.id === pt.id)!.connections).toContain(p.id);
+    expect(() => applyAction(s, p.id, { type: 'group', group: { action: 'restore', card: ch } } as never)).toThrow(/Чукоккал/);
   });
 });

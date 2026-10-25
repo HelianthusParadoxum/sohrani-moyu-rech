@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { CLUB_ORDER, GENRE_NAMES, KONTORA_LOSS, PATRONS, RULES } from '../engine/content';
 import type { Action, ClubGift, Genre, GroupAction, KontoraChoice, PatronId, PlaceAction } from '../engine/types';
 import type { PlayerView } from '../engine/view';
-import { cacheLimit } from '../engine/util';
+import { cacheLimit, genresOf } from '../engine/util';
 import { kontoraTargets } from '../engine/full';
 import { Book, GenreChip, Modal, PLAYER_COLORS, iconize, iconsOf, isBanned, toggle } from './ui';
 
@@ -14,7 +14,7 @@ const byClubOrder = <T extends { genre: Genre }>(list: T[]) => [...list].sort((a
 
 // Книги игрока, которые подходят Завсегдатаю: его жанра или Альбом (Альбом подходит любому).
 export function fittingBooks(view: PlayerView, me: VPlayer, genre: Genre): string[] {
-  return me.warehouse.map((s) => s.card!).filter((c) => c && (iconsOf(view, c).includes(genre) || iconsOf(view, c).includes('album')));
+  return me.warehouse.map((s) => s.card!).filter((c) => c && (genresOf(view, c).includes(genre) || genresOf(view, c).includes('album')));
 }
 
 // Можно ли сейчас завязать связь с Завсегдатаем: свободен, связи ещё нет и есть подходящая книга.
@@ -80,7 +80,7 @@ export function GiftPicker({ view, me, single, onDone, initialPatron }: { view: 
   const used = gifts.map((g) => g.card);
   const open = byClubOrder(view.patrons).filter((pt) => !pt.removed && !pt.turned && !pt.connections.includes(me.id) && !gifts.some((g) => g.patron === pt.id));
   const pt = view.patrons.find((x) => x.id === patron);
-  const fitsFor = (genre: Genre) => (c: string) => iconsOf(view, c).includes(genre) || iconsOf(view, c).includes('album');
+  const fitsFor = (genre: Genre) => (c: string) => genresOf(view, c).includes(genre) || genresOf(view, c).includes('album');
   const fits = (c: string) => !!pt && fitsFor(pt.genre)(c);
   const books = me.warehouse.map((s) => s.card!).filter((c) => c && !used.includes(c));
   const give = (id: PatronId, card: string) => {
