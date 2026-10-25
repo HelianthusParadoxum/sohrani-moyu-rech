@@ -1110,7 +1110,8 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
 // Значки жанров в журнале: «[ПР ФА]» → цветные значки, как в Клубе. Прочие пометки («[Нагрузка]») — как есть.
 const SHORT_TO_GENRE = new Map(GENRES.map((g) => [GENRE_SHORT[g], g] as const));
 function withGenreChips(raw: string): ReactNode {
-  const text = iconize(raw);
+  // Слово «ЧНЛ» в тексте журнала (правила Несистемного, итоги Куратора) — тоже значком.
+  const text = iconize(raw).replace(/(?<![[А-ЯЁа-яё])ЧНЛ(?![\]А-ЯЁа-яё])/g, '[ЧНЛ]');
   const parts = text.split(/(\[[^\]]+\])/);
   return parts.map((part, i) => {
     // «[ПО] Поэзия» — достаточно значка: название жанра сразу после него не повторяем.
