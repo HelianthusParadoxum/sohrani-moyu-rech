@@ -253,7 +253,11 @@ function displayed(state: GameState): Set<string> {
 function logArrivals(state: GameState, before: Set<string>, mentioned = '') {
   for (const [k, where] of DISPLAYS) {
     const fresh = ((state[k] ?? []) as (string | null)[]).filter((c): c is string => !!c && !before.has(c) && !mentioned.includes(state.cards[c].title));
-    if (fresh.length) log(state, `${where} ${fresh.length > 1 ? 'выходят' : 'выходит'}: ${titles(state, fresh)}.`);
+    if (!fresh.length) continue;
+    // На Развале цена зависит от места (свежести) — пишем её у каждой книги.
+    const items = fresh.map((c) => title(state, c) + (k === 'razval' ? ` — ${talonsText(RULES.razvalPrices[state.razval.indexOf(c)])}` : ''));
+    const list = items.length < 3 ? items.join(', ') : '\n' + items.map((x) => `• ${x}`).join('\n');
+    log(state, `${where} ${fresh.length > 1 ? 'выходят' : 'выходит'}: ${list}.`);
   }
 }
 
