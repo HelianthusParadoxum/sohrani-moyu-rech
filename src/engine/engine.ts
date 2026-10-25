@@ -886,8 +886,7 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
   doPlace(state, p, a);
   // Купил на адресе Тиражирования — можно следом (до конца хода) взять оттуда же книгу даром.
   if ((COPY_TEXT_ADDRESSES as readonly string[]).includes(a.address) && (a.address !== 'tolkuchka' || a.ops.some((op) => op.op === 'buy'))) {
-    const exclude = a.address === 'knigoobmen' ? [a.give] : [];
-    state.lastBuy = { player: p.id, address: a.address as CopyTextAddress, exclude };
+    state.lastBuy = { player: p.id, address: a.address as CopyTextAddress, exclude: [] };
   }
   if (buzoter) { p.buzoterUsed = true; log(state, `${p.name}: Бузотёр пробивается на занятый адрес.`); }
   state.occupancy[a.address] = [...here, p.id];
@@ -1167,7 +1166,9 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       check(state.knigoobmen.includes(a.take), 'Этой книги нет на витрине Книгообмена');
       removeBook(p, a.give);
       addOpenBook(state, p, a.take);
-      state.knigoobmen = state.knigoobmen.map((c) => (c === a.take ? a.give : c));
+      // Отданная книга уходит в сброс, а не на витрину.
+      state.knigoobmen = state.knigoobmen.filter((c) => c !== a.take);
+      discard(state, a.give);
       gaveAway(state, p, a.give);
       p.bonusGroupTurns++;
       log(state, `${p.name} на Книгообмене: отдаёт ${title(state, a.give)}, берёт ${title(state, a.take)}.`);

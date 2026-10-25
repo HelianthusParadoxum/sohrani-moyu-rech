@@ -97,7 +97,7 @@ describe('Тиражирование текста', () => {
     expect(after.discard).toContain(sell);
   });
 
-  it('на Книгообмене: обменяться и взять ещё одну даром, отданную не забрать', () => {
+  it('на Книгообмене: обменяться и взять ещё одну даром; отданная уходит в сброс, не на витрину', () => {
     const s = started();
     const p = me(s);
     s.safehouses = ['knigoobmen'];
@@ -105,12 +105,13 @@ describe('Тиражирование текста', () => {
     const give = giveBook(s, p.id);
     const [take, gift] = s.knigoobmen;
     const buy = { address: 'knigoobmen', give, take };
-    expect(() => applyAction(s, p.id, copy('knigoobmen', buy, give))).toThrow(/обратно/);
+    expect(() => applyAction(s, p.id, copy('knigoobmen', buy, give))).toThrow();
     const after = applyAction(s, p.id, copy('knigoobmen', buy, gift));
     const w = byId(after, p.id).warehouse.map((x) => x.card);
     expect(w).toEqual(expect.arrayContaining([take, gift]));
     expect(w).not.toContain(give);
-    expect(after.knigoobmen).toContain(give);
+    expect(after.knigoobmen).not.toContain(give);
+    expect(after.discard).toContain(give);
   });
 
   it('бесплатную книгу можно взять только с того же адреса', () => {
