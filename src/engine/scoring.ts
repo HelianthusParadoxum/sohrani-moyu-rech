@@ -199,6 +199,7 @@ function soloResult(state: GameState, scores: ScoreLine[], sproutName: (id: stri
     return { glasnost: false, scores, winners: [], note, summary: note };
   }
   let propaganda = 0;
+  const cuts: string[] = []; // строки срезов — после строки о вскрытых книгах
   const cards = RULES.soloEndCards[state.mode];
   for (let i = 0; i < cards; i++) {
     const c = draw(state);
@@ -208,12 +209,13 @@ function soloResult(state: GameState, scores: ScoreLine[], sproutName: (id: stri
       const top = [...state.sprouts].sort((a, b) => b.progress - a.progress)[0];
       if (top.progress > 0) {
         top.progress--;
-        log(state, `${title(state, c)}: Росток «${sproutName(top.id)}» — ступень ${roman(top.progress + 1)} → ${top.progress ? roman(top.progress) : '0'}.`);
+        cuts.push(`${title(state, c)}: Росток «${sproutName(top.id)}» — ступень ${roman(top.progress + 1)} → ${top.progress ? roman(top.progress) : '0'}.`);
       }
     }
     discard(state, c);
   }
   log(state, `Вскрыто ${cards} Непечатных, ЧНЛ среди них: ${propaganda}.`);
+  for (const line of cuts) log(state, line);
   const won = glasnostReached(state);
   return {
     glasnost: won, scores, winners: won ? [me.id] : [],
