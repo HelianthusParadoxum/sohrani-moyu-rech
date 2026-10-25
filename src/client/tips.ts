@@ -1,5 +1,6 @@
 // Подсказки. На ПК — обычный title при наведении. На телефоне — удержание пальцем на элементе с data-tip:
 // всплывает окошко с текстом; нажатие, которым была вызвана подсказка, не срабатывает как клик.
+// Слово «ЧНЛ» в окошке — значком; поэтому подсказки с ним и на ПК показываем своим окошком, а не title.
 const HOLD_MS = 450;
 let timer: ReturnType<typeof setTimeout> | undefined;
 let tip: HTMLDivElement | null = null;
@@ -16,7 +17,13 @@ function show(text: string, x: number, y: number) {
   hide();
   tip = document.createElement('div');
   tip.className = 'touch-tip';
-  tip.textContent = text;
+  for (const part of text.split(/(ЧНЛ)/)) {
+    if (part !== 'ЧНЛ') { tip.append(part); continue; }
+    const chip = document.createElement('span');
+    chip.className = 'chip k-chnl';
+    chip.textContent = 'ЧНЛ';
+    tip.append(chip);
+  }
   document.body.appendChild(tip);
   const w = tip.offsetWidth;
   const h = tip.offsetHeight;
@@ -54,4 +61,25 @@ document.addEventListener('click', (e) => {
 // Долгое нажатие на Android вызывает контекстное меню — на элементах с подсказкой его не показываем.
 document.addEventListener('contextmenu', (e) => {
   if ((e.target as Element | null)?.closest('[data-tip]')) e.preventDefault();
+});
+
+// ПК: подсказка со словом «ЧНЛ» — своим окошком (в title значок не нарисовать).
+let hovered: HTMLElement | null = null;
+document.addEventListener('mouseover', (e) => {
+  const el = (e.target as Element | null)?.closest<HTMLElement>('[title], [data-tip]');
+  if (el === hovered) return;
+  const title = el?.getAttribute('title');
+  if (el && title?.includes('ЧНЛ')) {
+    el.dataset.tip = title;
+    el.removeAttribute('title');
+  }
+  if (!el?.dataset.tip?.includes('ЧНЛ')) return;
+  hovered = el;
+  const r = el.getBoundingClientRect();
+  show(el.dataset.tip, r.left + r.width / 2, r.top);
+});
+document.addEventListener('mouseout', (e) => {
+  if (!hovered || hovered.contains(e.relatedTarget as Node | null)) return;
+  hovered = null;
+  hide();
 });

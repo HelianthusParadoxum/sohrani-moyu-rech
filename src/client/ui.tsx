@@ -49,6 +49,12 @@ export function favoredGenres(v: PlayerView): Genre[] {
   return (passion && PASSIONS[passion].genres) || [];
 }
 
+// Текст, где слово «ЧНЛ» — значком (подсказки, правила в окнах).
+export function withKindChips(text: string): ReactNode {
+  if (!text.includes('ЧНЛ')) return text;
+  return text.split(/(ЧНЛ)/).map((part, i) => (part === 'ЧНЛ' ? <KindChip key={i} k="chnl" /> : part));
+}
+
 // Значки ЧНЛ (человеконенавистническая литература) и Улик (УЛ).
 export function KindChip({ k, banned }: { k: 'chnl' | 'ul'; banned?: boolean }) {
   return (

@@ -14,7 +14,7 @@ import {
   KontoraWarningPrompt, RescuePanel,
 } from './full-ui';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
-import { Book, GENRE_SHORT, GenreChip, KindChip, iconize, SpeedSelect, Modal, ModalCollapse, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, toggle } from './ui';
+import { Book, GENRE_SHORT, GenreChip, KindChip, withKindChips, iconize, SpeedSelect, Modal, ModalCollapse, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, toggle } from './ui';
 
 type Send = (m: ClientMessage) => void;
 type VPlayer = PlayerView['players'][number];
@@ -467,7 +467,7 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
       const load = sel.filter((c) => fromLoadDeck(view, c)).length;
       body = (
         <>
-          <p>Вы встанете в очередь хода следующей Пятилетки. Можно сдать в макулатуру до 1 Непечатной книги (+{RULES.redCornerUnprinted}т) и до 1 книги Нагрузки (+{RULES.redCornerLoad}т). ЧНЛ можно сбыть только здесь.</p>
+          <p>Вы встанете в очередь хода следующей Пятилетки. Можно сдать в макулатуру до 1 Непечатной книги (+{RULES.redCornerUnprinted}т) и до 1 книги Нагрузки (+{RULES.redCornerLoad}т). {withKindChips('ЧНЛ можно сбыть только здесь.')}</p>
           {komsorg && <p className="muted small">Комсорг: можно сдать любое число книг, за каждую — +{RULES.komsorgPoints} очко Гласности.</p>}
           {pickList(mine, sel, setSel)}
           {confirmBtn('Пойти в Красный уголок', (unprinted <= 1 && load <= 1) || komsorg ? { address: 'redCorner', recycle: sel } : null,
@@ -810,7 +810,7 @@ function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; v
   if (blocker) {
     body = (
       <>
-        <p>{info.hint}</p>
+        <p>{withKindChips(info.hint)}</p>
         <p className="warn-text">Сейчас нельзя. {blocker}</p>
         <div className="modal-foot">{close && <button onClick={close}>Понятно</button>}<button className="primary" disabled>Выполнить</button></div>
       </>
@@ -825,7 +825,7 @@ function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; v
     const cands = me.warehouse.map((s) => s.card!).filter((c) => c && !view.restored[c] && restorable(view.cards[c].kind));
     body = (
       <>
-        <p>Жанровая книга получает +1 значок своего жанра; у двужанровой книги жанр этого значка выбирается всякий раз, когда это важно. Нагрузка проглоченного автора становится возвращённым произведением с 3 значками.{RULES.exposePropaganda && ` ЧНЛ становится Разоблачением: +${RULES.exposePoints} очка в конце, его можно издать как книгу с 1 значком.`}</p>
+        <p>Жанровая книга получает +1 значок своего жанра; у двужанровой книги жанр этого значка выбирается всякий раз, когда это важно. Нагрузка проглоченного автора становится возвращённым произведением с 3 значками.{RULES.exposePropaganda && withKindChips(` ЧНЛ становится Разоблачением: +${RULES.exposePoints} очка в конце, его можно издать как книгу с 1 значком.`)}</p>
         <div className="shelf wrap">{cands.map((c) => <Book key={c} v={view} id={c} selected={sel === c} onClick={() => setSel(c)} />)}</div>
         <div className="modal-foot"><button className="primary" disabled={!sel} onClick={() => done({ action: 'restore', card: sel })}>Вернуть смыслы</button></div>
       </>
@@ -833,7 +833,7 @@ function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; v
   } else {
     body = (
       <>
-        <p>{info.hint}</p>
+        <p>{withKindChips(info.hint)}</p>
         <div className="modal-foot"><button className="primary" onClick={() => done({ action: id } as GroupAction)}>Выполнить</button></div>
       </>
     );
@@ -899,7 +899,7 @@ function CopyTextPanel({ view, me, done }: { view: PlayerView; me: VPlayer; done
   const ok = (purchase || (typist && !buy.length && !sell.length)) && gift && !halfSwap && cost <= me.talons && room >= 0;
   return (
     <>
-      <p>{GROUP_ACTIONS.copyText.hint}. Покупатель занимает место на адресе, второй Единомышленник встаёт на Тиражирование (если Тиражирование — бонус, идёт только покупатель).</p>
+      <p>{withKindChips(GROUP_ACTIONS.copyText.hint)}. Покупатель занимает место на адресе, второй Единомышленник встаёт на Тиражирование (если Тиражирование — бонус, идёт только покупатель).</p>
       {typist && <p className="muted small">Машинистка: можно ничего не покупать — просто выберите книгу «взять бесплатно» на любом адресе; на адрес никто не пойдёт. За Тиражирование +{RULES.typistTalons}т.</p>}
       <div className="row">
         {addrs.map((a) => (
@@ -1139,7 +1139,7 @@ function PassionPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: 
       <div className="passions">
         {me.passionOptions.map((id) => (
           <button key={id} className="passion" onClick={() => act({ type: 'choosePassion', passion: id })}>
-            <b>{passionLabel(id)}</b><span>{PASSIONS[id].hint}</span>
+            <b>{passionLabel(id)}</b><span>{withKindChips(PASSIONS[id].hint)}</span>
           </button>
         ))}
       </div>
@@ -1316,7 +1316,7 @@ function Results({ view, seatIndex, close }: { view: PlayerView; seatIndex: (id:
     <Modal title="Конец Застоя" onClose={close} wide>
       <p><b>{r.note}</b></p>
       <div className="scores-wrap"><table className="scores">
-        <thead><tr><th>Игрок</th><th>Пристрастие</th><th>По ходу</th>{full && <th>Связи</th>}<th>За Пристрастие</th><th>Улики</th><th title={`1 очко за каждые ${RULES.talonsPerPoint} Талона`}>За Талоны</th><th>ЧНЛ</th><th>Итого</th></tr></thead>
+        <thead><tr><th>Игрок</th><th>Пристрастие</th><th>По ходу</th>{full && <th>Связи</th>}<th>За Пристрастие</th><th>Улики</th><th title={`1 очко за каждые ${RULES.talonsPerPoint} Талона`}>За Талоны</th><th><KindChip k="chnl" /></th><th>Итого</th></tr></thead>
         <tbody>
           {r.scores.map((s) => {
             const p = view.players.find((x) => x.id === s.player)!;
@@ -1385,7 +1385,7 @@ function MyPanel({ view, me, color, groupEnabled, onlyHire, onlyCopy, onGroup, o
           <span className="muted small">Пристрастие:</span> <b>{PASSIONS[me.passion].name}</b>
           {PASSIONS[me.passion].genres
             ? <> — 2 очка за значок: {PASSIONS[me.passion].genres!.map((g) => <GenreChip key={g} g={g} favored />)}</>
-            : <span className="muted small"> — {PASSIONS[me.passion].hint}</span>}
+            : <span className="muted small"> — {withKindChips(PASSIONS[me.passion].hint)}</span>}
         </div>
       )}
       <div className="shelf wrap">{me.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}{emptySlots(freeShelf(me))}</div>

@@ -5,7 +5,7 @@ import type { Action, ClubGift, Genre, GroupAction, KontoraChoice, PatronId, Pla
 import type { PlayerView } from '../engine/view';
 import { cacheLimit, genresOf } from '../engine/util';
 import { kontoraTargets } from '../engine/full';
-import { Book, GenreChip, Modal, PLAYER_COLORS, iconize, iconsOf, isBanned, toggle } from './ui';
+import { Book, GenreChip, Modal, PLAYER_COLORS, iconize, iconsOf, isBanned, toggle, withKindChips } from './ui';
 
 type VPlayer = PlayerView['players'][number];
 
@@ -39,7 +39,7 @@ export function ClubContents({ view, seatIndex, me, onPatron }: { view: PlayerVi
               title={pt.since?.[pid] ? `Связь с ${pt.since[pid]}-й Пятилетки` : undefined}>{pt.since?.[pid] ? `П${pt.since[pid]}` : ''}</span>
           ))}
           {pt.removed && <span className="muted small"> — профилактика</span>}
-          <div className="muted small">{iconize(PATRONS[pt.id].hint)}</div>
+          <div className="muted small">{withKindChips(iconize(PATRONS[pt.id].hint))}</div>
         </li>
         );
       })}
@@ -149,7 +149,7 @@ export function BefriendPicker({ view, me, onPick, close }: { view: PlayerView; 
         {open.map((pt) => (
           <li key={pt.id} className="can" role="button" onClick={() => onPick(pt.id)} title={iconize(PATRONS[pt.id].hint)}>
             <GenreChip g={pt.genre} /> <b>{PATRONS[pt.id].name}</b>
-            <div className="muted small">{iconize(PATRONS[pt.id].hint)}</div>
+            <div className="muted small">{withKindChips(iconize(PATRONS[pt.id].hint))}</div>
           </li>
         ))}
       </ul>
