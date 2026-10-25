@@ -2,7 +2,7 @@
 import { PASSIONS, RULES, SPROUTS } from './content';
 import type { GameResult, GameState, Genre, PlayerState, ScoreLine } from './types';
 import { GENRES } from './types';
-import { discard, draw, iconCount, iconVariants, iconsOf, isEvidence, isExposed, isPropaganda, log, roman } from './util';
+import { discard, draw, iconCount, iconVariants, iconsOf, isEvidence, isExposed, isPropaganda, log, roman, title } from './util';
 
 // Коллекция для Пристрастия: склад (включая Тайник) + изданное.
 export function collection(state: GameState, p: PlayerState): string[] {
@@ -208,7 +208,7 @@ function soloResult(state: GameState, scores: ScoreLine[], sproutName: (id: stri
       const top = [...state.sprouts].sort((a, b) => b.progress - a.progress)[0];
       if (top.progress > 0) {
         top.progress--;
-        log(state, `ЧНЛ «${state.cards[c].title}»: Росток «${sproutName(top.id)}» — ступень ${roman(top.progress + 1)} → ${top.progress ? roman(top.progress) : '0'}.`);
+        log(state, `${title(state, c)}: Росток «${sproutName(top.id)}» — ступень ${roman(top.progress + 1)} → ${top.progress ? roman(top.progress) : '0'}.`);
       }
     }
     discard(state, c);
