@@ -408,7 +408,7 @@ function soloPressure(state: GameState) {
   if (!genre) return;
   const p = state.players[0];
   const pt = state.patrons.find((x) => x.genre === genre);
-  log(state, `Несистемный: вытянут жетон [${GENRE_SHORT[genre]}].`);
+  log(state, `Несистемный: на действие Конторы вытянут жетон [${GENRE_SHORT[genre]}].`);
   if (pt && !pt.removed) removePatron(state, pt.id);
   else holdWorker(state, p, `Завсегдатая жанра [${GENRE_SHORT[genre]}] уже нет в Клубе`);
 }

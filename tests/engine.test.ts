@@ -1300,13 +1300,13 @@ describe('Несистемный (одиночная игра)', () => {
       if (s.round !== round && s.phase === 'orders') {
         round = s.round;
         seen.push(s.censorship);
-        if (round >= 2) expect(s.log.some((l) => l.round === round && l.text.startsWith('Несистемный: вытянут жетон'))).toBe(true);
+        if (round >= 2) expect(s.log.some((l) => l.round === round && l.text.startsWith('Несистемный: на действие Конторы вытянут жетон'))).toBe(true);
       }
       s = playOut(s, rand, 1);
     }
     expect(seen).toEqual([3, 4, 5, 6, 7]);
     // За 4 Пятилетки — 4 жетона; за каждым — Профилактика или Контора (её может отвести Психиатр).
-    const after = s.log.flatMap((l, i) => (l.text.startsWith('Несистемный: вытянут жетон') ? [s.log[i + 1].text] : []));
+    const after = s.log.flatMap((l, i) => (l.text.startsWith('Несистемный: на действие Конторы вытянут жетон') ? [s.log[i + 1].text] : []));
     expect(after).toHaveLength(4);
     for (const t of after) expect(t).toMatch(/^Профилактика|^Контора удерживает|Психиатр/);
   });
