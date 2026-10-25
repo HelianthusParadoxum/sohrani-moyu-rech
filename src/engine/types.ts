@@ -126,6 +126,9 @@ export interface PlayerState {
   redEager?: number; // сколько раз рано (1–2-м действием) и первым в очереди пришёл в Красный уголок — не в последней Пятилетке
   redEmpty?: number; // ...из них — ничего не сдав, хотя было что
   cacheUnshown?: number; // сколько раз книги из Тайника не показаны на Посиделках (видно всем: число книг в Тайнике и показанные)
+  // ...по Посиделкам: сколько не показал и сколько других в тот раз тоже прятали опальное из Тайника (hiders) или показали всё (brave).
+  // Когда прячут все, непоказ — общая осторожность, а не примета Куратора.
+  cacheUnshownAt?: { n: number; hiders: number; brave: number }[];
 }
 
 export interface Sprout {
@@ -210,6 +213,7 @@ export interface GameState {
   sproutRoundN?: Record<string, number[]>; // ...и каким по счёту поручением игрока (номер на кружке)
   ironyDue?: Record<string, number>; // Ирония пущена в народ: сколько Талонов начислить в конце действия
   shownAtGathering?: Record<string, string[]>; // что каждый показал на Посиделках этой Пятилетки (опальное и Улики)
+  cacheAtGathering?: Record<string, { unshown: number; shown: number }>; // опальное из Тайника на этих Посиделках: не показано / показано
   curatorRevealed?: string; // Куратор раскрылся (Засада) — все знают, кто он
   forcedCurator?: string; // для тестов: этот игрок — Куратор
   curatorStyleOverride?: 'open' | 'ambush' | 'boa'; // для тестов: стратегия Куратора-бота

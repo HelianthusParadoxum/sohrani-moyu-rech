@@ -185,7 +185,13 @@ export function curatorSuspicionDetail(state: GameState, me: string): Record<str
     const kept = Math.max(0, (o.propagandaTaken ?? 0) + (o.propagandaDealt ?? 0) - (o.propagandaDumped ?? 0) - (o.propagandaExposed ?? 0));
     add(BOT_BASE.suspectKept * kept, `держит известную всем Пропаганду${times(kept)}`);
     add(trust * BOT_BASE.suspectHolds * open, `Пропаганда на виду${times(open)}`);
-    add(trust * BOT_BASE.suspectCacheUnshown * (o.cacheUnshown ?? 0), `не показал опальное из Тайника${times(o.cacheUnshown ?? 0)}`);
+    // Непоказ весит тем меньше, чем больше других на тех же Посиделках тоже прятали опальное: общий страх перед Засадой —
+    // не примета Куратора (иначе честные накручивают друг друга без всякого Куратора).
+    const unshown = o.cacheUnshown ?? 0;
+    const events = o.cacheUnshownAt ?? (unshown ? [{ n: unshown, hiders: 0, brave: 1 }] : []);
+    const weighted = events.reduce((s, e) => s + e.n * (e.hiders + e.brave ? e.brave / (e.hiders + e.brave) : BOT_BASE.suspectUnshownAlone), 0);
+    const shared = events.some((e) => e.hiders > 0);
+    add(trust * BOT_BASE.suspectCacheUnshown * weighted, `не показал опальное из Тайника${times(unshown)}${shared ? ' (прятали и другие)' : ''}`);
     add(Math.max(trust, BOT_BASE.suspectTakenTrust) * BOT_BASE.suspectDenounce * (o.denounces ?? 0), `доносил в Контору${times(o.denounces ?? 0)}`);
     add(trust * BOT_BASE.suspectRedEager * (o.redEager ?? 0), `рано и первым в Красном уголке${times(o.redEager ?? 0)}`);
     add(trust * BOT_BASE.suspectRedEmpty * (o.redEmpty ?? 0), `...ничего не сдав${times(o.redEmpty ?? 0)}`);

@@ -378,3 +378,31 @@ describe('Куратор: маскировка до первого явного 
     expect([...seen].sort()).toEqual(['ambush', 'boa']);
   });
 });
+
+describe('Подозрения: непоказ из Тайника', () => {
+  // Каждому кладём в Тайник опальную книгу; показывают только те, кто в brave.
+  const gathering = (brave: string[]) => {
+    let s = createGame({ players: players(3), seed: 11, mode: 'full', curator: true });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions.find((x) => x !== 'curator')! });
+    for (const p of s.players) if (s.phase === 'setupCache') s = applyAction(s, p.id, { type: 'hiding', hidden: [] });
+    s.curatorPossible = true;
+    s.phase = 'gathering';
+    s.ready = [];
+    s.pending = [];
+    s.shownAtGathering = {};
+    s.cacheAtGathering = {};
+    const banned = s.deck.filter((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.some((g) => s.banned.includes(g))).slice(0, 3);
+    s.deck = s.deck.filter((c) => !banned.includes(c));
+    s.players.forEach((p, i) => { p.cache = 1; p.capacity = 10; p.warehouse = [{ card: banned[i], hidden: true }]; p.sproutsFed = ['x']; p.propagandaDealt = 0; });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'gathering', show: brave.includes(p.id) ? [p.warehouse[0].card] : [] });
+    return s;
+  };
+  it('если прятали все — непоказ не подозрителен; если показали все остальные — подозрителен', () => {
+    const all = gathering([]);
+    expect(all.players.find((p) => p.id === 'p2')!.cacheUnshownAt).toEqual([{ n: 1, hiders: 2, brave: 0 }]);
+    expect(curatorSuspicion(all, 'p1').p2 ?? 0).toBe(0);
+    const alone = gathering(['p1', 'p3']);
+    expect(alone.players.find((p) => p.id === 'p2')!.cacheUnshownAt).toEqual([{ n: 1, hiders: 0, brave: 2 }]);
+    expect(curatorSuspicion(alone, 'p1').p2).toBeGreaterThan(0.5);
+  });
+});

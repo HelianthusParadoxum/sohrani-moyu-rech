@@ -559,6 +559,7 @@ function endOrders(state: GameState) {
   state.phase = 'gathering';
   state.ready = [];
   state.shownAtGathering = {};
+  state.cacheAtGathering = {};
   logEvent(state, 'Посиделки.');
   const pts = RULES.gatheringPoints;
   logNote(state, `Можно показать опальные книги и Улики со склада — ${pointsText(pts)} за каждую.${ambushPossible(state) ? ' Но Куратор может раскрыться и устроить Засаду: всех, кто показал опальное, ждёт Контора.' : ''}`);
@@ -603,6 +604,8 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
   // Пропаганда). Неопальные книги в Тайнике (спрятанные впрок) показать нельзя — они не в счёт.
   const unshown = p.warehouse.filter((s) => s.hidden && !s.memorized && !show.includes(s.card) && isBanned(state, s.card)).length;
   if (unshown) p.cacheUnshown = (p.cacheUnshown ?? 0) + unshown;
+  const shownCached = p.warehouse.filter((s) => s.hidden && show.includes(s.card)).length;
+  (state.cacheAtGathering ??= {})[p.id] = { unshown, shown: shownCached };
   gain(p, pts, 'gathering');
   state.ready.push(p.id);
   if (show.length) {
@@ -618,6 +621,18 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
   }
   if (state.ready.length === state.players.length) {
     state.ready = [];
+    // Кто ещё в этот раз прятал опальное из Тайника, а кто показал всё: для подозрений ботов.
+    const at = state.cacheAtGathering ?? {};
+    for (const o of state.players) {
+      const mine = at[o.id];
+      if (!mine?.unshown) continue;
+      const others = state.players.filter((x) => x.id !== o.id).map((x) => at[x.id]).filter(Boolean);
+      (o.cacheUnshownAt ??= []).push({
+        n: mine.unshown,
+        hiders: others.filter((x) => x.unshown > 0).length,
+        brave: others.filter((x) => x.unshown === 0 && x.shown > 0).length,
+      });
+    }
     // Засада возможна, если кто-то показал опальное, — ждём решения всех (так не видно, кто Куратор).
     if (ambushPossible(state) && Object.values(state.shownAtGathering ?? {}).some((x) => x.length)) state.phase = 'ambush';
     else startHiding(state);
