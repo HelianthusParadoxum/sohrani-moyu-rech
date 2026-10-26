@@ -14,7 +14,7 @@ import {
   KontoraWarningPrompt, RescuePanel,
 } from './full-ui';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
-import { Book, GENRE_SHORT, GenreChip, KindChip, withKindChips, iconize, SpeedSelect, Modal, ModalCollapse, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, toggle } from './ui';
+import { Book, GENRE_SHORT, GenreChip, KindChip, withKindChips, iconize, SpeedSelect, Modal, ModalCollapse, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, isLoad, toggle } from './ui';
 
 type Send = (m: ClientMessage) => void;
 type VPlayer = PlayerView['players'][number];
@@ -1307,8 +1307,9 @@ function BannedLine({ view }: { view: PlayerView }) {
 function CacheModal({ view, me, close, done, title, note }: {
   view: PlayerView; me: VPlayer; close?: () => void; done: (hidden: string[]) => void; title?: string; note?: string;
 }) {
+  const explain = useContext(Explain);
   const cards = me.warehouse.filter((s) => s.card && !s.memorized).map((s) => s.card!);
-  const [sel, setSel] = useState<string[]>(() => me.warehouse.filter((s) => s.hidden).map((s) => s.card!));
+  const [sel, setSel] = useState<string[]>(() => me.warehouse.filter((s) => s.hidden && !isLoad(view, s.card!)).map((s) => s.card!));
   const limit = me.cache + loadCover(view, me.warehouse);
   return (
     <Modal title={title ?? 'Тайник'} wide onClose={close}>
@@ -1316,7 +1317,8 @@ function CacheModal({ view, me, close, done, title, note }: {
       <p>Отметьте книги, которые лежат в Тайнике: их не видят соперники и не трогает облава. Мест: {limit} (из них за Нагрузку: {loadCover(view, me.warehouse)}). Отмечено: {sel.length}.</p>
       <p className="muted small">{note ?? 'Это не тратит действие. Книга, которую уже видели соперники, от того, что её спрятали, не станет для них тайной — но облава её не тронет.'}</p>
       <div className="shelf wrap">
-        {cards.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} hidden={sel.includes(c)} onClick={() => setSel(toggle(sel, c))} />)}
+        {cards.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} hidden={sel.includes(c)}
+          note={isLoad(view, c) ? 'не прячется' : undefined} onClick={isLoad(view, c) ? () => explain('Нагрузку в Тайник не прячут.') : () => setSel(toggle(sel, c))} />)}
       </div>
       <div className="modal-foot">
         {close && <button onClick={close}>Отмена</button>}
@@ -1336,11 +1338,12 @@ function bestHiding(view: PlayerView, me: VPlayer, limit: number): string[] {
   const value = (c: string) => (isPropaganda(view, c) ? (curator ? 1000 : -1) : isEvidence(view, c) ? 100 : 10 + iconCount(view, c));
   const fits = banned.length <= limit;
   const order = banned.filter((c) => fits || value(c) > 0).sort((x, y) => value(y) - value(x));
-  const kept = free.filter((s) => s.hidden && !order.includes(s.card!)).map((s) => s.card!);
+  const kept = free.filter((s) => s.hidden && !order.includes(s.card!) && !isLoad(view, s.card!)).map((s) => s.card!);
   return [...order, ...kept].slice(0, limit);
 }
 
 function HidingPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
+  const explain = useContext(Explain);
   const cards = me.warehouse.map((s) => s.card!).filter(Boolean);
   const [sel, setSel] = useState<string[]>(() => bestHiding(view, me, me.cache + loadCover(view, me.warehouse)));
   const [memo, setMemo] = useState<string | null>(() => me.warehouse.find((s) => s.memorized)?.card ?? null);
@@ -1358,7 +1361,8 @@ function HidingPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (
       <p>Отметьте книги, которые прячете в Тайник. Мест в Тайнике: {me.cache}, ещё {cover} — за Нагрузку на складе (каждые 2 Нагрузки дают +1 место). Сейчас спрятано {sel.length} из {limit}.</p>
       <p className="muted small">Самое ценное опальное уже отмечено — выбор можно поменять.</p>
       <div className="shelf wrap">
-        {cards.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} hidden={sel.includes(c)} onClick={() => setSel(toggle(sel, c))} />)}
+        {cards.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} hidden={sel.includes(c)}
+          note={isLoad(view, c) ? 'не прячется' : undefined} onClick={isLoad(view, c) ? () => explain('Нагрузку в Тайник не прячут.') : () => setSel(toggle(sel, c))} />)}
       </div>
       {full && poetry.length > 0 && (
         <>

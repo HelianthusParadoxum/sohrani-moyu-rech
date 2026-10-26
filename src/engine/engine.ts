@@ -708,6 +708,7 @@ function memorize(state: GameState, p: PlayerState, card: string | null) {
 function setHidden(state: GameState, p: PlayerState, hidden: string[], memorize?: string | null) {
   check(new Set(hidden).size === hidden.length, 'Книга указана дважды');
   for (const id of hidden) check(hasBook(p, id), 'Прятать можно только книги со своего склада');
+  for (const id of hidden) check(!isLoad(state, id), `${title(state, id)} — Нагрузка: её в Тайник не прячут`);
   if (memorize !== undefined) {
     if (memorize) {
       check(isFull(state) && genreOn('poetry'), 'Заучивать стихи можно только в полном режиме');

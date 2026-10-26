@@ -1853,3 +1853,17 @@ describe('«Чукоккала» — значок любого жанра', () =
     expect(passionPoints(r, q)).toBe(2 * RULES.passionKeeper);
   });
 });
+
+describe('Нагрузка в Тайник не прячется', () => {
+  it('прятать Нагрузку нельзя — ни при Укрытии, ни при пересборке Тайника', () => {
+    let s = createGame({ players: players(2), seed: 4 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    const p = s.players[0];
+    const load = s.loadDeck.find((c) => s.cards[c].kind === 'load')!;
+    s.loadDeck = s.loadDeck.filter((c) => c !== load);
+    p.capacity = 10;
+    p.cache = 3;
+    p.warehouse.push({ card: load, hidden: false });
+    expect(() => applyAction(s, p.id, { type: 'hiding', hidden: [load] })).toThrow(/Нагрузка/);
+  });
+});

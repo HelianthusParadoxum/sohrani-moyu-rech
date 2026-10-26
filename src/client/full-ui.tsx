@@ -5,7 +5,7 @@ import type { Action, ClubGift, Genre, GroupAction, KontoraChoice, PatronId, Pla
 import type { PlayerView } from '../engine/view';
 import { cacheLimit, genresOf } from '../engine/util';
 import { kontoraTargets } from '../engine/full';
-import { Book, GenreChip, Modal, PLAYER_COLORS, iconize, iconsOf, isBanned, toggle, withKindChips } from './ui';
+import { Book, GenreChip, Modal, PLAYER_COLORS, iconize, iconsOf, isBanned, isLoad, toggle, withKindChips } from './ui';
 
 type VPlayer = PlayerView['players'][number];
 
@@ -216,7 +216,8 @@ export function KontoraWarningPrompt({ view, me, from, act }: { view: PlayerView
     <Modal title="Предупреждение: Контора" wide>
       <p>{name} собирается в Контору. Можно перепрятать книги — в Тайнике помещается {limit}. На открытую опальную книгу могут донести, а затем изъять её в Спецхран.</p>
       <div className="shelf wrap">
-        {cards.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} hidden={sel.includes(c)} onClick={() => setSel(toggle(sel, c))} />)}
+        {cards.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} hidden={sel.includes(c)}
+          note={isLoad(view, c) ? 'не прячется' : undefined} onClick={isLoad(view, c) ? undefined : () => setSel(toggle(sel, c))} />)}
       </div>
       <div className="modal-foot"><button className="primary" disabled={sel.length > limit} onClick={() => act({ type: 'kontoraHide', hidden: sel })}>Готово ({sel.length}/{limit})</button></div>
     </Modal>
