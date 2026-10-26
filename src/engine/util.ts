@@ -158,7 +158,7 @@ export function coversStep(state: CardsInfo, books: string[], main: Genre, need:
     let s = r.support ? icons.filter((g) => g === r.support).length : 0;
     let wild = opts.wildScifi && main !== 'scifi' && r.support !== 'scifi' ? icons.filter((g) => g === 'scifi').length : 0;
     if (r.support && s === 0 && wild > 0) { wild--; s = 1; }
-    m += wild;
+    if (RULES.scifiWild === 'any') m += wild; // 'support' — основной жанр Фантастикой не заменить
     return m >= r.need && (!r.support || s >= 1);
   };
   const go = (i: number, icons: Genre[]): boolean => {
