@@ -145,6 +145,9 @@ export interface StepOptions {
   labtech?: boolean; // Лаборант: скидка в значках, вид — RULES.labtechDiscount
 }
 
+// Свойство жанра включено (RULES.genreOff — выключенные, для замеров).
+export const genreOn = (g: Genre) => !RULES.genreOff.includes(g);
+
 // Закрывают ли книги ступень Ростка: перебираем выбор жанра гибких значков и Фантастики.
 export function coversStep(state: CardsInfo, books: string[], main: Genre, need: number, support?: Genre, opts: StepOptions = {}): boolean {
   const reqs: { need: number; support?: Genre }[] = [{ need, support }];
@@ -156,7 +159,7 @@ export function coversStep(state: CardsInfo, books: string[], main: Genre, need:
   const ok = (icons: Genre[], r: { need: number; support?: Genre }) => {
     let m = icons.filter((g) => g === main).length;
     let s = r.support ? icons.filter((g) => g === r.support).length : 0;
-    let wild = opts.wildScifi && main !== 'scifi' && r.support !== 'scifi' ? icons.filter((g) => g === 'scifi').length : 0;
+    let wild = opts.wildScifi && genreOn('scifi') && main !== 'scifi' && r.support !== 'scifi' ? icons.filter((g) => g === 'scifi').length : 0;
     if (r.support && s === 0 && wild > 0) { wild--; s = 1; }
     if (RULES.scifiWild === 'any') m += wild; // 'support' — основной жанр Фантастикой не заменить
     return m >= r.need && (!r.support || s >= 1);

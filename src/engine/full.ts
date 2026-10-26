@@ -3,7 +3,7 @@ import { CLUB_SIZE, GENRE_NAMES, KONTORA_LOSS, KONTORA_PATRONS, PATRONS, RULES }
 import type { ClubGift, GameState, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
-  addBook, addSecretBook, check, discard, drawLoad, earn, freeSlots, hasBook, hasPatron, iconsOf, genresOf, isBanned, isGenreBook, isPropaganda, log, pay, player,
+  addBook, addSecretBook, check, discard, drawLoad, earn, freeSlots, hasBook, hasPatron, iconsOf, genresOf, genreOn, isBanned, isGenreBook, isPropaganda, log, pay, player,
   removeBook, saved, shuffle, talonsText, title, titles, logAfter,
   forgetSpetskhran, seeSpetskhran, toSpetskhranPublic,
 } from './util';
@@ -29,7 +29,7 @@ export function price(state: GameState, p: PlayerState, cost: number): number {
 
 // Ирония «Пустить в народ»: +1 Талон, когда игрок отдаёт ироническую книгу куда-либо. Срабатывает в конце действия.
 export function gaveAway(state: GameState, p: PlayerState, card: string) {
-  if (isFull(state) && iconsOf(state, card).includes('irony')) {
+  if (isFull(state) && genreOn('irony') && iconsOf(state, card).includes('irony')) {
     state.ironyDue ??= {};
     state.ironyDue[p.id] = (state.ironyDue[p.id] ?? 0) + 1;
   }
@@ -47,7 +47,7 @@ export function flushIrony(state: GameState) {
 
 // Проза «Вдохновиться»: действие принесло очки — +1 очко за каждую книгу прозы на складе и в изданном, но не больше RULES.proseBonusMax.
 export function proseBonus(state: GameState, p: PlayerState): number {
-  if (!isFull(state)) return 0;
+  if (!isFull(state) || !genreOn('prose')) return 0;
   const n = [...p.warehouse.map((s) => s.card), ...p.published].filter((c) => iconsOf(state, c).includes('prose')).length;
   return Math.min(n, RULES.proseBonusMax);
 }
@@ -89,7 +89,7 @@ export function giveToPatron(state: GameState, p: PlayerState, gift: ClubGift) {
   check(!patron.connections.includes(p.id), `У вас уже есть связь с Завсегдатаем «${name}»`);
   check(hasBook(p, gift.card), 'Отдать можно только книгу со своего склада');
   const icons = genresOf(state, gift.card);
-  check(icons.includes(patron.genre) || icons.includes('album'),
+  check(icons.includes(patron.genre) || (genreOn('album') && icons.includes('album')),
     `${name} ждёт книгу жанра «${GENRE_NAMES[patron.genre]}» (или Альбом)`);
   removeBook(p, gift.card);
   discard(state, gift.card);

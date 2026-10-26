@@ -11,7 +11,7 @@ import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
-  addSecretBook, cacheLimit, cloneJson, coversStep, freeSlots, genresOf, hasPatron, iconCount, iconsOf, isBanned, isWild, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
+  addSecretBook, cacheLimit, cloneJson, coversStep, freeSlots, genreOn, genresOf, hasPatron, iconCount, iconsOf, isBanned, isWild, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
 } from './util';
 
 type Rand = () => number;
@@ -246,7 +246,7 @@ function feedPotential(state: GameState, p: PlayerState, ctx: Ctx): number {
     // Часть нужного уже есть: значки основного жанра и значок поддержки.
     // Фантастика в полном режиме — джокер: закрывает недостающие значки (сначала поддержку, потом основной жанр).
     const icons = books.flatMap((b) => iconsOf(state, b));
-    const scifiWild = state.mode === 'full' && info.main !== 'scifi' && step.support !== 'scifi';
+    const scifiWild = state.mode === 'full' && genreOn('scifi') && info.main !== 'scifi' && step.support !== 'scifi';
     // «Чукоккала» — значок любого жанра.
     let sci = scifiWild ? icons.filter((g) => g === 'scifi').length * tune(ctx, 'feedScifi') : 0;
     let wild = books.filter((b) => isWild(state, b)).reduce((s, b) => s + iconCount(state, b), 0);
@@ -468,7 +468,7 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
 // Отдать Альбом туда, куда можно отдать жанровую книгу, — значит потерять эту долю.
 function albumReserve(state: GameState, me: string, cards: string[], link: number, left: number, option: number): number {
   if (state.mode !== 'full' || (left === 0 && state.phase !== 'orders')) return 0;
-  const albums = cards.filter((c) => iconsOf(state, c).includes('album') || isWild(state, c)).length;
+  const albums = cards.filter((c) => (genreOn('album') && iconsOf(state, c).includes('album')) || isWild(state, c)).length;
   if (!albums) return 0;
   const genres = new Set(cards.flatMap((c) => iconsOf(state, c).includes('album') ? [] : iconsOf(state, c)));
   const out = state.patrons.filter((pt) => !pt.removed && !pt.connections.includes(me) && !genres.has(pt.genre)).length;
@@ -1059,7 +1059,7 @@ function clubGifts(state: GameState, me: string): ClubGift[] {
     // Завсегдатай берёт книгу своего жанра или Альбом.
     for (const s of p.warehouse) {
       const icons = genresOf(state, s.card);
-      if (icons.includes(pt.genre) || icons.includes('album')) out.push({ patron: pt.id, card: s.card });
+      if (icons.includes(pt.genre) || (genreOn('album') && icons.includes('album'))) out.push({ patron: pt.id, card: s.card });
     }
   }
   return out;
@@ -1326,7 +1326,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
     case 'hiding': {
       const keep = keepMap();
       const out: Action[] = [{ type: 'hiding', hidden: hideList(state, me, ctx, keep) }];
-      if (ctx.full) {
+      if (ctx.full && genreOn('poetry')) {
         // «Заучить» сборник поэзии: он лежит сверх склада и облава его не трогает.
         const poetry = byValue(keep, books.filter((b) => iconsOf(state, b).includes('poetry') && isBanned(state, b))).reverse().slice(0, 2);
         for (const m of poetry) out.push({ type: 'hiding', hidden: hideList(state, me, ctx, keep, { exclude: m }), memorize: m });

@@ -16,7 +16,7 @@ import { GENRES } from './types';
 import {
   addBook, addOpenBook, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isPropagandaKind, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
-  talonsText, title, titles, logEvent, logNote, logAfter, toSpetskhranPublic, isExposed, saved, logRecap, plural, iconCount, genresOf,
+  talonsText, title, titles, logEvent, logNote, logAfter, toSpetskhranPublic, isExposed, saved, logRecap, plural, iconCount, genresOf, genreOn,
 } from './util';
 
 export interface NewGameOptions {
@@ -559,7 +559,7 @@ function endOrders(state: GameState) {
       if (hasPatron(state, id, 'chairman')) state.pending.push({ kind: 'freeConnection', player: id });
     }
   }
-  if (isFull(state)) dramaBonus(state);
+  if (isFull(state) && genreOn('drama')) dramaBonus(state);
   state.phase = 'gathering';
   state.ready = [];
   state.shownAtGathering = {};
@@ -694,7 +694,7 @@ function doHiding(state: GameState, p: PlayerState, a: Extract<Action, { type: '
 }
 
 function memorize(state: GameState, p: PlayerState, card: string | null) {
-  check(isFull(state), 'Заучивать стихи можно только в полном режиме');
+  check(isFull(state) && genreOn('poetry'), 'Заучивать стихи можно только в полном режиме');
   if (card) check(hasBook(p, card) && iconsOf(state, card).includes('poetry'), 'Заучить можно только сборник поэзии со своего склада');
   for (const s of p.warehouse) {
     s.memorized = s.card === card || undefined;
@@ -710,7 +710,7 @@ function setHidden(state: GameState, p: PlayerState, hidden: string[], memorize?
   for (const id of hidden) check(hasBook(p, id), 'Прятать можно только книги со своего склада');
   if (memorize !== undefined) {
     if (memorize) {
-      check(isFull(state), 'Заучивать стихи можно только в полном режиме');
+      check(isFull(state) && genreOn('poetry'), 'Заучивать стихи можно только в полном режиме');
       check(hasBook(p, memorize) && iconsOf(state, memorize).includes('poetry'), 'Заучить можно только сборник поэзии со своего склада');
       check(!hidden.includes(memorize), 'Заученная книга не прячется в Тайник');
     }
@@ -1127,8 +1127,8 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       if (a.address === 'tamizdat') {
         p.tamizdat.push(a.card);
         add(icons * RULES.tamizdatPoints, 'tamizdat');
-        if (isFull(state) && genres.includes('testimony')) add(RULES.testimonyPoints, 'testimony'); // «Придать огласке»
-      } else if (isFull(state) && genres.includes('foreign')) {
+        if (isFull(state) && genreOn('testimony') && genres.includes('testimony')) add(RULES.testimonyPoints, 'testimony'); // «Придать огласке»
+      } else if (isFull(state) && genreOn('foreign') && genres.includes('foreign')) {
         add(RULES.foreignPoints, 'foreign'); // «Перевести»
       }
       if (corr) add(RULES.correspondentPoints, 'correspondent');
