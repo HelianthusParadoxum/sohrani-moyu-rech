@@ -39,6 +39,8 @@ button {
 }
 button:hover:not(:disabled) { border-color: var(--ink); }
 button:disabled { opacity: 0.45; cursor: default; }
+/* Недоступно, но нажатие объясняет почему. */
+button.off { opacity: 0.45; cursor: help; }
 button.primary { background: var(--red); color: #fff; border-color: var(--red); }
 button.small, .small { font-size: 0.82rem; }
 button.small { padding: 2px 8px; }

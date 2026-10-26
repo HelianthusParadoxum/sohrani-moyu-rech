@@ -1,5 +1,5 @@
 // Игровой стол.
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, Fragment, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   ADDRESSES, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, groupCost, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
   groupInGame, PATRONS, sproutBonusOptions,
@@ -18,6 +18,9 @@ import { Book, GENRE_SHORT, GenreChip, KindChip, withKindChips, iconize, SpeedSe
 
 type Send = (m: ClientMessage) => void;
 type VPlayer = PlayerView['players'][number];
+// Нажали на недоступное — объяснить почему (окно «Сейчас нельзя»).
+const Explain = createContext<(why: string) => void>(() => {});
+
 type Panel = { kind: 'address'; id: AddressId; sprout?: string; patron?: PatronId; pick?: string } | { kind: 'group'; id: GroupActionId } | { kind: 'cache' } | null;
 
 const PHASE_NAMES: Record<string, string> = {
@@ -71,6 +74,43 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
   const enabledFor = (id: AddressId) => (id === 'club' && RULES.clubFreeGift
     ? canGift && !!me && view.patrons.some((pt) => patronOpen(view, me, pt))
     : canPlace && (!mustRed || id === 'redCorner') && !!me && !addressBlocker(view, me, id));
+  // Почему сейчас нельзя: сперва общее (чей ход, какая фаза), потом про адрес или действие Группы.
+  const [why, setWhy] = useState<string | null>(null);
+  const turnWhy = (): string | null => {
+    if (!me) return 'Вы смотрите партию со стороны.';
+    if (view.phase !== 'orders') return `Сейчас фаза «${PHASE_NAMES[view.phase]}»: поручения не раздают.`;
+    if (myPending) return 'Сначала примите решение в открытом окне.';
+    if (!myTurn) return `Сейчас ход: ${view.active.map(nameOf).join(', ')}.`;
+    return null;
+  };
+  const addressWhy = (id: AddressId): string | null => {
+    const t = turnWhy();
+    if (t || !me) return t;
+    if (id === 'club' && RULES.clubFreeGift) {
+      if (view.clubGiftBy === me.id) return 'Отдать книгу в Клуб можно один раз за ход.';
+      return 'Нет Завсегдатая, которому подойдёт ваша книга: нужна книга его жанра или Альбом, а занятые на Пятилетку связей не берут.';
+    }
+    if (afterAction) return 'Поручение этого хода уже дано. Закончите ход — или сделайте свободное действие (Тайник, Клуб, «Заучить»).';
+    if (bonusTurn) return 'Своих Единомышленников не осталось: сейчас — дополнительное действие Инициативной группы, а не поручение по адресу.';
+    if (me.available === 0) return 'Свободных Единомышленников не осталось.';
+    if (mustRed && id !== 'redCorner') return 'Последнего Единомышленника нужно отправить в Красный уголок.';
+    if (addressFull(id, view, me)) return 'Все места на этом адресе заняты.';
+    return addressBlocker(view, me, id);
+  };
+  const groupWhy = (g: GroupActionId): string | null => {
+    if (!me) return turnWhy();
+    if (!(canPlace || bonusTurn || copyFollow)) {
+      const t = turnWhy();
+      if (t) return t;
+      if (afterAction) return 'Поручение этого хода уже дано: действие Группы — тоже поручение. Закончите ход.';
+      return 'Свободных Единомышленников не осталось.';
+    }
+    if (me.groupUsed.includes(g)) return 'Это действие Группы уже сделано в эту Пятилетку.';
+    if (copyFollow && g !== 'copyText') return 'Сейчас можно только Тиражирование: взять книгу даром с адреса, где вы только что купили.';
+    if (canPlace && mustRed && g !== 'hire') return 'Последнего Единомышленника нужно отправить в Красный уголок; из действий Группы сейчас можно только Расширение сети.';
+    return groupBlocker(view, me, g);
+  };
+
   // Клуб: нажатие на Завсегдатая — сразу дарение ему; подходящая книга одна — отдаётся без окна.
   const giftTo = (patron: PatronId) => {
     const pt = view.patrons.find((x) => x.id === patron);
@@ -80,13 +120,14 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
     else setPanel({ kind: 'address', id: 'club', patron });
   };
   const card = (id: AddressId) => (
-    <AddressCard key={id} id={id} view={view} seatIndex={seatIndex} me={me} enabled={enabledFor(id)} onOpen={(pick) => setPanel({ kind: 'address', id, pick })}
+    <AddressCard key={id} id={id} view={view} seatIndex={seatIndex} me={me} enabled={enabledFor(id)} onOpen={(pick) => setPanel({ kind: 'address', id, pick })} why={addressWhy(id)}
       blocked={canPlace && me && !(id === 'club' && RULES.clubFreeGift) ? addressBlocker(view, me, id) : null}
       onPatron={id === 'club' && RULES.clubFreeGift && canGift ? giftTo : undefined} />
   );
 
   return (
     <ModalCollapse.Provider value={collapse}>
+    <Explain.Provider value={setWhy}>
     <div className="game">
       <header className="topbar">
         <div className="title">Сохрани мою речь</div>
@@ -147,7 +188,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
           <div className="addresses">
             {full && card('club')}
             <Sprouts view={view} me={me} beside={full && !view.reserve} seatIndex={seatIndex}
-              onOpen={enabledFor('sprouts') ? (sprout) => setPanel({ kind: 'address', id: 'sprouts', sprout }) : undefined}
+              onOpen={enabledFor('sprouts') ? (sprout) => setPanel({ kind: 'address', id: 'sprouts', sprout }) : undefined} why={addressWhy('sprouts')}
               head={<AddressHead id="sprouts" view={view} seatIndex={seatIndex} me={me} enabled={enabledFor('sprouts')} onOpen={() => setPanel({ kind: 'address', id: 'sprouts' })}
                 rightHint={SPROUTS_TIP} />} />
             {full && !view.reserve && card('kontora')}
@@ -157,7 +198,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
         <aside className="side">
           {me && (
             <MyPanel view={view} me={me} color={PLAYER_COLORS[seatIndex(me.id)]}
-              groupEnabled={canPlace || bonusTurn || copyFollow} onlyHire={canPlace && mustRed} onlyCopy={copyFollow} onGroup={(id) => setPanel({ kind: 'group', id })}
+              groupWhy={groupWhy} onGroup={(id) => setPanel({ kind: 'group', id })}
               onMemorize={view.mode === 'full' && (canPlace || bonusTurn || afterAction) ? (card) => act({ type: 'memorize', card }) : null}
               onCache={canPlace || bonusTurn || afterAction ? () => setPanel({ kind: 'cache' }) : null} />
           )}
@@ -191,7 +232,14 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
           done={(hidden) => act({ type: 'hiding', hidden })} />
       )}
       {view.phase === 'end' && view.result && showResult && <Results view={view} seatIndex={seatIndex} close={() => setShowResult(false)} />}
+      {why && (
+        <Modal title="Сейчас нельзя" onClose={() => setWhy(null)}>
+          <p>{withKindChips(iconize(why))}</p>
+          <div className="modal-foot"><button className="primary" onClick={() => setWhy(null)}>Понятно</button></div>
+        </Modal>
+      )}
     </div>
+    </Explain.Provider>
     </ModalCollapse.Provider>
   );
 }
@@ -201,7 +249,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
 // Порядок обычных адресов на поле (после Клуба, Конторы и Ростков); явочные — следом.
 const BOARD_ORDER: AddressId[] = ['redCorner', 'glavlit', 'makulatura', 'gostorg', 'baraholka', 'tolkuchka', 'razval', 'zavoz', 'tamizdat', 'samizdat'];
 
-type AddressProps = { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me: VPlayer | null; enabled: boolean; onOpen: (pick?: string) => void; onPatron?: (id: PatronId) => void; blocked?: string | null };
+type AddressProps = { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me: VPlayer | null; enabled: boolean; onOpen: (pick?: string) => void; onPatron?: (id: PatronId) => void; blocked?: string | null; why?: string | null };
 
 // Каким книгам можно вернуть смыслы.
 const restorable = (kind: string) => ['genre', 'loadReturnable', 'loadEvidence', ...(RULES.exposePropaganda ? ['propaganda', 'loadPropaganda'] : [])].includes(kind);
@@ -327,12 +375,14 @@ function AddressCard(props: AddressProps) {
   const inlineHint = id === 'club'; // у Клуба описание — в строке заголовка, справа
   // Поручение можно дать нажатием на любое место адреса, не только на кнопку «сюда».
   const open = enabled && !full ? () => props.onOpen() : undefined;
+  const explain = useContext(Explain);
+  const why = props.why;
   // Нажатие на книгу на адресе — окно покупки с уже выбранной книгой.
   const onPick = open ? (key: string) => props.onOpen(key) : undefined;
   // На адресе — краткое описание; полное — подсказкой (наведение мышью или удержание пальцем).
   const tip = iconize(info.hint) + (props.blocked && !open ? `\nСейчас нельзя: ${props.blocked}` : '');
   return (
-    <div className={`address addr-${id} ${info.safehouse ? 'safehouse' : ''} ${open ? 'can' : ''}`} onClick={open}
+    <div className={`address addr-${id} ${info.safehouse ? 'safehouse' : ''} ${open ? 'can' : ''}`} onClick={open ?? (why ? () => explain(why) : undefined)}
       role={open ? 'button' : undefined} title={tip} data-tip={tip}>
       <AddressHead {...props} inlineHint={inlineHint} />
       {!inlineHint && <div className="hint">{iconize(info.short)}</div>}
@@ -426,10 +476,12 @@ function AddressPanel({ id, sprout, pick, view, me, close, place }: { id: Addres
   const [loadN, setLoadN] = useState(1);
   const [target, setTarget] = useState<string>(view.players.find((p) => p.id !== me.id)?.id ?? '');
   // Рядом с кнопкой — всегда, сколько у игрока Талонов (и предупреждение, если есть).
+  const explain = useContext(Explain);
   const confirmBtn = (label: string, action: PlaceAction | null, extra?: string) => (
     <div className="modal-foot">
       <span className="muted">{extra ? `${extra} · ` : ''}у вас {me.talons}🎫</span>
-      <button className="primary" disabled={!action} onClick={() => action && place(action)}>{label}</button>
+      <button className={`primary ${action ? '' : 'off'}`} aria-disabled={!action}
+        onClick={() => (action ? place(action) : explain(extra ?? 'Сначала выберите в этом окне, что сделать: книги, количество или жанр.'))}>{label}</button>
     </div>
   );
   const pickList = (books: string[], chosen: string[], set: (x: string[]) => void, opts?: { max?: number; note?: (c: string) => string; filter?: (c: string) => boolean }) => (
@@ -670,9 +722,10 @@ function stepText(main: Genre, step: { main: number; support?: Genre }) {
 // Полное описание Ростков — подсказкой со всей их зоны.
 const SPROUTS_TIP = `${ADDRESSES.sprouts.hint}. Гласность: ${RULES.glasnostAllSprouts ? 'все Ростки' : 'хотя бы один Росток'} до ступени ${roman(RULES.glasnostStep)}.`;
 
-function Sprouts({ view, me, beside, seatIndex, head, onOpen }: { view: PlayerView; me: VPlayer | null; beside: boolean; seatIndex: (id: string) => number; head: ReactNode; onOpen?: (sprout?: string) => void }) {
+function Sprouts({ view, me, beside, seatIndex, head, onOpen, why }: { view: PlayerView; me: VPlayer | null; beside: boolean; seatIndex: (id: string) => number; head: ReactNode; onOpen?: (sprout?: string) => void; why?: string | null }) {
+  const explain = useContext(Explain);
   return (
-    <div className={`sprouts-panel address addr-sprouts ${beside ? 'beside' : ''} ${onOpen ? 'can' : ''}`} onClick={onOpen ? () => onOpen() : undefined}
+    <div className={`sprouts-panel address addr-sprouts ${beside ? 'beside' : ''} ${onOpen ? 'can' : ''}`} onClick={onOpen ? () => onOpen() : why ? () => explain(why) : undefined}
       role={onOpen ? 'button' : undefined} title={iconize(SPROUTS_TIP)} data-tip={iconize(SPROUTS_TIP)}>
       {head}
       <div className="sprouts">
@@ -1391,10 +1444,11 @@ function Stats({ p, view }: { p: VPlayer; view: PlayerView }) {
   );
 }
 
-function MyPanel({ view, me, color, groupEnabled, onlyHire, onlyCopy, onGroup, onMemorize, onCache }: {
-  view: PlayerView; me: VPlayer; color: string; groupEnabled: boolean; onlyHire?: boolean; onlyCopy?: boolean; onGroup: (id: GroupActionId) => void; onMemorize: ((card: string | null) => void) | null;
+function MyPanel({ view, me, color, groupWhy, onGroup, onMemorize, onCache }: {
+  view: PlayerView; me: VPlayer; color: string; groupWhy: (g: GroupActionId) => string | null; onGroup: (id: GroupActionId) => void; onMemorize: ((card: string | null) => void) | null;
   onCache: (() => void) | null;
 }) {
+  const explain = useContext(Explain);
   const memorized = me.warehouse.find((s) => s.memorized)?.card ?? null;
   const poetry = me.warehouse.map((s) => s.card!).filter((c) => c && c !== memorized && iconsOf(view, c).includes('poetry'));
   return (
@@ -1428,9 +1482,10 @@ function MyPanel({ view, me, color, groupEnabled, onlyHire, onlyCopy, onGroup, o
         <div className="muted small">Инициативная группа (каждое действие — раз в Пятилетку):</div>
         <div className="group-actions">
           {(Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => groupInGame(view, g)).map((g) => (
-            <button key={g} className={`small ${groupBlocker(view, me, g) ? 'short' : ''}`}
+            // Недоступное действие не выключено: нажатие объясняет, почему сейчас нельзя.
+            <button key={g} className={`small ${groupBlocker(view, me, g) ? 'short' : ''} ${groupWhy(g) ? 'off' : ''}`}
               title={me.groupUsed.includes(g) ? 'Уже сделано в эту Пятилетку' : groupBlocker(view, me, g) ?? GROUP_ACTIONS[g].hint}
-              disabled={!groupEnabled || me.groupUsed.includes(g) || !!groupBlocker(view, me, g) || (onlyHire && g !== 'hire') || (onlyCopy && g !== 'copyText')} onClick={() => onGroup(g)}>
+              aria-disabled={!!groupWhy(g)} onClick={() => { const w = groupWhy(g); if (w) explain(w); else onGroup(g); }}>
               {groupPrice(view, me, g) && <span className="gprice">{groupPrice(view, me, g)} </span>}{GROUP_ACTIONS[g].name}<GroupSlot p={me} g={g} color={color} />
             </button>
           ))}
