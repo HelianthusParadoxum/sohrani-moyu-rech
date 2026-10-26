@@ -1,6 +1,6 @@
 // Общие элементы интерфейса: карты книг, окна, жанры.
 import type React from 'react';
-import { createContext, useContext, useEffect, type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { GENRE_NAMES, GENRE_SHORT, PASSIONS } from '../engine/content';
 import { BOT_PRESETS, presetById } from '../engine/bot-presets';
 import type { Genre } from '../engine/types';
@@ -143,9 +143,21 @@ export function Modal({ title, children, onClose, wide }: { title: string; child
   const set = collapse?.set;
   // Окно закрылось само (ход сменился) — свёрнутым оно больше не числится.
   useEffect(() => () => set?.((c) => (c === title ? null : c)), [set, title]);
+  // На ПК окно опускаем ниже строки Пристрастия на своём планшете — чтобы были видны Талоны, склад и Пристрастие.
+  const [top, setTop] = useState<number | undefined>();
+  useLayoutEffect(() => {
+    const place = () => {
+      const line = document.querySelector('.passion-line')?.getBoundingClientRect();
+      const ok = line && window.innerWidth > 1000 && line.bottom > 0 && line.bottom < window.innerHeight * 0.45;
+      setTop(ok ? Math.round(line.bottom + 8) : undefined);
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, []);
   return (
     // Свёрнутое окно не размонтируем: выбор в нём сохраняется.
-    <div className="modal-bg" onClick={onClose} style={hidden ? { display: 'none' } : undefined}>
+    <div className="modal-bg" onClick={onClose} style={hidden ? { display: 'none' } : top !== undefined ? { paddingTop: top } : undefined}>
       <div className={`modal ${wide ? 'wide' : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>{title}</h3>
