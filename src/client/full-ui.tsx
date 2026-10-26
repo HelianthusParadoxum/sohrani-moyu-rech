@@ -38,7 +38,8 @@ export function ClubContents({ view, seatIndex, me, onPatron }: { view: PlayerVi
             <span key={pid} className="dot num wide" style={{ background: PLAYER_COLORS[seatIndex(pid)] }}
               title={pt.since?.[pid] ? `Связь с ${pt.since[pid]}-й Пятилетки` : undefined}>{pt.since?.[pid] ? `П${pt.since[pid]}` : ''}</span>
           ))}
-          {pt.removed && <span className="muted small"> — профилактика</span>}
+          {/* В одиночной игре Завсегдатаев убирают вытянутые жетоны — пометка не нужна, хватает зачёркивания. */}
+          {pt.removed && !view.solo && <span className="muted small"> — профилактика</span>}
           <div className="muted small">{withKindChips(iconize(PATRONS[pt.id].hint))}</div>
         </li>
         );
