@@ -28,7 +28,13 @@ export function patronWhy(view: PlayerView, me: VPlayer, pt: PlayerView['patrons
   if (pt.removed) return `${name} больше не ходит в Клуб (профилактика).`;
   if (pt.connections.includes(me.id)) return `Связь с Завсегдатаем «${name}» у вас уже есть.`;
   if (pt.turned) return `${name} занят на эту Пятилетку: с ним уже завязали связь.`;
-  if (!fittingBooks(view, me, pt.genre).length) return `${name} ждёт книгу жанра [${GENRE_SHORT[pt.genre]}] или Альбом — таких книг у вас на складе нет.`;
+  // Значок Альбома и слово рядом (неразрывный пробел: после значка журнал не убирает название жанра).
+  const album = `[${GENRE_SHORT.album}]\u00a0Альбом`;
+  if (!fittingBooks(view, me, pt.genre).length) {
+    return pt.genre === 'album'
+      ? `${name} ждёт ${album} — таких книг у вас на складе нет.`
+      : `${name} ждёт книгу жанра [${GENRE_SHORT[pt.genre]}] или ${album} — таких книг у вас на складе нет.`;
+  }
   return null;
 }
 
