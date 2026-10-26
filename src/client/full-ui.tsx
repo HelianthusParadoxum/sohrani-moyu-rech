@@ -1,6 +1,6 @@
 // Интерфейс полного режима: Клуб книголюбов, Контора.
 import { useState } from 'react';
-import { CLUB_ORDER, GENRE_NAMES, KONTORA_LOSS, PATRONS, RULES } from '../engine/content';
+import { CLUB_ORDER, GENRE_NAMES, GENRE_SHORT, KONTORA_LOSS, PATRONS, RULES } from '../engine/content';
 import type { Action, ClubGift, Genre, GroupAction, KontoraChoice, PatronId, PlaceAction } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import { cacheLimit, genresOf } from '../engine/util';
@@ -22,8 +22,19 @@ export function patronOpen(view: PlayerView, me: VPlayer, pt: PlayerView['patron
   return !pt.removed && !pt.turned && !pt.connections.includes(me.id) && fittingBooks(view, me, pt.genre).length > 0;
 }
 
+// Почему с этим Завсегдатаем сейчас не завязать связь (null — можно).
+export function patronWhy(view: PlayerView, me: VPlayer, pt: PlayerView['patrons'][number]): string | null {
+  const name = PATRONS[pt.id].name;
+  if (pt.removed) return `${name} больше не ходит в Клуб (профилактика).`;
+  if (pt.connections.includes(me.id)) return `Связь с Завсегдатаем «${name}» у вас уже есть.`;
+  if (pt.turned) return `${name} занят на эту Пятилетку: с ним уже завязали связь.`;
+  if (!fittingBooks(view, me, pt.genre).length) return `${name} ждёт книгу жанра [${GENRE_SHORT[pt.genre]}] или Альбом — таких книг у вас на складе нет.`;
+  return null;
+}
+
 // onPatron — нажатие на Завсегдатая (когда можно дарить): сразу к дарению именно ему.
-export function ClubContents({ view, seatIndex, me, onPatron }: { view: PlayerView; seatIndex: (id: string) => number; me?: VPlayer | null; onPatron?: (id: PatronId) => void }) {
+// onBlocked — нажатие на того, кому сейчас книгу не дать: объяснить почему.
+export function ClubContents({ view, seatIndex, me, onPatron, onBlocked }: { view: PlayerView; seatIndex: (id: string) => number; me?: VPlayer | null; onPatron?: (id: PatronId) => void; onBlocked?: (id: PatronId) => void }) {
   return (
     <ul className="patrons">
       {byClubOrder(view.patrons).map((pt) => {
@@ -31,7 +42,7 @@ export function ClubContents({ view, seatIndex, me, onPatron }: { view: PlayerVi
         return (
         <li key={pt.id} className={`${pt.removed ? 'removed' : ''} ${pt.turned ? 'turned' : ''} ${can ? 'can' : ''} ${onPatron && !can ? 'off' : ''}`}
           title={iconize(PATRONS[pt.id].hint)} role={can ? 'button' : undefined}
-          onClick={can ? (e) => { e.stopPropagation(); onPatron!(pt.id); } : onPatron ? (e) => e.stopPropagation() : undefined}>
+          onClick={can ? (e) => { e.stopPropagation(); onPatron!(pt.id); } : onBlocked ? (e) => { e.stopPropagation(); onBlocked(pt.id); } : onPatron ? (e) => e.stopPropagation() : undefined}>
           <GenreChip g={pt.genre} /> <b>{PATRONS[pt.id].name}</b>
           {pt.connections.map((pid) => (
             // Число на жетоне — Пятилетка, в которую завязана связь.

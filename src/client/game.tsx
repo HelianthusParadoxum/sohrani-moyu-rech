@@ -10,7 +10,7 @@ import type { PlayerView } from '../engine/view';
 import { bestFeedBooks, coversStep, genresOf, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, roman } from '../engine/util';
 import { kontoraTargets } from '../engine/full';
 import {
-  BefriendPicker, ClubContents, fittingBooks, patronOpen, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
+  BefriendPicker, ClubContents, fittingBooks, patronOpen, patronWhy, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
   KontoraWarningPrompt, RescuePanel,
 } from './full-ui';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
@@ -122,7 +122,11 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
   const card = (id: AddressId) => (
     <AddressCard key={id} id={id} view={view} seatIndex={seatIndex} me={me} enabled={enabledFor(id)} onOpen={(pick) => setPanel({ kind: 'address', id, pick })} why={addressWhy(id)}
       blocked={canPlace && me && !(id === 'club' && RULES.clubFreeGift) ? addressBlocker(view, me, id) : null}
-      onPatron={id === 'club' && RULES.clubFreeGift && canGift ? giftTo : undefined} />
+      onPatron={id === 'club' && RULES.clubFreeGift && canGift ? giftTo : undefined}
+      onBlocked={id === 'club' && me ? (pid) => {
+        const pt = view.patrons.find((x) => x.id === pid)!;
+        setWhy((canGift ? null : addressWhy('club')) ?? patronWhy(view, me, pt) ?? 'Сейчас книгу этому Завсегдатаю не отдать.');
+      } : undefined} />
   );
 
   return (
@@ -234,7 +238,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
       {view.phase === 'end' && view.result && showResult && <Results view={view} seatIndex={seatIndex} close={() => setShowResult(false)} />}
       {why && (
         <Modal title="Сейчас нельзя" onClose={() => setWhy(null)}>
-          <p>{withKindChips(iconize(why))}</p>
+          <p>{withGenreChips(why, false)}</p>
           <div className="modal-foot"><button className="primary" onClick={() => setWhy(null)}>Понятно</button></div>
         </Modal>
       )}
@@ -249,7 +253,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
 // Порядок обычных адресов на поле (после Клуба, Конторы и Ростков); явочные — следом.
 const BOARD_ORDER: AddressId[] = ['redCorner', 'glavlit', 'makulatura', 'gostorg', 'baraholka', 'tolkuchka', 'razval', 'zavoz', 'tamizdat', 'samizdat'];
 
-type AddressProps = { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me: VPlayer | null; enabled: boolean; onOpen: (pick?: string) => void; onPatron?: (id: PatronId) => void; blocked?: string | null; why?: string | null };
+type AddressProps = { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me: VPlayer | null; enabled: boolean; onOpen: (pick?: string) => void; onPatron?: (id: PatronId) => void; onBlocked?: (id: PatronId) => void; blocked?: string | null; why?: string | null };
 
 // Каким книгам можно вернуть смыслы.
 const restorable = (kind: string) => ['genre', 'loadReturnable', 'loadEvidence', ...(RULES.exposePropaganda ? ['propaganda', 'loadPropaganda'] : [])].includes(kind);
@@ -386,7 +390,7 @@ function AddressCard(props: AddressProps) {
       role={open ? 'button' : undefined} title={tip} data-tip={tip}>
       <AddressHead {...props} inlineHint={inlineHint} />
       {!inlineHint && <div className="hint">{iconize(info.short)}</div>}
-      <AddressContents id={id} view={view} seatIndex={seatIndex} me={me} onPatron={props.onPatron} onPick={onPick} />
+      <AddressContents id={id} view={view} seatIndex={seatIndex} me={me} onPatron={props.onPatron} onBlocked={props.onBlocked} onPick={onPick} />
     </div>
   );
 }
@@ -418,11 +422,11 @@ function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint, rig
   );
 }
 
-function AddressContents({ id, view, seatIndex, me, onPatron, onPick }: { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me?: VPlayer | null; onPatron?: (id: PatronId) => void; onPick?: (key: string) => void }) {
+function AddressContents({ id, view, seatIndex, me, onPatron, onBlocked, onPick }: { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me?: VPlayer | null; onPatron?: (id: PatronId) => void; onBlocked?: (id: PatronId) => void; onPick?: (key: string) => void }) {
   const pickBy = (key: string) => (onPick ? (e: { stopPropagation: () => void }) => { e.stopPropagation(); onPick(key); } : undefined);
   switch (id) {
     case 'club':
-      return <ClubContents view={view} seatIndex={seatIndex} me={me} onPatron={onPatron} />;
+      return <ClubContents view={view} seatIndex={seatIndex} me={me} onPatron={onPatron} onBlocked={onBlocked} />;
     case 'kontora':
       return <KontoraContents view={view} seatIndex={seatIndex} />;
     case 'redCorner': {
@@ -1183,9 +1187,9 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
 
 // Значки жанров в журнале: «[ПР ФА]» → цветные значки, как в Клубе. Прочие пометки («[Нагрузка]») — как есть.
 const SHORT_TO_GENRE = new Map(GENRES.map((g) => [GENRE_SHORT[g], g] as const));
-function withGenreChips(raw: string): ReactNode {
+function withGenreChips(raw: string, icons = true): ReactNode {
   // Слово «ЧНЛ» в тексте журнала (правила Несистемного, итоги Куратора) — тоже значком.
-  const text = iconize(raw).replace(/(?<![[А-ЯЁа-яё])ЧНЛ(?![\]А-ЯЁа-яё])/g, '[ЧНЛ]');
+  const text = (icons ? iconize(raw) : raw).replace(/(?<![[А-ЯЁа-яё])ЧНЛ(?![\]А-ЯЁа-яё])/g, '[ЧНЛ]');
   const parts = text.split(/(\[[^\]]+\])/);
   return parts.map((part, i) => {
     // «[ПО] Поэзия» — достаточно значка: название жанра сразу после него не повторяем.
