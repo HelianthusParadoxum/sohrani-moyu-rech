@@ -705,7 +705,7 @@ function honestDig(s: GameState, me: string, ctx: Ctx): { value: number; extra: 
   const p = player(s, me);
   const price = RULES.makulaturaPrice;
   const reserve = ctx.round >= RULES.rounds ? 0 : BOT_BASE.honestDigReserve;
-  const maxExtra = Math.max(0, Math.min(BOT_BASE.honestDigMax - pend.cards.length, Math.floor((p.talons - reserve) / price)));
+  const maxExtra = Math.max(0, Math.min(tune(ctx, 'honestDigMax') - pend.cards.length, Math.floor((p.talons - reserve) / price)));
   const base = cloneLight(s);
   base.pending = base.pending.slice(1);
   const withCard = (card: string, spend: number) => {
@@ -720,7 +720,7 @@ function honestDig(s: GameState, me: string, ctx: Ctx): { value: number; extra: 
     if (!k) return 0;
     const x = cloneLight(base);
     player(x, me).talons -= k * price;
-    return evaluate(base, me, ctx) - evaluate(x, me, ctx);
+    return (evaluate(base, me, ctx) - evaluate(x, me, ctx)) * tune(ctx, 'honestDigCost');
   });
   const value = new Map<string, number>();
   const val = (c: string) => value.get(c) ?? (value.set(c, withCard(c, 0)), value.get(c)!);
