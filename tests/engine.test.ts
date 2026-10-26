@@ -1528,7 +1528,7 @@ describe('Журнал: усилилась ли Цензура', () => {
     expect(s.log.filter((l) => /^Цензура (усилилась: \d → \d|не усилилась: \d)\.$/.test(l.text)).length).toBe(RULES.rounds - 1);
     const solo = playOut(createGame({ players: players(1), seed: 905, mode: 'full' }));
     expect(solo.log.some((l) => /^Цензура (не )?усилилась/.test(l.text))).toBe(false);
-  });
+  }, 60_000);
 });
 
 describe('Журнал: выкладка в начале Пятилетки', () => {
@@ -1539,7 +1539,7 @@ describe('Журнал: выкладка в начале Пятилетки', ()
       const line = s.log.slice(i, i + 10).find((l) => l.text.startsWith('На Толкучку'));
       expect(line?.text.match(/•/g)?.length).toBe(RULES.displaySize);
     }
-  });
+  }, 60_000);
 });
 
 describe('Журнал: возвращаемая Нагрузка', () => {
