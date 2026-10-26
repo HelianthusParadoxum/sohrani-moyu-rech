@@ -29,9 +29,9 @@ export const RULES = {
   safehouseExtraFive: 1, // впятером у каждого явочного адреса +1 место
   maxWorkers: 7,
   startCapacity: 5,
-  startCache: 0, // мест в Тайнике в начале партии
+  startCache: 1, // мест в Тайнике в начале партии
   maxCapacity: 10,
-  maxCache: 5,
+  maxCache: 6,
   startCensorship: 3,
   censorshipTokens: [3, 4, 5, 6, 7],
   displaySize: 4,
@@ -195,7 +195,7 @@ export const KONTORA_PATRONS: PatronId[] = ['psychiatrist'];
 
 export const GROUP_ACTIONS: Record<GroupActionId, { name: string; hint: string; fullOnly?: boolean }> = {
   expandWarehouse: { name: 'Увеличение склада', hint: `−${RULES.expandWarehouseCost}т: +1 место на складе (до 10)` },
-  expandCache: { name: 'Закладка Тайника', hint: `−${RULES.expandCacheCost}т: 1 место склада становится потайным (до 5)` },
+  expandCache: { name: 'Закладка Тайника', hint: `−${RULES.expandCacheCost}т: 1 место склада становится потайным (до ${RULES.maxCache})` },
   copyText: { name: 'Тиражирование текста', hint: 'Покупая книгу на Развале, Толкучке, в Распределителе (или меняясь на Книгообмене), поставьте ещё одного Единомышленника на Тиражирование — и возьмите с этого адреса ещё одну жанровую книгу бесплатно (не Улику и не ЧНЛ)' },
   rescue: { name: 'Вызволение из бед', hint: `Вернуть из Конторы до ${RULES.rescueMax} Единомышленников (своих или чужих): +${RULES.rescuePoints} очка за каждого`, fullOnly: true },
   restore: { name: 'Возвращение смыслов', hint: `${RULES.restoreCost ? `${RULES.restoreCost}т: ` : ''}+1 значок жанровой книге или 3 значка возвращаемой Нагрузке` },
@@ -286,7 +286,7 @@ export const CLUB_ORDER: Genre[] = ['prose', 'irony', 'drama', 'poetry', 'testim
 
 export const PATRONS: Record<PatronId, PatronInfo> = Object.fromEntries([
   P('binder', 'Переплётчик', 'В одно место склада помещаются 2 книги с общим жанром', false),
-  P('carpenter', 'Столяр', `Закладка Тайника бесплатна и увеличивает Тайник на ${RULES.carpenterCache} (до 5)`),
+  P('carpenter', 'Столяр', `Закладка Тайника бесплатна и увеличивает Тайник на ${RULES.carpenterCache} (до ${RULES.maxCache})`),
   P('correspondent', 'Корреспондент', `Самиздат и Тамиздат: ещё +${RULES.correspondentTalons} Талон и +${RULES.correspondentPoints} очко Гласности за каждое издание`),
   P('postgrad', 'Архивист', 'Возвращение смыслов: +2 очка Гласности'),
   P('professor', 'Профессор', `За каждое питание ступени Ростка: +${RULES.professorTalons} Талон и +${RULES.professorPoints} очка Гласности`),
