@@ -78,7 +78,7 @@ export function createGame(opts: NewGameOptions): GameState {
       id: s.id, name: s.name,
       workers: RULES.startWorkers, available: RULES.startWorkers, bonusGroupTurns: 0,
       talons: RULES.startTalons, points: 0,
-      capacity: RULES.startCapacity, cache: 0, warehouse: [],
+      capacity: RULES.startCapacity, cache: RULES.startCache, warehouse: [],
       published: [], tamizdat: [],
       passion: null, passionOptions: [passions.pop()!, passions.pop()!],
       groupUsed: [], visitedRedCorner: false, sproutsFed: [], subscriptions: [],

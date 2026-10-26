@@ -29,6 +29,7 @@ export const RULES = {
   safehouseExtraFive: 1, // впятером у каждого явочного адреса +1 место
   maxWorkers: 7,
   startCapacity: 5,
+  startCache: 0, // мест в Тайнике в начале партии
   maxCapacity: 10,
   maxCache: 5,
   startCensorship: 3,
