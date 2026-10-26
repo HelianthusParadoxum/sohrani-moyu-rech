@@ -83,7 +83,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
     if (!myTurn) return `Сейчас ход: ${view.active.map(nameOf).join(', ')}.`;
     return null;
   };
-  const addressWhy = (id: AddressId): string | null => {
+  const addressWhy = (id: AddressId, withBlocker = true): string | null => {
     const t = turnWhy();
     if (t || !me) return t;
     if (id === 'club' && RULES.clubFreeGift) {
@@ -95,7 +95,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
     if (me.available === 0) return 'Свободных Единомышленников не осталось.';
     if (mustRed && id !== 'redCorner') return 'Последнего Единомышленника нужно отправить в Красный уголок.';
     if (addressFull(id, view, me)) return 'Все места на этом адресе заняты.';
-    return addressBlocker(view, me, id);
+    return withBlocker ? addressBlocker(view, me, id) : null;
   };
   const groupWhy = (g: GroupActionId): string | null => {
     if (!me) return turnWhy();
@@ -192,7 +192,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
           <div className="addresses">
             {full && card('club')}
             <Sprouts view={view} me={me} beside={full && !view.reserve} seatIndex={seatIndex}
-              onOpen={enabledFor('sprouts') ? (sprout) => setPanel({ kind: 'address', id: 'sprouts', sprout }) : undefined} why={addressWhy('sprouts')}
+              onOpen={enabledFor('sprouts') ? (sprout) => setPanel({ kind: 'address', id: 'sprouts', sprout }) : undefined} why={addressWhy('sprouts')} turnWhy={addressWhy('sprouts', false)}
               head={<AddressHead id="sprouts" view={view} seatIndex={seatIndex} me={me} enabled={enabledFor('sprouts')} onOpen={() => setPanel({ kind: 'address', id: 'sprouts' })}
                 rightHint={SPROUTS_TIP} />} />
             {full && !view.reserve && card('kontora')}
@@ -298,6 +298,19 @@ function sproutOpen(view: PlayerView, me: VPlayer, sp: PlayerView['sprouts'][num
   const mine = me.warehouse.map((s) => s.card!).filter(Boolean);
   return !!next && (view.sproutRound?.[sp.id]?.length ?? 0) < RULES.sproutSlotsPerRound
     && coversStep(view, mine, info.main, next.main, next.support, { wildScifi: view.mode === 'full', labtech: hasPatron(view, me.id, 'labtech') });
+}
+
+// Почему этот Росток сейчас не покормить (null — можно).
+function sproutWhy(view: PlayerView, me: VPlayer, sp: PlayerView['sprouts'][number]): string | null {
+  const info = SPROUTS.find((s) => s.id === sp.id)!;
+  const next = info.steps[sp.progress];
+  if (!next) return `Росток «${info.name}» уже дорощен до конца.`;
+  if ((view.sproutRound?.[sp.id]?.length ?? 0) >= RULES.sproutSlotsPerRound) {
+    return `Росток «${info.name}» в эту Пятилетку уже питали ${RULES.sproutSlotsPerRound} раза — места заняты до следующей Пятилетки.`;
+  }
+  if (sproutOpen(view, me, sp)) return null;
+  const need = `${Array.from({ length: next.main }, () => `[${GENRE_SHORT[info.main]}]`).join(' ')}${next.support ? ` и значок поддержки [${GENRE_SHORT[next.support]}]` : ''}`;
+  return `Для ступени ${roman(sp.progress + 1)} Ростка «${info.name}» нужно: ${need}. Таких книг у вас на складе не хватает${view.mode === 'full' && info.main !== 'scifi' && next.support !== 'scifi' ? ' (Фантастика может заменить недостающий значок)' : ''}.`;
 }
 
 // Можно ли издать книгу через Самиздат / Тамиздат.
@@ -726,7 +739,8 @@ function stepText(main: Genre, step: { main: number; support?: Genre }) {
 // Полное описание Ростков — подсказкой со всей их зоны.
 const SPROUTS_TIP = `${ADDRESSES.sprouts.hint}. Гласность: ${RULES.glasnostAllSprouts ? 'все Ростки' : 'хотя бы один Росток'} до ступени ${roman(RULES.glasnostStep)}.`;
 
-function Sprouts({ view, me, beside, seatIndex, head, onOpen, why }: { view: PlayerView; me: VPlayer | null; beside: boolean; seatIndex: (id: string) => number; head: ReactNode; onOpen?: (sprout?: string) => void; why?: string | null }) {
+// why — почему Ростки недоступны целиком; turnWhy — то же без причин самих Ростков (тогда объясняем про конкретный Росток).
+function Sprouts({ view, me, beside, seatIndex, head, onOpen, why, turnWhy }: { view: PlayerView; me: VPlayer | null; beside: boolean; seatIndex: (id: string) => number; head: ReactNode; onOpen?: (sprout?: string) => void; why?: string | null; turnWhy?: string | null }) {
   const explain = useContext(Explain);
   return (
     <div className={`sprouts-panel address addr-sprouts ${beside ? 'beside' : ''} ${onOpen ? 'can' : ''}`} onClick={onOpen ? () => onOpen() : why ? () => explain(why) : undefined}
@@ -740,7 +754,12 @@ function Sprouts({ view, me, beside, seatIndex, head, onOpen, why }: { view: Pla
         return (
           <div key={sp.id} className={`sprout ${sp.progress >= RULES.glasnostStep ? 'grown' : ''} ${open ? 'can' : ''} ${sp.progress >= 4 ? 'off' : ''}`}
             role={open ? 'button' : undefined}
-            onClick={onOpen ? (e) => { e.stopPropagation(); if (open) onOpen(sp.id); } : undefined}>
+            onClick={(e) => {
+              e.stopPropagation();
+              if (open) { onOpen!(sp.id); return; }
+              const w = turnWhy ?? (me ? sproutWhy(view, me, sp) : null) ?? why;
+              if (w) explain(w);
+            }}>
             <div className="addr-head"><b>{info.name}</b>
               <span className="workers" title={`Места в эту Пятилетку: не больше ${RULES.sproutSlotsPerRound} ступеней`}>
                 {Array.from({ length: RULES.sproutSlotsPerRound }, (_, i) => {
