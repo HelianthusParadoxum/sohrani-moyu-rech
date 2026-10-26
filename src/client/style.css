@@ -161,6 +161,8 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 
 /* ---------- Окна ---------- */
 .modal-bg { position: fixed; inset: 0; background: rgba(30, 25, 20, 0.45); display: flex; align-items: flex-start; justify-content: center; padding: 6vh 16px; overflow-y: auto; z-index: 10; }
+/* На ПК окно ниже: над ним видны имя, Талоны, склад и Пристрастие на своём планшете. */
+@media (min-width: 1001px) { .modal-bg { padding-top: 222px; } }
 .modal { background: var(--paper); border-radius: 8px; padding: 14px 18px; width: 100%; max-width: 560px; box-shadow: 0 10px 40px rgba(0,0,0,.3); }
 .modal.wide { max-width: 860px; }
 .modal-head { display: flex; justify-content: space-between; align-items: center; }
