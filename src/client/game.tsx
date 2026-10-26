@@ -310,7 +310,7 @@ function sproutWhy(view: PlayerView, me: VPlayer, sp: PlayerView['sprouts'][numb
   }
   if (sproutOpen(view, me, sp)) return null;
   const need = `${Array.from({ length: next.main }, () => `[${GENRE_SHORT[info.main]}]`).join(' ')}${next.support ? ` и значок поддержки [${GENRE_SHORT[next.support]}]` : ''}`;
-  return `Для ступени ${roman(sp.progress + 1)} Ростка «${info.name}» нужно: ${need}. Таких книг у вас на складе не хватает${view.mode === 'full' && info.main !== 'scifi' && next.support !== 'scifi' ? ' (Фантастика может заменить недостающий значок)' : ''}.`;
+  return `Для ступени ${roman(sp.progress + 1)} Ростка «${info.name}» нужно: ${need}. Таких книг у вас на складе не хватает${view.mode === 'full' && info.main !== 'scifi' && next.support !== 'scifi' ? ` ([${GENRE_SHORT.scifi}]\u00a0Фантастика может заменить недостающий значок)` : ''}.`;
 }
 
 // Можно ли издать книгу через Самиздат / Тамиздат.
