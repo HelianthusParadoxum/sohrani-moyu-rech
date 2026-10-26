@@ -425,9 +425,10 @@ function AddressPanel({ id, sprout, pick, view, me, close, place }: { id: Addres
   const [genre, setGenre] = useState<Genre>('prose');
   const [loadN, setLoadN] = useState(1);
   const [target, setTarget] = useState<string>(view.players.find((p) => p.id !== me.id)?.id ?? '');
+  // Рядом с кнопкой — всегда, сколько у игрока Талонов (и предупреждение, если есть).
   const confirmBtn = (label: string, action: PlaceAction | null, extra?: string) => (
     <div className="modal-foot">
-      {extra && <span className="muted">{extra}</span>}
+      <span className="muted">{extra ? `${extra} · ` : ''}у вас {me.talons}🎫</span>
       <button className="primary" disabled={!action} onClick={() => action && place(action)}>{label}</button>
     </div>
   );
@@ -476,7 +477,7 @@ function AddressPanel({ id, sprout, pick, view, me, close, place }: { id: Addres
           {pickList(view.tolkuchka, sel, setSel, { note: () => `${RULES.tolkuchkaBuy}т`, ...(veteran ? {} : { max: 1 }) })}
           <h4>{veteran ? 'Продать (Ветеран: сколько угодно)' : 'Продать 1 книгу'} (+{RULES.tolkuchkaSellBanned}т за книгу опального жанра, +{RULES.tolkuchkaSellFree}т за прочие)</h4>
           {pickList(sellable, sel2, setSel2, { note: (c) => `+${price(c)}т`, ...(veteran ? {} : { max: 1 }) })}
-          {confirmBtn(`Совершить сделки${ops.length ? costTag(cost - gain) || ' (0🎫)' : ''}`, ops.length ? { address: 'tolkuchka', ops } : null, `у вас ${me.talons}🎫`)}
+          {confirmBtn(`Совершить сделки${ops.length ? costTag(cost - gain) || ' (0🎫)' : ''}`, ops.length ? { address: 'tolkuchka', ops } : null)}
         </>
       );
       break;
@@ -650,7 +651,7 @@ function AddressPanel({ id, sprout, pick, view, me, close, place }: { id: Addres
         free <= 0 ? 'Нет места на складе' : me.talons < safehouseCost(id) ? `Не хватает Талонов: нужно ${safehouseCost(id)}, у вас ${me.talons}` : undefined)}</>;
       break;
   }
-  return <Modal title={info.name} onClose={close} wide>{body}<p className="muted small">Талонов: {me.talons} · Свободных мест: {free}</p></Modal>;
+  return <Modal title={info.name} onClose={close} wide>{body}</Modal>;
 }
 
 // ---------- Ростки ----------
@@ -846,14 +847,14 @@ function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; v
       <>
         <p>Жанровая книга получает +1 значок своего жанра; у двужанровой книги жанр этого значка выбирается всякий раз, когда это важно. Нагрузка проглоченного автора становится возвращённым произведением с 3 значками.{RULES.exposePropaganda && withKindChips(` ЧНЛ становится Разоблачением: +${RULES.exposePoints} очка в конце, его можно издать как книгу с 1 значком.`)}</p>
         <div className="shelf wrap">{cands.map((c) => <Book key={c} v={view} id={c} selected={sel === c} onClick={() => setSel(c)} />)}</div>
-        <div className="modal-foot"><button className="primary" disabled={!sel} onClick={() => done({ action: 'restore', card: sel })}>Вернуть смыслы</button></div>
+        <div className="modal-foot"><span className="muted">у вас {me.talons}🎫</span><button className="primary" disabled={!sel} onClick={() => done({ action: 'restore', card: sel })}>Вернуть смыслы{groupPrice(view, me, 'restore') ? ` (${groupPrice(view, me, 'restore')})` : ''}</button></div>
       </>
     );
   } else {
     body = (
       <>
         <p>{withKindChips(info.hint)}</p>
-        <div className="modal-foot"><button className="primary" onClick={() => done({ action: id } as GroupAction)}>Выполнить</button></div>
+        <div className="modal-foot"><span className="muted">у вас {me.talons}🎫</span><button className="primary" onClick={() => done({ action: id } as GroupAction)}>Выполнить{groupPrice(view, me, id) ? ` (${groupPrice(view, me, id)})` : ''}</button></div>
       </>
     );
   }
@@ -1018,6 +1019,7 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
           </div>
           {veteran && <p className="muted small">Ветеран: можно смотреть и покупать сколько угодно книг; в сумме на 1 Талон дешевле (вторая книга бесплатно). Куплено: {bought}.</p>}
           <div className="modal-foot">
+            <span className="muted">у вас {me.talons}🎫</span>
             <button onClick={() => act({ type: 'baraholkaBuy' })}>{bought ? 'Закончить' : 'Ничего не брать'}</button>
           </div>
           {more.length > 0 && (
