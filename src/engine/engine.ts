@@ -16,7 +16,7 @@ import { GENRES } from './types';
 import {
   addBook, addOpenBook, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isPropagandaKind, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
-  talonsText, title, titles, logEvent, logNote, logAfter, toSpetskhranPublic, isExposed, saved, logRecap, plural, iconCount, genresOf, genreOn,
+  talonsText, title, titles, logEvent, logNote, logAfter, toSpetskhranPublic, isExposed, saved, logRecap, plural, bulletTitles, iconCount, genresOf, genreOn,
 } from './util';
 
 export interface NewGameOptions {
@@ -493,13 +493,13 @@ function logStartBooks(state: GameState) {
     const p = player(state, id);
     const open = p.warehouse.filter((s) => !s.hidden).map((s) => s.card);
     const hidden = p.warehouse.filter((s) => s.hidden).map((s) => s.card);
-    log(state, open.length ? `${p.name} на складе на виду: ${titles(state, open)}.` : `${p.name}: на складе на виду ничего.`);
+    log(state, open.length ? `${p.name} на складе на виду: ${bulletTitles(state, open)}.` : `${p.name}: на складе на виду ничего.`);
     state.log[state.log.length - 1].who = p.id;
     // ЧНЛ, которую все видели на складе при раскладке, — как взятая открыто: все знают, что она у него.
     const seen = open.filter((c) => isPropaganda(state, c)).length;
     if (seen) p.propagandaDealt = (p.propagandaDealt ?? 0) + seen;
     if (hidden.length) {
-      log(state, `${p.name} прячет в Тайнике: ${titles(state, hidden)}.`, [p.id]);
+      log(state, `${p.name} прячет в Тайнике: ${bulletTitles(state, hidden)}.`, [p.id]);
       state.log[state.log.length - 1].who = p.id;
     }
   }

@@ -18,7 +18,7 @@ import { Book, GENRE_SHORT, GenreChip, KindChip, withKindChips, iconize, SpeedSe
 
 type Send = (m: ClientMessage) => void;
 type VPlayer = PlayerView['players'][number];
-type Panel = { kind: 'address'; id: AddressId; sprout?: string; patron?: PatronId } | { kind: 'group'; id: GroupActionId } | { kind: 'cache' } | null;
+type Panel = { kind: 'address'; id: AddressId; sprout?: string; patron?: PatronId; pick?: string } | { kind: 'group'; id: GroupActionId } | { kind: 'cache' } | null;
 
 const PHASE_NAMES: Record<string, string> = {
   passion: 'Выбор Пристрастий', setupCache: 'Тайники перед началом', orders: 'Поручения', gathering: 'Посиделки', ambush: 'Засада?', hiding: 'Укрытие', end: 'Конец Застоя',
@@ -80,7 +80,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
     else setPanel({ kind: 'address', id: 'club', patron });
   };
   const card = (id: AddressId) => (
-    <AddressCard key={id} id={id} view={view} seatIndex={seatIndex} me={me} enabled={enabledFor(id)} onOpen={() => setPanel({ kind: 'address', id })}
+    <AddressCard key={id} id={id} view={view} seatIndex={seatIndex} me={me} enabled={enabledFor(id)} onOpen={(pick) => setPanel({ kind: 'address', id, pick })}
       blocked={canPlace && me && !(id === 'club' && RULES.clubFreeGift) ? addressBlocker(view, me, id) : null}
       onPatron={id === 'club' && RULES.clubFreeGift && canGift ? giftTo : undefined} />
   );
@@ -173,7 +173,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
         <ClubGiftModal view={view} me={me} act={act} close={() => setPanel(null)} patron={panel.patron} />
       )}
       {panel?.kind === 'address' && !(panel.id === 'club' && RULES.clubFreeGift) && me && (
-        <AddressPanel id={panel.id} sprout={panel.sprout} view={view} me={me} close={() => setPanel(null)} place={(place) => { act({ type: 'place', place }); setPanel(null); }} />
+        <AddressPanel id={panel.id} sprout={panel.sprout} pick={panel.pick} view={view} me={me} close={() => setPanel(null)} place={(place) => { act({ type: 'place', place }); setPanel(null); }} />
       )}
       {panel?.kind === 'cache' && me && (
         <CacheModal view={view} me={me} close={() => setPanel(null)} done={(hidden) => { act({ type: 'hiding', hidden }); setPanel(null); }} />
@@ -201,7 +201,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
 // Порядок обычных адресов на поле (после Клуба, Конторы и Ростков); явочные — следом.
 const BOARD_ORDER: AddressId[] = ['redCorner', 'glavlit', 'makulatura', 'gostorg', 'baraholka', 'tolkuchka', 'razval', 'zavoz', 'tamizdat', 'samizdat'];
 
-type AddressProps = { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me: VPlayer | null; enabled: boolean; onOpen: () => void; onPatron?: (id: PatronId) => void; blocked?: string | null };
+type AddressProps = { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me: VPlayer | null; enabled: boolean; onOpen: (pick?: string) => void; onPatron?: (id: PatronId) => void; blocked?: string | null };
 
 // Каким книгам можно вернуть смыслы.
 const restorable = (kind: string) => ['genre', 'loadReturnable', 'loadEvidence', ...(RULES.exposePropaganda ? ['propaganda', 'loadPropaganda'] : [])].includes(kind);
@@ -217,6 +217,22 @@ const withPrice = (view: PlayerView, p: VPlayer | null, id: string) => {
   const price = groupPrice(view, p, id);
   return `${price ? `${price} ` : ''}${SPROUT_BONUS_NAMES[id as SproutBonusId]}`;
 };
+
+// Цена покупок одного действия — как в движке (purchases): Скупщик на первую, Ветеран — минус 1 Талон на всё действие.
+function buyCost(view: PlayerView, me: VPlayer, costs: number[]): number {
+  let veteran = hasPatron(view, me.id, 'veteran');
+  return costs.reduce((sum, c, i) => {
+    let x = i === 0 ? priceFor(view, me, c) : c;
+    if (veteran && x > 0) { x--; veteran = false; }
+    return sum + x;
+  }, 0);
+}
+
+// Подпись цены или дохода на кнопке: «(2🎫)» — заплатить, «(+2🎫, +1★)» — получить, «(даром)».
+function costTag(talons: number, points = 0): string {
+  const parts = [...(talons > 0 ? [`${talons}🎫`] : talons < 0 ? [`+${-talons}🎫`] : []), ...(points ? [`+${points}★`] : [])];
+  return parts.length ? ` (${parts.join(', ')})` : '';
+}
 
 // Цена с учётом Скупщика (на 1 Талон дешевле, минимум 1).
 function priceFor(view: PlayerView, me: VPlayer, cost: number): number {
@@ -310,7 +326,9 @@ function AddressCard(props: AddressProps) {
   const full = addressFull(id, view, me);
   const inlineHint = id === 'club'; // у Клуба описание — в строке заголовка, справа
   // Поручение можно дать нажатием на любое место адреса, не только на кнопку «сюда».
-  const open = enabled && !full ? props.onOpen : undefined;
+  const open = enabled && !full ? () => props.onOpen() : undefined;
+  // Нажатие на книгу на адресе — окно покупки с уже выбранной книгой.
+  const onPick = open ? (key: string) => props.onOpen(key) : undefined;
   // На адресе — краткое описание; полное — подсказкой (наведение мышью или удержание пальцем).
   const tip = iconize(info.hint) + (props.blocked && !open ? `\nСейчас нельзя: ${props.blocked}` : '');
   return (
@@ -318,7 +336,7 @@ function AddressCard(props: AddressProps) {
       role={open ? 'button' : undefined} title={tip} data-tip={tip}>
       <AddressHead {...props} inlineHint={inlineHint} />
       {!inlineHint && <div className="hint">{iconize(info.short)}</div>}
-      <AddressContents id={id} view={view} seatIndex={seatIndex} me={me} onPatron={props.onPatron} />
+      <AddressContents id={id} view={view} seatIndex={seatIndex} me={me} onPatron={props.onPatron} onPick={onPick} />
     </div>
   );
 }
@@ -350,7 +368,8 @@ function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint, rig
   );
 }
 
-function AddressContents({ id, view, seatIndex, me, onPatron }: { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me?: VPlayer | null; onPatron?: (id: PatronId) => void }) {
+function AddressContents({ id, view, seatIndex, me, onPatron, onPick }: { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me?: VPlayer | null; onPatron?: (id: PatronId) => void; onPick?: (key: string) => void }) {
+  const pickBy = (key: string) => (onPick ? (e: { stopPropagation: () => void }) => { e.stopPropagation(); onPick(key); } : undefined);
   switch (id) {
     case 'club':
       return <ClubContents view={view} seatIndex={seatIndex} me={me} onPatron={onPatron} />;
@@ -378,29 +397,30 @@ function AddressContents({ id, view, seatIndex, me, onPatron }: { id: AddressId;
       );
     }
     case 'tolkuchka':
-      return <div className="shelf wrap">{view.tolkuchka.map((c) => <Book key={c} v={view} id={c} small price={RULES.tolkuchkaBuy} />)}{emptySlots(RULES.displaySize - view.tolkuchka.length)}</div>;
+      return <div className="shelf wrap">{view.tolkuchka.map((c) => <Book key={c} v={view} id={c} small price={RULES.tolkuchkaBuy} onClick={pickBy(c)} />)}{emptySlots(RULES.displaySize - view.tolkuchka.length)}</div>;
     case 'razval':
-      return <div className="shelf wrap">{view.razval.map((c, i) => c ? <Book key={i} v={view} id={c} small price={RULES.razvalPrices[i]} /> : <div key={i} className="book empty small" />)}</div>;
+      return <div className="shelf wrap">{view.razval.map((c, i) => c ? <Book key={i} v={view} id={c} small price={RULES.razvalPrices[i]} onClick={pickBy(String(i))} /> : <div key={i} className="book empty small" />)}</div>;
     case 'baraholka':
-      return <div className="shelf wrap">{view.baraholka.map((has, i) => has ? <Book key={i} v={view} id={view.baraholkaKnown?.[i] ?? null} small note={view.baraholkaKnown?.[i] ? 'вы видели' : undefined} /> : <div key={i} className="book empty small" />)}</div>;
+      return <div className="shelf wrap">{view.baraholka.map((has, i) => has ? <Book key={i} v={view} id={view.baraholkaKnown?.[i] ?? null} small note={view.baraholkaKnown?.[i] ? 'вы видели' : undefined} onClick={pickBy(String(i))} /> : <div key={i} className="book empty small" />)}</div>;
     case 'knigoobmen':
-      return <div className="shelf wrap">{view.knigoobmen.map((c) => <Book key={c} v={view} id={c} small />)}{emptySlots(RULES.displaySize - view.knigoobmen.length)}</div>;
+      return <div className="shelf wrap">{view.knigoobmen.map((c) => <Book key={c} v={view} id={c} small onClick={pickBy(c)} />)}{emptySlots(RULES.displaySize - view.knigoobmen.length)}</div>;
     case 'agitpunkt':
-      return <div className="shelf wrap">{(view.agitpunkt ?? []).map((c) => <Book key={c} v={view} id={c} small note="даром" />)}{emptySlots(RULES.agitpunktSize - (view.agitpunkt ?? []).length)}</div>;
+      return <div className="shelf wrap">{(view.agitpunkt ?? []).map((c) => <Book key={c} v={view} id={c} small note="даром" onClick={pickBy(c)} />)}{emptySlots(RULES.agitpunktSize - (view.agitpunkt ?? []).length)}</div>;
     case 'raspredelitel':
-      return <div className="shelf wrap">{view.raspredelitel.map((c) => <Book key={c} v={view} id={c} small price={RULES.raspredelitelPrice} />)}{emptySlots(RULES.raspredelitelSize - view.raspredelitel.length)}</div>;
+      return <div className="shelf wrap">{view.raspredelitel.map((c) => <Book key={c} v={view} id={c} small price={RULES.raspredelitelPrice} onClick={pickBy(c)} />)}{emptySlots(RULES.raspredelitelSize - view.raspredelitel.length)}</div>;
     default:
       return null;
   }
 }
 
-function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; sprout?: string; view: PlayerView; me: VPlayer; close: () => void; place: (p: PlaceAction) => void }) {
+function AddressPanel({ id, sprout, pick, view, me, close, place }: { id: AddressId; sprout?: string; pick?: string; view: PlayerView; me: VPlayer; close: () => void; place: (p: PlaceAction) => void }) {
   const info = ADDRESSES[id];
   const mine = me.warehouse.map((s) => s.card!).filter(Boolean);
   const free = me.capacity - me.warehouse.filter((s) => !s.memorized).length;
   const veteran = hasPatron(view, me.id, 'veteran');
-  const [sel, setSel] = useState<string[]>([]);
-  const [sel2, setSel2] = useState<string[]>([]);
+  // Книга, на которую нажали на адресе, — сразу выбрана (на Книгообмене — та, что берёте с витрины).
+  const [sel, setSel] = useState<string[]>(pick && id !== 'knigoobmen' ? [pick] : []);
+  const [sel2, setSel2] = useState<string[]>(pick && id === 'knigoobmen' ? [pick] : []);
   const [num, setNum] = useState(1);
   const [genre, setGenre] = useState<Genre>('prose');
   const [loadN, setLoadN] = useState(1);
@@ -437,7 +457,7 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
           {zavmag && (
             <label>Завмаг: из {num * 2} книг Нагрузки — <input type="number" min={0} max={num * 2} value={Math.min(loadN, num * 2)} onChange={(e) => setLoadN(Number(e.target.value))} />, остальные — Непечатные</label>
           )}
-          {confirmBtn(zavmag ? 'Взять бесплатно (Завмаг)' : `Купить за ${num}т`, max >= 1 && num >= 1 && num <= max
+          {confirmBtn(zavmag ? 'Взять (даром, Завмаг)' : `Купить${costTag(buyCost(view, me, [num]))}`, max >= 1 && num >= 1 && num <= max
             ? { address: 'gostorg', pairs: num, ...(zavmag ? { mix: Array.from({ length: num * 2 }, (_, i) => (i < Math.min(loadN, num * 2) ? 'load' as const : 'unprinted' as const)) } : {}) }
             : null, max < 1 ? 'Нужно 2 свободных места и 1 Талон' : undefined)}
         </>
@@ -448,7 +468,7 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
       const sellable = mine.filter((c) => isGenreBook(view, c) && !['evidence', 'loadEvidence', 'propaganda', 'loadPropaganda'].includes(view.cards[c].kind));
       const price = (c: string) => (genresOf(view, c).some((g) => view.banned.includes(g)) ? RULES.tolkuchkaSellBanned : RULES.tolkuchkaSellFree);
       const gain = sel2.reduce((s, c) => s + price(c), 0);
-      const cost = sel.length * RULES.tolkuchkaBuy;
+      const cost = buyCost(view, me, sel.map(() => RULES.tolkuchkaBuy));
       const ops = [...sel2.map((card) => ({ op: 'sell' as const, card })), ...sel.map((card) => ({ op: 'buy' as const, card }))];
       body = (
         <>
@@ -456,7 +476,7 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
           {pickList(view.tolkuchka, sel, setSel, { note: () => `${RULES.tolkuchkaBuy}т`, ...(veteran ? {} : { max: 1 }) })}
           <h4>{veteran ? 'Продать (Ветеран: сколько угодно)' : 'Продать 1 книгу'} (+{RULES.tolkuchkaSellBanned}т за книгу опального жанра, +{RULES.tolkuchkaSellFree}т за прочие)</h4>
           {pickList(sellable, sel2, setSel2, { note: (c) => `+${price(c)}т`, ...(veteran ? {} : { max: 1 }) })}
-          {confirmBtn('Совершить сделки', ops.length ? { address: 'tolkuchka', ops } : null, `Итого: ${gain - cost >= 0 ? '+' : ''}${gain - cost}т (у вас ${me.talons}т)`)}
+          {confirmBtn(`Совершить сделки${ops.length ? costTag(cost - gain) || ' (0🎫)' : ''}`, ops.length ? { address: 'tolkuchka', ops } : null, `у вас ${me.talons}🎫`)}
         </>
       );
       break;
@@ -470,9 +490,9 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
           <p>Вы встанете в очередь хода следующей Пятилетки. Можно сдать в макулатуру до 1 Непечатной книги (+{RULES.redCornerUnprinted}т) и до 1 книги Нагрузки (+{RULES.redCornerLoad}т). {withKindChips('ЧНЛ можно сбыть только здесь.')}</p>
           {komsorg && <p className="muted small">Комсорг: можно сдать любое число книг, за каждую — +{RULES.komsorgPoints} очко Гласности.</p>}
           {pickList(mine, sel, setSel)}
-          {confirmBtn('Пойти в Красный уголок', (unprinted <= 1 && load <= 1) || komsorg ? { address: 'redCorner', recycle: sel } : null,
-            !komsorg && (unprinted > 1 || load > 1) ? 'Слишком много книг'
-              : `+${unprinted * RULES.redCornerUnprinted + load * RULES.redCornerLoad}т${komsorg && sel.length ? `, +${sel.length * RULES.komsorgPoints} оч.` : ''}`)}
+          {confirmBtn(`Пойти в Красный уголок${costTag(-(unprinted * RULES.redCornerUnprinted + load * RULES.redCornerLoad), komsorg ? sel.length * RULES.komsorgPoints : 0)}`,
+            (unprinted <= 1 && load <= 1) || komsorg ? { address: 'redCorner', recycle: sel } : null,
+            !komsorg && (unprinted > 1 || load > 1) ? 'Слишком много книг' : undefined)}
         </>
       );
       break;
@@ -487,13 +507,13 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
                 onClick={() => setSel(veteran ? toggle(sel, String(i)) : [String(i)])} />
             ))}
           </div>
-          {confirmBtn('Купить', sel.length && free >= sel.length ? { address: 'razval', slot: Number(sel[0]), ...(sel.length > 1 ? { slots: sel.map(Number) } : {}) } : null,
+          {confirmBtn(`Купить${costTag(buyCost(view, me, sel.map((i) => RULES.razvalPrices[Number(i)])))}`, sel.length && free >= sel.length ? { address: 'razval', slot: Number(sel[0]), ...(sel.length > 1 ? { slots: sel.map(Number) } : {}) } : null,
             free >= Math.max(1, sel.length) ? undefined : 'Нет места на складе')}
         </>
       );
       break;
     case 'zavoz':
-      body = <><p>Получите {RULES.zavozIncome} Талона. Всё, что лежит на Развале, уйдёт в сброс, и Развал заполнится новыми книгами.</p>{confirmBtn('Подработать', { address: 'zavoz' })}</>;
+      body = <><p>Получите {RULES.zavozIncome} Талона. Всё, что лежит на Развале, уйдёт в сброс, и Развал заполнится новыми книгами.</p>{confirmBtn(`Подработать${costTag(-RULES.zavozIncome)}`, { address: 'zavoz' })}</>;
       break;
     case 'baraholka': {
       const need = Math.min(RULES.baraholkaLook, view.baraholka.filter(Boolean).length);
@@ -521,7 +541,7 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
           <p>Закажите жанр: книга этого жанра будет приходить вам в конце фазы поручений — столько Пятилеток, сколько Талонов заплачено (начиная с этой).</p>
           <div className="genres">{GENRES.map((g) => <button key={g} className={genre === g ? 'selected' : ''} onClick={() => setGenre(g)}><GenreChip g={g} /> {GENRE_NAMES[g]}</button>)}</div>
           <label>Пятилеток: <input type="number" min={1} max={maxRounds} value={num} onChange={(e) => setNum(Number(e.target.value))} /></label>
-          {confirmBtn(`Подписаться за ${num}т`, num >= 1 && num <= maxRounds && num <= me.talons ? { address: 'podpiska', genre, talons: num } : null)}
+          {confirmBtn(`Подписаться${costTag(priceFor(view, me, num))}`, num >= 1 && num <= maxRounds && num <= me.talons ? { address: 'podpiska', genre, talons: num } : null)}
         </>
       );
       break;
@@ -532,12 +552,12 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
     case 'samizdat':
     case 'tamizdat': {
       const ok = (c: string) => isExposed(view, c) || !['propaganda', 'loadPropaganda'].includes(view.cards[c].kind) && (isGenreBook(view, c) && !isEvidence(view, c) || (id === 'tamizdat' && isEvidence(view, c)));
-      const n = sel[0] ? iconsOf(view, sel[0]).length + (isExposed(view, sel[0]) ? 1 : 0) : 0;
+      const n = sel[0] ? iconCount(view, sel[0]) + (isExposed(view, sel[0]) ? 1 : 0) : 0;
       body = (
         <>
           <p>Издайте одну книгу: она навсегда спасена, место на складе освобождается, а в подсчёте по Пристрастию книга участвует. {id === 'tamizdat' ? `+${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка за значок.` : `+${RULES.samizdatTalons}т за значок.`}</p>
           {pickList(mine.filter(ok), sel, setSel, { max: 1 })}
-          {confirmBtn('Издать', sel.length ? { address: id, card: sel[0] } : null, sel.length ? `+${n * (id === 'tamizdat' ? RULES.tamizdatTalons : RULES.samizdatTalons)}т${id === 'tamizdat' ? `, +${n * RULES.tamizdatPoints} оч.` : ''}` : undefined)}
+          {confirmBtn(`Издать${sel.length ? costTag(-n * (id === 'tamizdat' ? RULES.tamizdatTalons : RULES.samizdatTalons), id === 'tamizdat' ? n * RULES.tamizdatPoints : 0) : ''}`, sel.length ? { address: id, card: sel[0] } : null)}
         </>
       );
       break;
@@ -560,8 +580,7 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
               <input type="number" style={{ width: 64 }} min={0} max={sel.length} value={loads} onChange={(e) => setLoadN(Number(e.target.value))} />
               Непечатных: <b>{sel.length - loads}</b></div>
           )}
-          {confirmBtn('Сдать в Главлит', sel.length ? { address: 'glavlit', cards: sel, draws } : null,
-            sel.length ? `+${sel.length * RULES.glavlitTalons}т${editor && pts ? `, +${pts} оч.` : ''}` : undefined)}
+          {confirmBtn(`Сдать в Главлит${costTag(-sel.length * RULES.glavlitTalons, editor ? pts : 0)}`, sel.length ? { address: 'glavlit', cards: sel, draws } : null)}
         </>
       );
       break;
@@ -599,7 +618,7 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
         <>
           {veteran && <p className="muted small">Ветеран: купите сколько угодно книг, в сумме на 1 Талон дешевле.</p>}
           {pickList(view.raspredelitel, sel, setSel, veteran ? {} : { max: 1 })}
-          {confirmBtn(veteran && sel.length > 1 ? 'Купить' : `Купить за ${RULES.raspredelitelPrice}т`, sel.length && free >= sel.length
+          {confirmBtn(`Купить${costTag(buyCost(view, me, (sel.length ? sel : ['']).map(() => RULES.raspredelitelPrice)))}`, sel.length && free >= sel.length
             ? { address: 'raspredelitel', card: sel[0], ...(sel.length > 1 ? { cards: sel } : {}) } : null)}
         </>
       );
@@ -609,7 +628,7 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
         <>
           <p>{info.hint}.{veteran && ' Ветеран: можно взять сколько угодно книг.'}</p>
           {pickList(view.agitpunkt ?? [], sel, setSel, veteran ? {} : { max: 1 })}
-          {confirmBtn('Взять', sel.length && free >= sel.length
+          {confirmBtn('Взять (даром)', sel.length && free >= sel.length
             ? { address: 'agitpunkt', card: sel[0], ...(sel.length > 1 ? { cards: sel } : {}) } : null, free < Math.max(1, sel.length) ? 'Нет места на складе' : undefined)}
         </>
       );
@@ -621,13 +640,13 @@ function AddressPanel({ id, sprout, view, me, close, place }: { id: AddressId; s
       body = <KontoraPanel view={view} place={place} />;
       break;
     case 'makulatura':
-      body = <><p>{info.hint}.</p>{confirmBtn('Пойти в Макулатуру', me.talons >= RULES.makulaturaPrice && free > 0 ? { address: 'makulatura' } : null,
+      body = <><p>{info.hint}.</p>{confirmBtn(`Пойти в Макулатуру (${priceFor(view, me, RULES.makulaturaPrice)}🎫 за книгу)`, me.talons >= RULES.makulaturaPrice && free > 0 ? { address: 'makulatura' } : null,
         free <= 0 ? 'Нет места на складе' : me.talons < RULES.makulaturaPrice ? 'Нужен хотя бы 1 Талон' : undefined)}</>;
       break;
     case 'nasledniki':
     case 'posrednichestvo':
     case 'spisanie':
-      body = <><p>{info.hint}</p>{confirmBtn(`Заплатить ${safehouseCost(id)}т`, me.talons >= safehouseCost(id) && free > 0 ? { address: id } : null,
+      body = <><p>{info.hint}</p>{confirmBtn(`Пойти${costTag(priceFor(view, me, safehouseCost(id)))}`, me.talons >= safehouseCost(id) && free > 0 ? { address: id } : null,
         free <= 0 ? 'Нет места на складе' : me.talons < safehouseCost(id) ? `Не хватает Талонов: нужно ${safehouseCost(id)}, у вас ${me.talons}` : undefined)}</>;
       break;
   }
@@ -884,7 +903,7 @@ function CopyTextPanel({ view, me, done }: { view: PlayerView; me: VPlayer; done
   // Несколько книг за одно действие — только с Ветераном (Тиражирование в этой форме — на Толкучке).
   const multiBuy = addr === 'tolkuchka' && hasPatron(view, me.id, 'veteran');
   const income = addr === 'tolkuchka' ? sell.reduce((s, c) => s + sellPrice(c), 0) : 0;
-  const cost = (swap ? 0 : bought.reduce((s, x) => s + x.price, 0)) - income;
+  const cost = (swap ? 0 : buyCost(view, me, bought.map((x) => x.price))) - income;
   const gives = addr === 'tolkuchka' || swap ? sell.length : 0;
   const room = free + gives - bought.length - (gift ? 1 : 0);
   const purchase: CopyTextBuy | null =
@@ -938,9 +957,9 @@ function CopyTextPanel({ view, me, done }: { view: PlayerView; me: VPlayer; done
       </div>
       <div className="modal-foot">
         <span className={room < 0 || halfSwap ? 'warn-text' : 'muted'}>
-          {cost >= 0 ? `−${cost}` : `+${-cost}`}т (у вас {me.talons}т){room < 0 ? ' · не хватает места на складе' : ''}{halfSwap ? ' · для обмена выберите обе книги' : ''}
+          у вас {me.talons}🎫{room < 0 ? ' · не хватает места на складе' : ''}{halfSwap ? ' · для обмена выберите обе книги' : ''}
         </span>
-        <button className="primary" disabled={!ok} onClick={() => done({ action: 'copyText', address: addr, buy: purchase, card: gift || null })}>Тиражировать</button>
+        <button className="primary" disabled={!ok} onClick={() => done({ action: 'copyText', address: addr, buy: purchase, card: gift || null })}>Тиражировать{costTag(cost)}</button>
       </div>
     </>
   );
@@ -993,7 +1012,7 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
             {p.seen.map((x) => (
               <div key={x.slot} className="col">
                 <Book v={view} id={x.card} />
-                <button className="primary small" disabled={me.talons < cost} onClick={() => act({ type: 'baraholkaBuy', slot: x.slot })}>Купить за {cost}т</button>
+                <button className="primary small" disabled={me.talons < cost} onClick={() => act({ type: 'baraholkaBuy', slot: x.slot })}>Купить{costTag(cost) || ' (даром)'}</button>
               </div>
             ))}
           </div>

@@ -89,6 +89,11 @@ export function title(state: GameState, id: string): string {
   return `${tag ? `[${tag}] ` : ''}«${c.title}»${back}`;
 }
 
+// Книги всегда списком, каждая с новой строки (стартовая раскладка).
+export function bulletTitles(state: GameState, ids: string[]): string {
+  return '\n' + ids.map((c) => `• ${title(state, c)}`).join('\n');
+}
+
 // Несколько книг: до двух — через запятую, больше — списком, каждая с новой строки.
 export function titles(state: GameState, ids: string[]): string {
   if (ids.length < 3) return ids.map((c) => title(state, c)).join(', ');

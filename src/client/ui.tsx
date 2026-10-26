@@ -1,4 +1,5 @@
 // Общие элементы интерфейса: карты книг, окна, жанры.
+import type React from 'react';
 import { createContext, useContext, useEffect, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { GENRE_NAMES, GENRE_SHORT, PASSIONS } from '../engine/content';
 import { BOT_PRESETS, presetById } from '../engine/bot-presets';
@@ -79,10 +80,10 @@ const KIND_LABEL: Record<string, string> = {
 };
 
 export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
-  v: PlayerView; id: string | null; selected?: boolean; onClick?: () => void; hidden?: boolean; small?: boolean; note?: string; price?: number;
+  v: PlayerView; id: string | null; selected?: boolean; onClick?: (e: React.MouseEvent) => void; hidden?: boolean; small?: boolean; note?: string; price?: number;
 }) {
   if (!id) {
-    return <div className={`book back ${small ? 'small' : ''}`} title="Книга взакрытую"><span>✦</span></div>;
+    return <div className={`book back ${small ? 'small' : ''} ${onClick ? 'clickable' : ''}`} title="Книга взакрытую" onClick={onClick}><span>✦</span></div>;
   }
   const c = v.cards[id];
   const icons = iconsOf(v, id);
