@@ -1,6 +1,24 @@
 // Подсказки. На ПК — обычный title при наведении. На телефоне — удержание пальцем на элементе с data-tip:
 // всплывает окошко с текстом; нажатие, которым была вызвана подсказка, не срабатывает как клик.
-// Слово «ЧНЛ» в окошке — значком; поэтому подсказки с ним и на ПК показываем своим окошком, а не title.
+// Слово «ЧНЛ» и метки книг вроде «[ПР ПО]» в окошке — значками; поэтому такие подсказки и на ПК показываем своим окошком, а не title.
+import { GENRE_SHORT } from '../engine/content';
+
+// Сокращение → класс значка: жанры, ЧНЛ, Улика.
+const CHIP_CLASS: Record<string, string> = {
+  ...Object.fromEntries(Object.entries(GENRE_SHORT).map(([g, short]) => [short, `g-${g}`])),
+  'ЧНЛ': 'k-chnl', 'УЛ': 'k-ul',
+};
+const BOOK_TAGS = new Set(['Нагрузка', 'Разоблачение', 'Любой жанр', 'Любой жанр ×2']);
+const TOKEN = /(\[[^\]\n]+\]|ЧНЛ)/;
+// Подсказка, которую стоит рисовать своим окошком: есть ЧНЛ или метка книги из значков.
+const rich = (text: string) => text.split(TOKEN).some((part) => chipsOf(part) !== null);
+
+// Метка «[ПР ПО]» или слово «ЧНЛ» → список классов значков (null — обычный текст).
+function chipsOf(part: string): string[] | null {
+  const inner = part.startsWith('[') && part.endsWith(']') ? part.slice(1, -1) : part;
+  const words = inner.split(' ');
+  return words.every((w) => CHIP_CLASS[w]) ? words : null;
+}
 const HOLD_MS = 450;
 let timer: ReturnType<typeof setTimeout> | undefined;
 let tip: HTMLDivElement | null = null;
@@ -17,12 +35,16 @@ function show(text: string, x: number, y: number) {
   hide();
   tip = document.createElement('div');
   tip.className = 'touch-tip';
-  for (const part of text.split(/(ЧНЛ)/)) {
-    if (part !== 'ЧНЛ') { tip.append(part); continue; }
-    const chip = document.createElement('span');
-    chip.className = 'chip k-chnl';
-    chip.textContent = 'ЧНЛ';
-    tip.append(chip);
+  for (const part of text.split(TOKEN)) {
+    const words = chipsOf(part);
+    // Метки книг без значка («[Нагрузка]») — словом, без скобок.
+    if (!words) { tip.append(BOOK_TAGS.has(part.slice(1, -1)) ? part.slice(1, -1) : part); continue; }
+    for (const w of words) {
+      const chip = document.createElement('span');
+      chip.className = `chip ${CHIP_CLASS[w]}`;
+      chip.textContent = w;
+      tip.append(chip);
+    }
   }
   document.body.appendChild(tip);
   const w = tip.offsetWidth;
@@ -69,11 +91,11 @@ document.addEventListener('mouseover', (e) => {
   const el = (e.target as Element | null)?.closest<HTMLElement>('[title], [data-tip]');
   if (el === hovered) return;
   const title = el?.getAttribute('title');
-  if (el && title?.includes('ЧНЛ')) {
+  if (el && title && rich(title)) {
     el.dataset.tip = title;
     el.removeAttribute('title');
   }
-  if (!el?.dataset.tip?.includes('ЧНЛ')) return;
+  if (!el?.dataset.tip || !rich(el.dataset.tip)) return;
   hovered = el;
   const r = el.getBoundingClientRect();
   show(el.dataset.tip, r.left + r.width / 2, r.top);
