@@ -997,9 +997,12 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         discard(state, a.drop);
         gaveAway(state, p, a.drop);
       }
-      const load = take ? drawLoad(state) : null;
+      // Склад переполнен (лишнее отдают позже) — и после отдачи места может не хватить: тогда Нагрузку не берёт.
+      const room = take && freeSlots(p) > 0;
+      const load = room ? drawLoad(state) : null;
       if (load) addBook(p, load);
       logAfter(state, !take ? '↳ Склад полон Нагрузки — новую не берёт.'
+        : !room ? `↳ Отдаёт ${title(state, a.drop!)}, но места для Нагрузки всё равно нет — не берёт.`
         : load ? `↳ Нагрузка: ${title(state, load)}${a.drop ? `; места нет — отдаёт ${title(state, a.drop)}` : ''}.` : '↳ Нагрузка кончилась.');
       return;
     }

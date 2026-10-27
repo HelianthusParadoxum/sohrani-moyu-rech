@@ -1985,6 +1985,18 @@ describe('Красный уголок: обязательная Нагрузка
     expect(after.warehouse.length).toBe(p.capacity);
   });
 
+  it('склад переполнен: отдав книгу, места всё равно нет — Нагрузку не берёт', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    p.capacity = p.warehouse.length - 1;
+    const unprinted = p.warehouse.find((w) => !isLoadCard(s, w.card))!.card;
+    const n = p.warehouse.length;
+    s = applyAction(s, me, { type: 'place', place: { address: 'redCorner', drop: unprinted } });
+    expect(s.players.find((x) => x.id === me)!.warehouse.length).toBe(n - 1);
+    expect(s.log.some((l) => l.text.includes('места для Нагрузки всё равно нет'))).toBe(true);
+  });
+
   it('склад весь в Нагрузке — новую не берёт', () => {
     let s = started();
     const me = s.order[s.turn];
