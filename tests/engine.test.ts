@@ -5,7 +5,7 @@ import { curatorSuspicion, curatorSuspicionDetail } from '../src/engine/bot-smar
 import { gainedInfo, viewFor } from '../src/engine/view';
 import { RuleError, cacheLimit, bestFeedBooks, coversStep, iconCount, title, iconsOf, isBanned, isEvidence, isLoad, isPropaganda, discard, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
 import { finalScoring, passionPoints, scoreLine } from '../src/engine/scoring';
-import { PASSIONS, RULES, SPROUTS, limitFor, sproutBonusOptions } from '../src/engine/content';
+import { PASSIONS, RULES, SPROUTS, limitFor, sproutBonusOptions, sproutSlotBonuses } from '../src/engine/content';
 import type { GameState, Genre, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
 import { proseBonus, removePatron, takeFromSpetskhran } from '../src/engine/full';
@@ -1467,7 +1467,7 @@ describe('Заповедник', () => {
 });
 
 describe('Ростки: места', () => {
-  it('у адреса мест сколько угодно, но у одного Ростка — не больше 2 ступеней за Пятилетку', () => {
+  it('у адреса мест сколько угодно, но у Ростка — по одному месту на каждый бонус за Пятилетку', () => {
     let s = createGame({ players: players(2), seed: 8 });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
     s = startOrders(s);
@@ -1477,9 +1477,13 @@ describe('Ростки: места', () => {
     const magic = Object.keys(s.cards).filter((c) => s.cards[c].kind === 'genre').slice(0, 3);
     for (const c of magic) s.cards[c] = { ...s.cards[c], icons: [info.main, info.main, ...info.steps.map((st) => st.support).filter(Boolean)] as Genre[] };
     for (const p of s.players) p.warehouse = magic.map((card) => ({ card, hidden: false }));
-    const feed = (st: GameState, card: string) => {
+    const feed = (st: GameState, card: string, slot?: number) => {
       const who = st.order[st.turn];
-      st = applyAction(st, who, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: [card] }] } });
+      st = applyAction(st, who, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: [card], slot }] } });
+      // Бонус — только тот, место которого занято.
+      const bonus = sproutSlotBonuses(st, info)[st.sproutRoundSlot![sp.id].at(-1)!];
+      const pb = st.pending[0] as { kind: string; options: string[] } | undefined;
+      if (pb?.kind === 'sproutBonus') expect(pb.options).toEqual([bonus]);
       // Бонус Ростка: берём первый, который не требует дополнительного выбора.
       const pend = st.pending[0] as { kind: string; options: string[] } | undefined;
       if (pend?.kind === 'sproutBonus') {
@@ -1488,8 +1492,12 @@ describe('Ростки: места', () => {
       }
       return st.turnDone === who ? applyAction(st, who, { type: 'endTurn' }) : st;
     };
-    s = feed(s, magic[0]);
+    s = feed(s, magic[0], 1);
+    // Второе место того же бонуса в эту Пятилетку уже занято.
+    expect(() => applyAction(s, s.order[s.turn], { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: [magic[1]], slot: 1 }] } }))
+      .toThrow(/уже занято/);
     s = feed(s, magic[1]);
+    expect(s.sproutRoundSlot![sp.id]).toEqual([1, 0]);
     expect(s.sprouts[0].progress).toBe(2);
     const who = s.order[s.turn];
     expect(() => applyAction(s, who, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: [magic[2]] }] } }))

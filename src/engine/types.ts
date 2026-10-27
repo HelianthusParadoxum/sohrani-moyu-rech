@@ -212,6 +212,7 @@ export interface GameState {
   reserve?: boolean; // «Заповедник»: полный режим без Конторы и Куратора
   sproutRound?: Record<string, string[]>; // кто в эту Пятилетку закрывал ступени каждого Ростка (места Ростка)
   sproutRoundN?: Record<string, number[]>; // ...и каким по счёту поручением игрока (номер на кружке)
+  sproutRoundSlot?: Record<string, number[]>; // ...и какое место (бонус) заняли: индекс в sproutSlotBonuses
   ironyDue?: Record<string, number>; // Ирония пущена в народ: сколько Талонов начислить в конце действия
   shownAtGathering?: Record<string, string[]>; // что каждый показал на Посиделках этой Пятилетки (опальное и Улики)
   cacheAtGathering?: Record<string, { unshown: number; shown: number }>; // опальное из Тайника на этих Посиделках: не показано / показано
@@ -267,7 +268,7 @@ export type PlaceAction =
   | { address: 'zavoz' }
   | { address: 'baraholka'; slots: number[] } // какие закрытые книги посмотреть
   | { address: 'podpiska'; genre: Genre; talons: number }
-  | { address: 'sprouts'; feeds: { sprout: string; books: string[] }[] }
+  | { address: 'sprouts'; feeds: { sprout: string; books: string[]; slot?: number }[] } // slot — место (бонус) Ростка; без него — первое свободное
   | { address: 'samizdat'; card: string }
   | { address: 'tamizdat'; card: string }
   | { address: 'glavlit'; cards: string[]; draws: ('unprinted' | 'load')[] } // draws — из какой стопки брать взамен каждой

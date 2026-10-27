@@ -11,7 +11,7 @@ import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
-  addSecretBook, cacheLimit, cloneJson, coversStep, freeSlots, genreOn, genresOf, hasPatron, iconCount, iconsOf, isBanned, isWild, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
+  addSecretBook, cacheLimit, cloneJson, coversStep, freeSlots, freeSproutSlots, genreOn, genresOf, hasPatron, iconCount, iconsOf, isBanned, isWild, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
 } from './util';
 
 type Rand = () => number;
@@ -870,7 +870,7 @@ export function rankActions(state: GameState, me: string, preset: BotPreset, ran
 }
 
 // Ступень у самого слабого Ростка из списка (только первые ступени каждого Ростка — их можно закрыть по отдельности).
-function lowestFeed(state: GameState, feeds: { sprout: string; books: string[] }[]) {
+function lowestFeed(state: GameState, feeds: { sprout: string; books: string[]; slot?: number }[]) {
   const first = feeds.filter((f, i) => feeds.findIndex((g) => g.sprout === f.sprout) === i);
   const progress = (f: { sprout: string }) => state.sprouts.find((sp) => sp.id === f.sprout)?.progress ?? 9;
   return first.sort((a, b) => progress(a) - progress(b))[0] ?? null;
@@ -938,9 +938,11 @@ function sproutCandidates(state: GameState, me: string, keep: Map<string, number
   const books = p.warehouse.map((s) => s.card).filter((c) => isGenreBook(state, c));
   const out: Action[] = [];
   for (const sp of state.sprouts) {
-    if ((state.sproutRound?.[sp.id]?.length ?? 0) >= RULES.sproutSlotsPerRound) continue; // места Ростка в эту Пятилетку заняты
+    const slots = freeSproutSlots(state, sp.id);
+    if (!slots.length) continue; // места Ростка в эту Пятилетку заняты
     const feed = cheapestFeed(state, me, books, sp.id, sp.progress, keep);
-    if (feed) out.push({ type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: feed }] } });
+    // По кандидату на каждое свободное место: бонусы разные, их сравнит оценка.
+    if (feed) for (const slot of slots) out.push({ type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: feed, slot }] } });
   }
   // Жадно: закрыть за одно действие всё, что получается.
   const progress = new Map(state.sprouts.map((s) => [s.id, s.progress]));

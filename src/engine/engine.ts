@@ -2,7 +2,7 @@
 // applyAction не меняет переданное состояние, а возвращает новое.
 import {
   ADDRESSES, CARDS, CLUB_ORDER, COPY_TEXT_ADDRESSES, GENRE_NAMES, GENRE_SHORT, GROUP_ACTIONS, KEEPERS, PASSIONS, PATRONS, PERMANENT_ADDRESSES, RULES, SAFEHOUSES,
-  SPECIALS, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, sproutBonusOptions, FIRST_FEED_POINTS, addressInGame, groupInGame, limitFor,
+  SPECIALS, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, sproutSlotBonuses, FIRST_FEED_POINTS, addressInGame, groupInGame, limitFor,
 } from './content';
 import { finalScoring } from './scoring';
 import {
@@ -348,6 +348,7 @@ function startRound(state: GameState, newSafehouse?: AddressId, prevCensorship?:
   state.occupancy = {};
   state.sproutRound = {};
   state.sproutRoundN = {};
+  state.sproutRoundSlot = {};
   state.nextOrder = [];
   delete state.turnDone;
   delete state.lastBuy;
@@ -1068,10 +1069,16 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         check(sp, 'Этого Ростка нет в игре');
         const info = SPROUTS.find((s) => s.id === sp.id)!;
         check(sp.progress < 4, `${info.name}: все ступени уже напитаны`);
-        // Росток растёт постепенно: за Пятилетку — не больше RULES.sproutSlotsPerRound ступеней.
-        const fedNow = (state.sproutRound ??= {})[sp.id] ?? [];
-        check(fedNow.length < RULES.sproutSlotsPerRound, `${info.name}: в эту Пятилетку на этом Ростке уже напитано ${RULES.sproutSlotsPerRound} ступени — ждите следующей`);
-        state.sproutRound[sp.id] = [...fedNow, p.id];
+        // Росток растёт постепенно: у каждого его бонуса — одно место на Пятилетку.
+        const slots = sproutSlotBonuses(state, info);
+        const taken = (state.sproutRoundSlot ??= {})[sp.id] ?? [];
+        const slot = f.slot ?? slots.findIndex((_, i) => !taken.includes(i));
+        check(slot >= 0 || f.slot !== undefined, `${info.name}: в эту Пятилетку все места Ростка уже заняты — ждите следующей`);
+        check(Number.isInteger(slot) && slot >= 0 && slot < slots.length, 'Нет такого бонуса у Ростка');
+        const slotName = slots[slot] ? SPROUT_BONUS_NAMES[slots[slot]!] : 'без бонуса';
+        check(!taken.includes(slot), `${info.name}: место «${slotName}» в эту Пятилетку уже занято — выберите другой бонус или ждите следующей`);
+        state.sproutRoundSlot[sp.id] = [...taken, slot];
+        state.sproutRound = { ...state.sproutRound, [sp.id]: [...(state.sproutRound?.[sp.id] ?? []), p.id] };
         // Поручение ещё не записано в p.actions (это делается после doPlace) — его номер следующий.
         (state.sproutRoundN ??= {})[sp.id] = [...(state.sproutRoundN[sp.id] ?? []), p.actions.length + 1];
         const step = info.steps[sp.progress];
@@ -1104,8 +1111,10 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
           text += `, +${pointsText(FIRST_FEED_POINTS)} за первое питание`;
         }
         log(state, text + '.');
-        const options = sproutBonusOptions(state, info).filter((b) => b !== 'acquaintance' || befriendTargets(state, p.id).length > 0);
-        state.pending.push({ kind: 'sproutBonus', player: p.id, sprout: sp.id, options });
+        const bonus = slots[slot];
+        const options = bonus && (bonus !== 'acquaintance' || befriendTargets(state, p.id).length > 0) ? [bonus] : [];
+        if (options.length) state.pending.push({ kind: 'sproutBonus', player: p.id, sprout: sp.id, options });
+        else logAfter(state, bonus ? `↳ ${SPROUT_BONUS_NAMES[bonus]}: знакомиться не с кем.` : '↳ Бонуса у этого места нет.');
       }
       return;
     }

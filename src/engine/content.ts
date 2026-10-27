@@ -107,7 +107,6 @@ export const RULES = {
   petitionMax: 1, // Контора, Ходатайство: скольких удержанных Единомышленников можно вернуть
   spetskhranStart: 5, // полный режим: столько Непечатных лежит в Спецхране Конторы с начала партии
   proseBonusMax: 1, // Проза «Вдохновиться»: не больше стольких очков за действие, сколько бы прозы ни было
-  sproutSlotsPerRound: 2, // сколько ступеней одного Ростка можно закрыть за Пятилетку (всеми игроками вместе)
   sproutFeedsPerAction: 1, // сколько ступеней (у разных Ростков) можно закрыть одним поручением «Ростки Гласности»
   // «Несистемный» — одиночная игра.
   soloSprouts: { beginner: 2, full: 3 }, // Ростков на партию
@@ -159,7 +158,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   zavoz: { id: 'zavoz', name: 'Развоз', limits: [1, 1, 2], short: '+2т, новый Развал', hint: '+2т, Развал полностью обновляется' },
   baraholka: { id: 'baraholka', name: 'Барахолка', limits: [4, 4, 4], short: 'Глянуть 2 вслепую, купить 1 за 1т', hint: 'Тайно посмотреть 2 из 4 закрытых книг и купить одну из них за 1т' },
   podpiska: { id: 'podpiska', name: 'Подписка', limits: [1, 1, 1], safehouse: true, short: 'Заказать жанр', hint: 'Заказать жанр: −1т за каждую Пятилетку доставки' },
-  sprouts: { id: 'sprouts', name: 'Ростки Гласности', limits: [INF, INF, INF], short: 'Питать ступень Ростка', hint: (RULES.sproutFeedsPerAction === 1 ? 'Питать 1 ступень одного Ростка' : `Питать до ${RULES.sproutFeedsPerAction} ступеней Ростков`) + `; у каждого Ростка — не больше ${RULES.sproutSlotsPerRound} ступеней за Пятилетку` },
+  sprouts: { id: 'sprouts', name: 'Ростки Гласности', limits: [INF, INF, INF], short: 'Питать ступень Ростка', hint: (RULES.sproutFeedsPerAction === 1 ? 'Питать 1 ступень одного Ростка' : `Питать до ${RULES.sproutFeedsPerAction} ступеней Ростков`) + '; у каждого бонуса Ростка — одно место на Пятилетку' },
   samizdat: { id: 'samizdat', name: 'Самиздат', limits: [1, 2, 3], short: `Издать: +${RULES.samizdatTalons}т/значок`, hint: `Издать книгу: +${RULES.samizdatTalons}т/значок` },
   tamizdat: { id: 'tamizdat', name: 'Тамиздат', limits: [1, 1, 2], short: `Издать: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка/значок`, hint: `Издать книгу: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка/значок` },
   glavlit: { id: 'glavlit', name: 'Главлит', limits: [1, 1, 2], short: `Сдать опальные (+${RULES.glavlitTalons}т) — взять столько же вслепую`, hint: `Отдать любое число подцензурных книг (+${RULES.glavlitTalons}т за каждую) и взять столько же из стопок Непечатных и Нагрузки на выбор` },
@@ -238,12 +237,17 @@ export const SPROUT_BONUS_NAMES: Record<SproutBonusId, string> = {
   acquaintance: 'Завязать знакомство',
 } as Record<SproutBonusId, string>;
 
-// Бонусы Ростка в этой партии: в полном режиме (и в Заповеднике) Приработок заменён на «Завязать знакомство» —
-// связь с любым Завсегдатаем без книги; Вызволение — только там, где есть Контора.
+// Места Ростка: у каждого из двух бонусов — своё место на Пятилетку (бонус берёт тот, кто занял место).
+// В полном режиме (и в Заповеднике) Приработок заменён на «Завязать знакомство» — связь с любым Завсегдатаем без книги;
+// Вызволение — только там, где есть Контора, иначе место остаётся, но без бонуса (null).
+export function sproutSlotBonuses(game: { mode: string; reserve?: boolean }, info: SproutInfo): (SproutBonusId | null)[] {
+  return info.bonuses.map((b) => (b === 'sideJob' && game.mode === 'full' ? 'acquaintance'
+    : b === 'rescue' && !(game.mode === 'full' && !game.reserve) ? null : b));
+}
+
+// Бонусы Ростка в этой партии.
 export function sproutBonusOptions(game: { mode: string; reserve?: boolean }, info: SproutInfo): SproutBonusId[] {
-  return info.bonuses
-    .map((b) => (b === 'sideJob' && game.mode === 'full' ? 'acquaintance' : b))
-    .filter((b) => b !== 'rescue' || (game.mode === 'full' && !game.reserve));
+  return sproutSlotBonuses(game, info).filter((b): b is SproutBonusId => b !== null);
 }
 
 // Ступень Ростка: сколько значков основного жанра и какой жанр поддержки.

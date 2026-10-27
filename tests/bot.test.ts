@@ -3,7 +3,7 @@ import { activePlayers as activePlayersOf, applyAction, createGame } from '../sr
 import { botMove, playOut } from '../src/engine/bot';
 import { curatorSuspicion, effectiveCuratorStyle, rankActions } from '../src/engine/bot-smart';
 import { BOT_BASE, BOT_GOALS, BOT_PRESETS, CURATOR_STYLES, curatorStyle, curatorStyleNote, presetById } from '../src/engine/bot-presets';
-import { isBanned, isGenreBook } from '../src/engine/util';
+import { isBanned, isEvidence, isGenreBook } from '../src/engine/util';
 import { RULES } from '../src/engine/content';
 import type { GameState } from '../src/engine/types';
 
@@ -205,7 +205,8 @@ describe('думающий бот', () => {
     expect(s.phase).toBe('gathering');
     const me = s.order[0];
     const before = s.players.find((p) => p.id === me)!;
-    const banned = before.warehouse.filter((w) => isGenreBook(s, w.card) && isBanned(s, w.card)).length;
+    // Улики показывать тоже выгодно — они дают те же очки.
+    const banned = before.warehouse.filter((w) => isGenreBook(s, w.card) && isBanned(s, w.card) || isEvidence(s, w.card)).length;
     const points = before.points;
     s = botMove(s, me, rand);
     expect(s.players.find((p) => p.id === me)!.points).toBe(points + banned * RULES.gatheringPoints);

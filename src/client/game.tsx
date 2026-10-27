@@ -2,12 +2,12 @@
 import { createContext, Fragment, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   ADDRESSES, ADDRESS_ICONS, addressLabel, BONUS_ICONS, GROUP_ICONS, ICON_JOIN, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, groupCost, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
-  groupInGame, PATRONS, sproutBonusOptions,
+  groupInGame, PATRONS, sproutSlotBonuses,
 } from '../engine/content';
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
-import { bestFeedBooks, coversStep, genresOf, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, roman } from '../engine/util';
+import { bestFeedBooks, coversStep, freeSproutSlots, genresOf, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, roman } from '../engine/util';
 import { kontoraTargets } from '../engine/full';
 import {
   BefriendPicker, ClubContents, fittingBooks, patronOpen, patronWhy, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
@@ -21,7 +21,7 @@ type VPlayer = PlayerView['players'][number];
 // Нажали на недоступное — объяснить почему (окно «Сейчас нельзя»).
 const Explain = createContext<(why: string) => void>(() => {});
 
-type Panel = { kind: 'address'; id: AddressId; sprout?: string; patron?: PatronId; pick?: string } | { kind: 'group'; id: GroupActionId } | { kind: 'cache' } | null;
+type Panel = { kind: 'address'; id: AddressId; sprout?: string; slot?: number; patron?: PatronId; pick?: string } | { kind: 'group'; id: GroupActionId } | { kind: 'cache' } | null;
 
 const PHASE_NAMES: Record<string, string> = {
   passion: 'Выбор Пристрастий', setupCache: 'Тайники перед началом', orders: 'Поручения', gathering: 'Посиделки', ambush: 'Засада?', hiding: 'Укрытие', end: 'Конец Застоя',
@@ -192,7 +192,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
           <div className="addresses">
             {full && card('club')}
             <Sprouts view={view} me={me} beside={full && !view.reserve} seatIndex={seatIndex}
-              onOpen={enabledFor('sprouts') ? (sprout) => setPanel({ kind: 'address', id: 'sprouts', sprout }) : undefined} why={addressWhy('sprouts')} turnWhy={addressWhy('sprouts', false)}
+              onOpen={enabledFor('sprouts') ? (sprout, slot) => setPanel({ kind: 'address', id: 'sprouts', sprout, slot }) : undefined} why={addressWhy('sprouts')} turnWhy={addressWhy('sprouts', false)}
               head={<AddressHead id="sprouts" view={view} seatIndex={seatIndex} me={me} enabled={enabledFor('sprouts')} onOpen={() => setPanel({ kind: 'address', id: 'sprouts' })}
                 rightHint={SPROUTS_TIP} />} />
             {full && !view.reserve && card('kontora')}
@@ -218,7 +218,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
         <ClubGiftModal view={view} me={me} act={act} close={() => setPanel(null)} patron={panel.patron} />
       )}
       {panel?.kind === 'address' && !(panel.id === 'club' && RULES.clubFreeGift) && me && (
-        <AddressPanel id={panel.id} sprout={panel.sprout} pick={panel.pick} view={view} me={me} close={() => setPanel(null)} place={(place) => { act({ type: 'place', place }); setPanel(null); }} />
+        <AddressPanel id={panel.id} sprout={panel.sprout} slot={panel.slot} pick={panel.pick} view={view} me={me} close={() => setPanel(null)} place={(place) => { act({ type: 'place', place }); setPanel(null); }} />
       )}
       {panel?.kind === 'cache' && me && (
         <CacheModal view={view} me={me} close={() => setPanel(null)} done={(hidden) => { act({ type: 'hiding', hidden }); setPanel(null); }} />
@@ -297,17 +297,23 @@ function sproutOpen(view: PlayerView, me: VPlayer, sp: PlayerView['sprouts'][num
   const info = SPROUTS.find((s) => s.id === sp.id)!;
   const next = info.steps[sp.progress];
   const mine = me.warehouse.map((s) => s.card!).filter(Boolean);
-  return !!next && (view.sproutRound?.[sp.id]?.length ?? 0) < RULES.sproutSlotsPerRound
+  return !!next && freeSproutSlots(view, sp.id).length > 0
     && coversStep(view, mine, info.main, next.main, next.support, { wildScifi: view.mode === 'full', labtech: hasPatron(view, me.id, 'labtech') });
 }
 
-// Почему этот Росток сейчас не покормить (null — можно).
-function sproutWhy(view: PlayerView, me: VPlayer, sp: PlayerView['sprouts'][number]): string | null {
+// Название места Ростка: его бонус (или «без бонуса», если бонуса в этом режиме нет).
+const slotLabel = (view: PlayerView, me: VPlayer | null, b: SproutBonusId | null) => (b ? withPrice(view, me, b) : 'без бонуса');
+
+// Почему этот Росток (или его место с бонусом slot) сейчас не покормить (null — можно).
+function sproutWhy(view: PlayerView, me: VPlayer, sp: PlayerView['sprouts'][number], slot?: number): string | null {
   const info = SPROUTS.find((s) => s.id === sp.id)!;
   const next = info.steps[sp.progress];
   if (!next) return `Росток «${info.name}» уже дорощен до конца.`;
-  if ((view.sproutRound?.[sp.id]?.length ?? 0) >= RULES.sproutSlotsPerRound) {
-    return `Росток «${info.name}» в эту Пятилетку уже питали ${RULES.sproutSlotsPerRound} раза — места заняты до следующей Пятилетки.`;
+  if (!freeSproutSlots(view, sp.id).length) {
+    return `На Ростке «${info.name}» в эту Пятилетку оба бонуса уже взяты — места заняты до следующей Пятилетки.`;
+  }
+  if (slot !== undefined && !freeSproutSlots(view, sp.id).includes(slot)) {
+    return `Бонус «${slotLabel(view, me, sproutSlotBonuses(view, info)[slot])}» Ростка «${info.name}» в эту Пятилетку уже взят. Каждый бонус Ростка — одно место на Пятилетку.`;
   }
   if (sproutOpen(view, me, sp)) return null;
   const need = `${Array.from({ length: next.main }, () => `[${GENRE_SHORT[info.main]}]`).join(' ')}${next.support ? ` и значок поддержки [${GENRE_SHORT[next.support]}]` : ''}`;
@@ -480,7 +486,7 @@ function AddressContents({ id, view, seatIndex, me, onPatron, onBlocked, onPick 
   }
 }
 
-function AddressPanel({ id, sprout, pick, view, me, close, place }: { id: AddressId; sprout?: string; pick?: string; view: PlayerView; me: VPlayer; close: () => void; place: (p: PlaceAction) => void }) {
+function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: AddressId; sprout?: string; slot?: number; pick?: string; view: PlayerView; me: VPlayer; close: () => void; place: (p: PlaceAction) => void }) {
   const info = ADDRESSES[id];
   const mine = me.warehouse.map((s) => s.card!).filter(Boolean);
   const free = me.capacity - me.warehouse.filter((s) => !s.memorized).length;
@@ -617,7 +623,7 @@ function AddressPanel({ id, sprout, pick, view, me, close, place }: { id: Addres
       break;
     }
     case 'sprouts':
-      body = <SproutFeeder view={view} me={me} place={place} initial={sprout} />;
+      body = <SproutFeeder view={view} me={me} place={place} initial={sprout} initialSlot={slot} />;
       break;
     case 'samizdat':
     case 'tamizdat': {
@@ -740,7 +746,7 @@ function stepText(main: Genre, step: { main: number; support?: Genre }) {
 const SPROUTS_TIP = `${ADDRESSES.sprouts.hint}. Гласность: ${RULES.glasnostAllSprouts ? 'все Ростки' : 'хотя бы один Росток'} до ступени ${roman(RULES.glasnostStep)}.`;
 
 // why — почему Ростки недоступны целиком; turnWhy — то же без причин самих Ростков (тогда объясняем про конкретный Росток).
-function Sprouts({ view, me, beside, seatIndex, head, onOpen, why, turnWhy }: { view: PlayerView; me: VPlayer | null; beside: boolean; seatIndex: (id: string) => number; head: ReactNode; onOpen?: (sprout?: string) => void; why?: string | null; turnWhy?: string | null }) {
+function Sprouts({ view, me, beside, seatIndex, head, onOpen, why, turnWhy }: { view: PlayerView; me: VPlayer | null; beside: boolean; seatIndex: (id: string) => number; head: ReactNode; onOpen?: (sprout?: string, slot?: number) => void; why?: string | null; turnWhy?: string | null }) {
   const explain = useContext(Explain);
   return (
     <div className={`sprouts-panel address addr-sprouts ${beside ? 'beside' : ''} ${onOpen ? 'can' : ''}`} onClick={onOpen ? () => onOpen() : why ? () => explain(why) : undefined}
@@ -760,17 +766,7 @@ function Sprouts({ view, me, beside, seatIndex, head, onOpen, why, turnWhy }: { 
               const w = turnWhy ?? (me ? sproutWhy(view, me, sp) : null) ?? why;
               if (w) explain(w);
             }}>
-            <div className="addr-head"><b>{info.name}</b>
-              <span className="workers" title={`Места в эту Пятилетку: не больше ${RULES.sproutSlotsPerRound} ступеней`}>
-                {Array.from({ length: RULES.sproutSlotsPerRound }, (_, i) => {
-                  const pid = view.sproutRound?.[sp.id]?.[i];
-                  const n = view.sproutRoundN?.[sp.id]?.[i];
-                  return pid
-                    ? <span key={i} className="dot num" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} title={n ? `${n}-е действие игрока` : undefined}>{n ?? ''}</span>
-                    : <span key={i} className="dot num slot-free" />;
-                })}
-              </span>
-            </div>
+            <div className="addr-head"><b>{info.name}</b></div>
             <ol className="steps">
               {info.steps.map((st, i) => (
                 <li key={i} className={i < sp.progress ? 'done' : i === sp.progress ? 'next' : ''}>
@@ -779,7 +775,29 @@ function Sprouts({ view, me, beside, seatIndex, head, onOpen, why, turnWhy }: { 
                 </li>
               ))}
             </ol>
-            <div className="muted bonus" title="Бонус за питание ступени (одно на выбор)">Бонус: {sproutBonusOptions(view, info).map((b) => withPrice(view, me, b)).join(' / ')}</div>
+            {/* Места Ростка: у каждого бонуса — своё место на Пятилетку; нажатие на свободное — питать ступень с этим бонусом. */}
+            <div className="bonus-slots" title="Бонус за питание ступени: у каждого бонуса — одно место на Пятилетку">
+              {sproutSlotBonuses(view, info).map((b, i) => {
+                const k = (view.sproutRoundSlot?.[sp.id] ?? []).indexOf(i);
+                const pid = k >= 0 ? view.sproutRound?.[sp.id]?.[k] : undefined;
+                const n = k >= 0 ? view.sproutRoundN?.[sp.id]?.[k] : undefined;
+                const can = open && k < 0;
+                return (
+                  <div key={i} className={`bonus-slot ${can ? 'can' : ''}`} role={can ? 'button' : undefined}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (can) { onOpen!(sp.id, i); return; }
+                      const w = turnWhy ?? (me ? sproutWhy(view, me, sp, i) : null) ?? why;
+                      if (w) explain(w);
+                    }}>
+                    {pid
+                      ? <span className="dot num" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} title={n ? `${n}-е действие игрока` : undefined}>{n ?? ''}</span>
+                      : <span className="dot num slot-free" />}
+                    <span className="muted bonus">{slotLabel(view, me, b)}</span>
+                  </div>
+                );
+              })}
+            </div>
             {/* Кто хоть раз вкладывался в этот Росток (+2 очка за первое питание): слот на каждого игрока. */}
             <div className="fed-row muted small" title={`Вложились в этот Росток (+${FIRST_FEED_POINTS} очка за первое вложение)`}>
               Вложились:{' '}
@@ -796,8 +814,8 @@ function Sprouts({ view, me, beside, seatIndex, head, onOpen, why, turnWhy }: { 
   );
 }
 
-function SproutFeeder({ view, me, place, initial }: { view: PlayerView; me: VPlayer; place: (p: PlaceAction) => void; initial?: string }) {
-  const [feeds, setFeeds] = useState<{ sprout: string; books: string[]; labtech?: boolean }[]>([]);
+function SproutFeeder({ view, me, place, initial, initialSlot }: { view: PlayerView; me: VPlayer; place: (p: PlaceAction) => void; initial?: string; initialSlot?: number }) {
+  const [feeds, setFeeds] = useState<{ sprout: string; books: string[]; slot?: number; labtech?: boolean }[]>([]);
   const progressOf = (id: string, fs = feeds) => view.sprouts.find((s) => s.id === id)!.progress + fs.filter((f) => f.sprout === id).length;
   const wildScifi = view.mode === 'full';
   // Сразу отмечаем лучшие книги для ступени: меньше всего значков суммарно.
@@ -812,6 +830,9 @@ function SproutFeeder({ view, me, place, initial }: { view: PlayerView; me: VPla
   };
   const [sprout, setSprout] = useState<string>(initial ?? '');
   const [books, setBooks] = useState<string[]>(() => (initial ? suggest(initial) : []));
+  // Место (бонус) Ростка: свободное, по умолчанию — то, на которое нажали, иначе первое свободное.
+  const freeSlots = (id: string) => freeSproutSlots(view, id).filter((i) => !feeds.some((f) => f.sprout === id && f.slot === i));
+  const [slot, setSlot] = useState<number | undefined>(() => (initial ? (initialSlot ?? freeSproutSlots(view, initial)[0]) : undefined));
   const used = feeds.flatMap((f) => f.books);
   const mine = me.warehouse.map((s) => s.card!).filter((c) => c && !used.includes(c));
   const info = SPROUTS.find((s) => s.id === sprout);
@@ -829,7 +850,7 @@ function SproutFeeder({ view, me, place, initial }: { view: PlayerView; me: VPla
           const inf = SPROUTS.find((s) => s.id === sp.id)!;
           const pr = progressOf(sp.id);
           return (
-            <button key={sp.id} disabled={pr >= 4 || (view.sproutRound?.[sp.id]?.length ?? 0) >= RULES.sproutSlotsPerRound} className={sprout === sp.id ? 'selected' : ''} onClick={() => { setSprout(sp.id); setBooks(suggest(sp.id)); }}>
+            <button key={sp.id} disabled={pr >= 4 || !freeSlots(sp.id).length} className={sprout === sp.id ? 'selected' : ''} onClick={() => { setSprout(sp.id); setBooks(suggest(sp.id)); setSlot(freeSlots(sp.id)[0]); }}>
               {inf.name} · ступень {roman(pr + 1)}: {pr < 4 ? stepText(inf.main, inf.steps[pr]) : '—'}
             </button>
           );
@@ -837,13 +858,20 @@ function SproutFeeder({ view, me, place, initial }: { view: PlayerView; me: VPla
       </div>
       {info && step && (
         <>
+          <h4>Бонус</h4>
+          <div className="genres">
+            {sproutSlotBonuses(view, info).map((b, i) => (
+              <button key={i} disabled={!freeSlots(sprout).includes(i)} className={slot === i ? 'selected' : ''} onClick={() => setSlot(i)}
+                title={freeSlots(sprout).includes(i) ? undefined : 'Этот бонус в эту Пятилетку уже взят'}>{slotLabel(view, me, b)}</button>
+            ))}
+          </div>
           <h4>Книги для ступени {roman(progressOf(sprout) + 1)}</h4>
           <div className="shelf wrap">
             {mine.map((c) => <Book key={c} v={view} id={c} selected={books.includes(c)} onClick={() => setBooks(toggle(books, c))} />)}
           </div>
           {feeds.length + 1 >= RULES.sproutFeedsPerAction
-            ? <button className="primary" disabled={!ok} onClick={() => place({ address: 'sprouts', feeds: [...feeds, { sprout, books }] })}>Питать ступень{discount ? ' (скидка Лаборанта)' : ''}</button>
-            : <button disabled={!ok} onClick={() => { const fs = [...feeds, { sprout, books, labtech: discount }]; setFeeds(fs); setBooks(suggest(sprout, fs)); }}>Добавить ступень{discount ? ' (скидка Лаборанта)' : ''}</button>}
+            ? <button className="primary" disabled={!ok || slot === undefined} onClick={() => place({ address: 'sprouts', feeds: [...feeds.map(({ labtech: _, ...f }) => f), { sprout, books, slot }] })}>Питать ступень{discount ? ' (скидка Лаборанта)' : ''}</button>
+            : <button disabled={!ok || slot === undefined} onClick={() => { const fs = [...feeds, { sprout, books, slot, labtech: discount }]; setFeeds(fs); setBooks(suggest(sprout, fs)); setSlot(undefined); }}>Добавить ступень{discount ? ' (скидка Лаборанта)' : ''}</button>}
         </>
       )}
       {feeds.length > 0 && (
@@ -851,7 +879,7 @@ function SproutFeeder({ view, me, place, initial }: { view: PlayerView; me: VPla
       )}
       {RULES.sproutFeedsPerAction > 1 && (
         <div className="modal-foot">
-          <button className="primary" disabled={!feeds.length} onClick={() => place({ address: 'sprouts', feeds })}>Питать ступени ({feeds.length})</button>
+          <button className="primary" disabled={!feeds.length} onClick={() => place({ address: 'sprouts', feeds: feeds.map(({ labtech: _, ...f }) => f) })}>Питать ступени ({feeds.length})</button>
         </div>
       )}
     </>
@@ -1185,7 +1213,7 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
       }
       return (
         <Modal title={p.kind === 'sproutBonus' ? `Бонус Ростка «${SPROUTS.find((s) => s.id === p.sprout)!.name}»` : p.kind === 'extraGroup' ? 'Подмастерье: действие Группы' : 'Действие Инициативной группы'}>
-          <p>{p.kind === 'sproutBonus' ? workerIcon('Выберите одно действие. Оно не требует 👤; собственную цену действия платите как обычно.')
+          <p>{p.kind === 'sproutBonus' ? workerIcon('Бонус занятого вами места Ростка. Он не требует 👤; собственную цену действия платите как обычно. Можно отказаться.')
             : p.kind === 'extraGroup' ? 'Повторите одно из действий Группы, уже сделанных в эту Пятилетку.' : 'Выполните одно действие Группы.'}</p>
           <div className="genres">
             {options.map((o) => (

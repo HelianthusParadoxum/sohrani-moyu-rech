@@ -8,7 +8,7 @@ import { PERMANENT_ADDRESSES, RULES, SPROUTS } from './content';
 import { befriendTargets } from './full';
 import type { Action, ClubGift, GameState, Genre, GroupAction } from './types';
 import { GENRES } from './types';
-import { cacheLimit, freeSlots, genresOf, iconCount, iconsOf, isBanned, isLoad, isPropaganda, player, RuleError } from './util';
+import { cacheLimit, freeSlots, freeSproutSlots, genresOf, iconCount, iconsOf, isBanned, isLoad, isPropaganda, player, RuleError } from './util';
 
 type Rand = () => number;
 
@@ -101,7 +101,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
               const step = info.steps[sp.progress];
               if (!step) continue;
               const chosen = chooseBooks(state, books, info.main, step.main, step.support);
-              if (chosen) out.push({ type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: chosen }] } });
+              if (chosen) for (const slot of freeSproutSlots(state, sp.id)) out.push({ type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: chosen, slot }] } });
             }
             break;
           }

@@ -1,5 +1,5 @@
 // Вспомогательные функции: случайность, карты, игроки.
-import { GENRE_SHORT, RULES } from './content';
+import { GENRE_SHORT, RULES, SPROUTS, sproutSlotBonuses } from './content';
 import type { GameState, Genre, PatronId, PlayerState, PointSource } from './types';
 import { GENRES } from './types';
 
@@ -398,4 +398,11 @@ export function seeSpetskhran(state: GameState, playerId: string, cards: string[
 // Книга покинула Спецхран — помнить её там больше незачем.
 export function forgetSpetskhran(state: GameState, card: string) {
   for (const id of Object.keys(state.spetskhranSeen ?? {})) state.spetskhranSeen![id] = state.spetskhranSeen![id].filter((c) => c !== card);
+}
+
+// Свободные места Ростка в эту Пятилетку (индексы в sproutSlotBonuses).
+export function freeSproutSlots(state: Pick<GameState, 'mode' | 'reserve' | 'sproutRoundSlot'>, sprout: string): number[] {
+  const info = SPROUTS.find((s) => s.id === sprout)!;
+  const taken = state.sproutRoundSlot?.[sprout] ?? [];
+  return sproutSlotBonuses(state, info).map((_, i) => i).filter((i) => !taken.includes(i));
 }
