@@ -1,7 +1,7 @@
 // Игровой стол.
 import { createContext, Fragment, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
-  ADDRESSES, ADDRESS_ICONS, addressLabel, GROUP_ICONS, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, groupCost, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
+  ADDRESSES, ADDRESS_ICONS, addressLabel, GROUP_ICONS, ICON_JOIN, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, groupCost, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
   groupInGame, PATRONS, sproutBonusOptions,
 } from '../engine/content';
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
@@ -268,7 +268,7 @@ function groupPrice(view: PlayerView, p: VPlayer | null, id: string): string {
 const withPrice = (view: PlayerView, p: VPlayer | null, id: string) => {
   const price = groupPrice(view, p, id);
   const icon = GROUP_ICONS[id as GroupActionId];
-  return `${price ? `${price} ` : ''}${icon ?? ''}${SPROUT_BONUS_NAMES[id as SproutBonusId]}`;
+  return `${price ? `${price} ` : ''}${icon ? icon + ICON_JOIN : ''}${SPROUT_BONUS_NAMES[id as SproutBonusId]}`;
 };
 
 // Цена покупок одного действия — как в движке (purchases): Скупщик на первую, Ветеран — минус 1 Талон на всё действие.
@@ -417,7 +417,7 @@ function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint, rig
   const freeClub = id === 'club' && RULES.clubFreeGift;
   return (
       <div className="addr-head">
-        <b>{ADDRESS_ICONS[id]}{info.name}</b>
+        <b>{ADDRESS_ICONS[id]}{ICON_JOIN}{info.name}</b>
         {inlineHint && <span className="hint inline">{iconize(info.short)}{freeClub && ' (1 раз за поручение, 👤 не нужен)'}</span>}
         <span className="workers">
           {rightHint && <span className="hint inline right" title={iconize(rightHint)} data-tip={iconize(rightHint)}>{iconize(info.short)}</span>}
@@ -1513,7 +1513,7 @@ function MyPanel({ view, me, color, groupWhy, onGroup, onMemorize, onCache }: {
             <button key={g} className={`small ${groupBlocker(view, me, g) ? 'short' : ''} ${groupWhy(g) ? 'off' : ''}`}
               title={me.groupUsed.includes(g) ? 'Уже сделано в эту Пятилетку' : groupBlocker(view, me, g) ?? GROUP_ACTIONS[g].hint}
               aria-disabled={!!groupWhy(g)} onClick={() => { const w = groupWhy(g); if (w) explain(w); else onGroup(g); }}>
-              {GROUP_ICONS[g]}{GROUP_ACTIONS[g].name}{groupPrice(view, me, g) && <span className="gprice"> {groupPrice(view, me, g)}</span>}<GroupSlot p={me} g={g} color={color} />
+              {GROUP_ICONS[g]}{ICON_JOIN}{GROUP_ACTIONS[g].name}{groupPrice(view, me, g) && <span className="gprice"> {groupPrice(view, me, g)}</span>}<GroupSlot p={me} g={g} color={color} />
             </button>
           ))}
         </div>
@@ -1535,7 +1535,7 @@ function OtherPlayer({ view, p, color, active }: { view: PlayerView; p: VPlayer;
       <div className="group-actions readonly" title="Действия Инициативной группы в эту Пятилетку">
         {(Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => groupInGame(view, g)).map((g) => (
           <span key={g} className={`gact ${p.groupUsed.includes(g) ? 'used' : ''}`} title={GROUP_ACTIONS[g].hint}>
-            {GROUP_ICONS[g]}{GROUP_ACTIONS[g].name}{groupPrice(view, p, g) && <span className="gprice"> {groupPrice(view, p, g)}</span>}<GroupSlot p={p} g={g} color={color} />
+            {GROUP_ICONS[g]}{ICON_JOIN}{GROUP_ACTIONS[g].name}{groupPrice(view, p, g) && <span className="gprice"> {groupPrice(view, p, g)}</span>}<GroupSlot p={p} g={g} color={color} />
           </span>
         ))}
       </div>

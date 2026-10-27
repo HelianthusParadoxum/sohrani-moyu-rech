@@ -1,7 +1,7 @@
 // Общие элементы интерфейса: карты книг, окна, жанры.
 import type React from 'react';
 import { createContext, useContext, useEffect, type Dispatch, type ReactNode, type SetStateAction } from 'react';
-import { ADDRESS_ICONS, GENRE_NAMES, GROUP_ICONS, GENRE_SHORT, PASSIONS } from '../engine/content';
+import { ADDRESS_ICONS, GENRE_NAMES, GROUP_ICONS, ICON_JOIN, GENRE_SHORT, PASSIONS } from '../engine/content';
 import { BOT_PRESETS, presetById } from '../engine/bot-presets';
 import type { AddressId, Genre, GroupActionId } from '../engine/types';
 import type { PlayerView } from '../engine/view';
@@ -52,7 +52,7 @@ const GROUP_WORDS: [GroupActionId, string][] = [
 const NAME_RES: [RegExp, string][] = [
   ...ADDRESS_WORDS.map(([id, w]) => [w, ADDRESS_ICONS[id]] as const),
   ...GROUP_WORDS.map(([id, w]) => [w, GROUP_ICONS[id]] as const),
-].map(([w, icon]) => [new RegExp(`(?<!\\p{Extended_Pictographic}\\uFE0F?\\s?)(?<![«А-Яа-яЁё])(${w})`, 'gu'), `${icon}$1`]);
+].map(([w, icon]) => [new RegExp(`(?<!\\p{Extended_Pictographic}\\uFE0F?[\\s\\u2060]?)(?<![«А-Яа-яЁё])(${w})`, 'gu'), `${icon}${ICON_JOIN}$1`]);
 // Адреса и действия Группы — со значками (заголовки окон, пояснения).
 export function addressIcons(text: string): string {
   return NAME_RES.reduce((t, [re, to]) => t.replace(re, to), text);

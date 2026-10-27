@@ -133,7 +133,9 @@ export const GROUP_ICONS: Record<GroupActionId, string> = {
 };
 
 // Название адреса со значком.
-export const addressLabel = (id: AddressId) => `${ADDRESS_ICONS[id]}${ADDRESSES[id].name}`;
+// Между значком и названием — «соединитель слов» (U+2060): при переносе строки значок не отрывается от названия.
+export const ICON_JOIN = '\u2060';
+export const addressLabel = (id: AddressId) => `${ADDRESS_ICONS[id]}${ICON_JOIN}${ADDRESSES[id].name}`;
 
 export interface AddressInfo {
   id: AddressId;
