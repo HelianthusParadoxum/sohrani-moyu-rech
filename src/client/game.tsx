@@ -335,8 +335,7 @@ function addressBlocker(view: PlayerView, me: VPlayer, id: AddressId): string | 
   const sellable = books.filter((c) => isGenreBook(view, c) && !['evidence', 'loadEvidence', 'propaganda', 'loadPropaganda'].includes(view.cards[c].kind));
   switch (id) {
     case 'gostorg':
-      if (free < 2) return 'Нужно 2 свободных места на складе.';
-      return hasPatron(view, me.id, 'zavmag') ? null : talons(1);
+      return free < 2 ? 'Нужно 2 свободных места на складе.' : null;
     case 'tolkuchka': {
       const canBuy = view.tolkuchka.length > 0 && free > 0 && me.talons >= priceFor(view, me, RULES.tolkuchkaBuy);
       return canBuy || sellable.length ? null : 'Нечего продать и не на что (или некуда) купить.';
@@ -548,17 +547,16 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
   switch (id) {
     case 'gostorg': {
       const zavmag = hasPatron(view, me.id, 'zavmag');
-      const max = Math.min(Math.floor(free / 2), zavmag ? Infinity : me.talons);
+      const loads = Math.min(loadN, 2);
       body = (
         <>
-          <p>Каждая пара — 1 Нагрузка и 1 Непечатная книга вслепую, за 1 Талон. Свободных мест: {free}.</p>
-          <label>Пар: <input type="number" min={1} max={max} value={num} onChange={(e) => setNum(Number(e.target.value))} /></label>
+          <p>Бесплатно: 1 книга Нагрузки и 1 книга Непечатных вслепую. Свободных мест: {free}.</p>
           {zavmag && (
-            <label>Завмаг: из {num * 2} книг Нагрузки — <input type="number" min={0} max={num * 2} value={Math.min(loadN, num * 2)} onChange={(e) => setLoadN(Number(e.target.value))} />, остальные — Непечатные</label>
+            <label>Завмаг: из 2 книг Нагрузки — <input type="number" min={0} max={2} value={loads} onChange={(e) => setLoadN(Number(e.target.value))} />, остальные — Непечатные</label>
           )}
-          {confirmBtn(zavmag ? 'Взять (даром, Завмаг)' : `Купить${costTag(buyCost(view, me, [num]))}`, max >= 1 && num >= 1 && num <= max
-            ? { address: 'gostorg', pairs: num, ...(zavmag ? { mix: Array.from({ length: num * 2 }, (_, i) => (i < Math.min(loadN, num * 2) ? 'load' as const : 'unprinted' as const)) } : {}) }
-            : null, max < 1 ? 'Нужно 2 свободных места и 1 Талон' : undefined)}
+          {confirmBtn('Взять даром', free >= 2
+            ? { address: 'gostorg', pairs: 1, ...(zavmag ? { mix: [0, 1].map((i) => (i < loads ? 'load' as const : 'unprinted' as const)) } : {}) }
+            : null, 'Нужно 2 свободных места')}
         </>
       );
       break;

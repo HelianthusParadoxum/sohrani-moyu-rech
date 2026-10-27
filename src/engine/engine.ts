@@ -912,7 +912,8 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
   const name = ADDRESSES[a.address].name;
   switch (a.address) {
     case 'gostorg': {
-      check(Number.isInteger(a.pairs) && a.pairs >= 1, 'Укажите число пар');
+      // Бесплатно, но за заход — одна пара.
+      check(a.pairs === 1, 'В Госкниготорге за заход — одна пара книг');
       check(freeSlots(p) >= a.pairs * 2, 'На складе не хватит места');
       // Завмаг: состав каждой книги выбирается свободно.
       const mix = a.mix ?? [];
@@ -920,9 +921,6 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         check(hasPatron(state, p.id, 'zavmag'), 'Свободный выбор книг — только со связью с Завмагом');
         check(mix.length === a.pairs * 2, 'Укажите состав всех книг');
       }
-      // Завмаг ещё и не платит.
-      const cost = hasPatron(state, p.id, 'zavmag') ? 0 : purchases(state, p)(a.pairs);
-      if (hasPatron(state, p.id, 'zavmag')) saved(p, 'zavmag', a.pairs);
       const got: string[] = [];
       const kinds = mix.length ? mix : Array.from({ length: a.pairs }, () => ['load', 'unprinted'] as const).flat();
       for (const k of kinds) {
@@ -935,7 +933,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       const open = got.filter((c) => !cached.includes(c));
       // Списком: открытые книги на склад, последней строкой — сколько ушло в Тайник.
       const items = [...open.map((c) => title(state, c)), ...(cached.length ? [`В Тайник: ${plural(cached.length, 'книга', 'книги', 'книг')}`] : [])];
-      log(state, `${p.name} в Госкниготорге: ${plural(got.length, 'книга', 'книги', 'книг')} за ${talonsText(cost)}${items.length ? `:\n${items.map((x) => `• ${x}`).join('\n')}` : '.'}`);
+      log(state, `${p.name} в Госкниготорге: ${plural(got.length, 'книга', 'книги', 'книг')} даром${items.length ? `:\n${items.map((x) => `• ${x}`).join('\n')}` : '.'}`);
       if (cached.length) log(state, `В Тайник: ${titles(state, cached)}.`, [p.id]);
       return;
     }

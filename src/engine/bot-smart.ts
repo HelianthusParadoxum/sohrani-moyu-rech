@@ -1413,7 +1413,11 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       for (const a of addrs) {
         switch (a) {
           case 'gostorg':
-            for (let n = 1; n <= Math.min(BOT_BASE.gostorgMaxPairs, Math.floor(freeSlots(p) / 2), hasPatron(state, me, 'zavmag') ? 3 : p.talons); n++) out.push({ type: 'place', place: { address: 'gostorg', pairs: n } });
+            if (freeSlots(p) >= 2) {
+              out.push({ type: 'place', place: { address: 'gostorg', pairs: 1 } });
+              // Завмаг: можно взять обе Непечатные.
+              if (hasPatron(state, me, 'zavmag')) out.push({ type: 'place', place: { address: 'gostorg', pairs: 1, mix: ['unprinted', 'unprinted'] } });
+            }
             break;
           case 'tolkuchka': {
             const sellable = genreBooks.filter((b) => !isEvidence(state, b));
