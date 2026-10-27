@@ -1387,7 +1387,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       } else if (c.kind === 'loadEvidence') {
         log(state, `${p.name} возвращает смыслы: ${title(state, g.card)} становится Уликой.`);
       } else if (c.kind === 'loadReturnable') {
-        log(state, `${p.name} возвращает смыслы: ${title(state, g.card)} становится «${c.returned}» (3 значка).`);
+        log(state, `${p.name} возвращает смыслы: «${c.title}» становится ${title(state, g.card)}.`);
       } else {
         log(state, `${p.name} возвращает смыслы книге ${title(state, g.card)}: +1 значок${c.wild ? ' любого жанра' : ''}.`);
       }

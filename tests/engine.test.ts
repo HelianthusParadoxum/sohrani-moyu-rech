@@ -1551,7 +1551,7 @@ describe('Журнал: возвращаемая Нагрузка', () => {
     const id = Object.keys(s.cards).find((c) => s.cards[c].kind === 'loadReturnable' && s.cards[c].title === 'Туманность Андромеды')!;
     expect(title(s, id)).toBe('[Нагрузка] «Туманность Андромеды» / [ФА ФА ФА] «Час Быка»');
     s.restored[id] = true;
-    expect(title(s, id)).toBe('[ФА ФА ФА] «Туманность Андромеды»');
+    expect(title(s, id)).toBe('[ФА ФА ФА] «Час Быка»'); // после Возвращения смыслов — уже вторая книга
   });
 });
 

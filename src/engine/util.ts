@@ -86,7 +86,9 @@ export function title(state: GameState, id: string): string {
   // Возвращаемая Нагрузка: на обороте — вторая книга (3 значка её жанра после Возвращения смыслов).
   const back = c.kind === 'loadReturnable' && !state.restored[id] && c.returned
     ? ` / [${[c.genre!, c.genre!, c.genre!].map((g) => GENRE_SHORT[g]).join(' ')}] «${c.returned}»` : '';
-  return `${tag ? `[${tag}] ` : ''}«${c.title}»${back}`;
+  // После Возвращения смыслов возвращаемая Нагрузка — уже другая книга.
+  const name = c.kind === 'loadReturnable' && state.restored[id] && c.returned ? c.returned : c.title;
+  return `${tag ? `[${tag}] ` : ''}«${name}»${back}`;
 }
 
 // Книги всегда списком, каждая с новой строки (стартовая раскладка).
