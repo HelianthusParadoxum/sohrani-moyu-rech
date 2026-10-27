@@ -127,6 +127,11 @@ export const ADDRESS_ICONS: Record<AddressId, string> = {
   agitpunkt: '📢', podpiska: '📬', nasledniki: '🕯️', posrednichestvo: '✒️', spisanie: '🏛️', kvartirnik: '🏠',
 };
 
+// Значки действий Инициативной группы — так же, как у адресов: не повторяются и не совпадают с прочими значками.
+export const GROUP_ICONS: Record<GroupActionId, string> = {
+  expandWarehouse: '🧱', expandCache: '🗝️', copyText: '🖨️', rescue: '🛟', restore: '💡', hire: '🕸️',
+};
+
 // Название адреса со значком.
 export const addressLabel = (id: AddressId) => `${ADDRESS_ICONS[id]} ${ADDRESSES[id].name}`;
 

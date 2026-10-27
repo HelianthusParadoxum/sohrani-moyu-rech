@@ -1,9 +1,9 @@
 // Общие элементы интерфейса: карты книг, окна, жанры.
 import type React from 'react';
 import { createContext, useContext, useEffect, type Dispatch, type ReactNode, type SetStateAction } from 'react';
-import { ADDRESS_ICONS, GENRE_NAMES, GENRE_SHORT, PASSIONS } from '../engine/content';
+import { ADDRESS_ICONS, GENRE_NAMES, GROUP_ICONS, GENRE_SHORT, PASSIONS } from '../engine/content';
 import { BOT_PRESETS, presetById } from '../engine/bot-presets';
-import type { AddressId, Genre } from '../engine/types';
+import type { AddressId, Genre, GroupActionId } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
 import { flexGenres, iconsOf, isBanned as isBannedBook } from '../engine/util';
@@ -21,8 +21,8 @@ const ICONS: [RegExp, string][] = [
   [/склад увеличен до/g, '📚 увеличен до'],
   [/Тайник увеличен до/g, '🔒 увеличен до'],
   [/заводит связь в Клубе:/g, '🤝'],
-  [/склад(?:а|е|у)?(?![а-яё])/g, '📚'],
-  [/Тайник[а-яё]*/g, '🔒'],
+  [/(?<!Увеличени[а-яё]* )склад(?:а|е|у)?(?![а-яё])/g, '📚'], // «Увеличение склада» — название действия Группы
+  [/(?<!Закладк[а-яё]* )Тайник[а-яё]*/g, '🔒'], // «Закладка Тайника» — название действия Группы
   [/[Сс]вяз(?:ь|и|ей)(?: в Клубе)?(?![а-яё])/g, '🤝'],
   [/[Ее]диномышленник[а-яё]*/g, '👤'],
   [/Нагрузк[а-яё]*/g, '📕'],
@@ -43,11 +43,19 @@ const ADDRESS_WORDS: [AddressId, string][] = [
   ['nasledniki', 'Наследник[а-яё]*'], ['posrednichestvo', 'Посредничеств[а-яё]*(?: авторам)?'],
   ['spisanie', 'Библиотечн[а-яё]* списани[а-яё]*'], ['kvartirnik', 'Квартирник[а-яё]*'],
 ];
-const ADDRESS_RES: [RegExp, string][] = ADDRESS_WORDS.map(([id, w]) => [
-  new RegExp(`(?<!\\p{Extended_Pictographic}\\uFE0F?\\s)(?<![«А-Яа-яЁё])(${w})`, 'gu'), `${ADDRESS_ICONS[id]} $1`,
-]);
+// Действия Инициативной группы — тоже со значком перед названием.
+const GROUP_WORDS: [GroupActionId, string][] = [
+  ['expandWarehouse', 'Увеличени[а-яё]* склада'], ['expandCache', 'Закладк[а-яё]* Тайника'],
+  ['copyText', 'Тиражировани[а-яё]*(?: текста)?'], ['rescue', 'Вызволени[а-яё]*(?: из бед)?'],
+  ['restore', 'Возвращени[а-яё]* смыслов'], ['hire', 'Расширени[а-яё]* сети'],
+];
+const NAME_RES: [RegExp, string][] = [
+  ...ADDRESS_WORDS.map(([id, w]) => [w, ADDRESS_ICONS[id]] as const),
+  ...GROUP_WORDS.map(([id, w]) => [w, GROUP_ICONS[id]] as const),
+].map(([w, icon]) => [new RegExp(`(?<!\\p{Extended_Pictographic}\\uFE0F?\\s)(?<![«А-Яа-яЁё])(${w})`, 'gu'), `${icon} $1`]);
+// Адреса и действия Группы — со значками (заголовки окон, пояснения).
 export function addressIcons(text: string): string {
-  return ADDRESS_RES.reduce((t, [re, to]) => t.replace(re, to), text);
+  return NAME_RES.reduce((t, [re, to]) => t.replace(re, to), text);
 }
 
 export function iconize(text: string): string {
@@ -170,7 +178,7 @@ export function Modal({ title, children, onClose, wide }: { title: string; child
     <div className="modal-bg" onClick={onClose} style={hidden ? { display: 'none' } : undefined}>
       <div className={`modal ${wide ? 'wide' : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3>{title}</h3>
+          <h3>{addressIcons(title)}</h3>
           <span className="modal-head-buttons">
             {set && <button className="small" onClick={() => set(title)} title="Посмотреть на поле; вернуться к окну — кнопкой «Развернуть» внизу">Свернуть</button>}
             {onClose && <button className="close" onClick={onClose} aria-label="Закрыть">×</button>}
