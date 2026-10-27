@@ -545,10 +545,10 @@ function endOrders(state: GameState) {
       }
       if (!got) continue;
       if (freeSlots(p) > 0) {
-        addSecretBook(state, p, got);
-        log(state, `${p.name} получает по Подписке книгу жанра ${GENRE_NAMES[sub.genre]}.`);
+        // Подписка приходит в открытую: все видят книгу (спрятать её можно при укрытии перед облавой).
+        addBook(p, got);
+        log(state, `${p.name} получает по Подписке: ${title(state, got)}.`);
         state.log[state.log.length - 1].who = p.id;
-        log(state, `По Подписке пришла ${title(state, got)}.`, [p.id]);
       } else {
         discard(state, got);
         log(state, `${p.name}: книга по Подписке ушла в сброс — нет места на складе.`);

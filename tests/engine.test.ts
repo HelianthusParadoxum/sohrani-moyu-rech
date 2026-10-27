@@ -1881,3 +1881,26 @@ describe('Нагрузка в Тайник не прячется', () => {
     expect(() => applyAction(s, p.id, { type: 'hiding', hidden: [load] })).toThrow(/Нагрузка/);
   });
 });
+
+describe('Подписка', () => {
+  it('книга приходит в открытую: её видят все, тайной строки в журнале нет', () => {
+    let s = createGame({ players: players(2), seed: 4 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const other = s.order.find((id) => id !== me)!;
+    for (const q of s.players) { q.available = 0; q.bonusGroupTurns = 0; q.subscriptions = []; q.warehouse = []; }
+    const p = s.players.find((x) => x.id === me)!;
+    p.available = 1;
+    p.subscriptions = [{ genre: 'prose', rounds: 1 }];
+    s = applyAction(s, me, { type: 'place', place: { address: 'redCorner', recycle: [] } });
+    if (s.turnDone === me) s = applyAction(s, me, { type: 'endTurn' });
+    const got = s.players.find((x) => x.id === me)!.warehouse.at(-1)!;
+    expect(got.hidden).toBe(false);
+    const view = viewFor(s, other);
+    expect(view.players.find((x) => x.id === me)!.warehouse.at(-1)!.card).toBe(got.card);
+    const line = s.log.find((l) => l.text.includes('по Подписке'))!;
+    expect(line.text).toContain(title(s, got.card));
+    expect(line.only).toBeUndefined();
+  });
+});
