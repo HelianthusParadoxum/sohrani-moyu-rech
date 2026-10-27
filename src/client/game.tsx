@@ -426,6 +426,7 @@ function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint, rig
             const n = view.players.find((x) => x.id === pid)?.actions?.filter((a) => a.target === id)[k]?.n;
             return <span key={i} className="dot num" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} title={n ? `${n}-е действие игрока` : undefined}>{n ?? ''}</span>;
           })}
+          {freeClub && <span className="hint inline right">1 раз за поручение, Единомышленник не нужен</span>}
           {!freeClub && !rightHint && (limit === Infinity
             ? <span className="muted small">∞</span>
             : Array.from({ length: Math.max(0, limit - here.length) }, (_, i) => <span key={`free${i}`} className="dot num slot-free" title="Свободное место" />))}
