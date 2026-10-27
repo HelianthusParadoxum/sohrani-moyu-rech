@@ -121,13 +121,15 @@ export function createGame(opts: NewGameOptions): GameState {
   return state;
 }
 
-// Стартовый Тайник: сначала опальные книги (не ЧНЛ), потом — если место осталось — и неопальные (соперники их не увидят);
-// внутри — больше значков, затем жанр Пристрастия, затем случайно. Нагрузку не прячут.
+// Стартовый Тайник: сначала ЧНЛ (открыто лежащая — готовый донос и подозрение), потом прочие опальные книги, потом — если
+// место осталось — и неопальные (соперники их не увидят); внутри — больше значков, затем жанр Пристрастия, затем случайно.
+// Нагрузку не прячут.
 export function startHide(state: GameState, p: PlayerState) {
   const favored: Genre[] = (p.passion && PASSIONS[p.passion].genres) || [];
   const fits = (c: string) => (genresOf(state, c).some((g) => favored.includes(g)) ? 1 : 0);
-  const books = shuffle(state, p.warehouse.filter((w) => !w.hidden && !w.memorized && !isPropaganda(state, w.card) && !isLoad(state, w.card)))
-    .sort((a, b) => Number(isBanned(state, b.card)) - Number(isBanned(state, a.card))
+  const books = shuffle(state, p.warehouse.filter((w) => !w.hidden && !w.memorized && !isLoad(state, w.card)))
+    .sort((a, b) => Number(isPropaganda(state, b.card)) - Number(isPropaganda(state, a.card))
+      || Number(isBanned(state, b.card)) - Number(isBanned(state, a.card))
       || iconCount(state, b.card) - iconCount(state, a.card) || fits(b.card) - fits(a.card));
   let room = cacheLimit(state, p) - p.warehouse.filter((w) => w.hidden).length;
   for (const w of books) if (room-- > 0) w.hidden = true;

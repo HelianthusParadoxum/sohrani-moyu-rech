@@ -1466,7 +1466,7 @@ function Stats({ p, view }: { p: VPlayer; view: PlayerView }) {
       <span title="Склад: занято / мест (заученный сборник поэзии — сверх склада)"><i>📚</i>{p.warehouse.filter((s) => !s.memorized).length}/{p.capacity}</span>
       <span title={`Мест в Тайнике: ${p.cache}${cover ? ` + ${cover} за Нагрузку на складе` : ''}`}><i>🔒</i>{p.cache + cover}{cover ? '*' : ''}</span>
       {view.mode === 'full' && <span title="Связи в Клубе книголюбов"><i>🤝</i>{view.patrons.filter((x) => !x.removed && x.connections.includes(p.id)).length}</span>}
-      {!view.reserve && <span title="Единомышленников удерживает Контора"><i>🏢</i>{p.held}</span>}
+      {!view.reserve && <span title="Единомышленников удерживает Контора"><i>👁️</i>{p.held}</span>}
     </div>
   );
 }

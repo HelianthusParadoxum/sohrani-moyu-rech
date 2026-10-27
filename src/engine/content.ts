@@ -120,9 +120,9 @@ type Limits = [number, number, number];
 const INF = Infinity;
 
 // Значки адресов: перед названием на столе, в окнах, подсказках и журнале. Не повторяются и не совпадают со значками
-// ресурсов (🎫 ★ 📚 🔒 🤝 👤 📃 📕); у Конторы — 🏢, как у удержанных ею Единомышленников.
+// ресурсов (🎫 ★ 📚 🔒 🤝 👤 📃 📕); у Конторы — 👁️, как у удержанных ею Единомышленников.
 export const ADDRESS_ICONS: Record<AddressId, string> = {
-  club: '☕', kontora: '🏢', sprouts: '🌱', redCorner: '🚩', glavlit: '✂️', makulatura: '♻️', gostorg: '🏬', baraholka: '🧺',
+  club: '☕', kontora: '👁️', sprouts: '🌱', redCorner: '🚩', glavlit: '✂️', makulatura: '♻️', gostorg: '🏬', baraholka: '🧺',
   tolkuchka: '💱', razval: '📦', zavoz: '🚚', tamizdat: '✈️', samizdat: '⌨️', knigoobmen: '🔁', raspredelitel: '🏷️',
   agitpunkt: '📢', podpiska: '📬', nasledniki: '🕯️', posrednichestvo: '✒️', spisanie: '🏛️', kvartirnik: '🏠',
 };
