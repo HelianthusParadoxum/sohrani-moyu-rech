@@ -122,7 +122,7 @@ export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
   const icons = iconsOf(v, id);
   const banned = isBanned(v, id);
   const restored = !!v.restored[id];
-  const flex = flexGenres(v, id);
+  const flex = c.wild ? null : flexGenres(v, id); // «Чукоккала» — значок «ЛЮБОЙ», без перечня всех жанров
   const label = c.kind === 'loadReturnable' && restored ? null : c.kind === 'loadEvidence' && restored ? null : (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && restored ? 'Разоблачение' : KIND_LABEL[c.kind];
   // Значки вида: ЧНЛ (и у Нагрузки-ЧНЛ), УЛ — у Улик (и Нагрузки-улики после Возвращения смыслов).
   const kindChip = (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && !restored ? 'chnl' as const
