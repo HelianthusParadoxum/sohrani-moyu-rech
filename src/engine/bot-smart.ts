@@ -703,12 +703,21 @@ function score(state: GameState, me: string, a: Action, ctx: Ctx, depth: number)
 // Честный в Макулатуре: сколько ещё тянуть и чего это стоит. Ожидание лучшей книги из вытянутых (уже вытянутые + ещё k)
 // минус цена k Талонов — по нескольким выборкам из закрытой стопки (состав известен, порядок — нет). Ценность книги —
 // оценка положения с ней на складе; найденная ЧНЛ уходит из стопки (её не достанется Куратору).
+// Чем платить в Макулатуре вместо Талона: простая Нагрузка (у честного — и ПСС Ленина: это ЧНЛ, её сбыть выгодно).
+// Возвращаемую Нагрузку и Нагрузку-улику не отдаёт: из них выйдут книга с 3 значками или Улика.
+function makulaturaPayBooks(state: GameState, p: PlayerState): string[] {
+  return p.warehouse.map((s) => s.card).filter((c) => !state.restored[c]
+    && (state.cards[c].kind === 'load' || (state.cards[c].kind === 'loadPropaganda' && p.passion !== 'curator')));
+}
+
 function honestDig(s: GameState, me: string, ctx: Ctx): { value: number; extra: number } {
   const pend = s.pending[0] as Extract<GameState['pending'][number], { kind: 'makulatura' }>;
   const p = player(s, me);
   const price = RULES.makulaturaPrice;
   const reserve = ctx.round >= RULES.rounds ? 0 : BOT_BASE.honestDigReserve;
-  const maxExtra = Math.max(0, Math.min(tune(ctx, 'honestDigMax') - pend.cards.length, Math.floor((p.talons - reserve) / price)));
+  // Платит сперва Нагрузкой, потом Талонами.
+  const loads = makulaturaPayBooks(s, p);
+  const maxExtra = Math.max(0, Math.min(tune(ctx, 'honestDigMax') - pend.cards.length, Math.max(0, Math.floor((p.talons - reserve) / price)) + loads.length));
   const base = cloneLight(s);
   base.pending = base.pending.slice(1);
   const withCard = (card: string, spend: number) => {
@@ -722,7 +731,10 @@ function honestDig(s: GameState, me: string, ctx: Ctx): { value: number; extra: 
   const cost = Array.from({ length: maxExtra + 1 }, (_, k) => {
     if (!k) return 0;
     const x = cloneLight(base);
-    player(x, me).talons -= k * price;
+    const q = player(x, me);
+    const paid = loads.slice(0, k);
+    q.warehouse = q.warehouse.filter((w) => !paid.includes(w.card));
+    q.talons -= (k - paid.length) * price;
     return (evaluate(base, me, ctx) - evaluate(x, me, ctx)) * tune(ctx, 'honestDigCost');
   });
   const value = new Map<string, number>();
@@ -1263,8 +1275,11 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       case 'makulatura': {
         // Платить можно и книгой: самой ненужной (Куратор ЧНЛ не отдаёт). Склад полон — оставить вытянутое
         // можно, только отдав книгу за следующую.
-        const cheapest = byValue(keepMap(), p.warehouse.map((s) => s.card).filter((c) => !(ctx.curator && isPropaganda(state, c))))[0];
+        // Простой Нагрузкой платит всегда, когда она есть: Талоны целее, место на складе освобождается.
+        const load = byValue(keepMap(), makulaturaPayBooks(state, p))[0];
+        const cheapest = load ?? byValue(keepMap(), p.warehouse.map((s) => s.card).filter((c) => !(ctx.curator && isPropaganda(state, c))))[0];
         const payBook: Action[] = cheapest ? [{ type: 'makulaturaDraw', deck: 'unprinted', pay: cheapest }] : [];
+        const drawAction = (deck: 'unprinted' | 'load'): Action => (load ? { type: 'makulaturaDraw', deck, pay: load } : { type: 'makulaturaDraw', deck });
         if (pend.cards.length && freeSlots(p) <= 0) return payBook;
         if (!pend.cards.length && p.talons < RULES.makulaturaPrice) return payBook;
         // Куратор ищет ЧНЛ: нашёл — оставляет её; нет — тянет из Непечатных дальше, пока хватает Талонов
@@ -1274,15 +1289,15 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
           if (found) return [{ type: 'makulaturaKeep', card: found }];
           const { max, reserve } = curatorDig(ctx);
           const deck = propagandaSearch(determinize(state, () => 0.5, me), max).best;
-          if ((pend.cards.length < max && p.talons - RULES.makulaturaPrice >= reserve) || (!pend.cards.length && p.talons >= RULES.makulaturaPrice)) {
-            return [{ type: 'makulaturaDraw', deck }];
+          if ((pend.cards.length < max && (load || p.talons - RULES.makulaturaPrice >= reserve)) || (!pend.cards.length && (load || p.talons >= RULES.makulaturaPrice))) {
+            return [drawAction(deck)];
           }
           return pend.cards.map((card) => ({ type: 'makulaturaKeep' as const, card }));
         }
         // Честный: тянет, пока ожидание лучшей книги перевешивает цену (`honestDig`), потом оставляет лучшую.
-        const canDraw = p.talons >= RULES.makulaturaPrice;
+        const canDraw = !!load || p.talons >= RULES.makulaturaPrice;
         if (canDraw && (!pend.cards.length || honestDig(determinize(state, () => 0.5, me), me, ctx).extra > 0)) {
-          return [{ type: 'makulaturaDraw', deck: 'unprinted' }];
+          return [drawAction('unprinted')];
         }
         return pend.cards.map((card) => ({ type: 'makulaturaKeep' as const, card }));
       }
@@ -1444,7 +1459,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
           case 'agitpunkt': for (const c of new Set(state.agitpunkt ?? [])) out.push({ type: 'place', place: { address: 'agitpunkt', card: c } }); break;
           case 'nasledniki': case 'posrednichestvo': case 'spisanie': out.push({ type: 'place', place: { address: a } }); break;
           // Макулатура: бот идёт туда с местом на складе и Талоном на первую книгу (оценка `honestDig` считает в Талонах).
-          case 'makulatura': if (freeSlots(p) > 0 && p.talons >= RULES.makulaturaPrice) out.push({ type: 'place', place: { address: a } }); break;
+          case 'makulatura': if (freeSlots(p) > 0 && (p.talons >= RULES.makulaturaPrice || makulaturaPayBooks(state, p).length)) out.push({ type: 'place', place: { address: a } }); break;
           case 'club': if (!RULES.clubFreeGift) out.push(...clubCandidates(state, me, keepMap())); break;
           case 'kontora': {
             // Только что передумал идти (соперники перепрятали книги) — второй раз за ход не объявляет.
