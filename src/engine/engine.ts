@@ -1333,7 +1333,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
         const last = state.lastBuy!;
         check(addr === last.address, `Тиражировать можно только там, где вы только что купили: ${ADDRESSES[last.address].name}`);
         check(g.card, 'Выберите книгу, которую взять бесплатно');
-        check(p.available >= 1, 'Нет свободного Единомышленника для Тиражирования');
+        check(p.available >= 1, 'Нет свободного Единомышленника, чтобы тиражировать текст');
         check(p.visitedRedCorner || hasPatron(state, p.id, 'doctor') || p.available > 1, 'Последнего Единомышленника нужно отправить в Красный уголок');
         check(!last.exclude.includes(g.card), 'Только что отданную книгу нельзя забрать обратно');
         check(isGenreBook(state, g.card), 'Тиражировать можно только жанровую книгу — не Улику и не ЧНЛ');
@@ -1352,13 +1352,13 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
         break;
       }
       check(!g.buy || g.buy.address === addr, 'Покупать нужно на том же адресе');
-      check(g.buy, 'Тиражирование — только вместе с покупкой (на Книгообмене — обменом) на этом адресе');
+      check(g.buy, 'Тиражировать Текст — только вместе с покупкой (на Книгообмене — обменом) на этом адресе');
       check(g.buy.address !== 'tolkuchka' || g.buy.ops.some((op) => op.op === 'buy'), 'На Толкучке нужно купить хотя бы одну книгу');
       check(g.card, 'Выберите книгу, которую взять бесплатно');
       // Сколько Единомышленников уходит: покупатель, а в обычном ходе — ещё и тот, что на Тиражировании.
       const going = opts.worker ? 2 : 1;
       check(p.available >= going, opts.worker
-        ? 'Нужны два Единомышленника: один покупает на адресе, другой — на Тиражировании'
+        ? 'Нужны два Единомышленника: один покупает на адресе, другой — тиражирует текст'
         : 'Нет доступного Единомышленника, чтобы отправить его покупать');
       check(p.visitedRedCorner || hasPatron(state, p.id, 'doctor') || p.available > going, 'Последнего Единомышленника нужно отправить в Красный уголок');
       const here = state.occupancy[addr] ?? [];
@@ -1383,9 +1383,9 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
     }
     case 'restore': {
       const slot = p.warehouse.find((s) => s.card === g.card);
-      check(slot, 'Возвращать смыслы можно книге со своего склада');
+      check(slot, 'Монографию можно написать только о книге со своего склада');
       const c = state.cards[g.card];
-      check(!state.restored[g.card], 'Этой книге смыслы уже возвращены');
+      check(!state.restored[g.card], 'Об этой книге монография уже написана');
       check(c.kind === 'genre' || c.kind === 'loadReturnable' || c.kind === 'loadEvidence' || (isPropagandaKind(c.kind) && RULES.exposePropaganda),
         RULES.exposePropaganda
           ? 'Смыслы можно вернуть только жанровой книге, возвращаемой Нагрузке, Нагрузке-улике или ЧНЛ'
@@ -1393,13 +1393,13 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       state.restored[g.card] = true;
       if (isPropagandaKind(c.kind)) {
         p.propagandaExposed = (p.propagandaExposed ?? 0) + 1;
-        log(state, `${p.name} возвращает смыслы: ${title(state, g.card)} становится Разоблачением (+${pointsText(RULES.exposePoints)} в конце).`);
+        log(state, `${p.name} пишет монографию: ${title(state, g.card)} становится Разоблачением (+${pointsText(RULES.exposePoints)} в конце).`);
       } else if (c.kind === 'loadEvidence') {
-        log(state, `${p.name} возвращает смыслы: ${title(state, g.card)} становится Уликой.`);
+        log(state, `${p.name} пишет монографию: ${title(state, g.card)} становится Уликой.`);
       } else if (c.kind === 'loadReturnable') {
-        log(state, `${p.name} возвращает смыслы: «${c.title}» становится ${title(state, g.card)}.`);
+        log(state, `${p.name} пишет монографию: «${c.title}» становится ${title(state, g.card)}.`);
       } else {
-        log(state, `${p.name} возвращает смыслы книге ${title(state, g.card)}: +1 значок${c.wild ? ' любого жанра' : ''}.`);
+        log(state, `${p.name} пишет монографию о книге ${title(state, g.card)}: +1 значок${c.wild ? ' любого жанра' : ''}.`);
       }
       payPrice(state, p, RULES.restoreCost);
       if (hasPatron(state, p.id, 'postgrad')) {
@@ -1419,7 +1419,6 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       // Возвращение из Спецхрана: игрок смотрит Спецхран и выбирает книгу следом.
       check(state.spetskhran.length > 0, 'Спецхран пуст');
       check(freeSlots(p) > 0, 'На складе нет места');
-      log(state, `${p.name}: Возвращение из Спецхрана.`);
       state.pending.push({ kind: 'kontoraHandout', player: p.id, cards: [...state.spetskhran], group: true });
       seeSpetskhran(state, p.id, state.spetskhran);
       break;
@@ -1658,7 +1657,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
     }
     case 'kontoraHandout': {
       check(action.type === 'kontoraHandout', 'Выберите книгу из Спецхрана');
-      takeFromSpetskhran(state, p, action.card, pend.group ? 'Возвращение из Спецхрана' : 'Выдача на руки');
+      takeFromSpetskhran(state, p, action.card, !!pend.group);
       if (pend.seize) seizeDenounced(state, pend.seize);
       break;
     }

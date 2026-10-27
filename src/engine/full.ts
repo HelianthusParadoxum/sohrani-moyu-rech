@@ -253,12 +253,12 @@ export function seizeDenounced(state: GameState, seize: { player: string; card: 
   log(state, `Изъятие: у ${o.name} изъята в Спецхран ${title(state, s.card)}.`);
 }
 
-export function takeFromSpetskhran(state: GameState, p: PlayerState, card: string, how = 'Выдача на руки') {
+export function takeFromSpetskhran(state: GameState, p: PlayerState, card: string, group = false) {
   check(state.spetskhran.includes(card), 'Этой книги нет в Спецхране');
   state.spetskhran = state.spetskhran.filter((c) => c !== card);
   forgetSpetskhran(state, card);
   addSecretBook(state, p, card);
-  log(state, `${p.name} получает книгу из Спецхрана (${how}).`);
+  log(state, group ? `${p.name} возвращает книгу из Спецхрана.` : `${p.name} получает книгу из Спецхрана (Выдача на руки).`);
   log(state, `Вы получили ${title(state, card)}.`, [p.id]);
 }
 

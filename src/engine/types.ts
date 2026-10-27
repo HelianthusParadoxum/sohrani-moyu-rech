@@ -54,7 +54,7 @@ export type GroupActionId =
   | 'expandWarehouse' // Увеличение склада
   | 'expandCache' // Закладка Тайника
   | 'copyText' // Тиражирование текста
-  | 'spetskhran' // Возвращение из Спецхрана
+  | 'spetskhran' // Вернуть из Спецхрана
   | 'restore' // Возвращение смыслов
   | 'hire'; // Расширение сети
 

@@ -683,7 +683,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     s = applyAction(s, me, { type: 'kontoraHandout', card });
     expect(s.spetskhran).not.toContain(card);
     expect(s.players.find((x) => x.id === me)!.warehouse.some((w) => w.card === card)).toBe(true);
-    expect(s.log.some((l) => l.text.includes('(Возвращение из Спецхрана)'))).toBe(true);
+    expect(s.log.some((l) => l.text.endsWith('возвращает книгу из Спецхрана.'))).toBe(true);
   });
 
   it('Завмаг: Госкниготорг бесплатно, состав свободный', () => {

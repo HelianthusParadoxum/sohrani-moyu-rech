@@ -106,8 +106,8 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
       return 'Свободных 👤 не осталось.';
     }
     if (me.groupUsed.includes(g)) return 'Это действие Группы уже сделано в эту Пятилетку.';
-    if (copyFollow && g !== 'copyText') return 'Сейчас можно только Тиражирование: взять книгу даром с адреса, где вы только что купили.';
-    if (canPlace && mustRed && g !== 'hire') return 'Последнего 👤 нужно отправить в Красный уголок; из действий Группы сейчас можно только Расширение сети.';
+    if (copyFollow && g !== 'copyText') return 'Сейчас можно только Тиражировать Текст: взять книгу даром с адреса, где вы только что купили.';
+    if (canPlace && mustRed && g !== 'hire') return 'Последнего 👤 нужно отправить в Красный уголок; из действий Группы сейчас можно только Расширить Сеть.';
     return groupBlocker(view, me, g);
   };
 
@@ -450,7 +450,7 @@ function AddressContents({ id, view, seatIndex, me, onPatron, onBlocked, onPick 
     case 'kontora':
       return <KontoraContents view={view} seatIndex={seatIndex} />;
     case 'glavlit':
-      return <div className="small" title="Спецхран: изъятые книги, лежат взакрытую. Взять оттуда — Возвращение из Спецхрана, Выдача на руки (Контора)">🗄️ Спецхран: <b>{view.spetskhranCount}</b> книг(и)</div>;
+      return <div className="small" title="Спецхран: изъятые книги, лежат взакрытую. Взять оттуда — Вернуть из Спецхрана, Выдача на руки (Контора)">🗄️ Спецхран: <b>{view.spetskhranCount}</b> книг(и)</div>;
     case 'redCorner': {
       if (view.round >= RULES.rounds) return <div className="muted small">Последняя Пятилетка — очередь уже не важна.</div>;
       // Новый порядок: сперва посетившие Красный уголок, затем остальные в прежнем порядке.
@@ -924,7 +924,7 @@ function groupBlocker(view: PlayerView, me: VPlayer, id: GroupActionId): string 
     case 'restore':
       if (me.talons < RULES.restoreCost) return `Нужно ${RULES.restoreCost}т, у вас ${me.talons}.`;
       return me.warehouse.some((s) => s.card && !view.restored[s.card] && restorable(view.cards[s.card].kind))
-        ? null : 'На складе нет книги, которой можно вернуть смыслы.';
+        ? null : 'На складе нет книги, о которой можно написать монографию.';
     default:
       return null;
   }
@@ -953,7 +953,7 @@ function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; v
       <>
         <p>Жанровая книга получает +1 значок своего жанра; у двужанровой книги жанр этого значка выбирается всякий раз, когда это важно. Нагрузка проглоченного автора становится возвращённым произведением с 3 значками.{RULES.exposePropaganda && withKindChips(` ЧНЛ становится Разоблачением: +${RULES.exposePoints} очка в конце, его можно издать как книгу с 1 значком.`)}</p>
         <div className="shelf wrap">{cands.map((c) => <Book key={c} v={view} id={c} selected={sel === c} onClick={() => setSel(c)} />)}</div>
-        <div className="modal-foot"><span className="muted">у вас {me.talons}🎫</span><button className="primary" disabled={!sel} onClick={() => done({ action: 'restore', card: sel })}>Вернуть смыслы{groupPrice(view, me, 'restore') ? ` (${groupPrice(view, me, 'restore')})` : ''}</button></div>
+        <div className="modal-foot"><span className="muted">у вас {me.talons}🎫</span><button className="primary" disabled={!sel} onClick={() => done({ action: 'restore', card: sel })}>Написать Монографию{groupPrice(view, me, 'restore') ? ` (${groupPrice(view, me, 'restore')})` : ''}</button></div>
       </>
     );
   } else {
@@ -974,7 +974,7 @@ function CopyFollowPanel({ view, done }: { view: PlayerView; done: (g: GroupActi
   const shelf = (last.address === 'razval' ? view.razval : view[last.address]).filter((c): c is string => !!c && !last.exclude.includes(c));
   return (
     <>
-      <p>Вы только что купили: {addressLabel(last.address)}. Второй 👤 встаёт на Тиражирование — возьмите оттуда же одну жанровую книгу даром.</p>
+      <p>Вы только что купили: {addressLabel(last.address)}. Второй 👤 тиражирует текст — возьмите оттуда же одну жанровую книгу даром.</p>
       <div className="shelf wrap">
         {shelf.length === 0 && <span className="muted">Здесь больше нет книг</span>}
         {shelf.map((c) => {
@@ -1025,8 +1025,8 @@ function CopyTextPanel({ view, me, done }: { view: PlayerView; me: VPlayer; done
   const ok = (purchase || (typist && !buy.length && !sell.length)) && gift && !halfSwap && cost <= me.talons && room >= 0;
   return (
     <>
-      <p>{withKindChips(GROUP_ACTIONS.copyText.hint)}. Покупатель занимает место на адресе, второй 👤 встаёт на Тиражирование (если Тиражирование — бонус, идёт только покупатель).</p>
-      {typist && <p className="muted small">Машинистка: можно ничего не покупать — просто выберите книгу «взять бесплатно» на любом адресе; на адрес никто не пойдёт. За Тиражирование +{RULES.typistTalons}т.</p>}
+      <p>{withKindChips(GROUP_ACTIONS.copyText.hint)}. Покупатель занимает место на адресе, второй 👤 тиражирует текст (если это бонус, идёт только покупатель).</p>
+      {typist && <p className="muted small">Машинистка: можно ничего не покупать — просто выберите книгу «взять бесплатно» на любом адресе; на адрес никто не пойдёт. Тиражировать Текст: +{RULES.typistTalons}т.</p>}
       <div className="row">
         {addrs.map((a) => (
           <button key={a} className={addr === a ? 'selected' : ''} onClick={() => choose(a)}>{addressLabel(a)}{busy(a) ? ' (занято)' : ''}</button>

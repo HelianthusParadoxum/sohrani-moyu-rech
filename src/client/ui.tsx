@@ -21,8 +21,8 @@ const ICONS: [RegExp, string][] = [
   [/склад увеличен до/g, '📚 увеличен до'],
   [/Тайник увеличен до/g, '🔒 увеличен до'],
   [/заводит связь в Клубе:/g, '🤝'],
-  [/(?<!Увеличени[а-яё]* )склад(?:а|е|у)?(?![а-яё])/g, '📚'], // «Увеличение склада» — название действия Группы
-  [/(?<!Закладк[а-яё]* )Тайник[а-яё]*/g, '🔒'], // «Закладка Тайника» — название действия Группы
+  [/(?<!Увеличени[а-яё]* )склад(?:а|е|у)?(?![а-яё])/g, '📚'], // «Увеличение склада» — старое название действия Группы
+  [/(?<!(?:Закладк[а-яё]*|Заложить) )Тайник[а-яё]*/g, '🔒'], // «Заложить Тайник» — название действия Группы
   [/[Сс]вяз(?:ь|и|ей)(?: в Клубе)?(?![а-яё])/g, '🤝'],
   [/[Ее]диномышленник[а-яё]*/g, '👤'],
   [/Нагрузк[а-яё]*/g, '📕'],
@@ -45,9 +45,9 @@ const ADDRESS_WORDS: [AddressId, string][] = [
 ];
 // Действия Инициативной группы — тоже со значком перед названием.
 const GROUP_WORDS: [GroupActionId, string][] = [
-  ['expandWarehouse', 'Увеличени[а-яё]* склада'], ['expandCache', 'Закладк[а-яё]* Тайника'],
-  ['copyText', 'Тиражировани[а-яё]*(?: текста)?'], ['spetskhran', 'Возвращени[а-яё]* из Спецхрана'],
-  ['restore', 'Возвращени[а-яё]* смыслов'], ['hire', 'Расширени[а-яё]* сети'],
+  ['expandWarehouse', 'Увеличить Склад'], ['expandCache', 'Заложить Тайник'],
+  ['copyText', 'Тиражировать Текст'], ['spetskhran', 'Вернуть из Спецхрана'],
+  ['restore', 'Написать Монографию'], ['hire', 'Расширить Сеть'],
 ];
 // Уникальные бонусы Ростков.
 const BONUS_WORDS: [string, string][] = [['sideJob', 'Приработ[а-яё]*'], ['underCounter', 'Из-под полы'], ['acquaintance', 'Завязать знакомство']];
@@ -138,7 +138,7 @@ export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
     >
       <div className="book-icons">
         {(flex ? icons.slice(0, -1) : icons).map((g, i) => <GenreChip key={i} g={g} banned={v.banned.includes(g)} favored={favoredGenres(v).includes(g)} />)}
-        {c.wild && restored && <span className={`chip wild ${v.banned.length ? 'banned' : ''}`} title="Второй значок любого жанра (Возвращение смыслов)">ЛЮБОЙ</span>}
+        {c.wild && restored && <span className={`chip wild ${v.banned.length ? 'banned' : ''}`} title="Второй значок любого жанра (Написать Монографию)">ЛЮБОЙ</span>}
         {c.wild && <span className={`chip wild ${v.banned.length ? 'banned' : ''}`} title="Значок любого жанра: в каждом подсчёте — того, что выгоднее (Ростки, Пристрастия, Клуб). Жанровых свойств нет; опальна, если в опале хоть один жанр">ЛЮБОЙ</span>}
         {flex && (
           <span className="chip flex" title={`Значок возвращения: ${flex.map((g) => GENRE_NAMES[g]).join(' или ')}`}>
@@ -146,10 +146,10 @@ export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
           </span>
         )}
         {c.kind === 'loadEvidence' && !restored && (
-          <span className="ghost" title="После Возвращения смыслов станет Уликой: опальная, +5 очков в конце">→ улика</span>
+          <span className="ghost" title="После Монографии станет Уликой: опальная, +5 очков в конце">→ улика</span>
         )}
         {c.kind === 'loadReturnable' && !restored && c.genre && (
-          <span className="ghost" title={`После Возвращения смыслов: «${c.returned}», 3 значка ${GENRE_NAMES[c.genre]}`}>
+          <span className="ghost" title={`После Монографии: «${c.returned}», 3 значка ${GENRE_NAMES[c.genre]}`}>
             {[0, 1, 2].map((i) => <GenreChip key={i} g={c.genre!} />)}
           </span>
         )}

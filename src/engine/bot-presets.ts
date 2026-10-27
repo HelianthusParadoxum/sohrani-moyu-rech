@@ -9,7 +9,7 @@ import type { PatronId } from './types';
 export type BotGoal = 'network' | 'sprouts' | 'sproutBooks' | 'publish' | 'talons' | 'passion' | 'storage' | 'club';
 
 export const BOT_GOALS: Record<BotGoal, { name: string; hint: string }> = {
-  network: { name: 'Расширение сети', hint: 'Ценность Единомышленников на будущие Пятилетки. 0 — бот совсем не нанимает.' },
+  network: { name: 'Расширить Сеть', hint: 'Ценность Единомышленников на будущие Пятилетки. 0 — бот совсем не нанимает.' },
   sprouts: { name: 'Питание Ростков', hint: 'Довести Ростки до Гласности: без неё проигрывают все.' },
   sproutBooks: { name: 'Книги для Ростков', hint: 'Держать на складе книги, которыми можно закрыть ближайшие ступени Ростков.' },
   publish: { name: 'Издание', hint: 'Издавать книги (Самиздат, Тамиздат) и держать книги, которые можно выгодно издать или продать.' },

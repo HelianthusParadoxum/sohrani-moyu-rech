@@ -292,7 +292,7 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
 
 export function HandoutPrompt({ view, cards, act, group }: { view: PlayerView; cards: string[]; act: (a: Action) => void; group?: boolean }) {
   return (
-    <Modal title={group ? 'Возвращение из Спецхрана' : 'Выдача на руки: Спецхран'} wide>
+    <Modal title={group ? 'Вернуть из Спецхрана' : 'Выдача на руки: Спецхран'} wide>
       <p>Возьмите одну книгу.</p>
       <div className="shelf wrap">
         {cards.map((c) => <Book key={c} v={view} id={c} onClick={() => act({ type: 'kontoraHandout', card: c })} />)}
