@@ -340,6 +340,15 @@ function ownBookValue(state: GameState, p: PlayerState, card: string, ctx: Ctx):
   return v;
 }
 
+// Красный уголок впереди, а склад полон: за обязательную Нагрузку придётся отдать самую дешёвую книгу Непечатных.
+function redCornerSqueeze(state: GameState, p: PlayerState, ctx: Ctx): number {
+  if (state.phase === 'end' || state.phase === 'passion' || freeSlots(p) > 0) return 0;
+  const weight = !p.visitedRedCorner ? BOT_BASE.redCornerSqueeze : RULES.rounds > ctx.round ? BOT_BASE.redCornerSqueezeNext : 0;
+  const unprinted = p.warehouse.map((s) => s.card).filter((c) => !isFromLoadDeck(state, c));
+  if (!weight || !unprinted.length) return 0;
+  return weight * Math.min(...unprinted.map((c) => ownBookValue(state, p, c, ctx)));
+}
+
 // Опальные книги, которые не поместятся в Тайник, — их изымет облава. Возвращает самые дешёвые из них.
 // keepPropaganda — Куратор бережёт ЧНЛ (остальным её изъятие только на руку).
 function atRisk(state: GameState, p: PlayerState, value: (c: string) => number, keepPropaganda = false): string[] {
@@ -391,7 +400,7 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   // а когда ходить больше нечем — не стоят ничего.
   const last = ctx.round >= RULES.rounds;
   const talonShare = last && p.available + p.bonusGroupTurns <= 0 ? 0 : BOT_BASE.curatorTalonByRound[r] ?? 1;
-  let v = resources(state, p, ctx, talonShare);
+  let v = resources(state, p, ctx, talonShare) - redCornerSqueeze(state, p, ctx);
   const prog = state.sprouts.map((sp) => Math.min(sp.progress, RULES.glasnostStep));
   if (ctx.style === 'boa') {
     // «Удаву» ступень I почти ничего не стоит (её всё равно закроют), а кормить её — лучшая маскировка.
@@ -500,7 +509,7 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   v += connections * link;
   v += albumReserve(state, me, cards, link, left, tune(ctx, 'albumOption'));
   // Ресурсы.
-  v += resources(state, p, ctx);
+  v += resources(state, p, ctx) - redCornerSqueeze(state, p, ctx);
   // Нагрузка — будущие Талоны: в Главлите можно сдать одну за визит (оценка — по числу оставшихся Пятилеток).
   const visits = left + (state.phase === 'orders' && !state.nextOrder.includes(me) ? 1 : 0);
   const loads = cards.filter((c) => isLoad(state, c) && !isEvidence(state, c)).length;
