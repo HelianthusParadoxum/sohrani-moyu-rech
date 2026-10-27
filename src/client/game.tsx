@@ -11,7 +11,7 @@ import { bestFeedBooks, coversStep, freeSproutSlots, genresOf, hasPatron, iconCo
 import { kontoraTargets } from '../engine/full';
 import {
   BefriendPicker, ClubContents, fittingBooks, patronOpen, patronWhy, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
-  KontoraWarningPrompt, RescuePanel,
+  KontoraWarningPrompt,
 } from './full-ui';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
 import { Book, GENRE_SHORT, GenreChip, KindChip, withKindChips, workerIcon, addressIcons, iconize, SpeedSelect, Modal, ModalCollapse, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, isLoad, toggle } from './ui';
@@ -380,7 +380,8 @@ function addressBlocker(view: PlayerView, me: VPlayer, id: AddressId): string | 
     case 'spisanie':
       return room ?? talons(RULES.spisaniePrice);
     case 'kontora':
-      return kontoraTargets(view, me.id).length ? null : 'Ни у кого из соперников нет открыто лежащей книги опального жанра — доносить не на что.';
+      return kontoraTargets(view, me.id).length || view.players.some((p) => p.held > 0) ? null
+        : 'Пришить дело не на что: ни у кого из соперников нет открыто лежащей книги опального жанра. И вызволять некого: Контора никого не удерживает.';
     default:
       return null;
   }
@@ -448,6 +449,8 @@ function AddressContents({ id, view, seatIndex, me, onPatron, onBlocked, onPick 
       return <ClubContents view={view} seatIndex={seatIndex} me={me} onPatron={onPatron} onBlocked={onBlocked} />;
     case 'kontora':
       return <KontoraContents view={view} seatIndex={seatIndex} />;
+    case 'glavlit':
+      return <div className="small" title="Спецхран: изъятые книги, лежат взакрытую. Взять оттуда — Возвращение из Спецхрана, Выдача на руки (Контора)">🗄️ Спецхран: <b>{view.spetskhranCount}</b> книг(и)</div>;
     case 'redCorner': {
       if (view.round >= RULES.rounds) return <div className="muted small">Последняя Пятилетка — очередь уже не важна.</div>;
       // Новый порядок: сперва посетившие Красный уголок, затем остальные в прежнем порядке.
@@ -915,8 +918,9 @@ function groupBlocker(view: PlayerView, me: VPlayer, id: GroupActionId): string 
         .some((c) => c && isGenreBook(view, c));
       return any || anyFree ? null : 'Не на что купить книгу ни на одном адресе.';
     }
-    case 'rescue':
-      return view.players.some((p) => p.held > 0) ? null : 'Контора никого не удерживает.';
+    case 'spetskhran':
+      if (!view.spetskhranCount) return 'Спецхран пуст.';
+      return free < 1 ? 'На складе нет свободного места.' : null;
     case 'restore':
       if (me.talons < RULES.restoreCost) return `Нужно ${RULES.restoreCost}т, у вас ${me.talons}.`;
       return me.warehouse.some((s) => s.card && !view.restored[s.card] && restorable(view.cards[s.card].kind))
@@ -939,8 +943,6 @@ function GroupPanel({ id, view, me, close, done, title }: { id: GroupActionId; v
         <div className="modal-foot">{close && <button onClick={close}>Понятно</button>}<button className="primary" disabled>Выполнить</button></div>
       </>
     );
-  } else if (id === 'rescue') {
-    body = <RescuePanel view={view} done={done} />;
   } else if (id === 'copyText' && view.lastBuy?.player === me.id && view.turnDone === me.id) {
     body = <CopyFollowPanel view={view} done={done} />;
   } else if (id === 'copyText') {
@@ -1084,7 +1086,7 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
     case 'kontoraDecide':
       return <KontoraDecidePrompt view={view} me={me} act={act} />;
     case 'kontoraHandout':
-      return <HandoutPrompt view={view} cards={p.cards} act={act} />;
+      return <HandoutPrompt view={view} cards={p.cards} act={act} group={p.group} />;
     case 'freeConnection':
       return <FreeConnectionPrompt view={view} me={me} act={act} />;
     case 'makulatura': {
@@ -1220,7 +1222,7 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
               <button key={o} onClick={() => {
                 if (o === 'sideJob' || o === 'underCounter') act({ type: 'sproutBonus', bonus: o });
                 else if (o === 'acquaintance') setGroupFor(o);
-                else if (o === 'copyText' || o === 'restore' || o === 'rescue' || groupBlocker(view, me, o as GroupActionId)) setGroupFor(o);
+                else if (o === 'copyText' || o === 'restore' || groupBlocker(view, me, o as GroupActionId)) setGroupFor(o);
                 else sendGroup({ action: o } as GroupAction);
               }}>{withPrice(view, me, o)}</button>
             ))}

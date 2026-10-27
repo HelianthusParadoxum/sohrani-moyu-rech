@@ -7,7 +7,7 @@ import {
 import { finalScoring } from './scoring';
 import {
   afterRaid, befriendPatron, befriendTargets, doKontora, gaveAway, giveToPatron, holdWorker, isFull, kontoraLost, partorgFill, payPrice, price, proseBonus, purchases,
-  flushIrony, removePatron, rescue, seizeDenounced, setupClub, startKontora, takeFromSpetskhran,
+  flushIrony, removePatron, seizeDenounced, setupClub, startKontora, takeFromSpetskhran,
 } from './full';
 import type {
   Action, AddressId, CopyTextAddress, GameState, Genre, GroupAction, Mode, PassionId, Pending, PlaceAction, PlayerState,
@@ -16,7 +16,7 @@ import { GENRES } from './types';
 import {
   addBook, addOpenBook, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isPropagandaKind, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
-  talonsText, title, titles, logEvent, logNote, logAfter, toSpetskhranPublic, isExposed, saved, logRecap, plural, bulletTitles, iconCount, genresOf, genreOn,
+  talonsText, title, titles, logEvent, logNote, logAfter, toSpetskhranPublic, seeSpetskhran, isExposed, saved, logRecap, plural, bulletTitles, iconCount, genresOf, genreOn,
 } from './util';
 
 export interface NewGameOptions {
@@ -102,8 +102,8 @@ export function createGame(opts: NewGameOptions): GameState {
   fillRazval(state);
   state.baraholka = Array.from({ length: RULES.displaySize }, () => draw(state));
   if (mode === 'full') setupClub(state);
-  // Спецхран Конторы с начала партии не пуст (в «Заповеднике» Конторы нет).
-  if (mode === 'full' && !opts.reserve) {
+  // Спецхран (в Главлите) с начала партии не пуст — во всех режимах.
+  {
     for (let i = 0; i < RULES.spetskhranStart; i++) {
       const c = draw(state);
       if (c) state.spetskhran.push(c);
@@ -1415,10 +1415,13 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       p.available++;
       log(state, `${p.name} расширяет сеть: +1 Единомышленник.`);
       break;
-    case 'rescue': {
-      const n = rescue(state, p, g.returns);
-      gain(p, n * RULES.rescuePoints, 'rescue');
-      logAfter(state, `↳ За помощь товарищам: +${pointsText(n * RULES.rescuePoints)}.`);
+    case 'spetskhran': {
+      // Возвращение из Спецхрана: игрок смотрит Спецхран и выбирает книгу следом.
+      check(state.spetskhran.length > 0, 'Спецхран пуст');
+      check(freeSlots(p) > 0, 'На складе нет места');
+      log(state, `${p.name}: Возвращение из Спецхрана.`);
+      state.pending.push({ kind: 'kontoraHandout', player: p.id, cards: [...state.spetskhran], group: true });
+      seeSpetskhran(state, p.id, state.spetskhran);
       break;
     }
   }
@@ -1655,7 +1658,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
     }
     case 'kontoraHandout': {
       check(action.type === 'kontoraHandout', 'Выберите книгу из Спецхрана');
-      takeFromSpetskhran(state, p, action.card);
+      takeFromSpetskhran(state, p, action.card, pend.group ? 'Возвращение из Спецхрана' : 'Выдача на руки');
       if (pend.seize) seizeDenounced(state, pend.seize);
       break;
     }

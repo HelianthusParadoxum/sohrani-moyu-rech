@@ -4,7 +4,7 @@ import type { ClubGift, GameState, KontoraChoice, PatronId, PlayerState } from '
 import { GENRES } from './types';
 import {
   addBook, addSecretBook, check, discard, drawLoad, earn, freeSlots, hasBook, hasPatron, iconsOf, genresOf, genreOn, isBanned, isGenreBook, isPropaganda, log, pay, player,
-  removeBook, saved, shuffle, talonsText, title, titles, logAfter,
+  removeBook, saved, shuffle, talonsText, title, titles, logAfter, gain, pointsText,
   forgetSpetskhran, seeSpetskhran, toSpetskhranPublic,
 } from './util';
 
@@ -184,12 +184,21 @@ export function signalable(state: TargetsInfo, playerId: string): boolean {
 }
 
 export function startKontora(state: GameState, p: PlayerState) {
-  check(kontoraTargets(state, p.id).length > 0, 'В Контору сейчас не пойти: ни у кого из соперников на Складе нет открытой опальной книги — доносить не на что');
+  check(kontoraTargets(state, p.id).length > 0 || heldTotal(state) > 0,
+    'В Контору сейчас не пойти: доносить не на что (ни у кого из соперников на Складе нет открытой опальной книги), и вызволять некого');
   // Перепрятать книги соперники уже не успеют: перепрятывают только в свой ход. Игрок сразу выбирает пункты и цену.
   state.pending.push({ kind: 'kontoraDecide', player: p.id });
 }
 
 export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
+  if (c.rescue) {
+    // Вызволение из бед — вместо «Пришить дело»: без доноса и без пунктов.
+    check(!c.denounce && !c.petition?.length && !c.handout && !c.prophylaxis, 'В Конторе — либо «Пришить дело», либо «Вызволение из бед»');
+    const n = rescue(state, p, c.rescue);
+    gain(p, n * RULES.rescuePoints, 'rescue');
+    logAfter(state, `↳ За помощь товарищам: +${pointsText(n * RULES.rescuePoints)}.`);
+    return;
+  }
   const chosen = [c.petition?.length, c.handout, c.prophylaxis].filter(Boolean).length;
   check(chosen >= 1, 'Выберите от 1 до 3 пунктов');
   check(c.denounce, 'Укажите открытую опальную книгу — донос, цена похода в Контору');
@@ -244,12 +253,12 @@ export function seizeDenounced(state: GameState, seize: { player: string; card: 
   log(state, `Изъятие: у ${o.name} изъята в Спецхран ${title(state, s.card)}.`);
 }
 
-export function takeFromSpetskhran(state: GameState, p: PlayerState, card: string) {
+export function takeFromSpetskhran(state: GameState, p: PlayerState, card: string, how = 'Выдача на руки') {
   check(state.spetskhran.includes(card), 'Этой книги нет в Спецхране');
   state.spetskhran = state.spetskhran.filter((c) => c !== card);
   forgetSpetskhran(state, card);
   addSecretBook(state, p, card);
-  log(state, `${p.name} получает книгу из Спецхрана (Выдача на руки).`);
+  log(state, `${p.name} получает книгу из Спецхрана (${how}).`);
   log(state, `Вы получили ${title(state, card)}.`, [p.id]);
 }
 

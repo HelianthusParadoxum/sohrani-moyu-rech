@@ -1027,11 +1027,8 @@ function groupCandidates(state: GameState, me: string, ctx: Ctx, free = false): 
     const ownWeapon = p.passion === 'curator' && isPropaganda(state, s.card);
     if (!state.restored[s.card] && !ownWeapon && ['genre', 'loadReturnable', 'loadEvidence', ...(RULES.exposePropaganda ? ['propaganda', 'loadPropaganda'] : [])].includes(state.cards[s.card].kind)) out.push({ action: 'restore', card: s.card });
   }
-  const held = state.players.filter((o) => o.held > 0);
-  // Вызволение — в конце своей череды: пока свободных Единомышленников больше одного (не считая того, кто должен в Красный
-  // уголок), адреса важнее — не упускать инициативу. Без Единомышленника (бонус Ростка, Подмастерье, Квартирник) — когда угодно.
-  const spare = p.available - (p.visitedRedCorner ? 0 : 1);
-  if (held.length && (free || spare <= 1)) for (const returns of rescueOptions(state, me)) out.push({ action: 'rescue', returns });
+  void free;
+  if (state.spetskhran.length && freeSlots(p) > 0) out.push({ action: 'spetskhran' });
   return out;
 }
 
@@ -1141,6 +1138,13 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
     if (patrons[0]) items.push({ prophylaxis: patrons[0].id });
   }
   const out: KontoraChoice[] = [];
+  // Вызволение из бед (вместо «Пришить дело»): Куратор не вызволяет, против подозреваемого Куратора его не вызволяют.
+  if (!ctx.curator) {
+    for (const rescue of rescueOptions(state, me)) {
+      if (united && rescue[enemy[0]]) continue;
+      out.push({ rescue });
+    }
+  }
   for (const set of subsets(items, items.length)) {
     const choice = Object.assign({}, ...set) as KontoraChoice;
     // Куратор, раз уж пошёл в Контору, Профилактику проводит всегда.
@@ -1433,7 +1437,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
             // Только что передумал идти (соперники перепрятали книги) — второй раз за ход не объявляет.
             const mine = state.log.filter((l) => l.text.startsWith(p.name + ' ')).pop();
             const changedMind = mine?.text === `${p.name} передумывает идти в Контору.`;
-            if (!changedMind && kontoraTargets(state, me).length) out.push({ type: 'place', place: { address: 'kontora' } });
+            if (!changedMind && (kontoraTargets(state, me).length || heldTotal(state) > 0)) out.push({ type: 'place', place: { address: 'kontora' } });
             break;
           }
           case 'kvartirnik': {

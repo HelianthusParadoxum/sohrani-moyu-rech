@@ -36,6 +36,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
         const card = victim?.warehouse.find((s) => !s.hidden && !s.memorized && iconCount(state, s.card) > 0 && isBanned(state, s.card))?.card;
         const held = state.players.find((o) => o.held > 0);
         const choice = held ? { petition: [held.id] } : { handout: true };
+        if (held && (!card || rand() < 0.5)) return [{ type: 'kontoraDecide', go: true, choice: { rescue: { [held.id]: 1 } } }, { type: 'kontoraDecide', go: false }];
         return [
           { type: 'kontoraDecide', go: true, choice: { ...choice, ...(victim && card ? { denounce: { player: victim.id, card } } : {}) } },
           { type: 'kontoraDecide', go: false },
@@ -184,13 +185,7 @@ function groupCandidates(state: GameState, me: string, rand: Rand): Action[] {
   if (copy) out.push(copy);
   const r = p.warehouse.find((s) => !state.restored[s.card] && ['genre', 'loadReturnable', 'loadEvidence'].includes(state.cards[s.card].kind));
   if (r) out.push({ action: 'restore', card: r.card });
-  const held = state.players.filter((o) => o.held > 0);
-  if (held.length) {
-    let left = RULES.rescueMax;
-    const returns: Record<string, number> = {};
-    for (const o of held) { const n = Math.min(o.held, left); if (n > 0) { returns[o.id] = n; left -= n; } }
-    out.push({ action: 'rescue', returns });
-  }
+  if (state.spetskhran.length && freeSlots(p) > 0) out.push({ action: 'spetskhran' });
   return out.map((group) => ({ type: 'group', group }));
 }
 

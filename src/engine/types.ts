@@ -54,7 +54,7 @@ export type GroupActionId =
   | 'expandWarehouse' // Увеличение склада
   | 'expandCache' // Закладка Тайника
   | 'copyText' // Тиражирование текста
-  | 'rescue' // Вызволение из бед (Контора — только полный режим)
+  | 'spetskhran' // Возвращение из Спецхрана
   | 'restore' // Возвращение смыслов
   | 'hire'; // Расширение сети
 
@@ -148,7 +148,7 @@ export type Pending =
   | { kind: 'sproutBonus'; player: string; sprout: string; options: SproutBonusId[] }
   | { kind: 'kontoraWarning'; player: string; from: string }
   | { kind: 'kontoraDecide'; player: string }
-  | { kind: 'kontoraHandout'; player: string; cards: string[]; seize?: { player: string; card: string; by?: string; shielded?: boolean } } // seize — Сигнал и Изъятие после выбора книги
+  | { kind: 'kontoraHandout'; player: string; cards: string[]; group?: boolean; seize?: { player: string; card: string; by?: string; shielded?: boolean } } // seize — Сигнал и Изъятие после выбора книги
   | { kind: 'extraGroup'; player: string } // Подмастерье
   | { kind: 'freeConnection'; player: string } // Председатель
   | { kind: 'lieutenantPick'; player: string; cards: string[] } // Лейтенант: книги, изъятые облавой с адресов
@@ -206,7 +206,7 @@ export interface GameState {
   occupancy: Partial<Record<AddressId, string[]>>;
   sprouts: Sprout[];
   patrons: PatronState[];
-  spetskhran: string[]; // Спецхран Конторы — общий, лежит взакрытую
+  spetskhran: string[]; // Спецхран (в Главлите) — общий, лежит взакрытую
   spetskhranSeen?: Record<string, string[]>; // какие книги Спецхрана игрок знает (изъятые при всех или виденные при Выдаче на руки)
   solo?: boolean; // «Несистемный»: одиночная игра
   reserve?: boolean; // «Заповедник»: полный режим без Конторы и Куратора
@@ -289,7 +289,9 @@ export type CopyTextBuy = Extract<PlaceAction, { address: CopyTextAddress }>;
 
 export interface ClubGift { patron: PatronId; card: string }
 
+// Контора: либо «Пришить дело» (донос + пункты), либо «Вызволение из бед» (rescue — больше ничего).
 export interface KontoraChoice {
+  rescue?: Record<string, number>; // Вызволение из бед: сколько Единомышленников вернуть каждому (всего до RULES.rescueMax)
   petition?: string[]; // Ходатайство: чьих Единомышленников вернуть (до 2)
   handout?: boolean; // Выдача на руки
   prophylaxis?: PatronId; // Профилактика: какого Завсегдатая удалить
@@ -300,7 +302,7 @@ export type GroupAction =
   | { action: 'expandWarehouse' }
   | { action: 'expandCache' }
   | { action: 'copyText'; address: CopyTextAddress; buy?: CopyTextBuy | null; card?: string | null } // покупка по желанию + card бесплатно оттуда же
-  | { action: 'rescue'; returns: Record<string, number> }
+  | { action: 'spetskhran' } // книгу игрок выбирает следом, посмотрев Спецхран
   | { action: 'restore'; card: string }
   | { action: 'hire' };
 

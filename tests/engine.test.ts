@@ -650,18 +650,40 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     expect(next.players.find((x) => x.id === me)!.capacity).toBe(p.capacity + 1);
   });
 
-  it('Вызволение из бед: +2 очка за каждого вызволенного, не больше 2 за раз', () => {
+  it('Контора: Вызволение из бед вместо «Пришить дело» — +2 очка за каждого, не больше 2 за раз, без доноса', () => {
     let s = started();
     const me = s.order[s.turn];
     const other = s.players.find((x) => x.id !== me)!;
-    other.held = 2;
-    other.available = Math.max(0, other.available - 2);
+    other.available = Math.max(0, other.available - 3);
     other.held = 3;
-    // Не больше двух за одно Вызволение.
-    expect(() => applyAction(s, me, { type: 'group', group: { action: 'rescue', returns: { [other.id]: 3 } } })).toThrow(/не больше 2/);
-    s = applyAction(s, me, { type: 'group', group: { action: 'rescue', returns: { [other.id]: 2 } } });
+    s = applyAction(s, me, { type: 'place', place: { address: 'kontora' } });
+    expect(s.pending[0]?.kind).toBe('kontoraDecide');
+    // Не больше двух за одно Вызволение; с доносом и пунктами «Пришить дело» не смешивается.
+    expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { rescue: { [other.id]: 3 } } })).toThrow(/не больше 2/);
+    expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { rescue: { [other.id]: 1 }, handout: true } })).toThrow(/либо/);
+    s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { rescue: { [other.id]: 2 } } });
     expect(s.players.find((x) => x.id === me)!.pointsBy.rescue).toBe(2 * RULES.rescuePoints);
     expect(s.players.find((x) => x.id === other.id)!.held).toBe(1);
+    expect(s.occupancy.kontora).toContain(me);
+  });
+
+  it('Возвращение из Спецхрана: Спецхран есть и в Райцентре, можно взять 1 любую книгу', () => {
+    let s = started('beginner');
+    expect(s.spetskhran.length).toBe(RULES.spetskhranStart);
+    const me = s.order[s.turn];
+    const other = s.players.find((x) => x.id !== me)!.id;
+    s = applyAction(s, me, { type: 'group', group: { action: 'spetskhran' } });
+    const pend = s.pending[0] as { kind: string; cards: string[]; group?: boolean };
+    expect(pend.kind).toBe('kontoraHandout');
+    expect(pend.group).toBe(true);
+    expect(pend.cards).toEqual(s.spetskhran);
+    // Соперник содержимое Спецхрана не видит.
+    expect(viewFor(s, other).pending[0]).toEqual({ kind: 'kontoraHandout', player: me, secret: true });
+    const card = pend.cards[2];
+    s = applyAction(s, me, { type: 'kontoraHandout', card });
+    expect(s.spetskhran).not.toContain(card);
+    expect(s.players.find((x) => x.id === me)!.warehouse.some((w) => w.card === card)).toBe(true);
+    expect(s.log.some((l) => l.text.includes('(Возвращение из Спецхрана)'))).toBe(true);
   });
 
   it('Завмаг: Госкниготорг бесплатно, состав свободный', () => {
@@ -1458,7 +1480,7 @@ describe('Заповедник', () => {
     s = startOrders(s);
     const me = s.order[s.turn];
     expect(() => applyAction(s, me, { type: 'place', place: { address: 'kontora' } })).toThrow(/нет на столе/);
-    expect(() => applyAction(s, me, { type: 'group', group: { action: 'rescue', returns: {} } })).toThrow(/нет/);
+    expect(s.spetskhran.length).toBe(RULES.spetskhranStart); // Спецхран (в Главлите) — и без Конторы
     // Партия доигрывается, и Контора никого не держит.
     const end = playOut(s, seeded(5), 6000);
     expect(end.phase).toBe('end');
@@ -1507,12 +1529,12 @@ describe('Ростки: места', () => {
 });
 
 describe('Спецхран и Проза', () => {
-  it('в полном режиме Спецхран с начала партии хранит 5 Непечатных; в Райцентре и Заповеднике — пуст', () => {
+  it('Спецхран (в Главлите) с начала партии хранит 5 Непечатных во всех режимах', () => {
     const full = createGame({ players: players(3), seed: 4, mode: 'full' });
     expect(full.spetskhran).toHaveLength(RULES.spetskhranStart);
     expect(viewFor(full, 'p1').spetskhranCount).toBe(RULES.spetskhranStart);
-    expect(createGame({ players: players(3), seed: 4 }).spetskhran).toHaveLength(0);
-    expect(createGame({ players: players(3), seed: 4, reserve: true }).spetskhran).toHaveLength(0);
+    expect(createGame({ players: players(3), seed: 4 }).spetskhran).toHaveLength(RULES.spetskhranStart);
+    expect(createGame({ players: players(3), seed: 4, reserve: true }).spetskhran).toHaveLength(RULES.spetskhranStart);
   });
 
   it('Проза «Вдохновиться» — не больше 1 очка, сколько бы прозы ни было', () => {

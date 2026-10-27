@@ -105,7 +105,7 @@ export const RULES = {
   // 'ossified' — «окостенение»: выходит самый свежий, опала добирается из всех свободных жанров (он может и вернуться).
   censorshipShift: 'ossified' as 'inertia' | 'ossified',
   petitionMax: 1, // Контора, Ходатайство: скольких удержанных Единомышленников можно вернуть
-  spetskhranStart: 5, // полный режим: столько Непечатных лежит в Спецхране Конторы с начала партии
+  spetskhranStart: 5, // столько Непечатных лежит в Спецхране (в Главлите) с начала партии
   proseBonusMax: 1, // Проза «Вдохновиться»: не больше стольких очков за действие, сколько бы прозы ни было
   sproutFeedsPerAction: 1, // сколько ступеней (у разных Ростков) можно закрыть одним поручением «Ростки Гласности»
   // «Несистемный» — одиночная игра.
@@ -128,7 +128,7 @@ export const ADDRESS_ICONS: Record<AddressId, string> = {
 
 // Значки действий Инициативной группы — так же, как у адресов: не повторяются и не совпадают с прочими значками.
 export const GROUP_ICONS: Record<GroupActionId, string> = {
-  expandWarehouse: '🧱', expandCache: '🗝️', copyText: '🖨️', rescue: '🛟', restore: '💡', hire: '🕸️',
+  expandWarehouse: '🧱', expandCache: '🗝️', copyText: '🖨️', spetskhran: '🗄️', restore: '💡', hire: '🕸️',
 };
 
 // Значки бонусов Ростков, которые не действия Группы.
@@ -161,7 +161,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   sprouts: { id: 'sprouts', name: 'Ростки Гласности', limits: [INF, INF, INF], short: 'Питать ступень Ростка', hint: (RULES.sproutFeedsPerAction === 1 ? 'Питать 1 ступень одного Ростка' : `Питать до ${RULES.sproutFeedsPerAction} ступеней Ростков`) + '; у каждого бонуса Ростка — одно место на Пятилетку' },
   samizdat: { id: 'samizdat', name: 'Самиздат', limits: [1, 2, 3], short: `Издать: +${RULES.samizdatTalons}т/значок`, hint: `Издать книгу: +${RULES.samizdatTalons}т/значок` },
   tamizdat: { id: 'tamizdat', name: 'Тамиздат', limits: [1, 1, 2], short: `Издать: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка/значок`, hint: `Издать книгу: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка/значок` },
-  glavlit: { id: 'glavlit', name: 'Главлит', limits: [1, 1, 2], short: `Сдать опальные (+${RULES.glavlitTalons}т) — взять столько же вслепую`, hint: `Отдать любое число подцензурных книг (+${RULES.glavlitTalons}т за каждую) и взять столько же из стопок Непечатных и Нагрузки на выбор` },
+  glavlit: { id: 'glavlit', name: 'Главлит', limits: [1, 1, 2], short: `Сдать опальные (+${RULES.glavlitTalons}т) — взять столько же вслепую`, hint: `Отдать любое число подцензурных книг (+${RULES.glavlitTalons}т за каждую) и взять столько же из стопок Непечатных и Нагрузки на выбор. Здесь же — Спецхран: изъятые книги` },
   makulatura: { id: 'makulatura', name: 'Макулатура', limits: [1, 1, 2], short: `Тянуть вслепую по ${RULES.makulaturaPrice}т, оставить 1`, hint: `По ${RULES.makulaturaPrice}т за книгу: тяните тайно сколько угодно книг из стопок Непечатных и Нагрузки (из любой), затем оставьте себе одну, остальные — в сброс` },
   knigoobmen: { id: 'knigoobmen', name: 'Книгообмен', limits: [1, 1, 1], safehouse: true, short: 'Обменять книгу на книгу с витрины', hint: 'Отдать 1 жанровую книгу (в сброс) — взять 1 с витрины; когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы' },
   kvartirnik: { id: 'kvartirnik', name: 'Квартирник', limits: [1, 1, 1], safehouse: true, short: 'Обмен с игроком', hint: 'Обмен книгами с другим игроком по согласию; когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы' },
@@ -173,7 +173,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   club: { id: 'club', name: 'Клуб книголюбов', limits: [2, 3, 4], fullOnly: true, short: 'Связь: книга жанра Завсегдатая', hint: RULES.clubFreeGift
     ? 'Без Единомышленника: за свой ход отдайте 1 книгу 1 Завсегдатаю (его жанра или Альбом) — завяжите связь'
     : 'Отдайте Завсегдатаям книги их жанров — завяжите связи' },
-  kontora: { id: 'kontora', name: 'Контора', limits: [INF, INF, INF], fullOnly: true, perPlayer: true, short: 'Донос; Ходатайство, Выдача на руки, Профилактика; Сигнал и Изъятие', hint: 'Цена — донос на открытую опальную книгу соперника; Ходатайство, Выдача на руки, Профилактика; в конце — обязательно Сигнал на него и Изъятие книги' },
+  kontora: { id: 'kontora', name: 'Контора', limits: [INF, INF, INF], fullOnly: true, perPlayer: true, short: 'Пришить дело или Вызволение из бед', hint: `На выбор. Пришить дело: цена — донос на открытую опальную книгу соперника; Ходатайство, Выдача на руки, Профилактика; в конце — обязательно Сигнал на него и Изъятие книги. Вызволение из бед: вернуть из Конторы до ${RULES.rescueMax} Единомышленников (своих или чужих), +${RULES.rescuePoints} очка за каждого` },
 };
 
 // Тиражирование текста: адреса, где книги покупают в открытую.
@@ -210,7 +210,7 @@ export function addressInGame(g: GameKind, id: AddressId): boolean {
 }
 export function groupInGame(g: GameKind, id: GroupActionId): boolean {
   if (GROUP_ACTIONS[id].fullOnly && g.mode !== 'full') return false;
-  return !(g.reserve && id === 'rescue'); // вызволять некого: Конторы нет
+  return true;
 }
 // Завсегдатаи, чьё свойство без Конторы ни на что не влияет.
 export const KONTORA_PATRONS: PatronId[] = ['psychiatrist'];
@@ -219,7 +219,7 @@ export const GROUP_ACTIONS: Record<GroupActionId, { name: string; hint: string; 
   expandWarehouse: { name: 'Увеличение склада', hint: `−${RULES.expandWarehouseCost}т: +1 место на складе (до 10)` },
   expandCache: { name: 'Закладка Тайника', hint: `−${RULES.expandCacheCost}т: 1 место склада становится потайным (до ${RULES.maxCache})` },
   copyText: { name: 'Тиражирование текста', hint: 'Покупая книгу на Развале, Толкучке, в Распределителе (или меняясь на Книгообмене), поставьте ещё одного Единомышленника на Тиражирование — и возьмите с этого адреса ещё одну жанровую книгу бесплатно (не Улику и не ЧНЛ)' },
-  rescue: { name: 'Вызволение из бед', hint: `Вернуть из Конторы до ${RULES.rescueMax} Единомышленников (своих или чужих): +${RULES.rescuePoints} очка за каждого`, fullOnly: true },
+  spetskhran: { name: 'Возвращение из Спецхрана', hint: 'Посмотреть Спецхран (он в Главлите) и взять оттуда 1 любую книгу' },
   restore: { name: 'Возвращение смыслов', hint: `${RULES.restoreCost ? `${RULES.restoreCost}т: ` : ''}+1 значок жанровой книге или 3 значка возвращаемой Нагрузке` },
   hire: { name: 'Расширение сети', hint: `−${RULES.hireCost}т: +1 Единомышленник, сразу доступен (до 7)` },
 };
@@ -239,15 +239,13 @@ export const SPROUT_BONUS_NAMES: Record<SproutBonusId, string> = {
 
 // Места Ростка: у каждого из двух бонусов — своё место на Пятилетку (бонус берёт тот, кто занял место).
 // В полном режиме (и в Заповеднике) Приработок заменён на «Завязать знакомство» — связь с любым Завсегдатаем без книги;
-// Вызволение — только там, где есть Контора, иначе место остаётся, но без бонуса (null).
-export function sproutSlotBonuses(game: { mode: string; reserve?: boolean }, info: SproutInfo): (SproutBonusId | null)[] {
-  return info.bonuses.map((b) => (b === 'sideJob' && game.mode === 'full' ? 'acquaintance'
-    : b === 'rescue' && !(game.mode === 'full' && !game.reserve) ? null : b));
+export function sproutSlotBonuses(game: { mode: string; reserve?: boolean }, info: SproutInfo): SproutBonusId[] {
+  return info.bonuses.map((b) => (b === 'sideJob' && game.mode === 'full' ? 'acquaintance' : b));
 }
 
 // Бонусы Ростка в этой партии.
 export function sproutBonusOptions(game: { mode: string; reserve?: boolean }, info: SproutInfo): SproutBonusId[] {
-  return sproutSlotBonuses(game, info).filter((b): b is SproutBonusId => b !== null);
+  return sproutSlotBonuses(game, info);
 }
 
 // Ступень Ростка: сколько значков основного жанра и какой жанр поддержки.
@@ -261,9 +259,9 @@ const s = (id: string, name: string, main: Genre, sup: [Genre, Genre, Genre], bo
 
 export const SPROUTS: SproutInfo[] = [
   s('ksp', 'Клуб Самодеятельной Песни', 'poetry', ['testimony', 'scifi', 'irony'], ['copyText', 'hire']),
-  s('memorial', 'Мемориал', 'testimony', ['album', 'prose', 'foreign'], ['restore', 'rescue']),
+  s('memorial', 'Мемориал', 'testimony', ['album', 'prose', 'foreign'], ['restore', 'spetskhran']),
   s('slovesniki', 'Словесники', 'prose', ['drama', 'poetry', 'testimony'], ['restore', 'expandWarehouse']),
-  s('translators', 'Семинары переводчиков', 'foreign', ['scifi', 'irony', 'prose'], ['rescue', 'underCounter']),
+  s('translators', 'Семинары переводчиков', 'foreign', ['scifi', 'irony', 'prose'], ['spetskhran', 'underCounter']),
   s('klf', 'Клуб Любителей Фантастики', 'scifi', ['irony', 'foreign', 'album'], ['copyText', 'underCounter']),
   s('kvn', 'Клуб Весёлых и Находчивых', 'irony', ['poetry', 'drama', 'scifi'], ['hire', 'sideJob']),
   s('restorers', 'Реставраторы', 'album', ['prose', 'testimony', 'drama'], ['expandWarehouse', 'expandCache']),

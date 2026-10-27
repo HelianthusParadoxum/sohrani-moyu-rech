@@ -85,7 +85,6 @@ export function KontoraContents({ view, seatIndex }: { view: PlayerView; seatInd
         {held.map((p, i) => <Figure key={i} color={PLAYER_COLORS[seatIndex(p.id)]} title={p.name} />)}
         {Array.from({ length: Math.max(0, KONTORA_LOSS - total) }, (_, i) => <Figure key={`f${i}`} />)}
       </div>
-      <div>В Спецхране: <b>{view.spetskhranCount}</b> книг(и)</div>
       {total >= 5 && <div className="warn-text">При 7 удержанных подполье проигрывает!</div>}
     </div>
   );
@@ -177,11 +176,17 @@ export function BefriendPicker({ view, me, onPick, close }: { view: PlayerView; 
 
 export function KontoraPanel({ view, place }: { view: PlayerView; place: (p: PlaceAction) => void }) {
   const targets = kontoraTargets(view, view.me);
+  const held = view.players.some((p) => p.held > 0);
   return (
     <>
+      <p>В Конторе — одно на выбор: <b>Пришить дело</b> или <b>Вызволение из бед</b>.</p>
+      <h3>Вызволение из бед</h3>
+      <p>Вернуть из Конторы до {RULES.rescueMax} удерживаемых 👤 (своих или чужих): +{RULES.rescuePoints} очка за каждого. Донос не нужен.</p>
+      {!held && <p className="warn-text">Сейчас Контора никого не удерживает.</p>}
+      <h3>Пришить дело</h3>
       <h4>Цена похода — донос: указать на открыто лежащую на Складе соперника книгу опального жанра. В конце похода — обязательно: Сигнал (Контора удерживает 👤 того, на кого донос) и Изъятие этой книги в Спецхран</h4>
       {targets.length === 0
-        ? <p className="warn-text">Сейчас в Контору не пойти: ни у кого на Складе нет открытой опальной книги — доносить не на что.</p>
+        ? <p className="warn-text">Сейчас дело не пришить: ни у кого на Складе нет открытой опальной книги — доносить не на что.</p>
         : <TargetShelf view={view} targets={targets} />}
       <p>Соперники уже не успеют перепрятать книги. Дальше вы укажете книгу для доноса и выберете от 1 до 3 пунктов:</p>
       <ul>
@@ -189,7 +194,7 @@ export function KontoraPanel({ view, place }: { view: PlayerView; place: (p: Pla
         <li><b>Выдача на руки</b> — посмотреть Спецхран и взять оттуда одну книгу.</li>
         <li><b>Профилактика</b> — удалить Завсегдатая Клуба, с которым связан тот, на кого вы донесли.</li>
       </ul>
-      <div className="modal-foot"><button className="primary" disabled={!targets.length} onClick={() => place({ address: 'kontora' })}>Дальше</button></div>
+      <div className="modal-foot"><button className="primary" disabled={!targets.length && !held} onClick={() => place({ address: 'kontora' })}>Дальше</button></div>
     </>
   );
 }
@@ -231,6 +236,7 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
   const [denounce, setDenounce] = useState<{ player: string; card: string } | null>(null);
   const held = view.players.filter((p) => p.held > 0);
   const targets = kontoraTargets(view, view.me);
+  const [mode, setMode] = useState<'case' | 'rescue'>(targets.length ? 'case' : 'rescue');
   const count = [petition.length > 0, handout, !!prophylaxis].filter(Boolean).length;
   const target = denounce ? view.players.find((p) => p.id === denounce.player) : null;
   const prophOk = !prophylaxis || !denounce || view.patrons.some((x) => x.id === prophylaxis && x.connections.includes(denounce.player));
@@ -240,6 +246,16 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
   };
   return (
     <Modal title="Контора" wide>
+      <div className="genres">
+        <button className={mode === 'case' ? 'selected' : ''} disabled={!targets.length} onClick={() => setMode('case')}>Пришить дело</button>
+        <button className={mode === 'rescue' ? 'selected' : ''} disabled={!held.length} onClick={() => setMode('rescue')}>Вызволение из бед</button>
+      </div>
+      {mode === 'rescue' ? (
+        <>
+          <RescuePanel view={view} onDone={(rescue) => act({ type: 'kontoraDecide', go: true, choice: { rescue } })} />
+          <div className="modal-foot"><button onClick={() => act({ type: 'kontoraDecide', go: false })}>Передумать</button></div>
+        </>
+      ) : (<>
       <p>Цена похода — донос: укажите открытую опальную книгу соперника; в конце похода, после выбранных пунктов, — обязательно Сигнал на этого игрока и Изъятие книги в Спецхран. Выберите от 1 до 3 пунктов (без повторов).</p>
       <h4>Ходатайство ({RULES.petitionMax === 1 ? '1 👤' : `до ${RULES.petitionMax} 👤`})</h4>
       <div className="genres">
@@ -269,13 +285,14 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
         <button className="primary" disabled={count < 1 || !denounce || !prophOk} title={!denounce ? 'Укажите книгу для доноса' : count < 1 ? 'Выберите хотя бы один пункт' : !prophOk ? 'Этот Завсегдатай не связан с тем, на кого донос' : ''}
           onClick={() => act({ type: 'kontoraDecide', go: true, choice })}>Пойти в Контору ({count})</button>
       </div>
+      </>)}
     </Modal>
   );
 }
 
-export function HandoutPrompt({ view, cards, act }: { view: PlayerView; cards: string[]; act: (a: Action) => void }) {
+export function HandoutPrompt({ view, cards, act, group }: { view: PlayerView; cards: string[]; act: (a: Action) => void; group?: boolean }) {
   return (
-    <Modal title="Выдача на руки: Спецхран" wide>
+    <Modal title={group ? 'Возвращение из Спецхрана' : 'Выдача на руки: Спецхран'} wide>
       <p>Возьмите одну книгу.</p>
       <div className="shelf wrap">
         {cards.map((c) => <Book key={c} v={view} id={c} onClick={() => act({ type: 'kontoraHandout', card: c })} />)}
@@ -293,13 +310,14 @@ export function FreeConnectionPrompt({ view, me, act }: { view: PlayerView; me: 
   );
 }
 
-export function RescuePanel({ view, done }: { view: PlayerView; done: (g: GroupAction) => void }) {
+// Вызволение из бед в Конторе: кого вернуть.
+export function RescuePanel({ view, onDone }: { view: PlayerView; onDone: (returns: Record<string, number>) => void }) {
   const [returns, setReturns] = useState<Record<string, number>>({});
   const held = view.players.filter((p) => p.held > 0);
   const total = Object.values(returns).reduce((s, n) => s + n, 0);
   return (
     <>
-      <p>Верните до {RULES.rescueMax} удерживаемых Конторой 👤 — себе и другим игрокам.</p>
+      <p>Верните до {RULES.rescueMax} удерживаемых Конторой 👤 — себе и другим игрокам: +{RULES.rescuePoints} очка за каждого.</p>
       {held.map((p) => {
         const room = RULES.rescueMax - total + (returns[p.id] ?? 0);
         return (
@@ -307,7 +325,7 @@ export function RescuePanel({ view, done }: { view: PlayerView; done: (g: GroupA
             onChange={(e) => setReturns({ ...returns, [p.id]: Math.max(0, Math.min(p.held, room, Number(e.target.value))) })} /> из {p.held}</label>
         );
       })}
-      <div className="modal-foot"><button className="primary" disabled={!total} onClick={() => done({ action: 'rescue', returns })}>Вызволить ({total})</button></div>
+      <div className="modal-foot"><button className="primary" disabled={!total} onClick={() => onDone(returns)}>Вызволить ({total})</button></div>
     </>
   );
 }
