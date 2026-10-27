@@ -1552,6 +1552,8 @@ describe('Спецхран и Проза', () => {
     const full = createGame({ players: players(3), seed: 4, mode: 'full' });
     expect(full.spetskhran).toHaveLength(RULES.spetskhranStart);
     expect(viewFor(full, 'p1').spetskhranCount).toBe(RULES.spetskhranStart);
+    // Только из колоды Непечатных — без Нагрузки.
+    expect(full.spetskhran.every((c) => !full.cards[c].kind.startsWith('load'))).toBe(true);
     expect(createGame({ players: players(3), seed: 4 }).spetskhran).toHaveLength(RULES.spetskhranStart);
     expect(createGame({ players: players(3), seed: 4, reserve: true }).spetskhran).toHaveLength(RULES.spetskhranStart);
   });
