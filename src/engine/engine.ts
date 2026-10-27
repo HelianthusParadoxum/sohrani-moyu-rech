@@ -1656,6 +1656,14 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       return;
     }
     case 'kontoraHandout': {
+      // Отказаться можно, когда книги из списка уже забрали (другой игрок успел раньше) и от действия Группы.
+      const left = pend.cards.filter((c) => state.spetskhran.includes(c));
+      if (action.type === 'pass') {
+        check(!!pend.group || !left.length, 'Выберите книгу из Спецхрана');
+        log(state, `${p.name}: ${left.length ? 'передумывает брать книгу' : 'книгу уже забрали'} из Спецхрана.`);
+        if (pend.seize) seizeDenounced(state, pend.seize);
+        break;
+      }
       check(action.type === 'kontoraHandout', 'Выберите книгу из Спецхрана');
       takeFromSpetskhran(state, p, action.card, !!pend.group);
       if (pend.seize) seizeDenounced(state, pend.seize);

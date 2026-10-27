@@ -46,7 +46,7 @@ const ADDRESS_WORDS: [AddressId, string][] = [
 // Действия Инициативной группы — тоже со значком перед названием.
 const GROUP_WORDS: [GroupActionId, string][] = [
   ['expandWarehouse', 'Увеличить Склад'], ['expandCache', 'Заложить Тайник'],
-  ['copyText', 'Тиражировать Текст'], ['spetskhran', 'Вернуть из Спецхрана'],
+  ['copyText', 'Тиражировать Текст'], ['spetskhran', 'Выудить из Спецхрана'],
   ['restore', 'Написать Монографию'], ['hire', 'Расширить Сеть'],
 ];
 // Уникальные бонусы Ростков.

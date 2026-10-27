@@ -667,6 +667,25 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     expect(s.occupancy.kontora).toContain(me);
   });
 
+  it('Выудить из Спецхрана: если книгу уже забрали — можно отказаться; игрок знает только виденные им книги', () => {
+    let s = started('beginner');
+    const me = s.order[s.turn];
+    const other = s.players.find((x) => x.id !== me)!.id;
+    // Стартовые книги Спецхрана не знает никто.
+    expect(viewFor(s, me).spetskhranKnown).toEqual([]);
+    expect(viewFor(s, me).spetskhranCount).toBe(RULES.spetskhranStart);
+    s = applyAction(s, me, { type: 'group', group: { action: 'spetskhran' } });
+    // Посмотрев Спецхран, игрок знает все его книги, соперник — по-прежнему ни одной.
+    expect(viewFor(s, me).spetskhranKnown).toEqual(s.spetskhran);
+    expect(viewFor(s, other).spetskhranKnown).toEqual([]);
+    // Другой игрок успел забрать книги раньше — список устарел: отказ разрешён.
+    const stale: GameState = structuredClone(s);
+    stale.spetskhran = [];
+    const t = applyAction(stale, me, { type: 'pass' });
+    expect(t.pending.length).toBe(0);
+    expect(t.log.some((l) => l.text.includes('книгу уже забрали'))).toBe(true);
+  });
+
   it('Возвращение из Спецхрана: Спецхран есть и в Райцентре, можно взять 1 любую книгу', () => {
     let s = started('beginner');
     expect(s.spetskhran.length).toBe(RULES.spetskhranStart);
@@ -683,7 +702,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     s = applyAction(s, me, { type: 'kontoraHandout', card });
     expect(s.spetskhran).not.toContain(card);
     expect(s.players.find((x) => x.id === me)!.warehouse.some((w) => w.card === card)).toBe(true);
-    expect(s.log.some((l) => l.text.endsWith('возвращает книгу из Спецхрана.'))).toBe(true);
+    expect(s.log.some((l) => l.text.endsWith('выуживает книгу из Спецхрана.'))).toBe(true);
   });
 
   it('Завмаг: Госкниготорг бесплатно, состав свободный', () => {

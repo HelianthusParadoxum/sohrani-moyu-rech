@@ -291,12 +291,15 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
 }
 
 export function HandoutPrompt({ view, cards, act, group }: { view: PlayerView; cards: string[]; act: (a: Action) => void; group?: boolean }) {
+  // Книги, которые кто-то успел забрать раньше, не показываем.
+  const left = cards.filter((c) => view.spetskhranKnown.includes(c));
   return (
-    <Modal title={group ? 'Вернуть из Спецхрана' : 'Выдача на руки: Спецхран'} wide>
-      <p>Возьмите одну книгу.</p>
+    <Modal title={group ? 'Выудить из Спецхрана' : 'Выдача на руки: Спецхран'} wide>
+      <p>{left.length ? 'Возьмите одну книгу.' : 'Книг уже не осталось — их забрали раньше вас.'}</p>
       <div className="shelf wrap">
-        {cards.map((c) => <Book key={c} v={view} id={c} onClick={() => act({ type: 'kontoraHandout', card: c })} />)}
+        {left.map((c) => <Book key={c} v={view} id={c} onClick={() => act({ type: 'kontoraHandout', card: c })} />)}
       </div>
+      {(group || !left.length) && <div className="modal-foot"><button onClick={() => act({ type: 'pass' })}>{left.length ? 'Отказаться' : 'Понятно'}</button></div>}
     </Modal>
   );
 }

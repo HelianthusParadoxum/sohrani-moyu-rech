@@ -1290,7 +1290,10 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         return [{ type: 'kontoraHide', hidden: hideList(state, me, ctx, keepMap()) }];
       case 'kontoraDecide':
         return [...kontoraChoices(state, me, ctx, keepMap()).map((choice) => ({ type: 'kontoraDecide' as const, go: true, choice })), { type: 'kontoraDecide', go: false }];
-      case 'kontoraHandout': return pend.cards.map((card) => ({ type: 'kontoraHandout', card }));
+      case 'kontoraHandout': {
+        const left = pend.cards.filter((c) => state.spetskhran.includes(c));
+        return left.length ? left.map((card) => ({ type: 'kontoraHandout' as const, card })) : [{ type: 'pass' }];
+      }
       case 'lieutenantPick':
         return [...pend.cards.filter((c) => state.discard.includes(c)).map((card) => ({ type: 'lieutenantPick' as const, card })), { type: 'lieutenantPick', card: null }];
       case 'glavlitSwap': {

@@ -48,7 +48,10 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
       }
       case 'lieutenantPick': return [{ type: 'lieutenantPick', card: pend.cards[0] }, { type: 'lieutenantPick', card: null }];
       case 'discardExcess': return [{ type: 'discardExcess', cards: books.slice(-pend.count) }];
-      case 'kontoraHandout': return [{ type: 'kontoraHandout', card: pend.cards[0] }];
+      case 'kontoraHandout': {
+        const left = pend.cards.filter((c) => state.spetskhran.includes(c));
+        return left.length ? [{ type: 'kontoraHandout', card: left[0] }] : [{ type: 'pass' }];
+      }
       case 'extraGroup': return [...groupCandidates(state, me, rand).filter((g) => g.type === 'group' && p.groupUsed.includes(g.group.action)), { type: 'pass' }];
       case 'freeConnection': return [...clubGifts(state, me).map((gift) => ({ type: 'clubGift' as const, gift })), { type: 'pass' }];
       case 'sproutBonus': {

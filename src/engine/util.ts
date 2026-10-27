@@ -77,7 +77,7 @@ export function player(state: GameState, id: string): PlayerState {
 }
 
 // Название книги для журнала — со значками: «[ПР ФА] «Название»» (у ЧНЛ, Улик и Нагрузки — их вид).
-export function title(state: GameState, id: string): string {
+export function title(state: CardsInfo, id: string): string {
   const c = state.cards[id];
   const icons = iconsOf(state, id);
   const kind = isPropaganda(state, id) ? 'ЧНЛ' : isExposed(state, id) ? 'Разоблачение' : isEvidence(state, id) ? 'УЛ'

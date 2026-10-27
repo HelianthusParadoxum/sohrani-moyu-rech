@@ -4,6 +4,7 @@ import type { GameState, Pending, PlayerState } from './types';
 
 export interface PlayerView extends Omit<GameState, 'rng' | 'seed' | 'deck' | 'discard' | 'loadDeck' | 'loadDiscard' | 'baraholka' | 'baraholkaSeen' | 'players' | 'pending' | 'spetskhran' | 'spetskhranSeen'> {
   spetskhranCount: number;
+  spetskhranKnown: string[]; // книги Спецхрана, которые этот игрок знает (изъятые при всех и виденные сам)
   me: string | null;
   active: string[];
   deckCount: number;
@@ -35,6 +36,7 @@ export function viewFor(state: GameState, me: string | null, omniscient = false)
     me,
     active: activePlayers(state),
     spetskhranCount: spetskhran.length,
+    spetskhranKnown: spetskhran.filter((c) => omniscient || (me !== null && (spetskhranSeen?.[me] ?? []).includes(c))),
     deckCount: deck.length,
     discardCount: discard.length,
     loadDeckCount: loadDeck.length,

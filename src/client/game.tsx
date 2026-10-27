@@ -7,7 +7,7 @@ import {
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
-import { bestFeedBooks, coversStep, freeSproutSlots, genresOf, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, roman } from '../engine/util';
+import { title as bookTitle, bestFeedBooks, coversStep, freeSproutSlots, genresOf, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, roman } from '../engine/util';
 import { kontoraTargets } from '../engine/full';
 import {
   BefriendPicker, ClubContents, fittingBooks, patronOpen, patronWhy, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
@@ -449,8 +449,12 @@ function AddressContents({ id, view, seatIndex, me, onPatron, onBlocked, onPick 
       return <ClubContents view={view} seatIndex={seatIndex} me={me} onPatron={onPatron} onBlocked={onBlocked} />;
     case 'kontora':
       return <KontoraContents view={view} seatIndex={seatIndex} />;
-    case 'glavlit':
-      return <div className="small" title="Спецхран: изъятые книги, лежат взакрытую. Взять оттуда — Вернуть из Спецхрана, Выдача на руки (Контора)">🗄️ Спецхран: <b>{view.spetskhranCount}</b> книг(и)</div>;
+    case 'glavlit': {
+      // Подсказка: сколько книг Спецхрана неизвестны этому игроку, затем — известные, по строке на книгу.
+      const known = view.spetskhranKnown;
+      const tip = [`Неизвестных книг: ${view.spetskhranCount - known.length}`, ...known.map((c) => bookTitle(view, c))].join('\n');
+      return <div className="small spets" title={tip} data-tip={tip}>🗄️ Спецхран: <b>{view.spetskhranCount}</b> книг(и)</div>;
+    }
     case 'redCorner': {
       if (view.round >= RULES.rounds) return <div className="muted small">Последняя Пятилетка — очередь уже не важна.</div>;
       // Новый порядок: сперва посетившие Красный уголок, затем остальные в прежнем порядке.

@@ -258,7 +258,7 @@ export function takeFromSpetskhran(state: GameState, p: PlayerState, card: strin
   state.spetskhran = state.spetskhran.filter((c) => c !== card);
   forgetSpetskhran(state, card);
   addSecretBook(state, p, card);
-  log(state, group ? `${p.name} возвращает книгу из Спецхрана.` : `${p.name} получает книгу из Спецхрана (Выдача на руки).`);
+  log(state, group ? `${p.name} выуживает книгу из Спецхрана.` : `${p.name} получает книгу из Спецхрана (Выдача на руки).`);
   log(state, `Вы получили ${title(state, card)}.`, [p.id]);
 }
 
