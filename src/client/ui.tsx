@@ -52,7 +52,7 @@ const GROUP_WORDS: [GroupActionId, string][] = [
 const NAME_RES: [RegExp, string][] = [
   ...ADDRESS_WORDS.map(([id, w]) => [w, ADDRESS_ICONS[id]] as const),
   ...GROUP_WORDS.map(([id, w]) => [w, GROUP_ICONS[id]] as const),
-].map(([w, icon]) => [new RegExp(`(?<!\\p{Extended_Pictographic}\\uFE0F?\\s)(?<![«А-Яа-яЁё])(${w})`, 'gu'), `${icon} $1`]);
+].map(([w, icon]) => [new RegExp(`(?<!\\p{Extended_Pictographic}\\uFE0F?\\s?)(?<![«А-Яа-яЁё])(${w})`, 'gu'), `${icon}$1`]);
 // Адреса и действия Группы — со значками (заголовки окон, пояснения).
 export function addressIcons(text: string): string {
   return NAME_RES.reduce((t, [re, to]) => t.replace(re, to), text);

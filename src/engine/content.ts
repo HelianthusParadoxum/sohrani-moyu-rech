@@ -133,7 +133,7 @@ export const GROUP_ICONS: Record<GroupActionId, string> = {
 };
 
 // Название адреса со значком.
-export const addressLabel = (id: AddressId) => `${ADDRESS_ICONS[id]} ${ADDRESSES[id].name}`;
+export const addressLabel = (id: AddressId) => `${ADDRESS_ICONS[id]}${ADDRESSES[id].name}`;
 
 export interface AddressInfo {
   id: AddressId;
