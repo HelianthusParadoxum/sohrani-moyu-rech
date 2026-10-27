@@ -179,13 +179,13 @@ export function KontoraPanel({ view, place }: { view: PlayerView; place: (p: Pla
   const targets = kontoraTargets(view, view.me);
   return (
     <>
-      <h4>Цена похода — донос: указать на открыто лежащую на Складе соперника книгу опального жанра. В конце похода — обязательно: Сигнал (Контора удерживает Единомышленника того, на кого донос) и Изъятие этой книги в Спецхран</h4>
+      <h4>Цена похода — донос: указать на открыто лежащую на Складе соперника книгу опального жанра. В конце похода — обязательно: Сигнал (Контора удерживает 👤 того, на кого донос) и Изъятие этой книги в Спецхран</h4>
       {targets.length === 0
         ? <p className="warn-text">Сейчас в Контору не пойти: ни у кого на Складе нет открытой опальной книги — доносить не на что.</p>
         : <TargetShelf view={view} targets={targets} />}
       <p>Соперники уже не успеют перепрятать книги. Дальше вы укажете книгу для доноса и выберете от 1 до 3 пунктов:</p>
       <ul>
-        <li><b>Ходатайство</b> — вернуть из Конторы {RULES.petitionMax === 1 ? 'одного удержанного Единомышленника' : `до ${RULES.petitionMax} удержанных Единомышленников`} любого игрока.</li>
+        <li><b>Ходатайство</b> — вернуть из Конторы {RULES.petitionMax === 1 ? 'одного удержанного 👤' : `до ${RULES.petitionMax} удержанных 👤`} любого игрока.</li>
         <li><b>Выдача на руки</b> — посмотреть Спецхран и взять оттуда одну книгу.</li>
         <li><b>Профилактика</b> — удалить Завсегдатая Клуба, с которым связан тот, на кого вы донесли.</li>
       </ul>
@@ -241,7 +241,7 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
   return (
     <Modal title="Контора" wide>
       <p>Цена похода — донос: укажите открытую опальную книгу соперника; в конце похода, после выбранных пунктов, — обязательно Сигнал на этого игрока и Изъятие книги в Спецхран. Выберите от 1 до 3 пунктов (без повторов).</p>
-      <h4>Ходатайство ({RULES.petitionMax === 1 ? '1 Единомышленник' : `до ${RULES.petitionMax} Единомышленников`})</h4>
+      <h4>Ходатайство ({RULES.petitionMax === 1 ? '1 👤' : `до ${RULES.petitionMax} 👤`})</h4>
       <div className="genres">
         {held.length === 0 && <span className="muted">Никто не удержан</span>}
         {held.map((p) => (
@@ -253,7 +253,7 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
         {petition.length > 0 && <button className="small" onClick={() => setPetition([])}>сбросить ({petition.length})</button>}
       </div>
       <label className="row"><input type="checkbox" checked={handout} onChange={(e) => setHandout(e.target.checked)} /> Выдача на руки — взять книгу из Спецхрана</label>
-      {target && <p className="muted small">В конце похода: Сигнал — Контора удержит Единомышленника игрока {target.name}; его книга уйдёт в Спецхран.</p>}
+      {target && <p className="muted small">В конце похода: Сигнал — Контора удержит 👤 игрока {target.name}; его книга уйдёт в Спецхран.</p>}
       <label>Профилактика — удалить Завсегдатая, с которым связан тот, на кого донос:
         <select value={prophylaxis} onChange={(e) => setProphylaxis(e.target.value as PatronId)}>
           <option value="">— нет —</option>
@@ -262,7 +262,7 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
       </label>
       <h4>Донос (обязательно): укажите открытую опальную книгу</h4>
       {targets.length === 0
-        ? <p className="warn-text">Доносить не на что — в Контору сейчас не пойти. Единомышленник остаётся у вас.</p>
+        ? <p className="warn-text">Доносить не на что — в Контору сейчас не пойти. 👤 остаётся у вас.</p>
         : <TargetShelf view={view} targets={targets} selected={denounce?.card} onPick={(t) => setDenounce(denounce?.card === t.card ? null : t)} />}
       <div className="modal-foot">
         <button onClick={() => act({ type: 'kontoraDecide', go: false })}>Передумать</button>
@@ -299,7 +299,7 @@ export function RescuePanel({ view, done }: { view: PlayerView; done: (g: GroupA
   const total = Object.values(returns).reduce((s, n) => s + n, 0);
   return (
     <>
-      <p>Верните до {RULES.rescueMax} удерживаемых Конторой Единомышленников — себе и другим игрокам.</p>
+      <p>Верните до {RULES.rescueMax} удерживаемых Конторой 👤 — себе и другим игрокам.</p>
       {held.map((p) => {
         const room = RULES.rescueMax - total + (returns[p.id] ?? 0);
         return (

@@ -61,7 +61,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
   else if (myPending) status = mine('примите решение');
   else if (view.phase === 'orders') {
     if (afterAction) status = mine('действие сделано. Можно ' + (copyFollow ? 'тиражировать книгу оттуда же (Инициативная группа), ' : '') + 'пересобрать Тайник' + (view.mode === 'full' ? ', заучить сборник поэзии, отдать книгу в Клуб' : '') + ' — или закончите ход');
-    else if (canPlace) status = mine(mustRed ? 'последнего Единомышленника — в Красный уголок' : 'отправьте Единомышленника по адресу или в Инициативную группу');
+    else if (canPlace) status = mine(mustRed ? 'последнего 👤 — в Красный уголок' : 'отправьте 👤 по адресу или в Инициативную группу');
     else if (bonusTurn) status = mine('дополнительное действие Группы с явочного адреса — или откажитесь');
     else status = view.active.length === 1 ? <>{who(view.active[0])} ходит</> : <>Ходят: {whoList(view.active)}</>;
   } else if (you && view.active.includes(you)) status = mine('ваше решение');
@@ -91,9 +91,9 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
       return 'Нет Завсегдатая, которому подойдёт ваша книга: нужна книга его жанра или Альбом, а занятые на Пятилетку связей не берут.';
     }
     if (afterAction) return 'Поручение этого хода уже дано. Закончите ход — или сделайте свободное действие (Тайник, Клуб, «Заучить»).';
-    if (bonusTurn) return 'Своих Единомышленников не осталось: сейчас — дополнительное действие Инициативной группы, а не поручение по адресу.';
-    if (me.available === 0) return 'Свободных Единомышленников не осталось.';
-    if (mustRed && id !== 'redCorner') return 'Последнего Единомышленника нужно отправить в Красный уголок.';
+    if (bonusTurn) return 'Своих 👤 не осталось: сейчас — дополнительное действие Инициативной группы, а не поручение по адресу.';
+    if (me.available === 0) return 'Свободных 👤 не осталось.';
+    if (mustRed && id !== 'redCorner') return 'Последнего 👤 нужно отправить в Красный уголок.';
     if (addressFull(id, view, me)) return 'Все места на этом адресе заняты.';
     return withBlocker ? addressBlocker(view, me, id) : null;
   };
@@ -103,11 +103,11 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
       const t = turnWhy();
       if (t) return t;
       if (afterAction) return 'Поручение этого хода уже дано: действие Группы — тоже поручение. Закончите ход.';
-      return 'Свободных Единомышленников не осталось.';
+      return 'Свободных 👤 не осталось.';
     }
     if (me.groupUsed.includes(g)) return 'Это действие Группы уже сделано в эту Пятилетку.';
     if (copyFollow && g !== 'copyText') return 'Сейчас можно только Тиражирование: взять книгу даром с адреса, где вы только что купили.';
-    if (canPlace && mustRed && g !== 'hire') return 'Последнего Единомышленника нужно отправить в Красный уголок; из действий Группы сейчас можно только Расширение сети.';
+    if (canPlace && mustRed && g !== 'hire') return 'Последнего 👤 нужно отправить в Красный уголок; из действий Группы сейчас можно только Расширение сети.';
     return groupBlocker(view, me, g);
   };
 
@@ -165,7 +165,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
         {bonusTurn && <button className="small" onClick={() => act({ type: 'pass' })}>Отказаться</button>}
         {afterAction && <button className="primary small end-turn-inline" onClick={() => act({ type: 'endTurn' })}>Закончить ход</button>}
         {view.phase === 'end' && view.result && <button className="small" onClick={() => setShowResult(true)}>Таблица счёта</button>}
-        {canPlace && me.visitedRedCorner && <button className="small" onClick={() => confirm('Спасовать до конца Пятилетки? Оставшиеся Единомышленники не будут действовать.') && act({ type: 'pass' })}>Спасовать</button>}
+        {canPlace && me.visitedRedCorner && <button className="small" onClick={() => confirm('Спасовать до конца Пятилетки? Оставшиеся 👤 не будут действовать.') && act({ type: 'pass' })}>Спасовать</button>}
       </div>
 
       {/* На телефоне «Закончить ход» выезжает снизу экрана, чтобы не листать к строке статуса. Там же — «Развернуть» свёрнутое окно. */}
@@ -865,7 +865,7 @@ function groupBlocker(view: PlayerView, me: VPlayer, id: GroupActionId): string 
   const free = me.capacity - me.warehouse.filter((s) => !s.memorized).length;
   switch (id) {
     case 'hire':
-      if (me.workers >= RULES.maxWorkers) return `У вас уже максимум Единомышленников (${RULES.maxWorkers}).`;
+      if (me.workers >= RULES.maxWorkers) return `У вас уже максимум 👤 (${RULES.maxWorkers}).`;
       if (me.talons < priceFor(view, me, RULES.hireCost)) return `Нужно ${priceFor(view, me, RULES.hireCost)} Талонов, у вас ${me.talons} — не хватает ${priceFor(view, me, RULES.hireCost) - me.talons}.`;
       return null;
     case 'expandWarehouse':
@@ -944,7 +944,7 @@ function CopyFollowPanel({ view, done }: { view: PlayerView; done: (g: GroupActi
   const shelf = (last.address === 'razval' ? view.razval : view[last.address]).filter((c): c is string => !!c && !last.exclude.includes(c));
   return (
     <>
-      <p>Вы только что купили: {ADDRESSES[last.address].name}. Второй Единомышленник встаёт на Тиражирование — возьмите оттуда же одну жанровую книгу даром.</p>
+      <p>Вы только что купили: {ADDRESSES[last.address].name}. Второй 👤 встаёт на Тиражирование — возьмите оттуда же одну жанровую книгу даром.</p>
       <div className="shelf wrap">
         {shelf.length === 0 && <span className="muted">Здесь больше нет книг</span>}
         {shelf.map((c) => {
@@ -995,7 +995,7 @@ function CopyTextPanel({ view, me, done }: { view: PlayerView; me: VPlayer; done
   const ok = (purchase || (typist && !buy.length && !sell.length)) && gift && !halfSwap && cost <= me.talons && room >= 0;
   return (
     <>
-      <p>{withKindChips(GROUP_ACTIONS.copyText.hint)}. Покупатель занимает место на адресе, второй Единомышленник встаёт на Тиражирование (если Тиражирование — бонус, идёт только покупатель).</p>
+      <p>{withKindChips(GROUP_ACTIONS.copyText.hint)}. Покупатель занимает место на адресе, второй 👤 встаёт на Тиражирование (если Тиражирование — бонус, идёт только покупатель).</p>
       {typist && <p className="muted small">Машинистка: можно ничего не покупать — просто выберите книгу «взять бесплатно» на любом адресе; на адрес никто не пойдёт. За Тиражирование +{RULES.typistTalons}т.</p>}
       <div className="row">
         {addrs.map((a) => (
@@ -1185,7 +1185,7 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
       }
       return (
         <Modal title={p.kind === 'sproutBonus' ? `Бонус Ростка «${SPROUTS.find((s) => s.id === p.sprout)!.name}»` : p.kind === 'extraGroup' ? 'Подмастерье: действие Группы' : 'Действие Инициативной группы'}>
-          <p>{p.kind === 'sproutBonus' ? workerIcon('Выберите одно действие. Оно не требует Единомышленника; собственную цену действия платите как обычно.')
+          <p>{p.kind === 'sproutBonus' ? workerIcon('Выберите одно действие. Оно не требует 👤; собственную цену действия платите как обычно.')
             : p.kind === 'extraGroup' ? 'Повторите одно из действий Группы, уже сделанных в эту Пятилетку.' : 'Выполните одно действие Группы.'}</p>
           <div className="genres">
             {options.map((o) => (
@@ -1254,7 +1254,7 @@ function AmbushPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (
     <Modal title={curator ? 'Засада?' : 'Посиделки окончены'} wide>
       {curator ? (
         <>
-          <p>Можно раскрыться и устроить Засаду: на каждого, кто показал опальное, — Контора (Сигнал: удержать Единомышленника,
+          <p>Можно раскрыться и устроить Засаду: на каждого, кто показал опальное, — Контора (Сигнал: удержать 👤,
             Изъятие: выбранная вами показанная книга уходит в Спецхран). После этого все будут знать, что вы Куратор.</p>
           {shown.length === 0 && <p className="muted">Опальное показали только вы.</p>}
           {shown.map(([id, list]) => (
