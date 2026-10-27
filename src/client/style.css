@@ -239,8 +239,7 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 .sprouts-panel .sprout .addr-head b { font-size: 0.82rem; line-height: 1.15; }
 .sprouts-panel .bonus { font-size: 0.68rem; line-height: 1.2; }
 .sprouts-panel .bonus-slots { display: flex; flex-direction: column; gap: 2px; }
-.sprouts-panel .bonus-slot { display: flex; align-items: center; gap: 5px; border-radius: 4px; padding: 1px 2px; }
-.sprouts-panel .bonus-slot .dot { flex: none; }
+.sprouts-panel .bonus-slot { border-radius: 4px; padding: 1px 2px; }
 .sprouts-panel .bonus-slot.can { cursor: pointer; }
 .sprouts-panel .bonus-slot.can:hover { background: rgba(230,179,90,.35); }
 .sprouts-panel .chip { min-width: 18px; font-size: 0.62rem; }

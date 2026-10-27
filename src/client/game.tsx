@@ -793,10 +793,14 @@ function Sprouts({ view, me, beside, seatIndex, head, onOpen, why, turnWhy }: { 
                       const w = turnWhy ?? (me ? sproutWhy(view, me, sp, i) : null) ?? why;
                       if (w) explain(w);
                     }}>
-                    {pid
-                      ? <span className="dot num" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} title={n ? `${n}-е действие игрока` : undefined}>{n ?? ''}</span>
-                      : <span className="dot num slot-free" />}
-                    <span className="muted bonus">{slotLabel(view, me, b)}</span>
+                    {/* Как действия Группы на планшете игрока: значок и название, справа цена и кружок места. */}
+                    <span className="muted bonus">
+                      {GROUP_ICONS[b as GroupActionId] ?? BONUS_ICONS[b as SproutBonusId]}{ICON_JOIN}{SPROUT_BONUS_NAMES[b]}
+                      {groupPrice(view, me, b) && <span className="gprice"> {groupPrice(view, me, b)}</span>}
+                      {pid
+                        ? <span className="dot num inline" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} title={n ? `${n}-е действие игрока` : undefined}>{n ?? ''}</span>
+                        : <span className="dot num inline slot-free" />}
+                    </span>
                   </div>
                 );
               })}
