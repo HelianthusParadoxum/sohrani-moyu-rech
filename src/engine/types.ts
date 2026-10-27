@@ -143,7 +143,7 @@ export type Pending =
   | { kind: 'naslednikiPick'; player: string; cards: string[] }
   | { kind: 'posrednichestvoKeep'; player: string; cards: string[] }
   | { kind: 'spisanieKeep'; player: string; cards: string[] } // Библиотечное списание: что оставить
-  | { kind: 'makulatura'; player: string; cards: string[] } // Макулатура: тянуть ещё (по Талону) или оставить одну
+  | { kind: 'makulatura'; player: string; cards: string[] } // Макулатура: тянуть ещё (по Талону или книге) или оставить одну
   | { kind: 'posrednichestvoGroup'; player: string }
   | { kind: 'sproutBonus'; player: string; sprout: string; options: SproutBonusId[] }
   | { kind: 'kontoraWarning'; player: string; from: string }
@@ -317,7 +317,7 @@ export type Action =
   | { type: 'naslednikiPick'; cards: string[] }
   | { type: 'posrednichestvoKeep'; keep: string[] }
   | { type: 'spisanieKeep'; keep: string[] }
-  | { type: 'makulaturaDraw'; deck: 'unprinted' | 'load' }
+  | { type: 'makulaturaDraw'; deck: 'unprinted' | 'load'; pay?: string } // pay — книга со склада вместо Талона
   | { type: 'makulaturaKeep'; card: string }
   | { type: 'sproutBonus'; bonus: SproutBonusId; group?: GroupAction; patron?: PatronId }
   | { type: 'gathering'; show: string[] }

@@ -27,7 +27,12 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
       case 'naslednikiPick': return [{ type: 'naslednikiPick', cards: pend.cards.slice(-2) }, { type: 'naslednikiPick', cards: pend.cards.slice(-1) }];
       case 'posrednichestvoKeep': return [{ type: 'posrednichestvoKeep', keep: pend.cards.slice(0, RULES.posrednichestvoKeep) }];
       case 'spisanieKeep': return [{ type: 'spisanieKeep', keep: pend.cards.slice(0, Math.max(0, freeSlots(p))) }];
-      case 'makulatura': return pend.cards.length ? [{ type: 'makulaturaKeep', card: pend.cards[0] }] : [{ type: 'makulaturaDraw', deck: 'unprinted' }];
+      case 'makulatura': {
+        const pay = p.warehouse[0]?.card;
+        const byBook: Action[] = pay ? [{ type: 'makulaturaDraw', deck: 'unprinted', pay }] : [];
+        if (pend.cards.length) return freeSlots(p) > 0 ? [{ type: 'makulaturaKeep', card: pend.cards[0] }] : byBook;
+        return p.talons >= RULES.makulaturaPrice ? [{ type: 'makulaturaDraw', deck: 'unprinted' }] : byBook;
+      }
       case 'posrednichestvoGroup': return [...groupCandidates(state, me, rand), { type: 'pass' }];
       case 'kontoraWarning':
         return [{ type: 'kontoraHide', hidden: p.warehouse.filter((s) => s.hidden).map((s) => s.card) }];
@@ -131,7 +136,8 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
           }
           case 'raspredelitel': for (const c of state.raspredelitel) out.push({ type: 'place', place: { address: 'raspredelitel', card: c } }); break;
           case 'agitpunkt': for (const c of new Set(state.agitpunkt ?? [])) out.push({ type: 'place', place: { address: 'agitpunkt', card: c } }); break;
-          case 'nasledniki': case 'posrednichestvo': case 'spisanie': case 'makulatura': out.push({ type: 'place', place: { address: a } }); break;
+          case 'nasledniki': case 'posrednichestvo': case 'spisanie': out.push({ type: 'place', place: { address: a } }); break;
+          case 'makulatura': if (freeSlots(p) > 0 && p.talons >= RULES.makulaturaPrice) out.push({ type: 'place', place: { address: a } }); break;
           case 'club':
             if (!RULES.clubFreeGift) for (const gift of clubGifts(state, me)) out.push({ type: 'place', place: { address: 'club', gifts: [gift] } });
             else if (state.clubGiftBy !== me) for (const gift of clubGifts(state, me)) out.push({ type: 'clubGift', gift });

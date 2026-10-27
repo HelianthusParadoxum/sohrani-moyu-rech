@@ -359,7 +359,8 @@ function addressBlocker(view: PlayerView, me: VPlayer, id: AddressId): string | 
     case 'glavlit':
       return books.length ? null : 'Сдавать нечего: склад пуст.';
     case 'makulatura':
-      return room ?? talons(RULES.makulaturaPrice);
+      // Платить можно Талоном или любой книгой со склада.
+      return books.length || me.talons >= RULES.makulaturaPrice ? null : 'Нечем платить: нужен Талон или книга на складе.';
     case 'knigoobmen':
       if (!view.knigoobmen.length) return 'Витрина пуста.';
       return books.some((c) => isGenreBook(view, c)) ? null : 'Нет жанровой книги для обмена.';
@@ -726,8 +727,8 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
       body = <KontoraPanel view={view} place={place} />;
       break;
     case 'makulatura':
-      body = <><p>{info.hint}.</p>{confirmBtn(`Пойти в Макулатуру (${priceFor(view, me, RULES.makulaturaPrice)}🎫 за книгу)`, me.talons >= RULES.makulaturaPrice && free > 0 ? { address: 'makulatura' } : null,
-        free <= 0 ? 'Нет места на складе' : me.talons < RULES.makulaturaPrice ? 'Нужен хотя бы 1 Талон' : undefined)}</>;
+      body = <><p>{info.hint}.</p>{confirmBtn(`Пойти в Макулатуру (${priceFor(view, me, RULES.makulaturaPrice)}🎫 или книга за каждую)`, me.talons >= RULES.makulaturaPrice || mine.length ? { address: 'makulatura' } : null,
+        'Нечем платить: нужен Талон или книга на складе')}</>;
       break;
     case 'nasledniki':
     case 'posrednichestvo':
@@ -1101,19 +1102,31 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
     case 'freeConnection':
       return <FreeConnectionPrompt view={view} me={me} act={act} />;
     case 'makulatura': {
-      const can = me.talons >= RULES.makulaturaPrice;
+      // Вытянутые книги и свои книги со склада не пересекаются: выбранная вытянутая — оставить, своя — отдать в уплату.
+      const own = me.warehouse.map((s) => s.card!).filter(Boolean);
       const keep = sel.find((c) => p.cards.includes(c));
+      const pay = sel.find((c) => own.includes(c));
+      const free = me.capacity - me.warehouse.filter((s) => !s.memorized).length;
+      const can = !!pay || me.talons >= RULES.makulaturaPrice;
+      const cost = pay ? `отдать «${view.cards[pay].title}»` : `−${RULES.makulaturaPrice}т`;
+      const pick = (c: string, mineCard: boolean) => setSel([...sel.filter((x) => (mineCard ? !own.includes(x) : own.includes(x))), ...(sel.includes(c) ? [] : [c])]);
       return (
         <Modal title="Макулатура" wide>
-          <p>Тяните книги по {RULES.makulaturaPrice}т из любой стопки — сколько хотите. Потом оставьте себе одну, остальные уйдут в сброс. Талонов: {me.talons}.</p>
+          <p>Тяните книги из любой стопки — сколько хотите, за каждую {RULES.makulaturaPrice}т или любая книга со склада (уйдёт в сброс). Потом оставьте себе одну, остальные уйдут в сброс. Талонов: {me.talons}.</p>
+          <h4>Вытянуто</h4>
           <div className="shelf wrap">
             {p.cards.length === 0 && <span className="muted">Пока ничего не вытянуто</span>}
-            {p.cards.map((c) => <Book key={c} v={view} id={c} selected={keep === c} onClick={() => setSel([c])} />)}
+            {p.cards.map((c) => <Book key={c} v={view} id={c} selected={keep === c} onClick={() => pick(c, false)} />)}
           </div>
+          <h4>Заплатить книгой вместо Талона (необязательно)</h4>
+          <div className="shelf wrap">
+            {own.map((c) => <Book key={c} v={view} id={c} selected={pay === c} onClick={() => pick(c, true)} />)}
+          </div>
+          {keep && free <= 0 && <p className="warn-text">На складе нет места: чтобы оставить книгу, отдайте свою, вытягивая следующую.</p>}
           <div className="modal-foot">
-            <button disabled={!can} onClick={() => act({ type: 'makulaturaDraw', deck: 'unprinted' })}>Из Непечатных (−{RULES.makulaturaPrice}т)</button>
-            <button disabled={!can} onClick={() => act({ type: 'makulaturaDraw', deck: 'load' })}>Из Нагрузки (−{RULES.makulaturaPrice}т)</button>
-            <button className="primary" disabled={!keep} onClick={() => keep && act({ type: 'makulaturaKeep', card: keep })}>Оставить выбранную</button>
+            <button disabled={!can} onClick={() => act({ type: 'makulaturaDraw', deck: 'unprinted', ...(pay ? { pay } : {}) })}>Из Непечатных ({cost})</button>
+            <button disabled={!can} onClick={() => act({ type: 'makulaturaDraw', deck: 'load', ...(pay ? { pay } : {}) })}>Из Нагрузки ({cost})</button>
+            <button className="primary" disabled={!keep || free <= 0} onClick={() => keep && act({ type: 'makulaturaKeep', card: keep })}>Оставить выбранную</button>
           </div>
         </Modal>
       );

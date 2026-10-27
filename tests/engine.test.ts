@@ -2009,3 +2009,27 @@ describe('Красный уголок: обязательная Нагрузка
     expect(s.log.some((l) => l.text.includes('Склад полон Нагрузки'))).toBe(true);
   });
 });
+
+describe('Макулатура: платить книгой', () => {
+  it('вместо Талона можно отдать любую книгу со склада; с полным складом — оставить, только отдав книгу', () => {
+    let s = createGame({ players: players(2), seed: 9 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    p.talons = 0;
+    p.capacity = p.warehouse.length; // склад полон
+    const [a, b] = p.warehouse.map((w) => w.card);
+    s = applyAction(s, me, { type: 'place', place: { address: 'makulatura' } });
+    expect(() => applyAction(s, me, { type: 'makulaturaDraw', deck: 'unprinted' })).toThrow(RuleError);
+    s = applyAction(s, me, { type: 'makulaturaDraw', deck: 'unprinted', pay: a });
+    expect(s.discard).toContain(a);
+    const drawn = (s.pending[0] as { cards: string[] }).cards[0];
+    // Место освободилось — можно оставить.
+    s = applyAction(s, me, { type: 'makulaturaKeep', card: drawn });
+    const after = s.players.find((x) => x.id === me)!;
+    expect(after.warehouse.some((w) => w.card === drawn)).toBe(true);
+    expect(after.warehouse.some((w) => w.card === b)).toBe(true);
+    expect(after.talons).toBe(0);
+  });
+});

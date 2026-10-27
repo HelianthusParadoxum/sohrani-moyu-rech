@@ -1261,6 +1261,12 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         return subsets(pend.cards, need).filter((x) => x.length === need).map((keep) => ({ type: 'posrednichestvoKeep', keep }));
       }
       case 'makulatura': {
+        // Платить можно и книгой: самой ненужной (Куратор ЧНЛ не отдаёт). Склад полон — оставить вытянутое
+        // можно, только отдав книгу за следующую.
+        const cheapest = byValue(keepMap(), p.warehouse.map((s) => s.card).filter((c) => !(ctx.curator && isPropaganda(state, c))))[0];
+        const payBook: Action[] = cheapest ? [{ type: 'makulaturaDraw', deck: 'unprinted', pay: cheapest }] : [];
+        if (pend.cards.length && freeSlots(p) <= 0) return payBook;
+        if (!pend.cards.length && p.talons < RULES.makulaturaPrice) return payBook;
         // Куратор ищет ЧНЛ: нашёл — оставляет её; нет — тянет из Непечатных дальше, пока хватает Талонов
         // (не больше BOT_BASE.curatorMakulaturaMax и не тратя последние BOT_BASE.curatorMakulaturaReserve).
         if (ctx.curator) {
@@ -1436,7 +1442,9 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
           }
           case 'raspredelitel': for (const c of state.raspredelitel) out.push({ type: 'place', place: { address: 'raspredelitel', card: c } }); break;
           case 'agitpunkt': for (const c of new Set(state.agitpunkt ?? [])) out.push({ type: 'place', place: { address: 'agitpunkt', card: c } }); break;
-          case 'nasledniki': case 'posrednichestvo': case 'spisanie': case 'makulatura': out.push({ type: 'place', place: { address: a } }); break;
+          case 'nasledniki': case 'posrednichestvo': case 'spisanie': out.push({ type: 'place', place: { address: a } }); break;
+          // Макулатура: бот идёт туда с местом на складе и Талоном на первую книгу (оценка `honestDig` считает в Талонах).
+          case 'makulatura': if (freeSlots(p) > 0 && p.talons >= RULES.makulaturaPrice) out.push({ type: 'place', place: { address: a } }); break;
           case 'club': if (!RULES.clubFreeGift) out.push(...clubCandidates(state, me, keepMap())); break;
           case 'kontora': {
             // Только что передумал идти (соперники перепрятали книги) — второй раз за ход не объявляет.
