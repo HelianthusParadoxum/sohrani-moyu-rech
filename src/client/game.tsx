@@ -429,7 +429,6 @@ function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint, rig
           {!freeClub && !rightHint && (limit === Infinity
             ? <span className="muted small">∞</span>
             : Array.from({ length: Math.max(0, limit - here.length) }, (_, i) => <span key={`free${i}`} className="dot num slot-free" title="Свободное место" />))}
-          {enabled && freeClub && <button className="go small" onClick={(e) => { e.stopPropagation(); onOpen(); }} title="Свободное действие: Единомышленник не нужен">отдать книгу →</button>}
         </span>
       </div>
   );
