@@ -1,9 +1,9 @@
 // Общие элементы интерфейса: карты книг, окна, жанры.
 import type React from 'react';
 import { createContext, useContext, useEffect, type Dispatch, type ReactNode, type SetStateAction } from 'react';
-import { GENRE_NAMES, GENRE_SHORT, PASSIONS } from '../engine/content';
+import { ADDRESS_ICONS, GENRE_NAMES, GENRE_SHORT, PASSIONS } from '../engine/content';
 import { BOT_PRESETS, presetById } from '../engine/bot-presets';
-import type { Genre } from '../engine/types';
+import type { AddressId, Genre } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
 import { flexGenres, iconsOf, isBanned as isBannedBook } from '../engine/util';
@@ -31,8 +31,27 @@ const ICONS: [RegExp, string][] = [
 // Только Единомышленники — значком 👤 (подсказки-инструкции, где прочие слова оставляем словами).
 export const workerIcon = (text: string) => text.replace(/[Ее]диномышленник[а-яё]*/g, '👤');
 
+// Упоминания адресов (во всех падежах) — со значком адреса перед названием. Названия Ростков в кавычках
+// («Клуб Самодеятельной Песни») не трогаем; уже стоящий значок не повторяем.
+const ADDRESS_WORDS: [AddressId, string][] = [
+  ['club', 'Клуб(?:а|е|у|ом)?(?: книголюбов)?(?![а-яё])'], ['kontora', 'Контор[а-яё]*'], ['sprouts', 'Росток|Ростк[а-яё]*'],
+  ['redCorner', 'Красн[а-яё]* уголк[а-яё]*|Красный уголок'], ['glavlit', 'Главлит(?:а|е|у|ом)?(?![а-яё])'],
+  ['makulatura', 'Макулатур[а-яё]*'], ['gostorg', 'Госкниготорг[а-яё]*'], ['baraholka', 'Барахолк[а-яё]*'],
+  ['tolkuchka', 'Толкучк[а-яё]*'], ['razval', 'Развал(?:а|е|у|ом)?(?![а-яё])'], ['zavoz', 'Развоз(?:а|е|у|ом)?(?![а-яё])'],
+  ['tamizdat', 'Тамиздат[а-яё]*'], ['samizdat', 'Самиздат[а-яё]*'], ['knigoobmen', 'Книгообмен[а-яё]*'],
+  ['raspredelitel', 'Распределител[а-яё]*'], ['agitpunkt', 'Агитпункт[а-яё]*'], ['podpiska', 'Подписк[а-яё]*'],
+  ['nasledniki', 'Наследник[а-яё]*'], ['posrednichestvo', 'Посредничеств[а-яё]*(?: авторам)?'],
+  ['spisanie', 'Библиотечн[а-яё]* списани[а-яё]*'], ['kvartirnik', 'Квартирник[а-яё]*'],
+];
+const ADDRESS_RES: [RegExp, string][] = ADDRESS_WORDS.map(([id, w]) => [
+  new RegExp(`(?<!\\p{Extended_Pictographic}\\uFE0F?\\s)(?<![«А-Яа-яЁё])(${w})`, 'gu'), `${ADDRESS_ICONS[id]} $1`,
+]);
+export function addressIcons(text: string): string {
+  return ADDRESS_RES.reduce((t, [re, to]) => t.replace(re, to), text);
+}
+
 export function iconize(text: string): string {
-  return ICONS.reduce((t, [re, to]) => t.replace(re, to), text);
+  return addressIcons(ICONS.reduce((t, [re, to]) => t.replace(re, to), text));
 }
 
 export const PLAYER_COLORS = ['#b03a2e', '#1f618d', '#1e8449', '#7d3c98', '#b9770e'];

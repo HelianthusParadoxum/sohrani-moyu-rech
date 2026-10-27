@@ -1,7 +1,7 @@
 // Игровой стол.
 import { createContext, Fragment, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
-  ADDRESSES, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, groupCost, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
+  ADDRESSES, ADDRESS_ICONS, addressLabel, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, groupCost, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
   groupInGame, PATRONS, sproutBonusOptions,
 } from '../engine/content';
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
@@ -14,7 +14,7 @@ import {
   KontoraWarningPrompt, RescuePanel,
 } from './full-ui';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
-import { Book, GENRE_SHORT, GenreChip, KindChip, withKindChips, workerIcon, iconize, SpeedSelect, Modal, ModalCollapse, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, isLoad, toggle } from './ui';
+import { Book, GENRE_SHORT, GenreChip, KindChip, withKindChips, workerIcon, addressIcons, iconize, SpeedSelect, Modal, ModalCollapse, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, isLoad, toggle } from './ui';
 
 type Send = (m: ClientMessage) => void;
 type VPlayer = PlayerView['players'][number];
@@ -238,7 +238,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
       {view.phase === 'end' && view.result && showResult && <Results view={view} seatIndex={seatIndex} close={() => setShowResult(false)} />}
       {why && (
         <Modal title="Сейчас нельзя" onClose={() => setWhy(null)}>
-          <p>{withGenreChips(why, false)}</p>
+          <p>{withGenreChips(addressIcons(why), false)}</p>
           <div className="modal-foot"><button className="primary" onClick={() => setWhy(null)}>Понятно</button></div>
         </Modal>
       )}
@@ -416,7 +416,7 @@ function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint, rig
   const freeClub = id === 'club' && RULES.clubFreeGift;
   return (
       <div className="addr-head">
-        <b>{info.name}</b>
+        <b>{ADDRESS_ICONS[id]} {info.name}</b>
         {inlineHint && <span className="hint inline">{iconize(info.short)}{freeClub && ' (1 раз за поручение, 👤 не нужен)'}</span>}
         <span className="workers">
           {rightHint && <span className="hint inline right" title={iconize(rightHint)} data-tip={iconize(rightHint)}>{iconize(info.short)}</span>}
@@ -719,7 +719,7 @@ function AddressPanel({ id, sprout, pick, view, me, close, place }: { id: Addres
         free <= 0 ? 'Нет места на складе' : me.talons < safehouseCost(id) ? `Не хватает Талонов: нужно ${safehouseCost(id)}, у вас ${me.talons}` : undefined)}</>;
       break;
   }
-  return <Modal title={info.name} onClose={close} wide>{body}</Modal>;
+  return <Modal title={addressLabel(id)} onClose={close} wide>{body}</Modal>;
 }
 
 // ---------- Ростки ----------
@@ -943,7 +943,7 @@ function CopyFollowPanel({ view, done }: { view: PlayerView; done: (g: GroupActi
   const shelf = (last.address === 'razval' ? view.razval : view[last.address]).filter((c): c is string => !!c && !last.exclude.includes(c));
   return (
     <>
-      <p>Вы только что купили: {ADDRESSES[last.address].name}. Второй 👤 встаёт на Тиражирование — возьмите оттуда же одну жанровую книгу даром.</p>
+      <p>Вы только что купили: {addressLabel(last.address)}. Второй 👤 встаёт на Тиражирование — возьмите оттуда же одну жанровую книгу даром.</p>
       <div className="shelf wrap">
         {shelf.length === 0 && <span className="muted">Здесь больше нет книг</span>}
         {shelf.map((c) => {
@@ -998,7 +998,7 @@ function CopyTextPanel({ view, me, done }: { view: PlayerView; me: VPlayer; done
       {typist && <p className="muted small">Машинистка: можно ничего не покупать — просто выберите книгу «взять бесплатно» на любом адресе; на адрес никто не пойдёт. За Тиражирование +{RULES.typistTalons}т.</p>}
       <div className="row">
         {addrs.map((a) => (
-          <button key={a} className={addr === a ? 'selected' : ''} onClick={() => choose(a)}>{ADDRESSES[a].name}{busy(a) ? ' (занято)' : ''}</button>
+          <button key={a} className={addr === a ? 'selected' : ''} onClick={() => choose(a)}>{addressLabel(a)}{busy(a) ? ' (занято)' : ''}</button>
         ))}
       </div>
       <h4>{swap ? 'Обменять: взять с витрины' : `Купить${multiBuy ? ' (Ветеран: можно несколько)' : ''}`}</h4>
