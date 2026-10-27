@@ -8,7 +8,7 @@ import { PERMANENT_ADDRESSES, RULES, SPROUTS } from './content';
 import { befriendTargets } from './full';
 import type { Action, ClubGift, GameState, Genre, GroupAction } from './types';
 import { GENRES } from './types';
-import { cacheLimit, freeSlots, freeSproutSlots, genresOf, iconCount, iconsOf, isBanned, isLoad, isPropaganda, player, RuleError } from './util';
+import { cacheLimit, freeSlots, freeSproutSlots, isFromLoadDeck, genresOf, iconCount, iconsOf, isBanned, isLoad, isPropaganda, player, RuleError } from './util';
 
 type Rand = () => number;
 
@@ -114,7 +114,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
             for (const b of books) if (iconCount(state, b) > 0) out.push({ type: 'place', place: { address: a, card: b } });
             break;
           case 'glavlit':
-            for (const b of books) if (state.cards[b].kind === 'genre' && genresOf(state, b).some((g) => state.banned.includes(g))) out.push({ type: 'place', place: { address: 'glavlit', cards: [b], draws: ['unprinted'] } });
+            for (const b of books) out.push({ type: 'place', place: { address: 'glavlit', recycle: [b] } });
             break;
           case 'knigoobmen': {
             const give = pick(books.filter((b) => iconCount(state, b) > 0), rand);
@@ -147,10 +147,9 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
 
 function redCorner(state: GameState, me: string): Action[] {
   const p = player(state, me);
-  const prop = p.warehouse.find((s) => isPropaganda(state, s.card));
-  const load = p.warehouse.find((s) => isLoad(state, s.card));
-  const recycle = [prop?.card, load?.card].filter((x): x is string => !!x);
-  return [{ type: 'place', place: { address: 'redCorner', recycle } }, { type: 'place', place: { address: 'redCorner', recycle: [] } }];
+  // Нет места для Нагрузки — отдать первую попавшуюся книгу Непечатных.
+  const drop = freeSlots(p) > 0 ? undefined : p.warehouse.find((s) => !isFromLoadDeck(state, s.card))?.card;
+  return [{ type: 'place', place: { address: 'redCorner', ...(drop ? { drop } : {}) } }];
 }
 
 function chooseBooks(state: GameState, books: string[], main: Genre, need: number, support?: Genre): string[] | null {
@@ -251,7 +250,7 @@ function randomMove(state: GameState, me: string, rand: Rand): GameState {
     }
   }
   // Ничего не подошло: в фазе поручений — Красный уголок без сдачи или пас.
-  for (const a of [{ type: 'endTurn' }, { type: 'place', place: { address: 'redCorner', recycle: [] } }, { type: 'pass' }, { type: 'gathering', show: [] }, { type: 'ambush', go: false }, { type: 'hiding', hidden: [] }, { type: 'baraholkaBuy' }, { type: 'kvartirnikReply', accept: false }, { type: 'kontoraDecide', go: false }, { type: 'kontoraHide', hidden: [] }] as Action[]) {
+  for (const a of [{ type: 'endTurn' }, { type: 'place', place: { address: 'redCorner' } }, { type: 'pass' }, { type: 'gathering', show: [] }, { type: 'ambush', go: false }, { type: 'hiding', hidden: [] }, { type: 'baraholkaBuy' }, { type: 'kvartirnikReply', accept: false }, { type: 'kontoraDecide', go: false }, { type: 'kontoraHide', hidden: [] }] as Action[]) {
     // Пересобрать Тайник можно и в свой ход, но ход это не завершает — в поручениях это не выход.
     if (a.type === 'hiding' && state.phase !== 'hiding') continue;
     try { return applyAction(state, me, a); } catch (e) { if (!(e instanceof RuleError)) throw e; }

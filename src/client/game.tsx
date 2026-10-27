@@ -357,7 +357,7 @@ function addressBlocker(view: PlayerView, me: VPlayer, id: AddressId): string | 
     case 'tamizdat':
       return books.some((c) => publishable(view, c, id === 'tamizdat')) ? null : 'Нет книги, которую можно издать.';
     case 'glavlit':
-      return books.some((c) => genresOf(view, c).some((g) => view.banned.includes(g))) ? null : 'Нет книги опального жанра.';
+      return books.length ? null : 'Сдавать нечего: склад пуст.';
     case 'makulatura':
       return room ?? talons(RULES.makulaturaPrice);
     case 'knigoobmen':
@@ -565,17 +565,24 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
       break;
     }
     case 'redCorner': {
-      const komsorg = hasPatron(view, me.id, 'komsorg');
-      const unprinted = sel.filter((c) => !fromLoadDeck(view, c)).length;
-      const load = sel.filter((c) => fromLoadDeck(view, c)).length;
+      // Обязательная Нагрузка: нет места — отдать книгу Непечатных; склад весь в Нагрузке — не брать.
+      const loadOnly = mine.every((c) => fromLoadDeck(view, c));
+      const mustDrop = free <= 0 && !loadOnly;
+      const droppable = mine.filter((c) => !fromLoadDeck(view, c));
+      const drop = sel.find((c) => droppable.includes(c));
       body = (
         <>
-          <p>Вы встанете в очередь хода следующей Пятилетки. Можно сдать в макулатуру до 1 Непечатной книги (+{RULES.redCornerUnprinted}т) и до 1 книги Нагрузки (+{RULES.redCornerLoad}т). {withKindChips('ЧНЛ можно сбыть только здесь.')}</p>
-          {komsorg && <p className="muted small">Комсорг: можно сдать любое число книг, за каждую — +{RULES.komsorgPoints} очко Гласности.</p>}
-          {pickList(mine, sel, setSel)}
-          {confirmBtn(`Пойти в Красный уголок${costTag(-(unprinted * RULES.redCornerUnprinted + load * RULES.redCornerLoad), komsorg ? sel.length * RULES.komsorgPoints : 0)}`,
-            (unprinted <= 1 && load <= 1) || komsorg ? { address: 'redCorner', recycle: sel } : null,
-            !komsorg && (unprinted > 1 || load > 1) ? 'Слишком много книг' : undefined)}
+          <p>Вы встанете в очередь хода следующей Пятилетки и обязательно возьмёте 1 книгу Нагрузки вслепую.</p>
+          {free > 0 && <p className="muted">Место на складе есть — Нагрузка ляжет на свободное место.</p>}
+          {free <= 0 && loadOnly && <p className="muted">Склад весь в Нагрузке — новую не берёте.</p>}
+          {mustDrop && (
+            <>
+              <p className="warn-text">Для Нагрузки нет места: выберите книгу Непечатных, которую отдадите.</p>
+              {pickList(droppable, sel, setSel, { max: 1 })}
+            </>
+          )}
+          {confirmBtn('Пойти в Красный уголок', mustDrop ? (drop ? { address: 'redCorner', drop } : null) : { address: 'redCorner' },
+            mustDrop && !drop ? 'Выберите книгу, которую отдать' : undefined)}
         </>
       );
       break;
@@ -646,24 +653,20 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
       break;
     }
     case 'glavlit': {
-      // Подцензурные книги: жанровые, хотя бы один жанр которых сейчас под цензурой.
-      const ok = (c: string) => view.cards[c].kind === 'genre' && genresOf(view, c).some((g) => view.banned.includes(g));
+      const komsorg = hasPatron(view, me.id, 'komsorg');
       const editor = hasPatron(view, me.id, 'editor');
-      const pts = sel.reduce((s, c) => s + iconCount(view, c), 0);
-      const loads = Math.min(loadN, sel.length);
-      const draws = sel.map((_, i) => (i < loads ? 'load' as const : 'unprinted' as const));
+      const unprinted = sel.filter((c) => !fromLoadDeck(view, c)).length;
+      const load = sel.filter((c) => fromLoadDeck(view, c)).length;
+      const pts = (komsorg ? sel.length * RULES.komsorgPoints : 0) + (editor ? sel.reduce((s, c) => s + iconCount(view, c), 0) : 0);
       body = (
         <>
-          <p>Сдайте любое число подцензурных книг (+{RULES.glavlitTalons}т за каждую) и возьмите столько же книг вслепую — из Непечатных или Нагрузки, как решите.
-            {editor ? ' Главред: +1 очко Гласности за каждый значок сданных книг.' : ''}</p>
-          {mine.filter(ok).length === 0 && <p className="warn-text">Подцензурных книг у вас нет: нужна жанровая книга, жанр которой сейчас под цензурой.</p>}
-          {pickList(mine.filter(ok), sel, setSel)}
-          {sel.length > 0 && (
-            <div className="row">Взамен взять — Нагрузки:
-              <input type="number" style={{ width: 64 }} min={0} max={sel.length} value={loads} onChange={(e) => setLoadN(Number(e.target.value))} />
-              Непечатных: <b>{sel.length - loads}</b></div>
-          )}
-          {confirmBtn(`Сдать в Главлит${costTag(-sel.length * RULES.glavlitTalons, editor ? pts : 0)}`, sel.length ? { address: 'glavlit', cards: sel, draws } : null)}
+          <p>Сдайте до 1 Непечатной книги (+{RULES.glavlitUnprinted}т) и до 1 книги Нагрузки (+{RULES.glavlitLoad}т). {withKindChips('ЧНЛ можно сбыть только здесь.')}</p>
+          {komsorg && <p className="muted small">Комсорг: можно сдать любое число книг, за каждую — +{RULES.komsorgPoints} очко Гласности.</p>}
+          {editor && <p className="muted small">Главред: +1 очко Гласности за каждый значок сданных книг.</p>}
+          {pickList(mine, sel, setSel)}
+          {confirmBtn(`Сдать в Главлит${costTag(-(unprinted * RULES.glavlitUnprinted + load * RULES.glavlitLoad), pts)}`,
+            sel.length && ((unprinted <= 1 && load <= 1) || komsorg) ? { address: 'glavlit', recycle: sel } : null,
+            !komsorg && (unprinted > 1 || load > 1) ? 'Слишком много книг' : !sel.length ? 'Выберите книги' : undefined)}
         </>
       );
       break;

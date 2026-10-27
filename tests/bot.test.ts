@@ -354,8 +354,9 @@ describe('думающий бот в полном режиме', () => {
       curators++;
       feeds += s.log.filter((l) => l.text.startsWith(`${cur.name} питает ступень`)).length;
       // ЧНЛ в конце срезает Ростки — Куратор её в макулатуру не сдаёт.
+      // Добровольно — в Главлит (в Красном уголке ЧНЛ может уйти вынужденно: нет места для Нагрузки и нечего больше отдать).
       const propaganda = Object.values(s.cards).filter((c) => c.kind === 'propaganda').map((c) => `«${c.title}»`);
-      recycled += s.log.filter((l) => l.text.startsWith(`${cur.name} в Красном уголке`) && propaganda.some((t) => l.text.includes(t))).length;
+      recycled += s.log.filter((l) => l.text.startsWith(`${cur.name} сдаёт в Главлит`) && propaganda.some((t) => l.text.includes(t))).length;
     }
     expect(curators).toBe(8);
     // Одна ступень для маскировки, дальше — почти никогда.

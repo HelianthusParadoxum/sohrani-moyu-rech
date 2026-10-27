@@ -263,7 +263,7 @@ export type TolkuchkaOp = { op: 'buy'; card: string } | { op: 'sell'; card: stri
 export type PlaceAction =
   | { address: 'gostorg'; pairs: number; mix?: ('load' | 'unprinted')[] } // mix — Завмаг
   | { address: 'tolkuchka'; ops: TolkuchkaOp[] }
-  | { address: 'redCorner'; recycle: string[] }
+  | { address: 'redCorner'; drop?: string } // drop — книга Непечатных, которую отдать, если для Нагрузки нет места
   | { address: 'razval'; slot: number; slots?: number[] } // slots — Ветеран покупает несколько
   | { address: 'zavoz' }
   | { address: 'baraholka'; slots: number[] } // какие закрытые книги посмотреть
@@ -271,7 +271,7 @@ export type PlaceAction =
   | { address: 'sprouts'; feeds: { sprout: string; books: string[]; slot?: number }[] } // slot — место (бонус) Ростка; без него — первое свободное
   | { address: 'samizdat'; card: string }
   | { address: 'tamizdat'; card: string }
-  | { address: 'glavlit'; cards: string[]; draws: ('unprinted' | 'load')[] } // draws — из какой стопки брать взамен каждой
+  | { address: 'glavlit'; recycle: string[] } // сдать до 1 Непечатной и до 1 Нагрузки (с Комсоргом — сколько угодно)
   | { address: 'knigoobmen'; give: string; take: string }
   | { address: 'kvartirnik'; to: string; give: string; want: string }
   | { address: 'raspredelitel'; card: string; cards?: string[] } // cards — Ветеран покупает несколько

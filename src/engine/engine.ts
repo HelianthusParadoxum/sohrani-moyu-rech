@@ -976,39 +976,31 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       return;
     }
     case 'redCorner': {
-      const unprinted = a.recycle.filter((c) => !isFromLoadDeck(state, c));
-      const load = a.recycle.filter((c) => isFromLoadDeck(state, c));
-      const komsorg = hasPatron(state, p.id, 'komsorg');
-      check(
-        (unprinted.length <= 1 && load.length <= 1) || komsorg,
-        'Сдать можно до 1 Непечатной и до 1 книги Нагрузки',
-      );
-      const extra = hasPatron(state, p.id, 'zavkhoz') ? 1 : 0;
-      // Ретивость: рано и первым в очереди (выгоднее всего ходить первым Куратору), особенно ничего не сдав.
+      // Ретивость: рано и первым в очереди (выгоднее всего ходить первым Куратору).
       const used = p.workers - p.held - p.available;
-      if (state.round < RULES.rounds && state.nextOrder.length === 0 && used <= 2) {
-        p.redEager = (p.redEager ?? 0) + 1;
-        const couldRecycle = p.warehouse.some((s) => !s.hidden && !isPropaganda(state, s.card) && !isEvidence(state, s.card));
-        if (!a.recycle.length && couldRecycle) p.redEmpty = (p.redEmpty ?? 0) + 1;
-      }
-      let income = 0;
-      p.propagandaDumped = (p.propagandaDumped ?? 0) + a.recycle.filter((c) => isPropaganda(state, c)).length;
-      for (const c of a.recycle) {
-        const perBook = isFromLoadDeck(state, c) ? RULES.redCornerLoad : RULES.redCornerUnprinted;
-        removeBook(p, c);
-        discard(state, c);
-        income += perBook;
-        gaveAway(state, p, c);
+      if (state.round < RULES.rounds && state.nextOrder.length === 0 && used <= 2) p.redEager = (p.redEager ?? 0) + 1;
+      // Обязательная Нагрузка: нет места — отдать книгу Непечатных; склад весь в Нагрузке — не брать.
+      const loadOnly = p.warehouse.every((s) => isFromLoadDeck(state, s.card));
+      const take = freeSlots(p) > 0 || !loadOnly;
+      if (freeSlots(p) > 0 || !take) {
+        check(!a.drop, 'Отдавать книгу не нужно');
+      } else {
+        check(a.drop, 'Для Нагрузки нет места: выберите книгу Непечатных, которую отдать');
+        check(hasBook(p, a.drop) && !isFromLoadDeck(state, a.drop), 'Отдать можно только книгу Непечатных со своего склада');
       }
       p.visitedRedCorner = true;
       state.nextOrder.push(p.id);
-      log(state, `${p.name} в Красном уголке (${state.nextOrder.length}-й в очереди)${a.recycle.length ? `, сдал(а) в макулатуру: ${titles(state, a.recycle)}` : ''}.`);
-      earn(state, p, 0, { redCorner: income, zavkhoz: extra * a.recycle.length });
-      // Комсорг: за каждую сданную книгу — очко Гласности.
-      if (komsorg && a.recycle.length) {
-        gain(p, RULES.komsorgPoints * a.recycle.length, 'komsorg');
-        logAfter(state, `↳ Комсорг: +${pointsText(RULES.komsorgPoints * a.recycle.length)}.`);
+      log(state, `${p.name} в Красном уголке (${state.nextOrder.length}-й в очереди).`);
+      if (a.drop) {
+        if (isPropaganda(state, a.drop)) p.propagandaDumped = (p.propagandaDumped ?? 0) + 1;
+        removeBook(p, a.drop);
+        discard(state, a.drop);
+        gaveAway(state, p, a.drop);
       }
+      const load = take ? drawLoad(state) : null;
+      if (load) addBook(p, load);
+      logAfter(state, !take ? '↳ Склад полон Нагрузки — новую не берёт.'
+        : load ? `↳ Нагрузка: ${title(state, load)}${a.drop ? `; места нет — отдаёт ${title(state, a.drop)}` : ''}.` : '↳ Нагрузка кончилась.');
       return;
     }
     case 'razval': {
@@ -1151,31 +1143,36 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       return;
     }
     case 'glavlit': {
-      // Сдать любое число подцензурных книг (жанр под цензурой) и взять столько же из стопок Непечатных и Нагрузки.
-      const cards = [...new Set(a.cards)];
-      check(cards.length > 0 && cards.length === a.cards.length, 'Выберите книги для Главлита');
-      check(a.draws.length === cards.length, 'Для каждой отданной книги выберите стопку, из которой взять замену');
+      const recycle = [...new Set(a.recycle)];
+      check(recycle.length > 0 && recycle.length === a.recycle.length, 'Выберите книги, которые сдать');
+      const unprinted = recycle.filter((c) => !isFromLoadDeck(state, c));
+      const load = recycle.filter((c) => isFromLoadDeck(state, c));
+      const komsorg = hasPatron(state, p.id, 'komsorg');
+      check((unprinted.length <= 1 && load.length <= 1) || komsorg, 'Сдать можно до 1 Непечатной и до 1 книги Нагрузки');
+      const extra = hasPatron(state, p.id, 'zavkhoz') ? 1 : 0;
       const editor = hasPatron(state, p.id, 'editor');
+      let income = 0;
       let pts = 0;
-      for (const c of cards) {
-        check(hasBook(p, c), 'Отдать можно только книги со своего склада');
-        check(isGenreBook(state, c) && genresOf(state, c).some((g) => state.banned.includes(g)), `${title(state, c)} — не подцензурная книга`);
+      p.propagandaDumped = (p.propagandaDumped ?? 0) + recycle.filter((c) => isPropaganda(state, c)).length;
+      for (const c of recycle) {
+        check(hasBook(p, c), 'Сдать можно только книги со своего склада');
+        income += isFromLoadDeck(state, c) ? RULES.glavlitLoad : RULES.glavlitUnprinted;
         if (editor) pts += iconCount(state, c);
         removeBook(p, c);
         discard(state, c);
         gaveAway(state, p, c);
       }
-      log(state, `${p.name} сдаёт в Главлит книг: ${cards.length} (${titles(state, cards)}).`);
-      for (const k of a.draws) {
-        const c = k === 'load' ? drawLoad(state) : draw(state);
-        if (c) addSecretBook(state, p, c);
+      log(state, `${p.name} сдаёт в Главлит: ${titles(state, recycle)}.`);
+      earn(state, p, 0, { glavlit: income, zavkhoz: extra * recycle.length });
+      // Комсорг: за каждую сданную книгу — очко Гласности.
+      if (komsorg) {
+        gain(p, RULES.komsorgPoints * recycle.length, 'komsorg');
+        logAfter(state, `↳ Комсорг: +${pointsText(RULES.komsorgPoints * recycle.length)}.`);
       }
-      log(state, `${p.name} берёт взамен: ${a.draws.filter((k) => k === 'unprinted').length} Непечатных, ${a.draws.filter((k) => k === 'load').length} Нагрузки.`);
       if (pts) {
         gain(p, pts, 'editor');
         logAfter(state, `↳ Главред: +${pointsText(pts)}.`);
       }
-      earn(state, p, cards.length * RULES.glavlitTalons, 'glavlit');
       return;
     }
     case 'knigoobmen': {

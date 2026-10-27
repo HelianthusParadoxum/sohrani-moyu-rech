@@ -11,7 +11,7 @@ import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
-  addSecretBook, cacheLimit, cloneJson, coversStep, freeSlots, freeSproutSlots, genreOn, genresOf, hasPatron, iconCount, iconsOf, isBanned, isWild, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
+  addSecretBook, cacheLimit, cloneJson, coversStep, freeSlots, freeSproutSlots, isFromLoadDeck, genreOn, genresOf, hasPatron, iconCount, iconsOf, isBanned, isWild, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
 } from './util';
 
 type Rand = () => number;
@@ -501,10 +501,10 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   v += albumReserve(state, me, cards, link, left, tune(ctx, 'albumOption'));
   // Ресурсы.
   v += resources(state, p, ctx);
-  // Нагрузка — будущие Талоны: в каждый оставшийся визит в Красный уголок можно сдать одну.
+  // Нагрузка — будущие Талоны: в Главлите можно сдать одну за визит (оценка — по числу оставшихся Пятилеток).
   const visits = left + (state.phase === 'orders' && !state.nextOrder.includes(me) ? 1 : 0);
   const loads = cards.filter((c) => isLoad(state, c) && !isEvidence(state, c)).length;
-  v += Math.min(loads, visits) * RULES.redCornerLoad * ctx.talon * w.talons * BOT_BASE.loadRecycle;
+  v += Math.min(loads, visits) * RULES.glavlitLoad * ctx.talon * w.talons * BOT_BASE.loadRecycle;
   // «Спящая» Нагрузка: Возвращение смыслов сделает из неё книгу с 3 значками (или Улику) — доля этой ценности уже сейчас
   // (нужно ещё действие, а к концу партии на него всё меньше шансов).
   if (left > 0 || state.phase === 'orders') {
@@ -1168,7 +1168,19 @@ function byValue(keep: Map<string, number>, cards: string[]): string[] {
   return [...cards].sort((a, b) => (keep.get(a) ?? 0) - (keep.get(b) ?? 0));
 }
 
-function redCornerCandidates(state: GameState, me: string, keep: Map<string, number>, ctx: Ctx): Action[] {
+// Красный уголок: обязательная Нагрузка; нет места — отдать одну из самых ненужных книг Непечатных (Куратор ЧНЛ не отдаёт).
+function redCornerCandidates(state: GameState, me: string, keep: Map<string, number>): Action[] {
+  const p = player(state, me);
+  const loadOnly = p.warehouse.every((s) => isFromLoadDeck(state, s.card));
+  if (freeSlots(p) > 0 || loadOnly) return [{ type: 'place', place: { address: 'redCorner' } }];
+  const drops = byValue(keep, p.warehouse.map((s) => s.card)
+    .filter((c) => !isFromLoadDeck(state, c) && !(p.passion === 'curator' && isPropaganda(state, c))));
+  const pick = drops.length ? drops.slice(0, 2) : p.warehouse.map((s) => s.card).filter((c) => !isFromLoadDeck(state, c)).slice(0, 1);
+  return pick.map((drop) => ({ type: 'place', place: { address: 'redCorner', drop } }));
+}
+
+// Главлит: сдать до 1 Непечатной и до 1 Нагрузки за Талоны.
+function glavlitCandidates(state: GameState, me: string, keep: Map<string, number>, ctx: Ctx): Action[] {
   const p = player(state, me);
   // Куратор ЧНЛ не сдаёт: в конце она срезает Ростки. Честный не сдаёт её, пока успеет разоблачить.
   const cards = p.warehouse.map((s) => s.card)
@@ -1179,12 +1191,12 @@ function redCornerCandidates(state: GameState, me: string, keep: Map<string, num
   const unprinted = byValue(keep, cards.filter((c) => !isLoad(state, c) && !isEvidence(state, c) && state.cards[c].kind !== 'loadEvidence' && state.cards[c].kind !== 'loadReturnable'));
   const loads = cards.filter((c) => isLoad(state, c) && !isEvidence(state, c));
   const ups = prop ? [prop] : unprinted.slice(0, 1);
-  const out: string[][] = [[]];
+  const out: string[][] = [];
   for (const u of [...ups, null]) for (const l of [loads[0], leninProp, null]) {
     const r = [u, l].filter((x): x is string => !!x);
     if (r.length) out.push(r);
   }
-  return out.map((recycle) => ({ type: 'place', place: { address: 'redCorner', recycle } }));
+  return out.map((recycle) => ({ type: 'place', place: { address: 'glavlit', recycle } }));
 }
 
 // Что спрятать в Тайник: самое ценное из опального, сколько поместится. Куратор прячет и ЧНЛ.
@@ -1361,10 +1373,10 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       // Последний Единомышленник — в Красный уголок; исключение — Расширение сети (новый пойдёт вместо него).
       if (mustVisitRedCorner(state, p)) {
         const hire: Action[] = p.groupUsed.includes('hire') ? [] : [{ type: 'group', group: { action: 'hire' } }];
-        return [...redCornerCandidates(state, me, keepMap(), ctx), ...hire];
+        return [...redCornerCandidates(state, me, keepMap()), ...hire];
       }
       const out: Action[] = [...groups()];
-      if (!p.visitedRedCorner) out.push(...redCornerCandidates(state, me, keepMap(), ctx));
+      if (!p.visitedRedCorner) out.push(...redCornerCandidates(state, me, keepMap()));
       else out.push({ type: 'pass' });
       const genreBooks = books.filter((b) => isGenreBook(state, b));
       const addrs = [...PERMANENT_ADDRESSES, ...state.safehouses].filter((a) => state.safehouses.includes(a) || addressInGame(state, a));
@@ -1416,17 +1428,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
           case 'tamizdat':
             for (const b of books) if (isGenreBook(state, b) || isEvidence(state, b)) out.push({ type: 'place', place: { address: a, card: b } });
             break;
-          case 'glavlit':
-          {
-            // Сдать самые ненужные подцензурные книги (1, 2, все) и взять взамен Непечатные — или Нагрузку (прикрывает Тайник).
-            const banned = byValue(keepMap(), genreBooks.filter((b) => genresOf(state, b).some((g) => state.banned.includes(g))));
-            for (const n of new Set([1, 2, banned.length])) {
-              if (n < 1 || n > banned.length) continue;
-              const cards = banned.slice(0, n);
-              for (const k of ['unprinted', 'load'] as const) out.push({ type: 'place', place: { address: 'glavlit', cards, draws: cards.map(() => k) } });
-            }
-            break;
-          }
+          case 'glavlit': out.push(...glavlitCandidates(state, me, keepMap(), ctx)); break;
           case 'knigoobmen': {
             const give = byValue(keepMap(), genreBooks).slice(0, 2);
             for (const g of give) for (const take of state.knigoobmen) out.push({ type: 'place', place: { address: 'knigoobmen', give: g, take } });

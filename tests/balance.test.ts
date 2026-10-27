@@ -196,7 +196,7 @@ describe('цены и доходы', () => {
     s = act(s, p.id, { type: 'place', place: { address: 'raspredelitel', card: c } });
     expect(byId(s, p.id).talons).toBe(10 - RULES.raspredelitelPrice);
     // Ход переходит по кругу — ждём, пока снова походит тот же игрок.
-    while (s.order[s.turn] !== p.id) s = act(s, s.order[s.turn], { type: 'place', place: { address: 'redCorner', recycle: [] } });
+    while (s.order[s.turn] !== p.id) s = act(s, s.order[s.turn], { type: 'place', place: { address: 'redCorner' } });
     const before = byId(s, p.id).talons;
     s = applyAction(s, p.id, { type: 'place', place: { address: 'spisanie' } });
     expect(byId(s, p.id).talons).toBe(before - RULES.spisaniePrice);
@@ -222,15 +222,15 @@ describe('Агитпункт', () => {
   });
 });
 
-describe('Красный уголок и Тамиздат', () => {
-  it(`Нагрузка в Красном уголке — ${RULES.redCornerLoad}т, Непечатная — ${RULES.redCornerUnprinted}т`, () => {
+describe('Главлит и Тамиздат', () => {
+  it(`Нагрузка в Главлите — ${RULES.glavlitLoad}т, Непечатная — ${RULES.glavlitUnprinted}т`, () => {
     let s = started();
     const p = me(s);
     const load = p.warehouse.find((w) => s.cards[w.card].kind === 'load')!.card;
     const book = giveBook(s, p.id);
     const t = p.talons;
-    s = applyAction(s, p.id, { type: 'place', place: { address: 'redCorner', recycle: [load, book] } });
-    expect(byId(s, p.id).talons).toBe(t + RULES.redCornerLoad + RULES.redCornerUnprinted);
+    s = applyAction(s, p.id, { type: 'place', place: { address: 'glavlit', recycle: [load, book] } });
+    expect(byId(s, p.id).talons).toBe(t + RULES.glavlitLoad + RULES.glavlitUnprinted);
   });
 
   it(`Тамиздат: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка за значок`, () => {

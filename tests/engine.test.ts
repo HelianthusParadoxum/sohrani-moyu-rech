@@ -194,7 +194,7 @@ describe('правила редакции октября', () => {
     let s = started();
     const me = s.order[s.turn];
     expect(() => applyAction(s, me, { type: 'pass' })).toThrow(RuleError);
-    s = act(s, me, { type: 'place', place: { address: 'redCorner', recycle: [] } });
+    s = act(s, me, { type: 'place', place: { address: 'redCorner' } });
     while (s.order[s.turn] !== me) {
       const other = s.order[s.turn];
       s = act(s, other, { type: 'place', place: { address: 'zavoz' } });
@@ -540,21 +540,20 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     return card;
   }
 
-  it('Главлит: сдать подцензурные книги (+1т за каждую) и взять столько же вслепую из выбранных стопок', () => {
+  it('Главлит: сдать до 1 Непечатной и до 1 Нагрузки за Талоны', () => {
     let s = started('beginner');
     const me = s.order[s.turn];
-    const free = give(s, me, (icons) => !icons.some((g) => s.banned.includes(g as never)));
-    const b1 = give(s, me, (icons) => icons.some((g) => s.banned.includes(g as never)) && !icons.includes('irony'));
-    const b2 = give(s, me, (icons) => icons.some((g) => s.banned.includes(g as never)) && !icons.includes('irony'));
-    expect(() => applyAction(s, me, { type: 'place', place: { address: 'glavlit', cards: [free], draws: ['load'] } })).toThrow(RuleError);
+    const b1 = give(s, me, (icons) => !icons.includes('irony'));
+    const b2 = give(s, me, (icons) => !icons.includes('irony'));
     const p0 = s.players.find((x) => x.id === me)!;
-    const [talons, size, loads] = [p0.talons, p0.warehouse.length, s.loadDeck.length];
-    s = applyAction(s, me, { type: 'place', place: { address: 'glavlit', cards: [b1, b2], draws: ['load', 'unprinted'] } });
+    const load = p0.warehouse.find((w) => s.cards[w.card].kind === 'load')!.card;
+    expect(() => applyAction(s, me, { type: 'place', place: { address: 'glavlit', recycle: [b1, b2] } })).toThrow(/до 1 Непечатной/);
+    expect(() => applyAction(s, me, { type: 'place', place: { address: 'glavlit', recycle: [] } })).toThrow(RuleError);
+    const talons = p0.talons;
+    s = applyAction(s, me, { type: 'place', place: { address: 'glavlit', recycle: [b1, load] } });
     const p = s.players.find((x) => x.id === me)!;
-    expect(p.talons).toBe(talons + 2 * RULES.glavlitTalons);
-    expect(p.warehouse.length).toBe(size);
-    expect(s.loadDeck.length).toBe(loads - 1);
-    expect(s.discard).toEqual(expect.arrayContaining([b1, b2]));
+    expect(p.talons).toBe(talons + RULES.glavlitUnprinted + RULES.glavlitLoad);
+    expect(s.discard).toContain(b1);
   });
 
   it('Главред: за каждую сданную в Главлит книгу — очко за значок', () => {
@@ -562,7 +561,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     const me = s.order[s.turn];
     connect(s, 'editor', [me]);
     const card = give(s, me, (icons) => icons.length === 2 && icons.some((g) => s.banned.includes(g as never)) && !icons.includes('irony') && !icons.includes('prose'));
-    s = applyAction(s, me, { type: 'place', place: { address: 'glavlit', cards: [card], draws: ['unprinted'] } });
+    s = applyAction(s, me, { type: 'place', place: { address: 'glavlit', recycle: [card] } });
     expect(s.players.find((x) => x.id === me)!.pointsBy.editor).toBe(2);
   });
 
@@ -780,12 +779,12 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     expect(s3.players.find((x) => x.id === me3)!.talons).toBe(t3);
   });
 
-  it('Комсорг: в Красном уголке сколько угодно книг и +1 очко за каждую', () => {
+  it('Комсорг: в Главлите сколько угодно книг и +1 очко за каждую', () => {
     let s = started();
     const me = s.order[s.turn];
     connect(s, 'komsorg', [me]);
     const books = [give(s, me, (i) => !i.includes('irony')), give(s, me, (i) => !i.includes('irony'))];
-    s = applyAction(s, me, { type: 'place', place: { address: 'redCorner', recycle: books } });
+    s = applyAction(s, me, { type: 'place', place: { address: 'glavlit', recycle: books } });
     expect(s.players.find((x) => x.id === me)!.pointsBy.komsorg).toBe(2 * RULES.komsorgPoints);
   });
 });
@@ -889,9 +888,9 @@ describe('Срезы Куратора', () => {
     p.capacity = 10;
     p.warehouse = [{ card: lenin, hidden: false }, { card: book, hidden: false }];
     const before = p.talons;
-    s = applyAction(s, me, { type: 'place', place: { address: 'redCorner', recycle: [book, lenin] } });
+    s = applyAction(s, me, { type: 'place', place: { address: 'glavlit', recycle: [book, lenin] } });
     const after = s.players.find((x) => x.id === me)!;
-    expect(after.talons - before).toBe(RULES.redCornerLoad + RULES.redCornerUnprinted);
+    expect(after.talons - before).toBe(RULES.glavlitLoad + RULES.glavlitUnprinted);
     expect(after.propagandaDumped).toBe(1);
     expect(s.loadDiscard).toContain(lenin);
   });
@@ -1011,7 +1010,7 @@ describe('Засада на Посиделках', () => {
     s.phase = 'orders';
     for (const q of s.players) { q.available = 0; q.bonusGroupTurns = 0; q.subscriptions = []; }
     s.players.find((x) => x.id === s.order[s.turn])!.available = 1;
-    s = applyAction(s, s.order[s.turn], { type: 'place', place: { address: 'redCorner', recycle: [] } });
+    s = applyAction(s, s.order[s.turn], { type: 'place', place: { address: 'redCorner' } });
     s = applyAction(s, s.order[s.turn], { type: 'endTurn' });
     expect(s.phase).toBe('gathering');
     expect(s.ready).toEqual([cur]);
@@ -1028,7 +1027,7 @@ describe('Засада на Посиделках', () => {
     const dramas = s.deck.filter((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.includes('drama')).slice(0, 3);
     s.deck = s.deck.filter((c) => !dramas.includes(c));
     for (const q of s.players) {
-      q.available = 0; q.bonusGroupTurns = 0; q.subscriptions = [];
+      q.available = 0; q.bonusGroupTurns = 0; q.subscriptions = []; q.capacity = 10;
       q.warehouse = q.warehouse.filter((w) => !s.cards[w.card].icons?.includes('drama'));
       q.published = q.published.filter((c) => !s.cards[c].icons?.includes('drama'));
     }
@@ -1037,7 +1036,7 @@ describe('Засада на Посиделках', () => {
     pa.published.push(dramas[2]);
     const pts = pa.points;
     s.players.find((x) => x.id === s.order[s.turn])!.available = 1;
-    s = applyAction(s, s.order[s.turn], { type: 'place', place: { address: 'redCorner', recycle: [] } });
+    s = applyAction(s, s.order[s.turn], { type: 'place', place: { address: 'redCorner' } });
     s = applyAction(s, s.order[s.turn], { type: 'endTurn' });
     expect(s.phase).toBe('gathering');
     expect(s.players.find((x) => x.id === a)!.points).toBe(pts + 2);
@@ -1936,7 +1935,7 @@ describe('Подписка', () => {
     const p = s.players.find((x) => x.id === me)!;
     p.available = 1;
     p.subscriptions = [{ genre: 'prose', rounds: 1 }];
-    s = applyAction(s, me, { type: 'place', place: { address: 'redCorner', recycle: [] } });
+    s = applyAction(s, me, { type: 'place', place: { address: 'redCorner' } });
     if (s.turnDone === me) s = applyAction(s, me, { type: 'endTurn' });
     const got = s.players.find((x) => x.id === me)!.warehouse.at(-1)!;
     expect(got.hidden).toBe(false);
@@ -1945,5 +1944,56 @@ describe('Подписка', () => {
     const line = s.log.find((l) => l.text.includes('по Подписке'))!;
     expect(line.text).toContain(title(s, got.card));
     expect(line.only).toBeUndefined();
+  });
+});
+
+describe('Красный уголок: обязательная Нагрузка', () => {
+  function started() {
+    let s = createGame({ players: players(2), seed: 7 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    return startOrders(s);
+  }
+  const isLoadCard = (s: GameState, c: string) => s.cards[c].kind.startsWith('load');
+
+  it('есть место — +1 Нагрузка открыто, отдавать ничего не нужно', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    p.capacity = p.warehouse.length + 1;
+    const n = p.warehouse.length;
+    expect(() => applyAction(s, me, { type: 'place', place: { address: 'redCorner', drop: p.warehouse[0].card } })).toThrow(/не нужно/);
+    s = applyAction(s, me, { type: 'place', place: { address: 'redCorner' } });
+    const after = s.players.find((x) => x.id === me)!;
+    expect(after.warehouse.length).toBe(n + 1);
+    expect(isLoadCard(s, after.warehouse.at(-1)!.card)).toBe(true);
+    expect(after.warehouse.at(-1)!.hidden).toBe(false);
+  });
+
+  it('нет места — обязательно отдать книгу Непечатных (не Нагрузку)', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    p.capacity = p.warehouse.length;
+    const unprinted = p.warehouse.find((w) => !isLoadCard(s, w.card))!.card;
+    const load = p.warehouse.find((w) => isLoadCard(s, w.card))!.card;
+    expect(() => applyAction(s, me, { type: 'place', place: { address: 'redCorner' } })).toThrow(/нет места/);
+    expect(() => applyAction(s, me, { type: 'place', place: { address: 'redCorner', drop: load } })).toThrow(/Непечатных/);
+    s = applyAction(s, me, { type: 'place', place: { address: 'redCorner', drop: unprinted } });
+    const after = s.players.find((x) => x.id === me)!;
+    expect(after.warehouse.some((w) => w.card === unprinted)).toBe(false);
+    expect(s.discard).toContain(unprinted);
+    expect(after.warehouse.length).toBe(p.capacity);
+  });
+
+  it('склад весь в Нагрузке — новую не берёт', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    p.warehouse = p.warehouse.filter((w) => isLoadCard(s, w.card));
+    p.capacity = p.warehouse.length;
+    const before = p.warehouse.map((w) => w.card);
+    s = applyAction(s, me, { type: 'place', place: { address: 'redCorner' } });
+    expect(s.players.find((x) => x.id === me)!.warehouse.map((w) => w.card)).toEqual(before);
+    expect(s.log.some((l) => l.text.includes('Склад полон Нагрузки'))).toBe(true);
   });
 });

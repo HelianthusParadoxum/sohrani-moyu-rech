@@ -134,7 +134,7 @@ export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
       className={`book k-${c.kind === 'loadEvidence' && !restored ? 'load' : (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && restored ? 'exposed' : c.kind} ${banned ? 'is-banned' : ''} ${selected ? 'selected' : ''} ${hidden ? 'in-cache' : ''} ${small ? 'small' : ''} ${onClick ? 'clickable' : ''}`}
       onClick={onClick}
       disabled={!onClick}
-      title={`${t} — ${c.author}${c.kind === 'loadPropaganda' && !restored ? '. Нагрузка-ЧНЛ: это ЧНЛ (опальна, −5 очков, у Куратора срезает Ростки), но сдаётся в Красный уголок как Нагрузка (+2т); Тайник не прикрывает' : ''}`}
+      title={`${t} — ${c.author}${c.kind === 'loadPropaganda' && !restored ? '. Нагрузка-ЧНЛ: это ЧНЛ (опальна, −5 очков, у Куратора срезает Ростки), но сдаётся в Главлит как Нагрузка (+1т); Тайник не прикрывает' : ''}`}
     >
       <div className="book-icons">
         {(flex ? icons.slice(0, -1) : icons).map((g, i) => <GenreChip key={i} g={g} banned={v.banned.includes(g)} favored={favoredGenres(v).includes(g)} />)}
