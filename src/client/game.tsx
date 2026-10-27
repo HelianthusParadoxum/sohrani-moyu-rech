@@ -423,19 +423,21 @@ function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint, rig
   const here = view.occupancy[id] ?? [];
   const limit = limitFor(id, view.players.length);
   const freeClub = id === 'club' && RULES.clubFreeGift;
+  // Красный уголок: кружки действий — в его списке очереди, а не в заголовке.
+  const noDots = freeClub || id === 'redCorner';
   return (
       <div className="addr-head">
         <b>{ADDRESS_ICONS[id]}{ICON_JOIN}{info.name}</b>
         {inlineHint && <span className="hint inline">{iconize(info.short)}{freeClub && ' (1 раз за поручение, 👤 не нужен)'}</span>}
         <span className="workers">
           {rightHint && <span className="hint inline right" title={iconize(rightHint)} data-tip={iconize(rightHint)}>{iconize(info.short)}</span>}
-          {!rightHint && here.map((pid, i) => {
+          {!rightHint && !noDots && here.map((pid, i) => {
             // Номер на жетоне — каким по счёту в Пятилетке было это действие игрока.
             const k = here.slice(0, i).filter((x) => x === pid).length;
             const n = view.players.find((x) => x.id === pid)?.actions?.filter((a) => a.target === id)[k]?.n;
             return <span key={i} className="dot num" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} title={n ? `${n}-е действие игрока` : undefined}>{n ?? ''}</span>;
           })}
-          {!freeClub && !rightHint && (limit === Infinity
+          {!noDots && !rightHint && (limit === Infinity
             ? <span className="muted small">∞</span>
             : Array.from({ length: Math.max(0, limit - here.length) }, (_, i) => <span key={`free${i}`} className="dot num slot-free" title="Свободное место" />))}
         </span>
@@ -457,7 +459,20 @@ function AddressContents({ id, view, seatIndex, me, onPatron, onBlocked, onPick 
       return <div className="small spets" title={tip} data-tip={tip}>🗄️ Спецхран: <b>{view.spetskhranCount}</b> книг(и)</div>;
     }
     case 'redCorner': {
-      if (view.round >= RULES.rounds) return <div className="muted small">Последняя Пятилетка — очередь уже не важна.</div>;
+      // Кружок игрока с номером действия, которым он пришёл в Красный уголок.
+      const dot = (pid: string) => {
+        const n = view.players.find((x) => x.id === pid)?.actions?.find((a) => a.target === 'redCorner')?.n;
+        return <span className="dot num" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} title={n ? `${n}-е действие игрока` : undefined}>{n ?? ''}</span>;
+      };
+      // Последняя Пятилетка: очередь не важна — кружки в ряд и пустые под тех, кто ещё не пришёл.
+      if (view.round >= RULES.rounds) {
+        return (
+          <div className="workers">
+            {view.nextOrder.map((pid) => <span key={pid}>{dot(pid)}</span>)}
+            {Array.from({ length: Math.max(0, view.players.length - view.nextOrder.length) }, (_, i) => <span key={`f${i}`} className="dot num slot-free" />)}
+          </div>
+        );
+      }
       // Новый порядок: сперва посетившие Красный уголок, затем остальные в прежнем порядке.
       const rest = view.order.filter((pid) => !view.nextOrder.includes(pid));
       const name = (pid: string) => view.players.find((p) => p.id === pid)?.name ?? '?';
@@ -466,11 +481,11 @@ function AddressContents({ id, view, seatIndex, me, onPatron, onBlocked, onPick 
           <div className="muted small">Порядок хода в следующей Пятилетке:</div>
           <ol>
             {view.nextOrder.map((pid) => (
-              <li key={pid}><span className="dot" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} /> {name(pid)}</li>
+              <li key={pid}>{dot(pid)} {name(pid)}</li>
             ))}
             {rest.map((pid) => (
               <li key={pid} className="pending" title="Ещё не был(а) в Красном уголке: встанет после всех, кто был">
-                <span className="dot" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} /> {name(pid)} <span className="muted small">— ждём</span>
+                <span className="dot num slot-free" style={{ borderColor: PLAYER_COLORS[seatIndex(pid)] }} /> {name(pid)} <span className="muted small">— ждём</span>
               </li>
             ))}
           </ol>
