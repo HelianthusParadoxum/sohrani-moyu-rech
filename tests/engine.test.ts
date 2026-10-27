@@ -1337,17 +1337,20 @@ describe('Несистемный (одиночная игра)', () => {
 });
 
 describe('Стартовый Тайник', () => {
-  it('опальные стартовые книги сразу лежат в Тайнике, если есть место', () => {
+  it('стартовые книги сразу лежат в Тайнике, если есть место: сначала опальные, потом прочие (не Нагрузка и не ЧНЛ)', () => {
     let checked = 0;
     for (let seed = 1; seed <= 40; seed++) {
       let s = createGame({ players: players(3), seed });
       for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
       expect(s.phase).toBe('setupCache');
       for (const p of s.players) {
-        const banned = p.warehouse.filter((w) => isBanned(s, w.card) && !isPropaganda(s, w.card));
+        const can = p.warehouse.filter((w) => !isPropaganda(s, w.card) && !isLoad(s, w.card));
+        const banned = can.filter((w) => isBanned(s, w.card));
         const hidden = p.warehouse.filter((w) => w.hidden);
-        expect(hidden.length).toBe(Math.min(banned.length, cacheLimit(s, p)));
-        for (const w of hidden) expect(isBanned(s, w.card)).toBe(true);
+        expect(hidden.length).toBe(Math.min(can.length, cacheLimit(s, p)));
+        // Опальные — в первую очередь.
+        expect(hidden.filter((w) => isBanned(s, w.card)).length).toBe(Math.min(banned.length, cacheLimit(s, p)));
+        for (const w of hidden) expect(isLoad(s, w.card)).toBe(false);
         if (hidden.length) checked++;
       }
     }
