@@ -328,6 +328,8 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 .patrons li.can { box-shadow: 0 0 0 2px #e6b35a; border-radius: 4px; cursor: pointer; padding: 2px 4px; }
 .patrons li.off { opacity: 0.5; }
 .sprout.can { box-shadow: 0 0 0 2px #e6b35a; cursor: pointer; }
+/* Клуб и Ростки целиком не подсвечиваем — доступность видна у отдельных Завсегдатаев и Ростков. */
+.address.addr-club.can, .sprouts-panel.address.can { box-shadow: none; }
 .sprout.off { opacity: 0.55; }
 .turn-order .dot { margin-left: 3px; vertical-align: -1px; }
 .status .dot { vertical-align: -1px; }
