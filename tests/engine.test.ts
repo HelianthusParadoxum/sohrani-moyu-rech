@@ -1760,7 +1760,7 @@ describe('Историк', () => {
     expect(line.evidence + line.propaganda + line.passion).toBe(2 * (RULES.evidencePoints + RULES.exposePoints));
   });
 
-  it('раздаётся только в партиях с Куратором', () => {
+  it('раздаётся и без Куратора; Новатора в колоде нет', () => {
     const dealt = (opts: { mode: 'full' | 'beginner'; curator?: boolean }) => {
       const seen = new Set<string>();
       for (let seed = 1; seed <= 40; seed++) {
@@ -1770,8 +1770,9 @@ describe('Историк', () => {
       return seen;
     };
     expect(dealt({ mode: 'full' }).has('historian')).toBe(true);
-    expect(dealt({ mode: 'full', curator: false }).has('historian')).toBe(false);
-    expect(dealt({ mode: 'beginner' }).has('historian')).toBe(false);
+    expect(dealt({ mode: 'full', curator: false }).has('historian')).toBe(true);
+    expect(dealt({ mode: 'beginner' }).has('historian')).toBe(true);
+    expect(dealt({ mode: 'full' }).has('innovator')).toBe(false);
   });
 });
 

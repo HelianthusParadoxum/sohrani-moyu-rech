@@ -290,7 +290,8 @@ export const PASSIONS: Record<PassionId, PassionInfo> = {
 };
 
 export const KEEPERS = Object.values(PASSIONS).filter((p) => !p.special).map((p) => p.id);
-export const SPECIALS: PassionId[] = ['erudite', 'monogamist', 'innovator', 'curator'];
+// Новатор из колоды убран (решение автора; определение и подсчёт оставлены), Историк — обычное особое Пристрастие.
+export const SPECIALS: PassionId[] = ['erudite', 'monogamist', 'historian', 'curator'];
 
 // ---------- Завсегдатаи Клуба книголюбов ----------
 
