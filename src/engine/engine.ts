@@ -1001,7 +1001,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       if (load) addBook(p, load);
       logAfter(state, !take ? '↳ Склад полон Нагрузки — новую не берёт.'
         : !room ? `↳ Отдаёт ${title(state, a.drop!)}, но места для Нагрузки всё равно нет — не берёт.`
-        : load ? `↳ Нагрузка: ${title(state, load)}${a.drop ? `; места нет — отдаёт ${title(state, a.drop)}` : ''}.` : '↳ Нагрузка кончилась.');
+        : load ? `↳ ${title(state, load)}${a.drop ? `; места нет — отдаёт ${title(state, a.drop)}` : ''}.` : '↳ Нагрузка кончилась.');
       return;
     }
     case 'razval': {
