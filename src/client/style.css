@@ -314,9 +314,6 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 
 /* Ростки: подсказка справа в заголовке и строка «Вложились» */
 .hint.inline.right { font-size: 0.75rem; text-align: right; white-space: nowrap; margin-left: auto; }
-/* Клуб: пояснение справа в заголовке переносится, не раздвигая страницу на телефоне. */
-.workers:has(.club-free) { flex-shrink: 1; min-width: 0; }
-.hint.inline.club-free { font-size: 0.72rem; text-align: right; white-space: normal; }
 .fed-row { display: flex; align-items: center; gap: 4px; margin-top: 4px; }
 .dot.slot-free { background: transparent; border: 1.5px dashed rgba(0,0,0,.35); }
 /* ПСС Ленина: ЧНЛ (тёмная) с нагрузочной полосой сверху */
