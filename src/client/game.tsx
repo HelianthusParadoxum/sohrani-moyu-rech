@@ -14,7 +14,7 @@ import {
   KontoraWarningPrompt, RescuePanel,
 } from './full-ui';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
-import { Book, GENRE_SHORT, GenreChip, KindChip, withKindChips, iconize, SpeedSelect, Modal, ModalCollapse, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, isLoad, toggle } from './ui';
+import { Book, GENRE_SHORT, GenreChip, KindChip, withKindChips, workerIcon, iconize, SpeedSelect, Modal, ModalCollapse, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, isLoad, toggle } from './ui';
 
 type Send = (m: ClientMessage) => void;
 type VPlayer = PlayerView['players'][number];
@@ -54,7 +54,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
   const who = (id: string) => <Fragment key={id}><span className="dot" style={{ background: PLAYER_COLORS[seatIndex(id)] }} /> {nameOf(id)}</Fragment>;
   const whoList = (ids: string[]) => ids.map((id, i) => <Fragment key={id}>{i ? ', ' : ''}{who(id)}</Fragment>);
   // Строка статуса начинается с того, кто действует; ждём нескольких сразу — «Ждём: …».
-  const mine = (text: string) => <>{you && who(you)} (вы): {text}</>;
+  const mine = (text: string) => <>{you && who(you)} (вы): {workerIcon(text)}</>;
   let status: ReactNode;
   if (view.phase === 'end') status = view.result?.note ?? 'Партия окончена';
   else if (head && head.player !== you) status = <>{who(head.player)} принимает решение…</>;
@@ -426,7 +426,7 @@ function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint, rig
             const n = view.players.find((x) => x.id === pid)?.actions?.filter((a) => a.target === id)[k]?.n;
             return <span key={i} className="dot num" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} title={n ? `${n}-е действие игрока` : undefined}>{n ?? ''}</span>;
           })}
-          {freeClub && <span className="hint inline club-free">1 раз за поручение, Единомышленник не нужен</span>}
+          {freeClub && <span className="hint inline club-free">1 раз за поручение, 👤 не нужен</span>}
           {!freeClub && !rightHint && (limit === Infinity
             ? <span className="muted small">∞</span>
             : Array.from({ length: Math.max(0, limit - here.length) }, (_, i) => <span key={`free${i}`} className="dot num slot-free" title="Свободное место" />))}
@@ -1185,7 +1185,7 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
       }
       return (
         <Modal title={p.kind === 'sproutBonus' ? `Бонус Ростка «${SPROUTS.find((s) => s.id === p.sprout)!.name}»` : p.kind === 'extraGroup' ? 'Подмастерье: действие Группы' : 'Действие Инициативной группы'}>
-          <p>{p.kind === 'sproutBonus' ? 'Выберите одно действие. Оно не требует Единомышленника; собственную цену действия платите как обычно.'
+          <p>{p.kind === 'sproutBonus' ? workerIcon('Выберите одно действие. Оно не требует Единомышленника; собственную цену действия платите как обычно.')
             : p.kind === 'extraGroup' ? 'Повторите одно из действий Группы, уже сделанных в эту Пятилетку.' : 'Выполните одно действие Группы.'}</p>
           <div className="genres">
             {options.map((o) => (

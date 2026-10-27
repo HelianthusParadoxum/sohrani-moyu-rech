@@ -151,7 +151,7 @@ export function ClubPanel({ view, me, place }: { view: PlayerView; me: VPlayer; 
 export function ClubGiftModal({ view, me, act, close, patron }: { view: PlayerView; me: VPlayer; act: (a: Action) => void; close: () => void; patron?: PatronId }) {
   return (
     <Modal title="Клуб книголюбов" wide onClose={close}>
-      <p className="muted small">Свободное действие: Единомышленник не нужен, ход не заканчивается. Одна книга за ход.</p>
+      <p className="muted small">Свободное действие: 👤 не нужен, ход не заканчивается. Одна книга за ход.</p>
       <GiftPicker view={view} me={me} single initialPatron={patron} onDone={(g) => { act({ type: 'clubGift', gift: g[0] }); close(); }} />
     </Modal>
   );

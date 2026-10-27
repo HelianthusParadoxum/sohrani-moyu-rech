@@ -28,6 +28,9 @@ const ICONS: [RegExp, string][] = [
   [/Нагрузк[а-яё]*/g, '📕'],
   [/Непечатн[а-яё]*/g, '📃'],
 ];
+// Только Единомышленники — значком 👤 (подсказки-инструкции, где прочие слова оставляем словами).
+export const workerIcon = (text: string) => text.replace(/[Ее]диномышленник[а-яё]*/g, '👤');
+
 export function iconize(text: string): string {
   return ICONS.reduce((t, [re, to]) => t.replace(re, to), text);
 }
