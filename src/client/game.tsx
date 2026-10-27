@@ -1513,7 +1513,7 @@ function MyPanel({ view, me, color, groupWhy, onGroup, onMemorize, onCache }: {
             <button key={g} className={`small ${groupBlocker(view, me, g) ? 'short' : ''} ${groupWhy(g) ? 'off' : ''}`}
               title={me.groupUsed.includes(g) ? 'Уже сделано в эту Пятилетку' : groupBlocker(view, me, g) ?? GROUP_ACTIONS[g].hint}
               aria-disabled={!!groupWhy(g)} onClick={() => { const w = groupWhy(g); if (w) explain(w); else onGroup(g); }}>
-              {groupPrice(view, me, g) && <span className="gprice">{groupPrice(view, me, g)} </span>}{GROUP_ICONS[g]} {GROUP_ACTIONS[g].name}<GroupSlot p={me} g={g} color={color} />
+              {GROUP_ICONS[g]} {GROUP_ACTIONS[g].name}{groupPrice(view, me, g) && <span className="gprice"> {groupPrice(view, me, g)}</span>}<GroupSlot p={me} g={g} color={color} />
             </button>
           ))}
         </div>
@@ -1535,7 +1535,7 @@ function OtherPlayer({ view, p, color, active }: { view: PlayerView; p: VPlayer;
       <div className="group-actions readonly" title="Действия Инициативной группы в эту Пятилетку">
         {(Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => groupInGame(view, g)).map((g) => (
           <span key={g} className={`gact ${p.groupUsed.includes(g) ? 'used' : ''}`} title={GROUP_ACTIONS[g].hint}>
-            {groupPrice(view, p, g) && <span className="gprice">{groupPrice(view, p, g)} </span>}{GROUP_ICONS[g]} {GROUP_ACTIONS[g].name}<GroupSlot p={p} g={g} color={color} />
+            {GROUP_ICONS[g]} {GROUP_ACTIONS[g].name}{groupPrice(view, p, g) && <span className="gprice"> {groupPrice(view, p, g)}</span>}<GroupSlot p={p} g={g} color={color} />
           </span>
         ))}
       </div>
