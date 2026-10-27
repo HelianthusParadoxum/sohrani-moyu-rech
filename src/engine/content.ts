@@ -132,6 +132,9 @@ export const GROUP_ICONS: Record<GroupActionId, string> = {
   expandWarehouse: '🧱', expandCache: '🗝️', copyText: '🖨️', rescue: '🛟', restore: '💡', hire: '🕸️',
 };
 
+// Значки бонусов Ростков, которые не действия Группы.
+export const BONUS_ICONS: Partial<Record<SproutBonusId, string>> = { sideJob: '⚒️', underCounter: '🧥', acquaintance: '💬' };
+
 // Название адреса со значком.
 // Между значком и названием — «соединитель слов» (U+2060): при переносе строки значок не отрывается от названия.
 export const ICON_JOIN = '\u2060';

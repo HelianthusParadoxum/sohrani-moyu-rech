@@ -1,9 +1,9 @@
 // Общие элементы интерфейса: карты книг, окна, жанры.
 import type React from 'react';
 import { createContext, useContext, useEffect, type Dispatch, type ReactNode, type SetStateAction } from 'react';
-import { ADDRESS_ICONS, GENRE_NAMES, GROUP_ICONS, ICON_JOIN, GENRE_SHORT, PASSIONS } from '../engine/content';
+import { ADDRESS_ICONS, BONUS_ICONS, GENRE_NAMES, GROUP_ICONS, ICON_JOIN, GENRE_SHORT, PASSIONS } from '../engine/content';
 import { BOT_PRESETS, presetById } from '../engine/bot-presets';
-import type { AddressId, Genre, GroupActionId } from '../engine/types';
+import type { AddressId, Genre, GroupActionId, SproutBonusId } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
 import { flexGenres, iconsOf, isBanned as isBannedBook } from '../engine/util';
@@ -49,9 +49,12 @@ const GROUP_WORDS: [GroupActionId, string][] = [
   ['copyText', 'Тиражировани[а-яё]*(?: текста)?'], ['rescue', 'Вызволени[а-яё]*(?: из бед)?'],
   ['restore', 'Возвращени[а-яё]* смыслов'], ['hire', 'Расширени[а-яё]* сети'],
 ];
+// Уникальные бонусы Ростков.
+const BONUS_WORDS: [string, string][] = [['sideJob', 'Приработ[а-яё]*'], ['underCounter', 'Из-под полы'], ['acquaintance', 'Завязать знакомство']];
 const NAME_RES: [RegExp, string][] = [
   ...ADDRESS_WORDS.map(([id, w]) => [w, ADDRESS_ICONS[id]] as const),
   ...GROUP_WORDS.map(([id, w]) => [w, GROUP_ICONS[id]] as const),
+  ...BONUS_WORDS.map(([id, w]) => [w, BONUS_ICONS[id as SproutBonusId]!] as const),
 ].map(([w, icon]) => [new RegExp(`(?<!\\p{Extended_Pictographic}\\uFE0F?[\\s\\u2060]?)(?<![«А-Яа-яЁё])(${w})`, 'gu'), `${icon}${ICON_JOIN}$1`]);
 // Адреса и действия Группы — со значками (заголовки окон, пояснения).
 export function addressIcons(text: string): string {

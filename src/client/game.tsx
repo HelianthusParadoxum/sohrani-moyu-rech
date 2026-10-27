@@ -1,7 +1,7 @@
 // Игровой стол.
 import { createContext, Fragment, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
-  ADDRESSES, ADDRESS_ICONS, addressLabel, GROUP_ICONS, ICON_JOIN, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, groupCost, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
+  ADDRESSES, ADDRESS_ICONS, addressLabel, BONUS_ICONS, GROUP_ICONS, ICON_JOIN, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, groupCost, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
   groupInGame, PATRONS, sproutBonusOptions,
 } from '../engine/content';
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
@@ -267,7 +267,7 @@ function groupPrice(view: PlayerView, p: VPlayer | null, id: string): string {
 }
 const withPrice = (view: PlayerView, p: VPlayer | null, id: string) => {
   const price = groupPrice(view, p, id);
-  const icon = GROUP_ICONS[id as GroupActionId];
+  const icon = GROUP_ICONS[id as GroupActionId] ?? BONUS_ICONS[id as SproutBonusId];
   return `${price ? `${price} ` : ''}${icon ? icon + ICON_JOIN : ''}${SPROUT_BONUS_NAMES[id as SproutBonusId]}`;
 };
 
