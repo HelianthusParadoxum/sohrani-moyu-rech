@@ -58,7 +58,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
         return left.length ? [{ type: 'kontoraHandout', card: left[0] }] : [{ type: 'pass' }];
       }
       case 'extraGroup': return [...groupCandidates(state, me, rand).filter((g) => g.type === 'group' && p.groupUsed.includes(g.group.action)), { type: 'pass' }];
-      case 'freeConnection': return [...clubGifts(state, me).map((gift) => ({ type: 'clubGift' as const, gift })), { type: 'pass' }];
+      case 'freeConnection': return [...befriendTargets(state, me).map((patron) => ({ type: 'befriend' as const, patron })), { type: 'pass' }];
       case 'sproutBonus': {
         const out: Action[] = [];
         for (const b of pend.options) {

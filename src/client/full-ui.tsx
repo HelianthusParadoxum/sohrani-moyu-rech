@@ -1,5 +1,5 @@
 // Интерфейс полного режима: Клуб книголюбов, Контора.
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { CLUB_ORDER, GENRE_NAMES, GENRE_SHORT, KONTORA_LOSS, PATRONS, RULES } from '../engine/content';
 import type { Action, ClubGift, Genre, GroupAction, KontoraChoice, PatronId, PlaceAction } from '../engine/types';
 import type { PlayerView } from '../engine/view';
@@ -157,10 +157,10 @@ export function ClubGiftModal({ view, me, act, close, patron }: { view: PlayerVi
 }
 
 // Бонус Ростка «Завязать знакомство»: связь с любым Завсегдатаем без книги (и с занятым на эту Пятилетку).
-export function BefriendPicker({ view, me, onPick, close }: { view: PlayerView; me: VPlayer; onPick: (id: PatronId) => void; close: () => void }) {
+export function BefriendPicker({ view, me, onPick, close, title = 'Завязать знакомство', footer }: { view: PlayerView; me: VPlayer; onPick: (id: PatronId) => void; close?: () => void; title?: string; footer?: ReactNode }) {
   const open = byClubOrder(view.patrons).filter((pt) => !pt.removed && !pt.connections.includes(me.id));
   return (
-    <Modal title="Завязать знакомство" wide onClose={close}>
+    <Modal title={title} wide onClose={close}>
       <p className="muted small">Связь с любым Завсегдатаем — без книги, даже если он занят на эту Пятилетку.</p>
       <ul className="patrons">
         {open.map((pt) => (
@@ -170,6 +170,7 @@ export function BefriendPicker({ view, me, onPick, close }: { view: PlayerView; 
           </li>
         ))}
       </ul>
+      {footer}
     </Modal>
   );
 }
@@ -306,10 +307,8 @@ export function HandoutPrompt({ view, cards, act, group }: { view: PlayerView; c
 
 export function FreeConnectionPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
   return (
-    <Modal title="Председатель: бесплатная связь" wide>
-      <GiftPicker view={view} me={me} single onDone={(g) => act({ type: 'clubGift', gift: g[0] })} />
-      <div className="modal-foot"><button onClick={() => act({ type: 'pass' })}>Отказаться</button></div>
-    </Modal>
+    <BefriendPicker view={view} me={me} title="Председатель: бесплатная связь" onPick={(patron) => act({ type: 'befriend', patron })}
+      footer={<div className="modal-foot"><button onClick={() => act({ type: 'pass' })}>Отказаться</button></div>} />
   );
 }
 

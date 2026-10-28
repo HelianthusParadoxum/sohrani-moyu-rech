@@ -327,6 +327,7 @@ export type Action =
   | { type: 'kontoraDecide'; go: boolean; choice?: KontoraChoice }
   | { type: 'kontoraHandout'; card: string }
   | { type: 'clubGift'; gift: ClubGift | null }
+  | { type: 'befriend'; patron: PatronId } // Председатель: связь с любым Завсегдатаем без книги
   | { type: 'memorize'; card: string | null }
   | { type: 'lieutenantPick'; card: string | null }
   | { type: 'discardExcess'; cards: string[] }

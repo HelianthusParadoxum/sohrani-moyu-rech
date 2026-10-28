@@ -98,11 +98,11 @@ export function giveToPatron(state: GameState, p: PlayerState, gift: ClubGift) {
 }
 
 // Бонус Ростка «Завязать знакомство»: связь с любым Завсегдатаем без книги — и даже с занятым на эту Пятилетку.
-export function befriendPatron(state: GameState, p: PlayerState, id: PatronId) {
+export function befriendPatron(state: GameState, p: PlayerState, id: PatronId, how = 'знакомство через Росток') {
   const patron = state.patrons.find((x) => x.id === id);
   check(patron && !patron.removed, 'Этого Завсегдатая нет в Клубе');
   check(!patron.connections.includes(p.id), `У вас уже есть связь с Завсегдатаем «${PATRONS[id].name}»`);
-  linkPatron(state, p, patron, 'знакомство через Росток');
+  linkPatron(state, p, patron, how);
 }
 
 // С кем можно завязать знакомство.

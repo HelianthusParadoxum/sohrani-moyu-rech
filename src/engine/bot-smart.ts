@@ -1343,7 +1343,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         for (const from of state.banned) for (const to of GENRES) if (!state.banned.includes(to)) out.push({ type: 'glavlitSwap', from, to });
         return out;
       }
-      case 'freeConnection': return [...clubGifts(state, me).map((gift) => ({ type: 'clubGift' as const, gift })), { type: 'pass' }];
+      case 'freeConnection': return [...befriendTargets(state, me).map((patron) => ({ type: 'befriend' as const, patron })), { type: 'pass' }];
       default: return []; // остальное решает простой бот
     }
   }

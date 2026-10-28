@@ -2046,3 +2046,20 @@ describe('Макулатура: платить книгой', () => {
     expect(after.talons).toBe(0);
   });
 });
+
+describe('Председатель', () => {
+  it('после поручений — связь с любым Завсегдатаем без книги', () => {
+    let s = createGame({ players: players(2), seed: 5, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const target = s.patrons.find((x) => !x.connections.includes(me))!;
+    const books = s.players.find((x) => x.id === me)!.warehouse.length;
+    s.pending = [{ kind: 'freeConnection', player: me }];
+    expect(() => applyAction(s, me, { type: 'clubGift', gift: null })).toThrow(RuleError);
+    s = applyAction(s, me, { type: 'befriend', patron: target.id });
+    expect(s.patrons.find((x) => x.id === target.id)!.connections).toContain(me);
+    expect(s.players.find((x) => x.id === me)!.warehouse.length).toBe(books);
+    expect(s.log.some((l) => l.text.includes('(Председатель)'))).toBe(true);
+  });
+});
