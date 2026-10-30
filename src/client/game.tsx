@@ -1443,7 +1443,7 @@ function Stats({ p, view }: { p: VPlayer; view: PlayerView }) {
       <span title="Очки Гласности, набранные по ходу игры"><i>★</i>{p.points}</span>
       <span title="Единомышленники: свободны / всего"><i>👤</i>{p.available}/{p.workers}</span>
       <span title="Склад: занято / мест (заученный сборник поэзии — сверх склада)"><i>📚</i>{p.warehouse.filter((s) => !s.memorized).length}/{p.capacity}</span>
-      <span title={`Мест в Тайнике: ${p.cache}${cover ? ` + ${cover} за Нагрузку на складе` : ''}`}><i>🔒</i>{p.cache + cover}{cover ? '*' : ''}</span>
+      <span title={`Тайник: занято / мест (${p.cache}${cover ? ` + ${cover} за Нагрузку на складе` : ''})`}><i>🔒</i>{p.warehouse.filter((s) => s.hidden).length}/{p.cache + cover}{cover ? '*' : ''}</span>
       {view.mode === 'full' && <span title="Связи в Клубе книголюбов"><i>🤝</i>{view.patrons.filter((x) => !x.removed && x.connections.includes(p.id)).length}</span>}
       {!view.reserve && <span title="Единомышленников удерживает Контора"><i>👁️</i>{p.held}</span>}
     </div>
