@@ -5,7 +5,7 @@
 // стопок и Барахолки, поэтому вытянутая при примерке книга — догадка, а не знание.
 import { applyAction, mustVisitRedCorner } from './engine';
 import { BOT_BASE, CURATOR_STYLES, PATRON_POWER, curatorStyle, type BotGoal, type BotPreset, type CuratorStyle, type TunableBase } from './bot-presets';
-import { PERMANENT_ADDRESSES, addressInGame, PASSIONS, RULES, SPROUTS, STEP_REWARDS, FIRST_FEED_POINTS, ADDRESSES, KONTORA_LOSS, limitFor } from './content';
+import { COPY_TEXT_ADDRESSES, PERMANENT_ADDRESSES, addressInGame, PASSIONS, RULES, SPROUTS, STEP_REWARDS, FIRST_FEED_POINTS, ADDRESSES, KONTORA_LOSS, limitFor } from './content';
 import { befriendTargets, heldTotal, kontoraTargets } from './full';
 import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
@@ -991,49 +991,17 @@ function sproutCandidates(state: GameState, me: string, keep: Map<string, number
   return out;
 }
 
-// Все варианты Тиражирования: где и что купить и какую открытую книгу оттуда же взять бесплатно.
+// Все варианты Тиражирования: открытая книга с адреса, где уже стоит свой Единомышленник (Машинистке — с любого).
 export function copyTextOptions(state: GameState, me: string): GroupAction[] {
-  const out: GroupAction[] = [];
   const p = player(state, me);
-  // Бесплатно тиражировать можно только жанровые книги (не Улики и не ЧНЛ).
-  const others = (list: (string | null)[], taken?: string) => list.filter((c): c is string => !!c && c !== taken && isGenreBook(state, c));
-  // Машинистка: без покупки — любая жанровая книга с открытого адреса.
-  if (hasPatron(state, me, 'typist')) {
-    for (const card of others(state.razval)) out.push({ action: 'copyText', address: 'razval', card });
-    for (const card of others(state.tolkuchka)) out.push({ action: 'copyText', address: 'tolkuchka', card });
-    if (state.safehouses.includes('raspredelitel')) for (const card of others(state.raspredelitel)) out.push({ action: 'copyText', address: 'raspredelitel', card });
-    if (state.safehouses.includes('knigoobmen')) for (const card of others(state.knigoobmen)) out.push({ action: 'copyText', address: 'knigoobmen', card });
-  }
-  state.razval.forEach((c, slot) => {
-    if (c) for (const card of others(state.razval, c)) out.push({ action: 'copyText', address: 'razval', buy: { address: 'razval', slot }, card });
-  });
-  // Мало места — можно освободить его, продав на Толкучке свою книгу.
-  const sells: (string | null)[] = [null];
-  if (freeSlots(p) < 2) {
-    for (const s of p.warehouse) {
-      if (isGenreBook(state, s.card) && !isEvidence(state, s.card) && !isPropaganda(state, s.card)) sells.push(s.card);
-    }
-  }
-  for (const c of state.tolkuchka) {
-    for (const card of others(state.tolkuchka, c)) {
-      for (const sell of sells) {
-        const ops = [...(sell ? [{ op: 'sell' as const, card: sell }] : []), { op: 'buy' as const, card: c }];
-        out.push({ action: 'copyText', address: 'tolkuchka', buy: { address: 'tolkuchka', ops }, card });
-      }
-    }
-  }
-  if (state.safehouses.includes('raspredelitel')) {
-    for (const c of state.raspredelitel) {
-      for (const card of others(state.raspredelitel, c)) out.push({ action: 'copyText', address: 'raspredelitel', buy: { address: 'raspredelitel', card: c }, card });
-    }
-  }
-  if (state.safehouses.includes('knigoobmen')) {
-    // Обменять одну из двух самых скромных своих книг и взять ещё одну даром.
-    const give = p.warehouse.map((s) => s.card).filter((c) => isGenreBook(state, c))
-      .sort((x, y) => iconCount(state, x) - iconCount(state, y)).slice(0, 2);
-    for (const g of give) for (const take of state.knigoobmen) {
-      for (const card of others(state.knigoobmen, take)) out.push({ action: 'copyText', address: 'knigoobmen', buy: { address: 'knigoobmen', give: g, take }, card });
-    }
+  if (freeSlots(p) <= 0) return [];
+  const typist = hasPatron(state, me, 'typist');
+  const out: GroupAction[] = [];
+  for (const address of COPY_TEXT_ADDRESSES) {
+    if (!(addressInGame(state, address) || state.safehouses.includes(address))) continue;
+    if (!typist && !(state.occupancy[address] ?? []).includes(me)) continue;
+    const shelf = address === 'razval' ? state.razval : state[address] ?? [];
+    for (const card of new Set(shelf.filter((c): c is string => !!c))) out.push({ action: 'copyText', address, card });
   }
   return out;
 }
@@ -1389,14 +1357,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
     case 'orders': {
       // Действие уже сделано (Тайник и Клуб бот перебирает раньше, в rankActions) — закончить ход.
       if (state.turnDone === me) {
-        // Тиражирование вдогонку за только что сделанной покупкой — или закончить ход.
-        const out: Action[] = [{ type: 'endTurn' }];
-        const last = state.lastBuy;
-        if (last?.player === me && !p.groupUsed.includes('copyText') && p.available > 0 && freeSlots(p) > 0) {
-          const shelf = (last.address === 'razval' ? state.razval : state[last.address]).filter((c): c is string => !!c && !last.exclude.includes(c) && isGenreBook(state, c));
-          for (const card of shelf) out.push({ type: 'group', group: { action: 'copyText', address: last.address, card } });
-        }
-        return out;
+        return [{ type: 'endTurn' }];
       }
       const groups = () => groupCandidates(state, me, ctx).filter((g) => !p.groupUsed.includes(g.action)).map((group) => ({ type: 'group' as const, group }));
       if (p.available === 0) return [...groups(), { type: 'pass' }];

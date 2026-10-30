@@ -43,125 +43,32 @@ function giveBook(s: GameState, id: string, icons = 1): string {
 }
 
 describe('Тиражирование текста', () => {
-  const copy = (address: 'razval' | 'tolkuchka' | 'raspredelitel' | 'knigoobmen', buy: unknown, card: string | null) =>
-    ({ type: 'group', group: { action: 'copyText', address, buy, card } }) as Action;
+  const copy = (address: 'razval' | 'tolkuchka', card: string) => ({ type: 'group', group: { action: 'copyText', address, card } }) as Action;
 
-  it('покупка на Развале и ещё одна книга оттуда же даром; Единомышленник занимает место', () => {
+  it('бесплатно — открытая книга с адреса, где уже стоит свой Единомышленник', () => {
     let s = started();
     const p = me(s);
-    p.talons = 10;
-    // Даром — жанровая книга с Развала (не Улика и не ЧНЛ); раздача от сида не зависит.
-    const genreAt = (i: number) => { const c = s.deck.find((x) => s.cards[x].kind === 'genre')!; s.deck = s.deck.filter((x) => x !== c); s.razval[i] = c; return c; };
-    const bought = s.razval[3]!;
-    const gift = genreAt(0);
-    s = applyAction(s, p.id, copy('razval', { address: 'razval', slot: 3 }, gift));
+    const card = s.razval.find(Boolean)!;
+    // Своего Единомышленника на Развале нет — нельзя.
+    expect(() => applyAction(s, p.id, copy('razval', card))).toThrow(/уже стоит ваш Единомышленник/);
+    s.occupancy.razval = [p.id];
+    const [talons, avail] = [p.talons, p.available];
+    s = applyAction(s, p.id, copy('razval', card));
     const after = byId(s, p.id);
-    expect(after.talons).toBe(10 - RULES.razvalPrices[3]);
-    expect(after.warehouse.map((w) => w.card)).toEqual(expect.arrayContaining([bought, gift]));
-    expect(s.razval[3]).toBeNull();
-    expect(s.razval[0]).toBeNull();
-    expect(s.occupancy.razval).toEqual([p.id]);
+    expect(after.warehouse.map((w) => w.card)).toContain(card);
+    expect(s.razval).not.toContain(card);
+    expect(after.talons).toBe(talons);
+    expect(after.available).toBe(avail - 1);
     expect(after.groupUsed).toContain('copyText');
-    expect(after.available).toBe(p.available - 2); // покупатель и Единомышленник на Тиражировании
+    expect(s.occupancy.razval).toEqual([p.id]); // на адрес никто нового не ставит
   });
 
-  it('без покупки Тиражирования нет', () => {
-    const s = started();
-    expect(() => applyAction(s, me(s).id, copy('tolkuchka', null, s.tolkuchka[0]))).toThrow(/вместе с покупкой/);
-  });
-
-  it('нужны два Единомышленника, и последний должен остаться для Красного уголка', () => {
+  it('нужно место на складе', () => {
     const s = started();
     const p = me(s);
-    p.talons = 10;
-    p.available = 2;
-    expect(() => applyAction(s, p.id, copy('razval', { address: 'razval', slot: 0 }, s.razval[1]!))).toThrow(/Красный уголок/);
-    p.available = 1;
-    p.visitedRedCorner = true;
-    expect(() => applyAction(s, p.id, copy('razval', { address: 'razval', slot: 0 }, s.razval[1]!))).toThrow(/два Единомышленника/);
-  });
-
-  it('на Толкучке можно освободить место продажей; проданное уходит в сброс, а не на прилавок', () => {
-    const s = started();
-    const p = me(s);
-    p.talons = 10;
-    const sell = giveBook(s, p.id);
-    const [buy, gift] = s.tolkuchka;
-    const ops = [{ op: 'sell', card: sell }, { op: 'buy', card: buy }];
-    expect(() => applyAction(s, p.id, copy('tolkuchka', { address: 'tolkuchka', ops }, sell))).toThrow();
-    const after = applyAction(s, p.id, copy('tolkuchka', { address: 'tolkuchka', ops }, gift));
-    const w = byId(after, p.id).warehouse.map((x) => x.card);
-    expect(w).toEqual(expect.arrayContaining([buy, gift]));
-    expect(w).not.toContain(sell);
-    expect(after.tolkuchka).not.toContain(sell);
-    expect(after.discard).toContain(sell);
-  });
-
-  it('на Книгообмене: обменяться и взять ещё одну даром; отданная уходит в сброс, не на витрину', () => {
-    const s = started();
-    const p = me(s);
-    s.safehouses = ['knigoobmen'];
-    s.knigoobmen = s.deck.splice(-4);
-    const give = giveBook(s, p.id);
-    const [take, gift] = s.knigoobmen;
-    const buy = { address: 'knigoobmen', give, take };
-    expect(() => applyAction(s, p.id, copy('knigoobmen', buy, give))).toThrow();
-    const after = applyAction(s, p.id, copy('knigoobmen', buy, gift));
-    const w = byId(after, p.id).warehouse.map((x) => x.card);
-    expect(w).toEqual(expect.arrayContaining([take, gift]));
-    expect(w).not.toContain(give);
-    expect(after.knigoobmen).not.toContain(give);
-    expect(after.discard).toContain(give);
-  });
-
-  it('бесплатную книгу можно взять только с того же адреса', () => {
-    const s = started();
-    const p = me(s);
-    p.talons = 10;
-    expect(() => applyAction(s, p.id, copy('razval', { address: 'razval', slot: 0 }, s.tolkuchka[0]))).toThrow(/того же Развала/);
-  });
-
-  it('на занятый до предела адрес тиражировать нельзя', () => {
-    const s = started();
-    const p = me(s);
-    p.talons = 10;
-    s.occupancy.razval = ['x', 'y', 'z'];
-    expect(() => applyAction(s, p.id, copy('razval', { address: 'razval', slot: 0 }, s.razval[1]!))).toThrow(/все места заняты/);
-  });
-
-  it('в Распределителе: одну купить, вторую — даром', () => {
-    let s = started();
-    const p = me(s);
-    p.talons = 10;
-    s.safehouses = ['raspredelitel'];
-    const [a, b] = s.deck.filter((x) => s.cards[x].kind === 'genre' && s.cards[x].icons.length === 2).slice(0, 2);
-    s.deck = s.deck.filter((x) => x !== a && x !== b);
-    s.raspredelitel = [a, b];
-    s = applyAction(s, p.id, copy('raspredelitel', { address: 'raspredelitel', card: a }, b));
-    expect(byId(s, p.id).talons).toBe(10 - RULES.raspredelitelPrice);
-    expect(s.raspredelitel).toEqual([]);
-  });
-
-  it('из бонуса по адресу идёт только покупатель; без доступного Единомышленника — нельзя', () => {
-    const s = started();
-    const p = me(s);
-    p.talons = 10;
-    s.pending = [{ kind: 'extraGroup', player: p.id }];
-    p.groupUsed = ['copyText']; // Подмастерье повторяет уже сделанное
-    const avail = p.available;
-    const gift = s.deck.find((x) => s.cards[x].kind === 'genre')!;
-    s.deck = s.deck.filter((x) => x !== gift);
-    s.razval[0] = gift;
-    const after = applyAction(s, p.id, copy('razval', { address: 'razval', slot: 1 }, s.razval[0]!));
-    expect(byId(after, p.id).available).toBe(avail - 1);
-    expect(after.occupancy.razval).toEqual([p.id]);
-    const none = started();
-    const q = me(none);
-    q.available = 0;
-    none.pending = [{ kind: 'extraGroup', player: q.id }];
-    q.groupUsed = ['copyText'];
-    q.talons = 10;
-    expect(() => applyAction(none, q.id, copy('razval', { address: 'razval', slot: 1 }, none.razval[0]!))).toThrow(/доступного Единомышленника/);
+    s.occupancy.tolkuchka = [p.id];
+    p.capacity = p.warehouse.length;
+    expect(() => applyAction(s, p.id, copy('tolkuchka', s.tolkuchka[0]))).toThrow(/нет места/);
   });
 });
 

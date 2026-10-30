@@ -503,7 +503,10 @@ describe('Тиражирование', () => {
     const p = s.players.find((x) => x.id === me)!;
     p.talons = 10;
     p.capacity = 10;
-    expect(() => applyAction(s, me, { type: 'group', group: { action: 'copyText', address: 'razval', buy: { address: 'razval', slot: 0 }, card: evidence } })).toThrow(RuleError);
+    // Тиражировать можно любую открытую книгу — и Улику.
+    s.occupancy.razval = [me];
+    s = applyAction(s, me, { type: 'group', group: { action: 'copyText', address: 'razval', card: evidence } });
+    expect(s.players.find((x) => x.id === me)!.warehouse.some((w) => w.card === evidence)).toBe(true);
   });
 });
 
@@ -730,7 +733,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     expect(p.warehouse.length).toBe(p0.warehouse.length + 2);
   });
 
-  it(`Машинистка: Тиражирование без покупки — книга с любого адреса, на адрес никто не идёт; +${RULES.typistTalons}т`, () => {
+  it(`Машинистка: Тиражировать Текст с любого адреса, даже без своего Единомышленника; +${RULES.typistTalons}т`, () => {
     let s = started();
     const me = s.order[s.turn];
     connect(s, 'typist', [me]);
@@ -745,7 +748,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     expect(after.talons).toBe(t + RULES.typistTalons);
     expect(after.available).toBe(available - 1);
     expect(s.occupancy.tolkuchka ?? []).not.toContain(me);
-    // Без Машинистки так нельзя — Тиражирование только вместе с покупкой.
+    // Без Машинистки — только там, где уже стоит свой Единомышленник.
     const s2 = started();
     const me2 = s2.order[s2.turn];
     const card2 = s2.tolkuchka.find((c) => s2.cards[c].kind === 'genre')!;
@@ -1154,8 +1157,8 @@ describe('Последний Единомышленник', () => {
   });
 });
 
-describe('Тиражирование вдогонку', () => {
-  it('купив на Развале, можно до конца хода взять оттуда же книгу даром вторым Единомышленником', () => {
+describe('Тиражирование после покупки', () => {
+  it('купив на Развале, в следующий свой ход можно взять оттуда же книгу даром действием Группы', () => {
     let s = createGame({ players: players(2), seed: 14 });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
     s = startOrders(s);
@@ -1163,21 +1166,18 @@ describe('Тиражирование вдогонку', () => {
     const p = s.players.find((x) => x.id === me)!;
     p.capacity = 10;
     p.talons = 10;
-    const avail = p.available;
     const slots = s.razval.map((c, i) => (c && iconsOf(s, c).length ? i : -1)).filter((i) => i >= 0);
     s = applyAction(s, me, { type: 'place', place: { address: 'razval', slot: slots[0] } });
-    expect(s.turnDone).toBe(me);
     const free = s.razval[slots[1]]!;
-    s = applyAction(s, me, { type: 'group', group: { action: 'copyText', address: 'razval', card: free } });
-    const q = s.players.find((x) => x.id === me)!;
-    expect(q.warehouse.map((w) => w.card)).toContain(free);
-    expect(q.available).toBe(avail - 2);
-    expect(q.groupUsed).toContain('copyText');
-    expect(s.turnDone).toBe(me);
-    // Второй раз вдогонку нельзя, и на другом адресе — тоже.
-    expect(() => applyAction(s, me, { type: 'group', group: { action: 'copyText', address: 'razval', card: s.razval.find(Boolean)! } })).toThrow(RuleError);
+    // В тот же ход — нельзя: действие уже сделано.
+    expect(() => applyAction(s, me, { type: 'group', group: { action: 'copyText', address: 'razval', card: free } })).toThrow(RuleError);
     s = applyAction(s, me, { type: 'endTurn' });
-    expect(s.order[s.turn]).not.toBe(me);
+    const other = s.order[s.turn];
+    s = applyAction(s, other, { type: 'group', group: { action: 'expandCache' } });
+    s = applyAction(s, other, { type: 'endTurn' });
+    expect(s.order[s.turn]).toBe(me);
+    s = applyAction(s, me, { type: 'group', group: { action: 'copyText', address: 'razval', card: free } });
+    expect(s.players.find((x) => x.id === me)!.warehouse.map((w) => w.card)).toContain(free);
   });
 });
 

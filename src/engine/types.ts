@@ -284,7 +284,7 @@ export type PlaceAction =
   | { address: 'kontora' };
 
 // Покупка в рамках Тиражирования текста.
-export type CopyTextAddress = 'razval' | 'tolkuchka' | 'raspredelitel' | 'knigoobmen';
+export type CopyTextAddress = 'razval' | 'tolkuchka' | 'raspredelitel' | 'knigoobmen' | 'agitpunkt';
 export type CopyTextBuy = Extract<PlaceAction, { address: CopyTextAddress }>;
 
 export interface ClubGift { patron: PatronId; card: string }
@@ -301,7 +301,7 @@ export interface KontoraChoice {
 export type GroupAction =
   | { action: 'expandWarehouse' }
   | { action: 'expandCache' }
-  | { action: 'copyText'; address: CopyTextAddress; buy?: CopyTextBuy | null; card?: string | null } // покупка по желанию + card бесплатно оттуда же
+  | { action: 'copyText'; address: CopyTextAddress; card: string } // открытая книга с адреса, где уже стоит свой Единомышленник
   | { action: 'spetskhran' } // книгу игрок выбирает следом, посмотрев Спецхран
   | { action: 'restore'; card: string }
   | { action: 'hire' };

@@ -176,7 +176,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
 };
 
 // Тиражирование текста: адреса, где книги покупают в открытую.
-export const COPY_TEXT_ADDRESSES = ['razval', 'tolkuchka', 'raspredelitel', 'knigoobmen'] as const;
+export const COPY_TEXT_ADDRESSES = ['razval', 'tolkuchka', 'raspredelitel', 'knigoobmen', 'agitpunkt'] as const;
 
 // Цена явочного адреса с платным входом.
 export function safehouseCost(id: AddressId): number {
@@ -217,7 +217,7 @@ export const KONTORA_PATRONS: PatronId[] = ['psychiatrist'];
 export const GROUP_ACTIONS: Record<GroupActionId, { name: string; hint: string; fullOnly?: boolean }> = {
   expandWarehouse: { name: 'Увеличить Склад', hint: `−${RULES.expandWarehouseCost}т: +1 место на складе (до 10)` },
   expandCache: { name: 'Заложить Тайник', hint: `−${RULES.expandCacheCost}т: 1 место склада становится потайным (до ${RULES.maxCache})` },
-  copyText: { name: 'Тиражировать Текст', hint: 'Покупая книгу на Развале, Толкучке, в Распределителе (или меняясь на Книгообмене), поставьте ещё одного Единомышленника тиражировать текст — и возьмите с этого адреса ещё одну жанровую книгу бесплатно (не Улику и не ЧНЛ)' },
+  copyText: { name: 'Тиражировать Текст', hint: 'Бесплатно взять открыто лежащую книгу с адреса, где уже стоит хотя бы один ваш Единомышленник (Развал, Толкучка, Распределитель, Книгообмен, Агитпункт)' },
   spetskhran: { name: 'Выудить из Спецхрана', hint: 'Посмотреть Спецхран (он в Главлите) и взять оттуда 1 любую книгу' },
   restore: { name: 'Написать Монографию', hint: `${RULES.restoreCost ? `${RULES.restoreCost}т: ` : ''}+1 значок жанровой книге или 3 значка возвращаемой Нагрузке` },
   hire: { name: 'Расширить Сеть', hint: `−${RULES.hireCost}т: +1 Единомышленник, сразу доступен (до 7)` },
@@ -336,7 +336,7 @@ export const PATRONS: Record<PatronId, PatronInfo> = Object.fromEntries([
   P('cataloguer', 'Каталогизатор', 'Может смотреть книги и с низа стопки', false),
   P('doctor', 'Врач', 'Можно не ходить в Красный уголок'),
   P('komsorg', 'Комсорг', `Главлит: сдавать любое число книг, за каждую — +${RULES.komsorgPoints} очко Гласности`),
-  P('typist', 'Машинистка', `Тиражировать Текст: +${RULES.typistTalons} Талона; можно без покупки — взять любую жанровую книгу с поля, не отправляя Единомышленника на адрес`),
+  P('typist', 'Машинистка', `Тиражировать Текст: +${RULES.typistTalons} Талона; можно с любого адреса, даже где нет вашего Единомышленника`),
   P('editor', 'Главред', 'За каждую сданную в Главлит книгу — +1 очко Гласности за значок'),
   P('labtech', 'Лаборант', 'Питая ступень IV Ростка, можно сдать на 1 жанровый значок меньше'),
   P('psychiatrist', 'Психиатр', 'Контора не может удерживать ваших Единомышленников (и в том походе в Контору, которым Психиатра профилактируют)'),
