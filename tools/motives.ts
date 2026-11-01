@@ -14,6 +14,7 @@ const saved = { glasnostDone: B.glasnostDone, lateStep: B.lateStep };
 const off = () => { B.glasnostDone = [0, 0, 0, 0, 0]; B.lateStep = 0; };
 const on = () => { B.glasnostDone = saved.glasnostDone; B.lateStep = saved.lateStep; };
 const isFeed = (a: { type: string; place?: { address: string } }) => a.type === 'place' && a.place?.address === 'sprouts';
+const gaps: number[][] = [[], [], [], []]; // по ступеням I–IV: сколько не хватило вложению до лучшего личного хода (0 — выгодно и так)
 const st = { feeds: 0, selfish: 0, toGlas: 0, toGlasAltru: 0, ins: 0, insAltru: 0, gap: 0, byRound: [0, 0, 0, 0, 0], byRoundAll: [0, 0, 0, 0, 0], skipped: 0 };
 for (let seed = from + 1; seed <= from + games; seed++) {
   let t = seed; const rand = () => { t = (t + 0x6d2b79f5) | 0; let x = Math.imul(t ^ (t >>> 15), t | 1); x ^= x + Math.imul(x ^ (x >>> 7), x | 61); return ((x ^ (x >>> 14)) >>> 0) / 4294967296; };
@@ -43,10 +44,13 @@ for (let seed = from + 1; seed <= from + games; seed++) {
     if (!personalTop?.length) { st.skipped++; continue; }
     const best = personalTop[0];
     const feedV = personalTop.filter((x) => isFeed(x.a as never)).reduce((m, x) => Math.max(m, x.v), -Infinity);
-    if (isFeed(best.a as never)) { st.selfish++; continue; }
-    st.gap += best.v - (Number.isFinite(feedV) ? feedV : best.v);
+    const step = sp >= 0 ? before[sp] : 0;
+    if (isFeed(best.a as never)) { st.selfish++; gaps[step].push(0); continue; }
+    const g = best.v - (Number.isFinite(feedV) ? feedV : best.v);
+    gaps[step].push(g);
+    st.gap += g;
     st.byRound[s.round - 1]++;
     if (insurance) st.insAltru++; else st.toGlasAltru++;
   }
 }
-console.log(JSON.stringify({ kind, n, games, ...st }));
+console.log(JSON.stringify({ kind, n, games, ...st, gaps: gaps.map((g) => g.map((x) => +x.toFixed(2))) }));
