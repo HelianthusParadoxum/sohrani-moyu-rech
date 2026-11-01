@@ -220,6 +220,8 @@ function stepReward(state: GameState, p: PlayerState, progress: number, sproutId
   let v = r.points + r.talons * ctx.talon * ctx.w.talons;
   if (!p.sproutsFed.includes(sproutId)) v += FIRST_FEED_POINTS;
   v += progress < RULES.glasnostStep ? ctx.glasnost * ctx.w.sprouts * (BOT_BASE.glasnostLag[progress] ?? 1) : BOT_BASE.lateStep;
+  // Бонус места Ростка (действие Группы и т. п.) — примерной ценностью.
+  v += tune(ctx, 'feedBonus');
   return v;
 }
 
