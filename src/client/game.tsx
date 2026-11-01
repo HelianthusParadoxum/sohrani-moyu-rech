@@ -1189,7 +1189,7 @@ function withGenreChips(raw: string, icons = true): ReactNode {
   // Слово «ЧНЛ» в тексте журнала (правила Несистемного, итоги Куратора) — тоже значком.
   const text = (icons ? iconize(raw) : raw).replace(/(?<![[А-ЯЁа-яё])ЧНЛ(?![\]А-ЯЁа-яё])/g, '[ЧНЛ]');
   const parts = text.split(/(\[[^\]]+\])/);
-  return parts.map((part, i) => {
+  const nodes = parts.map((part, i): ReactNode => {
     // «[ПО] Поэзия» — достаточно значка: название жанра сразу после него не повторяем.
     const prev = /^\[(.+)\]$/.exec(parts[i - 1] ?? '')?.[1];
     const g = prev && SHORT_TO_GENRE.get(prev);
@@ -1203,6 +1203,21 @@ function withGenreChips(raw: string, icons = true): ReactNode {
     if (!tokens || !tokens.every((t) => SHORT_TO_GENRE.has(t))) return part;
     return <span key={i} className="log-genres">{tokens.map((t, j) => <GenreChip key={j} g={SHORT_TO_GENRE.get(t)!} />)}</span>;
   });
+  // Значки не разрываем при переносе строки: соседние группы через пробел или «+» и значок 💡 перед ними — одним куском.
+  const out: ReactNode[] = [];
+  let run: ReactNode[] = [];
+  const flush = () => { if (run.length) out.push(<span key={`run${out.length}`} className="chip-run">{run}</span>); run = []; };
+  nodes.forEach((node, i) => {
+    if (typeof node !== 'string') { run.push(node); return; }
+    const chipNext = i + 1 < nodes.length && typeof nodes[i + 1] !== 'string';
+    if (run.length && chipNext && /^[ +]?$/.test(node)) { run.push(node); return; }
+    flush();
+    const glue = chipNext ? /💡$/.exec(node)?.[0] ?? '' : '';
+    if (node.length > glue.length) out.push(node.slice(0, node.length - glue.length));
+    if (glue) run.push(glue);
+  });
+  flush();
+  return out;
 }
 
 function PassionPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
