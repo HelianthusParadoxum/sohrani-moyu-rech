@@ -182,8 +182,7 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
         state.ready.push(p.id);
         log(state, `${p.name} выбрал(а) Пристрастие.`);
         state.log[state.log.length - 1].who = p.id;
-        log(state, `Ваше Пристрастие (${p.name}): ${PASSIONS[action.passion].name}.`, [p.id]);
-        state.log[state.log.length - 1].who = p.id;
+        log(state, `${p.name}: Пристрастие — ${PASSIONS[action.passion].name}.`, [p.id]);
         if (action.passion === 'curator') state.log[state.log.length - 1].strong = true;
         if (state.ready.length === state.players.length) {
           startRound(state);

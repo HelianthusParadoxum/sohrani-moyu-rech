@@ -153,7 +153,7 @@ describe('думающий бот', () => {
     expect(s.log[k + 2].text).toMatch(/^Цензура (не )?усилилась/);
     expect(s.log[k + 3].text).toMatch(/^Цензура: /);
     expect(s.log[k + 4].text).toMatch(/^Открылся новый явочный адрес/);
-    const cur = s.log.find((l) => /^Ваше Пристрастие .*Куратор/.test(l.text));
+    const cur = s.log.find((l) => /: Пристрастие — Куратор/.test(l.text));
     if (cur) expect(cur.strong).toBe(true);
   }, 60_000);
 
