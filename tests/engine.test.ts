@@ -2062,7 +2062,7 @@ describe('Председатель', () => {
     s = applyAction(s, me, { type: 'befriend', patron: target.id });
     expect(s.patrons.find((x) => x.id === target.id)!.connections).toContain(me);
     expect(s.players.find((x) => x.id === me)!.warehouse.length).toBe(books);
-    expect(s.log.some((l) => l.text.includes('(Председатель)'))).toBe(true);
+    expect(s.log.some((l) => l.text.includes('(через Председателя)'))).toBe(true);
   });
 });
 

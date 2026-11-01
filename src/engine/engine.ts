@@ -1660,7 +1660,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
     case 'freeConnection': {
       // Председатель: связь полностью бесплатная — без книги, с любым Завсегдатаем, с которым её ещё нет.
       check(action.type === 'befriend' || action.type === 'pass', 'Выберите Завсегдатая или откажитесь');
-      if (action.type === 'befriend') befriendPatron(state, p, action.patron, 'Председатель');
+      if (action.type === 'befriend') befriendPatron(state, p, action.patron, 'через Председателя');
       break;
     }
   }
