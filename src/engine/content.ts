@@ -268,12 +268,12 @@ export const SPROUTS: SproutInfo[] = [
   s('studios', 'Театры-студии', 'drama', ['foreign', 'album', 'poetry'], ['expandCache', 'sideJob']),
 ];
 
-// Награды за закрытие ступеней 1..4.
+// Награды за закрытие ступеней 1..4 («щедрый» набор: прежде 2т / 2 / 4 / 8 очков).
 export const STEP_REWARDS = [
-  { talons: 2, points: 0 },
-  { talons: 0, points: 2 },
-  { talons: 0, points: 4 },
-  { talons: 0, points: 8 },
+  { talons: 2, points: 3 },
+  { talons: 0, points: 6 },
+  { talons: 0, points: 10 },
+  { talons: 0, points: 16 },
 ];
 export const FIRST_FEED_POINTS = 2;
 

@@ -5,7 +5,7 @@ import { curatorSuspicion, curatorSuspicionDetail } from '../src/engine/bot-smar
 import { gainedInfo, viewFor } from '../src/engine/view';
 import { RuleError, cacheLimit, bestFeedBooks, coversStep, iconCount, title, iconsOf, isBanned, isEvidence, isLoad, isPropaganda, discard, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
 import { finalScoring, passionPoints, scoreLine } from '../src/engine/scoring';
-import { PASSIONS, RULES, SPROUTS, limitFor, sproutBonusOptions, sproutSlotBonuses } from '../src/engine/content';
+import { FIRST_FEED_POINTS, PASSIONS, RULES, SPROUTS, STEP_REWARDS, limitFor, sproutBonusOptions, sproutSlotBonuses } from '../src/engine/content';
 import type { GameState, Genre, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
 import { proseBonus, removePatron, takeFromSpetskhran } from '../src/engine/full';
@@ -2123,5 +2123,27 @@ describe('Журнал: номер действия', () => {
     const line = s.log.find((l) => l.text.endsWith('выуживает книгу из Спецхрана.'))!;
     expect(line.act).toEqual({ player: me, n: 1 });
     expect(s.pendingAct).toBeUndefined();
+  });
+});
+
+describe('Награды за ступени Ростков', () => {
+  it('ступень I — Талоны и очки, в журнале — оба', () => {
+    let s = createGame({ players: players(2), seed: 8 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const sp = s.sprouts[0];
+    const info = SPROUTS.find((x) => x.id === sp.id)!;
+    // Книга ровно с одним значком основного жанра Ростка — закрывает ступень I.
+    const card = Object.keys(s.cards).find((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.join() === info.main)!;
+    const p = s.players.find((x) => x.id === me)!;
+    p.warehouse.push({ card, hidden: false });
+    p.capacity = 10;
+    const [t, pts] = [p.talons, p.points];
+    s = applyAction(s, me, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: [card] }] } });
+    const q = s.players.find((x) => x.id === me)!;
+    expect(q.talons - t).toBe(STEP_REWARDS[0].talons);
+    expect(q.points - pts).toBe(STEP_REWARDS[0].points + FIRST_FEED_POINTS);
+    expect(s.log.some((l) => l.text.includes(`+${STEP_REWARDS[0].talons} Талона и +${STEP_REWARDS[0].points} очка`))).toBe(true);
   });
 });

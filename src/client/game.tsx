@@ -793,7 +793,7 @@ function Sprouts({ view, me, beside, seatIndex, head, onOpen, why, turnWhy }: { 
               {info.steps.map((st, i) => (
                 <li key={i} className={i < sp.progress ? 'done' : i === sp.progress ? 'next' : ''}>
                   {stepText(info.main, st)}
-                  <span className="muted small"> {STEP_REWARDS[i].talons ? `+${STEP_REWARDS[i].talons}т` : `+${STEP_REWARDS[i].points}★`}</span>
+                  <span className="muted small"> {[STEP_REWARDS[i].talons ? `+${STEP_REWARDS[i].talons}т` : '', STEP_REWARDS[i].points ? `+${STEP_REWARDS[i].points}★` : ''].filter(Boolean).join(' ')}</span>
                 </li>
               ))}
             </ol>

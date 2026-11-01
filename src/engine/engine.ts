@@ -1095,7 +1095,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         gain(p, reward.points, 'sprouts');
         if (prof) gain(p, RULES.professorPoints, 'professor');
         let text = `${p.name} питает ступень ${roman(sp.progress)} Ростка «${info.name}» (${titles(state, f.books)}${lab ? '; скидка Лаборанта' : ''})`;
-        text += reward.talons ? `, +${talonsText(reward.talons)}` : `, +${pointsText(reward.points)}`;
+        text += `, +${[reward.talons ? talonsText(reward.talons) : '', reward.points ? pointsText(reward.points) : ''].filter(Boolean).join(' и +')}`;
         if (!p.sproutsFed.includes(sp.id)) {
           p.sproutsFed.push(sp.id);
           gain(p, FIRST_FEED_POINTS, 'firstFeed');
