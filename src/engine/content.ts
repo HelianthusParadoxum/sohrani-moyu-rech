@@ -159,7 +159,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   podpiska: { id: 'podpiska', name: 'Подписка', limits: [1, 1, 1], safehouse: true, short: 'Заказать жанр', hint: 'Заказать жанр: −1т за каждую Пятилетку доставки' },
   sprouts: { id: 'sprouts', name: 'Ростки Гласности', limits: [INF, INF, INF], short: 'Питать ступень Ростка', hint: (RULES.sproutFeedsPerAction === 1 ? 'Питать 1 ступень одного Ростка' : `Питать до ${RULES.sproutFeedsPerAction} ступеней Ростков`) + '; у каждого бонуса Ростка — одно место на Пятилетку' },
   samizdat: { id: 'samizdat', name: 'Самиздат', limits: [1, 2, 3], short: `Издать: +${RULES.samizdatTalons}т/значок`, hint: `Издать книгу: +${RULES.samizdatTalons}т/значок` },
-  tamizdat: { id: 'tamizdat', name: 'Тамиздат', limits: [1, 1, 2], short: `Издать: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка/значок`, hint: `Издать книгу: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка/значок` },
+  tamizdat: { id: 'tamizdat', name: 'Тамиздат', limits: [1, 1, 1], safehouse: true, short: `Издать: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка/значок`, hint: `Издать книгу: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка/значок` },
   glavlit: { id: 'glavlit', name: 'Главлит', limits: [1, 1, 2], short: 'Сдать книги за Талоны', hint: `Сдать до 1 Непечатной (+${RULES.glavlitUnprinted}т) и до 1 Нагрузки (+${RULES.glavlitLoad}т). Здесь же — Спецхран: изъятые книги` },
   makulatura: { id: 'makulatura', name: 'Макулатура', limits: [1, 1, 2], short: `Тянуть вслепую по ${RULES.makulaturaPrice}т или книге, оставить 1`, hint: `За каждую книгу — ${RULES.makulaturaPrice}т или любая книга со склада (в сброс): тяните тайно сколько угодно книг из стопок Непечатных и Нагрузки (из любой), затем оставьте себе одну, остальные — в сброс` },
   knigoobmen: { id: 'knigoobmen', name: 'Книгообмен', limits: [1, 1, 1], safehouse: true, short: 'Обменять книгу на книгу с витрины', hint: 'Отдать 1 жанровую книгу (в сброс) — взять 1 с витрины; когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы' },
@@ -187,10 +187,10 @@ export function safehouseCost(id: AddressId): number {
 }
 
 export const PERMANENT_ADDRESSES: AddressId[] = [
-  'gostorg', 'tolkuchka', 'redCorner', 'razval', 'zavoz', 'baraholka', 'sprouts', 'samizdat', 'tamizdat', 'glavlit', 'makulatura',
+  'gostorg', 'tolkuchka', 'redCorner', 'razval', 'zavoz', 'baraholka', 'sprouts', 'samizdat', 'glavlit', 'makulatura',
   'club', 'kontora',
 ];
-export const SAFEHOUSES: AddressId[] = ['knigoobmen', 'kvartirnik', 'raspredelitel', 'nasledniki', 'posrednichestvo', 'spisanie', 'podpiska', 'agitpunkt'];
+export const SAFEHOUSES: AddressId[] = ['knigoobmen', 'kvartirnik', 'raspredelitel', 'nasledniki', 'posrednichestvo', 'spisanie', 'podpiska', 'agitpunkt', 'tamizdat'];
 // Адреса, которые начинают партию заполненными (если выложены).
 export const STARTS_FILLED: AddressId[] = ['knigoobmen', 'raspredelitel', 'agitpunkt'];
 

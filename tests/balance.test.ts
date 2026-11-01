@@ -142,6 +142,7 @@ describe('Главлит и Тамиздат', () => {
 
   it(`Тамиздат: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка за значок`, () => {
     let s = started();
+    s.safehouses.push('tamizdat'); // Тамиздат — явочный адрес
     const p = me(s);
     const c = giveBook(s, p.id, 2);
     const t = p.talons;

@@ -249,7 +249,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
 // ---------- Адреса ----------
 
 // Порядок обычных адресов на поле (после Клуба, Конторы и Ростков); явочные — следом.
-const BOARD_ORDER: AddressId[] = ['redCorner', 'glavlit', 'makulatura', 'gostorg', 'baraholka', 'tolkuchka', 'razval', 'zavoz', 'tamizdat', 'samizdat'];
+const BOARD_ORDER: AddressId[] = ['redCorner', 'glavlit', 'makulatura', 'gostorg', 'baraholka', 'tolkuchka', 'razval', 'zavoz', 'samizdat'];
 
 type AddressProps = { id: AddressId; view: PlayerView; seatIndex: (id: string) => number; me: VPlayer | null; enabled: boolean; onOpen: (pick?: string) => void; onPatron?: (id: PatronId) => void; onBlocked?: (id: PatronId) => void; blocked?: string | null; why?: string | null };
 
