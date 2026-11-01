@@ -1,6 +1,7 @@
 // Вложения в Ростки «ради общего дела»: npm run motives -- [партий] [игроков] [beginner|force] [смещение].
 // Для каждого вложения честного бота сравнивает его выбор с выбором того же бота, который ценит только личную выгоду
-// (веса Ростков и Гласности обнулены). Не совпало — вложение «не личное»: ради Гласности (ступени I–III) или страховки (IV).
+// (веса Ростков и Гласности обнулены). Вложение уступает лучшему личному ходу — «не личное»: ради Гласности (ступени I–III)
+// или страховки (IV). gaps — по ступеням, на сколько уступает (0 — выгодно и так).
 import { createGame, activePlayers } from '../src/engine/engine';
 import { botMove } from '../src/engine/bot';
 import { rankActions } from '../src/engine/bot-smart';
@@ -47,7 +48,9 @@ for (let seed = from + 1; seed <= from + games; seed++) {
     const step = sp >= 0 ? before[sp] : 0;
     if (isFeed(best.a as never)) { st.selfish++; gaps[step].push(0); continue; }
     const g = best.v - (Number.isFinite(feedV) ? feedV : best.v);
-    gaps[step].push(g);
+    gaps[step].push(Math.max(0, g));
+    // При равных оценках бот упорядочивает ходы и по другим правилам: вложение не хуже лучшего хода — личное.
+    if (g <= 0) { st.selfish++; continue; }
     st.gap += g;
     st.byRound[s.round - 1]++;
     if (insurance) st.insAltru++; else st.toGlasAltru++;
