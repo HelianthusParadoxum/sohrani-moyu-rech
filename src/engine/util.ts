@@ -256,7 +256,8 @@ export function draw(state: GameState): string | null {
   if (state.deck.length === 0 && state.discard.length > 0) {
     state.deck = shuffle(state, state.discard);
     state.discard = [];
-    log(state, 'Стопка Непечатных кончилась — сброс перетасован в новую стопку.');
+    // Строкой после самого действия, из-за которого стопка кончилась.
+    logAfter(state, 'Стопка Непечатных кончилась — сброс перетасован в новую стопку.');
   }
   return state.deck.pop() ?? null;
 }
@@ -265,7 +266,8 @@ export function drawLoad(state: GameState): string | null {
   if (state.loadDeck.length === 0 && state.loadDiscard.length > 0) {
     state.loadDeck = shuffle(state, state.loadDiscard);
     state.loadDiscard = [];
-    log(state, 'Стопка Нагрузки кончилась — сброс перетасован в новую стопку.');
+    // Строкой после самого действия, из-за которого стопка кончилась.
+    logAfter(state, 'Стопка Нагрузки кончилась — сброс перетасован в новую стопку.');
   }
   return state.loadDeck.pop() ?? null;
 }

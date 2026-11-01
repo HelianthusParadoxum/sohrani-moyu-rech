@@ -285,7 +285,12 @@ function finishAction(state: GameState, p: PlayerState, pointsBefore: number, lo
     }
   }
   // Следствия («↳ …») — сразу после последней строки самого действия игрока (до смены фазы и прочего).
-  const fresh = state.log.slice(logStart);
+  // Только до первого заголовка события (новая Пятилетка, Посиделки, Облава): что случилось после — там и остаётся.
+  const all = state.log.slice(logStart);
+  const header = all.findIndex((l, i) => i > 0 && l.strong && !l.who);
+  const fresh = header < 0 ? all : all.slice(0, header);
+  const rest = header < 0 ? [] : all.slice(header);
+  for (const l of rest) delete l.after;
   if (fresh.some((l) => l.after)) {
     const main = fresh.filter((l) => !l.after);
     let at = main.map((l) => l.text.startsWith(`${p.name} `)).lastIndexOf(true);
@@ -296,7 +301,7 @@ function finishAction(state: GameState, p: PlayerState, pointsBefore: number, lo
       if (l.act && main[at] && !main[at].act) main[at].act = l.act;
       delete l.act;
     }
-    state.log = [...state.log.slice(0, logStart), ...main.slice(0, at + 1), ...tail, ...main.slice(at + 1)];
+    state.log = [...state.log.slice(0, logStart), ...main.slice(0, at + 1), ...tail, ...main.slice(at + 1), ...rest];
     for (const l of fresh) delete l.after;
   }
   if (state.phase !== 'end' && kontoraLost(state)) {

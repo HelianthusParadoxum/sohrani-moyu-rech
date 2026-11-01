@@ -2165,3 +2165,25 @@ describe('Журнал: дополнительное действие с яво�
     expect(s.log[i + 1].text).toMatch(/Тайник увеличен/);
   });
 });
+
+describe('Журнал: перетасовка стопки', () => {
+  it('строка о перетасовке — после строки действия, кружок номера — на действии', () => {
+    let s = createGame({ players: players(2), seed: 3 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    p.capacity = 10;
+    // Стопка Непечатных пуста — Госкниготорг тянет из перетасованного сброса.
+    s.discard = [...s.discard, ...s.deck];
+    s.deck = [];
+    const from = s.log.length;
+    s = applyAction(s, me, { type: 'place', place: { address: 'gostorg', pairs: 1 } });
+    const fresh = s.log.slice(from).filter((l) => !l.only).map((l) => l.text);
+    const act = fresh.findIndex((t) => t.includes('в Госкниготорге'));
+    const shuffle = fresh.findIndex((t) => t.includes('сброс перетасован'));
+    expect(act).toBeGreaterThan(-1);
+    expect(shuffle).toBeGreaterThan(act);
+    expect(s.log.find((l) => l.text.includes('в Госкниготорге'))!.act).toBeDefined();
+  });
+});
