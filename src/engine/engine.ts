@@ -366,6 +366,7 @@ function startRound(state: GameState, newSafehouse?: AddressId, prevCensorship?:
     p.available = p.workers - p.held;
     p.buzoterUsed = false;
     p.bonusGroupTurns = 0;
+    p.bonusGroupFrom = [];
     p.groupUsed = [];
     p.actions = [];
     p.visitedRedCorner = false;
@@ -384,7 +385,7 @@ function startRound(state: GameState, newSafehouse?: AddressId, prevCensorship?:
   } else if (!state.banned.length) {
     state.banned = shuffle(state, [...GENRES]).slice(0, state.censorship);
   }
-  logEvent(state, `ПЯТИЛЕТКА ${state.round}.`);
+  logEvent(state, `ПЯТИЛЕТКА ${state.round}`);
   if (state.round > 1) logOrder(state);
   // Усилилась ли Цензура (в одиночной игре она растёт всегда — не пишем).
   if (prevCensorship !== undefined && !state.solo) {
@@ -844,10 +845,15 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
     check(p.bonusGroupTurns > 0, 'У вас не осталось Единомышленников');
     if (action.type === 'pass') {
       p.bonusGroupTurns = 0;
+      p.bonusGroupFrom = [];
       log(state, `${p.name} отказывается от дополнительных действий Группы.`);
       return;
     }
     check(action.type === 'group', 'Сейчас можно только действие Инициативной группы');
+    // Отдельной строкой — откуда это действие: свои Единомышленники кончились, а явочный адрес дал ещё одно.
+    const from = p.bonusGroupFrom?.shift();
+    logEvent(state, `${p.name}: дополнительное действие${from ? ` за ${ADDRESSES[from].name}` : ''} — «${GROUP_ACTIONS[action.group.action].name}»`);
+    state.log[state.log.length - 1].who = p.id;
     doGroup(state, p, action.group, { limited: true });
     track(p, `group:${action.group.action}`);
     p.bonusGroupTurns--;
@@ -862,6 +868,7 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
     const to = p.actions.length + p.available;
     p.available = 0;
     p.bonusGroupTurns = 0;
+    p.bonusGroupFrom = [];
     log(state, `${p.name} пасует до конца Пятилетки${to >= from ? ` (не сделаны действия: ${from === to ? from : `${from}–${to}`})` : ''}.`);
     return;
   }
@@ -1184,6 +1191,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       discard(state, a.give);
       gaveAway(state, p, a.give);
       p.bonusGroupTurns++;
+      (p.bonusGroupFrom ??= []).push('knigoobmen');
       log(state, `${p.name} на Книгообмене: отдаёт ${title(state, a.give)}, берёт ${title(state, a.take)}.`);
       return;
     }
@@ -1194,6 +1202,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       const slot = other.warehouse.find((s) => s.card === a.want);
       check(slot && !slot.hidden, 'Просить можно только книгу, открыто лежащую у другого игрока');
       p.bonusGroupTurns++;
+      (p.bonusGroupFrom ??= []).push('kvartirnik');
       state.pending.push({ kind: 'kvartirnikReply', player: other.id, from: p.id, give: a.give, want: a.want });
       log(state, `${p.name} на Квартирнике предлагает ${other.name} обмен: ${title(state, a.give)} на ${title(state, a.want)}.`);
       return;
@@ -1222,6 +1231,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       }
       // Как Книгообмен и Квартирник: отсюда Единомышленник в конце поручений идёт ещё и в Инициативную группу.
       p.bonusGroupTurns++;
+      (p.bonusGroupFrom ??= []).push('agitpunkt');
       return;
     }
     case 'nasledniki': {
@@ -1634,7 +1644,8 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       // Подмастерье повторяет одно из действий Группы, уже сделанных в эту Пятилетку.
       check(p.groupUsed.includes(action.group.action), 'Подмастерье повторяет только действие Группы, уже сделанное в эту Пятилетку');
       // Сперва — что повторяет Подмастерье, потом последствия.
-      log(state, `${p.name}: Подмастерье повторяет «${GROUP_ACTIONS[action.group.action].name}».`);
+      logEvent(state, `${p.name}: дополнительное действие за Подмастерья — «${GROUP_ACTIONS[action.group.action].name}»`);
+      state.log[state.log.length - 1].who = p.id;
       doGroup(state, p, action.group, { limited: false });
       break;
     }

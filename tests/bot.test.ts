@@ -145,7 +145,7 @@ describe('думающий бот', () => {
     let s = createGame({ players: players(3), seed: 4, mode: 'full', curator: true });
     const rand = seeded(4);
     for (let i = 0; i < 3000 && s.round < 2; i++) s = botMove(s, activePlayersOf(s)[0], rand);
-    const k = s.log.findIndex((l) => l.text === 'ПЯТИЛЕТКА 2.');
+    const k = s.log.findIndex((l) => l.text === 'ПЯТИЛЕТКА 2');
     expect(k).toBeGreaterThan(0);
     expect(s.log[k].strong).toBe(true);
     expect(s.log[k + 1].text).toMatch(/^Порядок хода: /);

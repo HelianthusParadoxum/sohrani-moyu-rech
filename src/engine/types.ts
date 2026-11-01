@@ -95,6 +95,7 @@ export interface PlayerState {
   workers: number; // всего Единомышленников (5..7)
   available: number; // ещё не действовали в эту Пятилетку
   bonusGroupTurns: number; // доп. действия Группы с явочных адресов (Книгообмен, Квартирник)
+  bonusGroupFrom?: AddressId[]; // ...и с каких именно адресов (по одному на действие) — для журнала
   talons: number;
   points: number; // очки Гласности, набранные по ходу игры
   capacity: number; // мест на складе (5..10)

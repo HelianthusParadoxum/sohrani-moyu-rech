@@ -2105,7 +2105,7 @@ describe('Журнал: пас и Подмастерье', () => {
     t.players.find((x) => x.id === who)!.groupUsed = ['expandCache'];
     t.pending = [{ kind: 'extraGroup', player: who }];
     t = applyAction(t, who, { type: 'group', group: { action: 'expandCache' } });
-    const i = t.log.findIndex((l) => l.text.includes('Подмастерье повторяет «Заложить Тайник»'));
+    const i = t.log.findIndex((l) => l.text.includes('дополнительное действие за Подмастерья — «Заложить Тайник»'));
     expect(i).toBeGreaterThan(-1);
     expect(t.log[i + 1].text).toMatch(/Тайник увеличен/);
   });
@@ -2145,5 +2145,23 @@ describe('Награды за ступени Ростков', () => {
     expect(q.talons - t).toBe(STEP_REWARDS[0].talons);
     expect(q.points - pts).toBe(STEP_REWARDS[0].points + FIRST_FEED_POINTS);
     expect(s.log.some((l) => l.text.includes(`+${STEP_REWARDS[0].talons} Талона и +${STEP_REWARDS[0].points} очка`))).toBe(true);
+  });
+});
+
+describe('Журнал: дополнительное действие с явочного адреса', () => {
+  it('отдельной жирной строкой — за какой адрес и какое действие', () => {
+    let s = createGame({ players: players(2), seed: 3 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    p.available = 0;
+    p.bonusGroupTurns = 1;
+    p.bonusGroupFrom = ['knigoobmen'];
+    s = applyAction(s, me, { type: 'group', group: { action: 'expandCache' } });
+    const i = s.log.findIndex((l) => l.text === `${p.name}: дополнительное действие за Книгообмен — «Заложить Тайник»`);
+    expect(i).toBeGreaterThan(-1);
+    expect(s.log[i].strong).toBe(true);
+    expect(s.log[i + 1].text).toMatch(/Тайник увеличен/);
   });
 });
