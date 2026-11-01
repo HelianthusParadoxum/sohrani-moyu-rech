@@ -17,7 +17,8 @@
     "addresses": "tsx tools/addresses.ts",
     "talons": "tsx tools/talons.ts",
     "club": "tsx tools/club.ts",
-    "patrons": "tsx tools/patrons.ts"
+    "patrons": "tsx tools/patrons.ts",
+    "motives": "tsx tools/motives.ts"
   },
   "dependencies": {
     "react": "^19.3.1",
