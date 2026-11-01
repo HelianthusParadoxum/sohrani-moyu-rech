@@ -166,7 +166,8 @@ export function coversStep(state: CardsInfo, books: string[], main: Genre, need:
   const ok = (icons: Genre[], r: { need: number; support?: Genre }) => {
     let m = icons.filter((g) => g === main).length;
     let s = r.support ? icons.filter((g) => g === r.support).length : 0;
-    let wild = opts.wildScifi && genreOn('scifi') && main !== 'scifi' && r.support !== 'scifi' ? icons.filter((g) => g === 'scifi').length : 0;
+    // Фантастика заменяет не больше RULES.scifiWildMax значков ступени.
+    let wild = opts.wildScifi && genreOn('scifi') && main !== 'scifi' && r.support !== 'scifi' ? Math.min(RULES.scifiWildMax, icons.filter((g) => g === 'scifi').length) : 0;
     if (r.support && s === 0 && wild > 0) { wild--; s = 1; }
     if (RULES.scifiWild === 'any') m += wild; // 'support' — основной жанр Фантастикой не заменить
     return m >= r.need && (!r.support || s >= 1);

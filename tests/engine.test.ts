@@ -2065,3 +2065,22 @@ describe('Председатель', () => {
     expect(s.log.some((l) => l.text.includes('(Председатель)'))).toBe(true);
   });
 });
+
+describe('Фантастика в Ростках', () => {
+  it(`заменяет не больше ${RULES.scifiWildMax} значка ступени`, () => {
+    const cards = { cards: {
+      f: { kind: 'genre', icons: ['scifi'] }, ff: { kind: 'genre', icons: ['scifi', 'scifi'] },
+      p: { kind: 'genre', icons: ['poetry'] }, t: { kind: 'genre', icons: ['testimony'] },
+    }, restored: {} } as never;
+    const wild = { wildScifi: true };
+    // Один недостающий значок — Фантастика заменяет: поддержку или основной жанр.
+    expect(coversStep(cards, ['p', 'f'], 'poetry', 1, 'testimony', wild)).toBe(true);
+    expect(coversStep(cards, ['t', 'f'], 'poetry', 1, 'testimony', wild)).toBe(true);
+    // Двух недостающих — не заменить даже двумя значками Фантастики.
+    expect(coversStep(cards, ['ff'], 'poetry', 1, 'testimony', wild)).toBe(false);
+    expect(coversStep(cards, ['t', 'ff'], 'poetry', 2, 'testimony', wild)).toBe(false);
+    expect(coversStep(cards, ['p', 't', 'f'], 'poetry', 2, 'testimony', wild)).toBe(true);
+    // Без свойства (Райцентр) Фантастика ничего не заменяет.
+    expect(coversStep(cards, ['p', 'f'], 'poetry', 1, 'testimony')).toBe(false);
+  });
+});
