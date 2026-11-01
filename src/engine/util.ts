@@ -304,7 +304,15 @@ export function addSecretBook(state: GameState, p: PlayerState, id: string, how:
   const used = p.warehouse.filter((s) => s.hidden).length;
   if (used < cacheLimit(state, p)) {
     p.warehouse[p.warehouse.length - 1].hidden = true;
-    if (how) log(state, `${p.name} берёт книгу ${how} и кладёт в Тайник.`);
+    if (how) {
+      // Сначала — что сделано (видят все), потом — тайное «Вы получили…»: строку ставим перед идущими прямо перед ней
+      // тайными строками этого игрока.
+      log(state, `${p.name} берёт книгу ${how} и кладёт в Тайник.`);
+      const line = state.log.pop()!;
+      let at = state.log.length;
+      while (at > 0 && state.log[at - 1].only?.length === 1 && state.log[at - 1].only![0] === p.id) at--;
+      state.log.splice(at, 0, line);
+    }
   }
 }
 
