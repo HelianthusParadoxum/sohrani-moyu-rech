@@ -163,7 +163,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
         {bonusTurn && <button className="small" onClick={() => act({ type: 'pass' })}>Отказаться</button>}
         {afterAction && <button className="primary small end-turn-inline" onClick={() => act({ type: 'endTurn' })}>Закончить ход</button>}
         {view.phase === 'end' && view.result && <button className="small" onClick={() => setShowResult(true)}>Таблица счёта</button>}
-        {canPlace && me.visitedRedCorner && <button className="small" onClick={() => confirm('Спасовать до конца Пятилетки? Оставшиеся 👤 не будут действовать.') && act({ type: 'pass' })}>Спасовать</button>}
+        {canPlace && (me.visitedRedCorner || hasPatron(view, me.id, 'doctor')) && <button className="small" onClick={() => confirm('Спасовать до конца Пятилетки? Оставшиеся 👤 не будут действовать.') && act({ type: 'pass' })}>Спасовать</button>}
       </div>
 
       {/* На телефоне «Закончить ход» выезжает снизу экрана, чтобы не листать к строке статуса. Там же — «Развернуть» свёрнутое окно. */}

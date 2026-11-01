@@ -2084,3 +2084,29 @@ describe('Фантастика в Ростках', () => {
     expect(coversStep(cards, ['p', 'f'], 'poetry', 1, 'testimony')).toBe(false);
   });
 });
+
+describe('Журнал: пас и Подмастерье', () => {
+  it('пас — с номерами несделанных действий; Подмастерье называет повторяемое действие', () => {
+    let s = createGame({ players: players(2), seed: 3 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    p.visitedRedCorner = true;
+    p.actions = [{ target: 'zavoz', n: 1 }, { target: 'redCorner', n: 2 }];
+    p.available = 3;
+    s = applyAction(s, me, { type: 'pass' });
+    expect(s.log.at(-1)!.text).toBe(`${p.name} пасует до конца Пятилетки (не сделаны действия: 3–5).`);
+    // Подмастерье.
+    let t = createGame({ players: players(2), seed: 3 });
+    for (const q of t.players) t = applyAction(t, q.id, { type: 'choosePassion', passion: q.passionOptions[0] });
+    t = startOrders(t);
+    const who = t.order[t.turn];
+    t.players.find((x) => x.id === who)!.groupUsed = ['expandCache'];
+    t.pending = [{ kind: 'extraGroup', player: who }];
+    t = applyAction(t, who, { type: 'group', group: { action: 'expandCache' } });
+    const i = t.log.findIndex((l) => l.text.includes('Подмастерье повторяет «Заложить Тайник»'));
+    expect(i).toBeGreaterThan(-1);
+    expect(t.log[i + 1].text).toMatch(/Тайник увеличен/);
+  });
+});

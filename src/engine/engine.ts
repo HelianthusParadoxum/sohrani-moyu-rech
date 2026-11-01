@@ -847,10 +847,14 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
   }
   if (action.type === 'pass') {
     // Добровольный пас — только после Красного уголка; до конца Пятилетки игрок больше не ходит.
-    check(p.visitedRedCorner, 'Спасовать можно только после того, как Единомышленник побывал в Красном уголке');
+    // С Врачом в Красный уголок можно не ходить — пасовать тоже можно.
+    check(p.visitedRedCorner || hasPatron(state, p.id, 'doctor'), 'Спасовать можно только после того, как Единомышленник побывал в Красном уголке');
+    // Номера пропущенных действий — по счёту поручений игрока в эту Пятилетку.
+    const from = p.actions.length + 1;
+    const to = p.actions.length + p.available;
     p.available = 0;
     p.bonusGroupTurns = 0;
-    log(state, `${p.name} пасует до конца Пятилетки.`);
+    log(state, `${p.name} пасует до конца Пятилетки${to >= from ? ` (не сделаны действия: ${from === to ? from : `${from}–${to}`})` : ''}.`);
     return;
   }
   if (action.type === 'group') {
@@ -1621,8 +1625,9 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       check(action.type === 'group', 'Выберите действие Группы или откажитесь');
       // Подмастерье повторяет одно из действий Группы, уже сделанных в эту Пятилетку.
       check(p.groupUsed.includes(action.group.action), 'Подмастерье повторяет только действие Группы, уже сделанное в эту Пятилетку');
+      // Сперва — что повторяет Подмастерье, потом последствия.
+      log(state, `${p.name}: Подмастерье повторяет «${GROUP_ACTIONS[action.group.action].name}».`);
       doGroup(state, p, action.group, { limited: false });
-      log(state, `${p.name}: Подмастерье выполняет действие Группы.`);
       break;
     }
     case 'freeConnection': {
