@@ -1,5 +1,5 @@
 // Вспомогательные функции: случайность, карты, игроки.
-import { GENRE_SHORT, RULES, SPROUTS, sproutSlotBonuses } from './content';
+import { GENRE_SHORT, GROUP_ICONS, RULES, SPROUTS, sproutSlotBonuses } from './content';
 import type { GameState, Genre, PatronId, PlayerState, PointSource } from './types';
 import { GENRES } from './types';
 
@@ -88,7 +88,9 @@ export function title(state: CardsInfo, id: string): string {
     ? ` / [${[c.genre!, c.genre!, c.genre!].map((g) => GENRE_SHORT[g]).join(' ')}] «${c.returned}»` : '';
   // После Возвращения смыслов возвращаемая Нагрузка — уже другая книга.
   const name = c.kind === 'loadReturnable' && state.restored[id] && c.returned ? c.returned : c.title;
-  return `${tag ? `[${tag}] ` : ''}«${name}»${back}`;
+  // Монография написана — значок 💡 перед жанровыми значками.
+  const mono = state.restored[id] ? GROUP_ICONS.restore : '';
+  return `${mono}${tag ? `[${tag}] ` : ''}«${name}»${back}`;
 }
 
 // Книги всегда списком, каждая с новой строки (стартовая раскладка).

@@ -384,7 +384,7 @@ function startRound(state: GameState, newSafehouse?: AddressId, prevCensorship?:
   } else if (!state.banned.length) {
     state.banned = shuffle(state, [...GENRES]).slice(0, state.censorship);
   }
-  logEvent(state, `Пятилетка ${state.round}.`);
+  logEvent(state, `ПЯТИЛЕТКА ${state.round}.`);
   if (state.round > 1) logOrder(state);
   // Усилилась ли Цензура (в одиночной игре она растёт всегда — не пишем).
   if (prevCensorship !== undefined && !state.solo) {

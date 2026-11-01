@@ -1618,7 +1618,7 @@ describe('Журнал: возвращаемая Нагрузка', () => {
     const id = Object.keys(s.cards).find((c) => s.cards[c].kind === 'loadReturnable' && s.cards[c].title === 'Туманность Андромеды')!;
     expect(title(s, id)).toBe('[Нагрузка] «Туманность Андромеды» / [ФА ФА ФА] «Час Быка»');
     s.restored[id] = true;
-    expect(title(s, id)).toBe('[ФА ФА ФА] «Час Быка»'); // после Возвращения смыслов — уже вторая книга
+    expect(title(s, id)).toBe('💡[ФА ФА ФА] «Час Быка»'); // после Возвращения смыслов — уже вторая книга
   });
 });
 
@@ -1915,7 +1915,7 @@ describe('«Чукоккала» — значок любого жанра', () =
     expect(t.patrons.find((x) => x.id === pt.id)!.connections).toContain(p.id);
     const r = applyAction(s, p.id, { type: 'group', group: { action: 'restore', card: ch } } as never);
     expect(iconCount(r, ch)).toBe(2);
-    expect(title(r, ch)).toBe('[Любой жанр ×2] «Чукоккала»');
+    expect(title(r, ch)).toBe('💡[Любой жанр ×2] «Чукоккала»');
     // Два значка — любых жанров: и два основного, и основной с поддержкой.
     expect(coversStep(r, [ch], 'drama', 2)).toBe(true);
     expect(coversStep(r, [ch], 'drama', 1, 'poetry')).toBe(true);
