@@ -2187,3 +2187,30 @@ describe('Журнал: перетасовка стопки', () => {
     expect(s.log.find((l) => l.text.includes('в Госкниготорге'))!.act).toBeDefined();
   });
 });
+
+describe('Монография теряется, когда книга уходит со склада', () => {
+  it('изъятие в Спецхран и обмен на Квартирнике снимают Монографию', () => {
+    let s = createGame({ players: players(2), seed: 3 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const [a, b] = s.order;
+    const genre = Object.keys(s.cards).filter((c) => s.cards[c].kind === 'genre').slice(0, 3);
+    // Спецхран.
+    s.restored[genre[0]] = true;
+    toSpetskhranPublic(s, [genre[0]]);
+    expect(s.restored[genre[0]]).toBeUndefined();
+    // Квартирник: обе книги теряют Монографию.
+    const pa = s.players.find((x) => x.id === a)!;
+    const pb = s.players.find((x) => x.id === b)!;
+    pa.warehouse.push({ card: genre[1], hidden: false });
+    pb.warehouse.push({ card: genre[2], hidden: false });
+    pa.capacity = pb.capacity = 10;
+    s.restored[genre[1]] = true;
+    s.restored[genre[2]] = true;
+    s.pending = [{ kind: 'kvartirnikReply', player: b, from: a, give: genre[1], want: genre[2] }];
+    s = applyAction(s, b, { type: 'kvartirnikReply', accept: true });
+    expect(s.players.find((x) => x.id === b)!.warehouse.some((w) => w.card === genre[1])).toBe(true);
+    expect(s.restored[genre[1]]).toBeUndefined();
+    expect(s.restored[genre[2]]).toBeUndefined();
+  });
+});

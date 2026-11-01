@@ -389,6 +389,8 @@ export function gain(p: PlayerState, n: number, source: PointSource) {
 
 // Книги уходят в Спецхран при всех (изъятие по доносу или при облаве) — их знает каждый.
 export function toSpetskhranPublic(state: GameState, cards: string[]) {
+  // Ушли со склада — значок Монографии теряется.
+  for (const c of cards) delete state.restored[c];
   state.spetskhran.push(...cards);
   state.spetskhranSeen ??= {};
   for (const p of state.players) state.spetskhranSeen[p.id] = [...(state.spetskhranSeen[p.id] ?? []), ...cards];

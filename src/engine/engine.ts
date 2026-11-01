@@ -1439,6 +1439,9 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       if (action.accept && hasBook(from, pend.give) && hasBook(p, pend.want)) {
         removeBook(from, pend.give);
         removeBook(p, pend.want);
+        // Ушла со склада — Монография не переходит к новому владельцу.
+        delete state.restored[pend.give];
+        delete state.restored[pend.want];
         addBook(from, pend.want);
         addBook(p, pend.give);
         autoHide(state, from, pend.want);
