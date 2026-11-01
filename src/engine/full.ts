@@ -257,9 +257,10 @@ export function takeFromSpetskhran(state: GameState, p: PlayerState, card: strin
   check(state.spetskhran.includes(card), 'Этой книги нет в Спецхране');
   state.spetskhran = state.spetskhran.filter((c) => c !== card);
   forgetSpetskhran(state, card);
-  addSecretBook(state, p, card);
+  // Сперва — что сделано, потом куда легла книга (в Тайник, если есть место).
   log(state, group ? `${p.name} выуживает книгу из Спецхрана.` : `${p.name} получает книгу из Спецхрана (Выдача на руки).`);
   log(state, `Вы получили ${title(state, card)}.`, [p.id]);
+  addSecretBook(state, p, card);
 }
 
 export function rescue(state: GameState, p: PlayerState, returns: Record<string, number>) {

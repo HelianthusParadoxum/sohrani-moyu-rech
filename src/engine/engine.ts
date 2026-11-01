@@ -164,7 +164,15 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
   const done = (s: GameState) => finishAction(s, p, pointsBefore, logStart, shown);
 
   if (state.pending.length) {
+    const logFrom = state.log.length;
     resolvePending(state, p, action);
+    // Поручение без своей строки в журнале (её пишет решение после него) — кружок с номером на первую строку решения.
+    const act = state.pendingAct;
+    if (act?.player === p.id) {
+      const entry = state.log.slice(logFrom).find((l) => !l.only && !l.after);
+      if (entry) entry.act = act;
+      if (entry || !state.pending.some((x) => x.player === p.id)) delete state.pendingAct;
+    }
   } else {
     switch (state.phase) {
       case 'passion': {
@@ -212,6 +220,7 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
           // Следствия («↳ …») пропускаем: кружок — на строке самого действия.
           const entry = first && state.log.slice(logFrom).find((l) => !l.only && !l.after);
           if (entry) entry.act = { player: p.id, n: first.n };
+          else if (first && state.pending.some((x) => x.player === p.id)) state.pendingAct = { player: p.id, n: first.n };
         }
         break;
       case 'gathering':

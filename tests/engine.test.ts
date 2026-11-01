@@ -2110,3 +2110,18 @@ describe('Журнал: пас и Подмастерье', () => {
     expect(t.log[i + 1].text).toMatch(/Тайник увеличен/);
   });
 });
+
+describe('Журнал: номер действия', () => {
+  it('«Выудить из Спецхрана» — кружок с номером на строке «выуживает книгу»', () => {
+    let s = createGame({ players: players(2), seed: 6 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    s = applyAction(s, me, { type: 'group', group: { action: 'spetskhran' } });
+    const card = (s.pending[0] as { cards: string[] }).cards[0];
+    s = applyAction(s, me, { type: 'kontoraHandout', card });
+    const line = s.log.find((l) => l.text.endsWith('выуживает книгу из Спецхрана.'))!;
+    expect(line.act).toEqual({ player: me, n: 1 });
+    expect(s.pendingAct).toBeUndefined();
+  });
+});
