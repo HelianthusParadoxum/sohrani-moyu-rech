@@ -25,7 +25,7 @@ export function patronOpen(view: PlayerView, me: VPlayer, pt: PlayerView['patron
 // Почему с этим Завсегдатаем сейчас не завязать связь (null — можно).
 export function patronWhy(view: PlayerView, me: VPlayer, pt: PlayerView['patrons'][number]): string | null {
   const name = PATRONS[pt.id].name;
-  if (pt.removed) return `${name} больше не ходит в Клуб (профилактика).`;
+  if (pt.removed) return `${name} больше не ходит в Клуб.`;
   if (pt.connections.includes(me.id)) return `Связь с Завсегдатаем «${name}» у вас уже есть.`;
   if (pt.turned) return `${name} занят на эту Пятилетку: с ним уже завязали связь.`;
   // Значок Альбома и слово рядом (неразрывный пробел: после значка журнал не убирает название жанра).
@@ -55,8 +55,6 @@ export function ClubContents({ view, seatIndex, me, onPatron, onBlocked }: { vie
             <span key={pid} className="dot num wide" style={{ background: PLAYER_COLORS[seatIndex(pid)] }}
               title={pt.since?.[pid] ? `Связь с ${pt.since[pid]}-й Пятилетки` : undefined}>{pt.since?.[pid] ? `П${pt.since[pid]}` : ''}</span>
           ))}
-          {/* В одиночной игре Завсегдатаев убирают вытянутые жетоны — пометка не нужна, хватает зачёркивания. */}
-          {pt.removed && !view.solo && <span className="muted small"> — профилактика</span>}
           <div className="muted small">{withKindChips(iconize(PATRONS[pt.id].hint))}</div>
         </li>
         );
