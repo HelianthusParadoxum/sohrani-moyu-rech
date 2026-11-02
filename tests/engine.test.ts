@@ -999,6 +999,26 @@ describe('Журнал: кружок действия', () => {
     expect(marked[0].text.startsWith(p.name)).toBe(true);
     expect(fresh.find((l) => l.text.startsWith('↳ Ирония'))?.act).toBeUndefined();
   });
+
+  it('бонус Иностранной за Самиздат — отдельной строкой, а не в очках за издание', () => {
+    let s = createGame({ players: players(2), seed: 21, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    s.banned = s.banned.filter((g) => g !== 'foreign');
+    const me = s.order[s.turn];
+    const book = s.deck.find((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.length === 1 && s.cards[c].icons[0] === 'foreign')!;
+    s.deck = s.deck.filter((c) => c !== book);
+    const p = s.players.find((x) => x.id === me)!;
+    p.capacity = 10;
+    p.warehouse.push({ card: book, hidden: false });
+    const start = s.log.length;
+    s = applyAction(s, me, { type: 'place', place: { address: 'samizdat', card: book } });
+    const fresh = s.log.slice(start).map((l) => l.text);
+    const main = fresh.findIndex((t) => t.includes('издаёт'));
+    expect(fresh[main]).toContain(`+${RULES.samizdatPoints} очка`);
+    expect(fresh[main + 1]).toBe(`↳ Иностранная переведена: +${RULES.foreignPoints} очка.`);
+    expect(s.players.find((x) => x.id === me)!.pointsBy.foreign).toBe(RULES.foreignPoints);
+  });
 });
 
 describe('Засада на Посиделках', () => {
