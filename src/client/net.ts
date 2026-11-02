@@ -27,26 +27,35 @@ export function useServer(code: string | null) {
   const [state, setState] = useState<NetState>({ connected: false, room: null, you: null, isHost: false, view: null, error: null, gone: false, canStepBack: false });
   const ws = useRef<WebSocket | null>(null);
   const queue = useRef<ClientMessage[]>([]);
+  // Комната, к которой привязано соединение. Соединение одно на всю страницу: при создании комнаты сервер сразу
+  // привязывает к ней это же соединение, поэтому смена адреса на «#/r/КОД» не требует переподключения
+  // (раньше страница переподключалась и снова показывала загрузку).
+  const codeRef = useRef(code);
+  const bound = useRef<string | null>(null);
 
   useEffect(() => {
     let closed = false;
     let retry: ReturnType<typeof setTimeout>;
-    setState((s) => ({ ...s, room: null, view: null, gone: false }));
     const connect = () => {
       const proto = location.protocol === 'https:' ? 'wss' : 'ws';
       const sock = new WebSocket(`${proto}://${location.host}/ws`);
       ws.current = sock;
       sock.onopen = () => {
         setState((s) => ({ ...s, connected: true }));
-        if (code) sock.send(JSON.stringify({ t: 'hello', code, token: readToken(code) } satisfies ClientMessage));
+        const c = codeRef.current;
+        bound.current = c;
+        if (c) sock.send(JSON.stringify({ t: 'hello', code: c, token: readToken(c) } satisfies ClientMessage));
         for (const m of queue.current.splice(0)) sock.send(JSON.stringify(m));
       };
       sock.onmessage = (e) => {
         const msg = JSON.parse(e.data) as ServerMessage;
         if (msg.t === 'joined') {
           writeToken(msg.code, msg.token);
+          bound.current = msg.code;
           if (location.hash !== `#/r/${msg.code}`) location.hash = `#/r/${msg.code}`;
         } else if (msg.t === 'room') {
+          // Сведения о комнате, которую страница уже не показывает (ушли на главную), не нужны.
+          if (msg.room.code !== bound.current) return;
           // Сервер обновился, а в браузере старая страница — перезагрузить (один раз на версию, без зацикливания).
           if (msg.build && msg.build !== __CLIENT_BUILD__) {
             let tried: string | null = null;
@@ -55,7 +64,7 @@ export function useServer(code: string | null) {
           }
           setState((s) => ({ ...s, room: msg.room, you: msg.you, isHost: msg.isHost, view: msg.view, error: null, canStepBack: !!msg.canStepBack }));
         } else if (msg.t === 'gone') {
-          setState((s) => ({ ...s, gone: true }));
+          if (msg.code === codeRef.current) setState((s) => ({ ...s, gone: true }));
         } else if (msg.t === 'error') {
           setState((s) => ({ ...s, error: msg.message }));
         }
@@ -67,6 +76,18 @@ export function useServer(code: string | null) {
     };
     connect();
     return () => { closed = true; clearTimeout(retry); ws.current?.close(); };
+  }, []);
+
+  // Другая комната (вход по коду, переход по ссылке, возврат на главную) — показать загрузку и попросить её у сервера.
+  // Комнату, к которой соединение уже привязано (только что созданную), заново не запрашиваем.
+  useEffect(() => {
+    codeRef.current = code;
+    if (code === bound.current) return;
+    bound.current = code;
+    setState((s) => ({ ...s, room: null, view: null, you: null, isHost: false, gone: false }));
+    if (code && ws.current?.readyState === WebSocket.OPEN) {
+      ws.current.send(JSON.stringify({ t: 'hello', code, token: readToken(code) } satisfies ClientMessage));
+    }
   }, [code]);
 
   const send = (m: ClientMessage) => {
