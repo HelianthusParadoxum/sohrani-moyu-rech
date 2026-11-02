@@ -280,8 +280,6 @@ describe('полный режим', () => {
   it('с Завсегдатаем — одна связь за Пятилетку на всех игроков', () => {
     let s = fullGame();
     const [a, b] = [s.order[s.turn], s.order[(s.turn + 1) % 2]];
-    // Завсегдатай без решений при связи (Главлитовец, Управдом… спросили бы о своём) — от раздачи не зависим.
-    s.patrons[0] = { ...s.patrons[0], id: 'zavkhoz' };
     const patron = s.patrons[0];
     const give = (who: string) => {
       const book = s.deck.find((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.includes(patron.genre))!;
@@ -1112,7 +1110,7 @@ describe('Засада на Посиделках', () => {
     let { s, cur, a, b } = atGathering();
     s.curatorRevealed = cur;
     s.phase = 'orders';
-    for (const q of s.players) { q.available = 0; q.bonusGroupTurns = 0; q.subscriptions = []; q.capacity = 10; }
+    for (const q of s.players) { q.available = 0; q.bonusGroupTurns = 0; q.subscriptions = []; }
     s.players.find((x) => x.id === s.order[s.turn])!.available = 1;
     s = applyAction(s, s.order[s.turn], { type: 'place', place: { address: 'redCorner' } });
     s = applyAction(s, s.order[s.turn], { type: 'endTurn' });

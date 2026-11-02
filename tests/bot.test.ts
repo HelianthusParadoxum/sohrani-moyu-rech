@@ -419,6 +419,8 @@ describe('Барахолка без пустых ходов', () => {
     const p = s.players.find((x) => x.id === me)!;
     // Без Талонов купить нельзя; пока что-то не видел — смотреть ещё есть смысл.
     p.talons = 0;
+    // Пустой склад — чтобы свободные действия (Тайник, «Заучить», Клуб) не опередили выбор поручения.
+    p.warehouse = [];
     const toBaraholka = (st: GameState) => rankActions(st, me, presetById('bookman'), seeded(1)).some((r) => r.a.type === 'place' && r.a.place.address === 'baraholka');
     expect(toBaraholka(s)).toBe(true);
     s.baraholkaSeen = { ...s.baraholkaSeen, [me]: s.baraholka.map((c, i) => (c ? i : -1)).filter((i) => i >= 0) };
