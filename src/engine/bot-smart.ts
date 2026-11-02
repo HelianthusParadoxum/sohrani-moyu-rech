@@ -320,10 +320,14 @@ function genreValue(state: GameState, p: PlayerState, g: Genre, ctx: Ctx, forSpr
 }
 
 // Подписка: книги приходят в конце каждой фазы поручений; пришедшая в конце последней Пятилетки в Росток уже не пойдёт.
-function subscriptionValue(state: GameState, p: PlayerState, sub: { genre: Genre; rounds: number }, ctx: Ctx): number {
+// room = false: книга этой Пятилетки не поместится на склад (в конце поручений нет места) и уйдёт в сброс.
+function subscriptionValue(state: GameState, p: PlayerState, sub: { genre: Genre; rounds: number }, ctx: Ctx, room = true): number {
   const first = state.phase === 'orders' || state.phase === 'passion' || state.phase === 'setupCache' ? state.round : state.round + 1;
   let v = 0;
-  for (let k = 0; k < sub.rounds; k++) v += genreValue(state, p, sub.genre, ctx, first + k < RULES.rounds);
+  for (let k = 0; k < sub.rounds; k++) {
+    if (k === 0 && first === state.round && !room) continue;
+    v += genreValue(state, p, sub.genre, ctx, first + k < RULES.rounds);
+  }
   return v * 0.8;
 }
 
@@ -348,6 +352,8 @@ function ownBookValue(state: GameState, p: PlayerState, card: string, ctx: Ctx):
 // Красный уголок впереди, а склад полон: за обязательную Нагрузку придётся отдать самую дешёвую книгу Непечатных.
 function redCornerSqueeze(state: GameState, p: PlayerState, ctx: Ctx): number {
   if (state.phase === 'end' || state.phase === 'passion' || freeSlots(p) > 0) return 0;
+  // С Врачом в Красный уголок ходить не обязательно — ничего отдавать не придётся.
+  if (hasPatron(state, p.id, 'doctor')) return 0;
   const weight = !p.visitedRedCorner ? BOT_BASE.redCornerSqueeze : RULES.rounds > ctx.round ? BOT_BASE.redCornerSqueezeNext : 0;
   const unprinted = p.warehouse.map((s) => s.card).filter((c) => !countsAsLoad(state, c));
   if (!weight || !unprinted.length) return 0;
@@ -529,7 +535,9 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
       else if (k === 'loadEvidence') v += BOT_BASE.restorePotential * RULES.evidencePoints;
     }
   }
-  for (const sub of p.subscriptions) v += subscriptionValue(state, p, sub, ctx);
+  // Книги по Подписке приходят в конце поручений — только на свободные места склада.
+  let subRoom = state.phase === 'orders' ? freeSlots(p) : Infinity;
+  for (const sub of p.subscriptions) v += subscriptionValue(state, p, sub, ctx, subRoom-- > 0);
   // Книги.
   for (const c of cards) v += iconCount(state, c) * BOT_BASE.bookLatent * w.publish;
   v += p.published.reduce((s, c) => s + iconCount(state, c), 0) * BOT_BASE.published * w.publish;
