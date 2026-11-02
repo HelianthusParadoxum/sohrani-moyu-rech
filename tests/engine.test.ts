@@ -1192,6 +1192,17 @@ describe('Разоблачение', () => {
     expect(finalScoringLine(s, me)).toBe(RULES.exposePoints);
   });
 
+  it('Разоблачение можно показать на Посиделках: +очки', () => {
+    const { s, me, prop } = withPropaganda();
+    s.restored[prop] = true;
+    s.phase = 'gathering';
+    s.ready = [];
+    s.shownAtGathering = {};
+    const before = s.players.find((x) => x.id === me)!.points;
+    const t = applyAction(s, me, { type: 'gathering', show: [prop] });
+    expect(t.players.find((x) => x.id === me)!.points).toBe(before + RULES.gatheringPoints);
+  });
+
   it('в сброс книга уходит без жетона смыслов: Разоблачение снова ЧНЛ', () => {
     const { s, prop } = withPropaganda();
     const genre = s.deck.find((c) => s.cards[c].kind === 'genre')!;

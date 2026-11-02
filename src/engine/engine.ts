@@ -571,7 +571,7 @@ function endOrders(state: GameState) {
   state.cacheAtGathering = {};
   logEvent(state, 'Посиделки');
   const pts = RULES.gatheringPoints;
-  logNote(state, `Можно показать опальные книги и Улики со склада — ${pointsText(pts)} за каждую.${ambushPossible(state) ? ' Но Куратор может раскрыться и устроить Засаду: всех, кто показал опальное, ждёт Контора.' : ''}`);
+  logNote(state, `Можно показать опальные книги, Улики и Разоблачения со склада — ${pointsText(pts)} за каждую.${ambushPossible(state) ? ' Но Куратор может раскрыться и устроить Засаду: всех, кто показал опальное, ждёт Контора.' : ''}`);
   // Раскрывшийся Куратор на Посиделки не допускается: выбора у него нет.
   const cur = state.curatorRevealed && state.players.find((x) => x.id === state.curatorRevealed);
   if (cur) {
@@ -601,17 +601,17 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
   let pts = 0;
   let geo = 0;
   for (const id of show) {
-    // Опальная жанровая книга или Улика (Улики тоже можно показывать).
-    const banned = (isGenreBook(state, id) || isEvidence(state, id)) && isBanned(state, id);
+    // Опальная жанровая книга, Улика или Разоблачение.
+    const banned = (isGenreBook(state, id) || isEvidence(state, id) || isExposed(state, id)) && isBanned(state, id);
     check(hasBook(p, id), 'Показывать можно только книги со своего склада');
-    check(banned, `${title(state, id)} — не опальная жанровая книга и не Улика`);
+    check(banned, `${title(state, id)} — не опальная жанровая книга, не Улика и не Разоблачение`);
     pts += RULES.gatheringPoints;
     (state.shownAtGathering ??= {})[p.id] = [...(state.shownAtGathering[p.id] ?? []), id];
     if (hasPatron(state, p.id, 'geologist')) geo++;
   }
   // Опальные книги из Тайника, которые игрок не показал (честному показывать опальное выгодно; у Куратора в Тайнике —
   // ЧНЛ). Неопальные книги в Тайнике (спрятанные впрок) показать нельзя — они не в счёт.
-  const unshown = p.warehouse.filter((s) => s.hidden && !s.memorized && !show.includes(s.card) && isBanned(state, s.card) && !isExposed(state, s.card)).length;
+  const unshown = p.warehouse.filter((s) => s.hidden && !s.memorized && !show.includes(s.card) && isBanned(state, s.card)).length;
   if (unshown) p.cacheUnshown = (p.cacheUnshown ?? 0) + unshown;
   const shownCached = p.warehouse.filter((s) => s.hidden && show.includes(s.card)).length;
   (state.cacheAtGathering ??= {})[p.id] = { unshown, shown: shownCached };

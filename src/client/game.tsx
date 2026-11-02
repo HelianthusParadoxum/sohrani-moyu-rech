@@ -1367,15 +1367,15 @@ function AmbushPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (
 
 function GatheringPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
   const full = view.mode === 'full';
-  const cands = me.warehouse.map((s) => s.card!).filter((c) => c && (isGenreBook(view, c) || isEvidence(view, c)) && isBanned(view, c));
-  // По умолчанию к показу выбрано всё, что приносит очки: опальные книги и Улики.
+  const cands = me.warehouse.map((s) => s.card!).filter((c) => c && (isGenreBook(view, c) || isEvidence(view, c) || isExposed(view, c)) && isBanned(view, c));
+  // По умолчанию к показу выбрано всё, что приносит очки: опальные книги, Улики и Разоблачения.
   const [sel, setSel] = useState<string[]>(() => cands);
   const per = RULES.gatheringPoints;
   const pts = sel.length * per;
   const geo = hasPatron(view, me.id, 'geologist');
   return (
     <Modal title="Посиделки" wide>
-      <p>Покажите опальные жанровые книги и Улики: +{per}★ за каждую{geo ? ' и ещё +1🎫 от Геолога' : ''}.
+      <p>Покажите опальные жанровые книги, Улики и Разоблачения: +{per}★ за каждую{geo ? ' и ещё +1🎫 от Геолога' : ''}.
         {full && !view.reserve && view.curatorPossible && !view.curatorRevealed && ' Осторожно: Куратор может раскрыться и устроить Засаду — показавшим опальное грозит Контора (показанная книга не считается спрятанной).'} Показанные книги остаются на складе — не забудьте укрыть их перед облавой.</p>
       <div className="shelf wrap">
         {cands.length === 0 && <span className="muted">Опальных жанровых книг нет</span>}

@@ -1362,7 +1362,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       // Показать всё, за что дают очки: опальные жанровые книги и Улики. Раскрывшегося Куратора не пускают.
       if (state.curatorRevealed === me) return [];
       const full = state.mode === 'full';
-      const show = books.filter((c) => (isGenreBook(state, c) || isEvidence(state, c)) && isBanned(state, c));
+      const show = books.filter((c) => (isGenreBook(state, c) || isEvidence(state, c) || isExposed(state, c)) && isBanned(state, c));
       // Под угрозой Засады бот сравнивает: показать всё, только то, что и так лежит открыто, или ничего опального.
       // А если кого-то за столом уже всерьёз подозревает — опального не показывает вовсе: Посиделки небезопасны.
       const isRisky = (c: string) => books.includes(c) && (isGenreBook(state, c) || isEvidence(state, c)) && isBanned(state, c);
