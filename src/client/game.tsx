@@ -1026,6 +1026,23 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
       return <HandoutPrompt view={view} cards={p.cards} act={act} group={p.group} />;
     case 'freeConnection':
       return <FreeConnectionPrompt view={view} me={me} act={act} />;
+    case 'catalogPick': {
+      // Каталогизатор: верхний или нижний набор книг стопки.
+      const deck = p.deck === 'load' ? 'Нагрузки' : 'Непечатных';
+      return (
+        <Modal title={`Каталогизатор: стопка ${deck}`} wide>
+          <p>Выберите, какие книги взять: сверху стопки или снизу. Невыбранные останутся на своём месте.</p>
+          <h4>Сверху</h4>
+          <div className="shelf wrap">{p.top.map((c) => <Book key={c} v={view} id={c} />)}</div>
+          <h4>Снизу</h4>
+          <div className="shelf wrap">{p.bottom.map((c) => <Book key={c} v={view} id={c} />)}</div>
+          <div className="modal-foot">
+            <button className="primary" onClick={() => act({ type: 'catalogPick', from: 'top' })}>Взять сверху</button>
+            <button className="primary" onClick={() => act({ type: 'catalogPick', from: 'bottom' })}>Взять снизу</button>
+          </div>
+        </Modal>
+      );
+    }
     case 'blatnoyBuy': {
       // Блатной: ещё одна книга в другом месте — по обычной цене.
       const opts = blatnoyOptions(view as never, me as never, p.from);

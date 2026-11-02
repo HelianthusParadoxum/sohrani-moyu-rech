@@ -10,7 +10,7 @@ import {
   flushIrony, removePatron, seizeDenounced, setupClub, startKontora, takeFromSpetskhran,
 } from './full';
 import type {
-  Action, AddressId, CopyTextAddress, GameState, Genre, GroupAction, Mode, PassionId, Pending, PlaceAction, PlayerState,
+  Action, AddressId, CatalogThen, CopyTextAddress, GameState, Genre, GroupAction, Mode, PassionId, Pending, PlaceAction, PlayerState,
 } from './types';
 import { GENRES } from './types';
 import {
@@ -915,20 +915,8 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         check(hasPatron(state, p.id, 'zavmag'), 'Свободный выбор книг — только со связью с Завмагом');
         check(mix.length === a.pairs * 2, 'Укажите состав всех книг');
       }
-      const got: string[] = [];
       const kinds = mix.length ? mix : Array.from({ length: a.pairs }, () => ['load', 'unprinted'] as const).flat();
-      for (const k of kinds) {
-        const c = k === 'load' ? drawLoad(state) : draw(state);
-        if (c) got.push(c);
-      }
-      // Всем — что легло на склад открыто и сколько книг ушло в Тайник; тайно — какие именно в Тайнике.
-      for (const c of got) addSecretBook(state, p, c, null);
-      const cached = got.filter((c) => p.warehouse.find((x) => x.card === c)?.hidden);
-      const open = got.filter((c) => !cached.includes(c));
-      // Списком: открытые книги на склад, последней строкой — сколько ушло в Тайник.
-      const items = [...open.map((c) => title(state, c)), ...(cached.length ? [`В Тайник: ${plural(cached.length, 'книга', 'книги', 'книг')}`] : [])];
-      log(state, `${p.name} в Госкниготорге: ${plural(got.length, 'книга', 'книги', 'книг')} даром${items.length ? `:\n${items.map((x) => `• ${x}`).join('\n')}` : '.'}`);
-      if (cached.length) log(state, `В Тайник: ${titles(state, cached)}.`, [p.id]);
+      takeTop(state, p, kinds[0], 1, { kind: 'gostorg', got: [], rest: kinds.slice(1) });
       return;
     }
     case 'tolkuchka': {
@@ -991,11 +979,11 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       }
       // Склад переполнен (лишнее отдают позже) — и после отдачи места может не хватить: тогда Нагрузку не берёт.
       const room = take && freeSlots(p) > 0;
-      const load = room ? drawLoad(state) : null;
-      if (load) addBook(p, load);
-      logAfter(state, !take ? '↳ Склад полон Нагрузки — новую не берёт.'
-        : !room ? `↳ Отдаёт ${title(state, a.drop!)}, но места для Нагрузки всё равно нет — не берёт.`
-        : load ? `↳ ${title(state, load)}${a.drop ? `; места нет — отдаёт ${title(state, a.drop)}` : ''}.` : '↳ Нагрузка кончилась.');
+      if (!room) {
+        logAfter(state, !take ? '↳ Склад полон Нагрузки — новую не берёт.' : `↳ Отдаёт ${title(state, a.drop!)}, но места для Нагрузки всё равно нет — не берёт.`);
+        return;
+      }
+      takeTop(state, p, 'load', 1, { kind: 'redCorner', drop: a.drop });
       return;
     }
     case 'razval': {
@@ -1235,10 +1223,9 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     case 'posrednichestvo': {
       check(freeSlots(p) > 0, 'На складе нет места');
       payPrice(state, p, RULES.posrednichestvoPrice);
-      const cards = Array.from({ length: RULES.posrednichestvoDraw }, () => draw(state)).filter((c): c is string => !!c);
-      check(cards.length > 0, 'Стопка Непечатных пуста');
-      state.pending.push({ kind: 'posrednichestvoKeep', player: p.id, cards });
+      check(state.deck.length + state.discard.length > 0, 'Стопка Непечатных пуста');
       log(state, `${p.name} занимается Посредничеством авторам.`);
+      takeTop(state, p, 'unprinted', RULES.posrednichestvoDraw, { kind: 'posrednichestvo' });
       return;
     }
     case 'club': {
@@ -1260,10 +1247,61 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     case 'spisanie': {
       check(freeSlots(p) > 0, 'На складе нет места');
       payPrice(state, p, RULES.spisaniePrice);
-      const cards = Array.from({ length: RULES.spisanieDraw }, () => draw(state)).filter((c): c is string => !!c);
+      check(state.deck.length + state.discard.length > 0, 'Стопка Непечатных пуста');
+      log(state, `${p.name} разбирает Библиотечное списание.`);
+      takeTop(state, p, 'unprinted', RULES.spisanieDraw, { kind: 'spisanie' });
+      return;
+    }
+  }
+}
+
+// Взять n книг сверху стопки и продолжить действие. Каталогизатор: тайно смотрит ещё n книг снизу и выбирает набор.
+function takeTop(state: GameState, p: PlayerState, deck: 'unprinted' | 'load', n: number, then: CatalogThen) {
+  const pile = deck === 'load' ? state.loadDeck : state.deck;
+  if (hasPatron(state, p.id, 'cataloguer') && pile.length >= 2 * n) {
+    // Верх стопки — её конец: книги берут с конца (pop).
+    state.pending.unshift({ kind: 'catalogPick', player: p.id, deck, top: pile.slice(-n).reverse(), bottom: pile.slice(0, n), then });
+    return;
+  }
+  const cards = Array.from({ length: n }, () => (deck === 'load' ? drawLoad(state) : draw(state))).filter((c): c is string => !!c);
+  continueTake(state, p, cards, then);
+}
+
+// Продолжение действия с взятыми книгами.
+function continueTake(state: GameState, p: PlayerState, cards: string[], then: CatalogThen) {
+  switch (then.kind) {
+    case 'posrednichestvo':
+      check(cards.length > 0, 'Стопка Непечатных пуста');
+      state.pending.push({ kind: 'posrednichestvoKeep', player: p.id, cards });
+      return;
+    case 'spisanie':
       check(cards.length > 0, 'Стопка Непечатных пуста');
       state.pending.push({ kind: 'spisanieKeep', player: p.id, cards });
-      log(state, `${p.name} разбирает Библиотечное списание.`);
+      return;
+    case 'makulatura': {
+      const m = state.pending.find((x) => x.kind === 'makulatura' && x.player === p.id) as Extract<Pending, { kind: 'makulatura' }> | undefined;
+      check(m && cards.length > 0, 'Стопка пуста');
+      m.cards.push(...cards);
+      log(state, `Вытянута ${title(state, cards[0])}.`, [p.id]);
+      return;
+    }
+    case 'gostorg': {
+      const got = [...then.got, ...cards];
+      if (then.rest.length) { takeTop(state, p, then.rest[0], 1, { kind: 'gostorg', got, rest: then.rest.slice(1) }); return; }
+      // Всем — что легло на склад открыто и сколько книг ушло в Тайник; тайно — какие именно в Тайнике.
+      for (const c of got) addSecretBook(state, p, c, null);
+      const cached = got.filter((c) => p.warehouse.find((x) => x.card === c)?.hidden);
+      const open = got.filter((c) => !cached.includes(c));
+      // Списком: открытые книги на склад, последней строкой — сколько ушло в Тайник.
+      const items = [...open.map((c) => title(state, c)), ...(cached.length ? [`В Тайник: ${plural(cached.length, 'книга', 'книги', 'книг')}`] : [])];
+      log(state, `${p.name} в Госкниготорге: ${plural(got.length, 'книга', 'книги', 'книг')} даром${items.length ? `:\n${items.map((x) => `• ${x}`).join('\n')}` : '.'}`);
+      if (cached.length) log(state, `В Тайник: ${titles(state, cached)}.`, [p.id]);
+      return;
+    }
+    case 'redCorner': {
+      const load = cards[0];
+      if (load) addBook(p, load);
+      logAfter(state, load ? `↳ ${title(state, load)}${then.drop ? `; места нет — отдаёт ${title(state, then.drop)}` : ''}.` : '↳ Нагрузка кончилась.');
       return;
     }
   }
@@ -1484,11 +1522,9 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         } else {
           payPrice(state, p, RULES.makulaturaPrice);
         }
-        const c = action.deck === 'load' ? drawLoad(state) : draw(state);
-        check(c, `Стопка ${from} пуста`);
-        pend.cards.push(c);
+        check(action.deck === 'load' ? state.loadDeck.length + state.loadDiscard.length > 0 : state.deck.length + state.discard.length > 0, `Стопка ${from} пуста`);
         log(state, `${p.name} тянет книгу из стопки ${from} (${action.pay ? `отдаёт ${title(state, action.pay)}` : `−${talonsText(RULES.makulaturaPrice)}`}).`);
-        log(state, `Вытянута ${title(state, c)}.`, [p.id]);
+        takeTop(state, p, action.deck, 1, { kind: 'makulatura' });
         return;
       }
       check(action.type === 'makulaturaKeep', 'Тяните ещё книгу или оставьте себе одну из вытянутых');
@@ -1642,6 +1678,17 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       state.log[state.log.length - 1].who = p.id;
       doGroup(state, p, action.group, { limited: false });
       break;
+    }
+    case 'catalogPick': {
+      check(action.type === 'catalogPick', 'Выберите, какие книги взять: сверху или снизу стопки');
+      state.pending.shift();
+      const cards = action.from === 'bottom' ? pend.bottom : pend.top;
+      // Взятые — из стопки (где бы они ни лежали); невыбранные остаются на своих местах.
+      if (pend.deck === 'load') state.loadDeck = state.loadDeck.filter((c) => !cards.includes(c));
+      else state.deck = state.deck.filter((c) => !cards.includes(c));
+      if (action.from === 'bottom') log(state, `${p.name} берёт книги снизу стопки (Каталогизатор).`);
+      continueTake(state, p, cards, pend.then);
+      return;
     }
     case 'blatnoyBuy': {
       if (action.type === 'pass') break;

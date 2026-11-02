@@ -59,6 +59,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
       }
       case 'extraGroup': return [...groupCandidates(state, me, rand).filter((g) => g.type === 'group' && p.groupUsed.includes(g.group.action)), { type: 'pass' }];
       case 'freeConnection': return [...befriendTargets(state, me).map((patron) => ({ type: 'befriend' as const, patron })), { type: 'pass' }];
+      case 'catalogPick': return [{ type: 'catalogPick', from: rand() < 0.5 ? 'top' : 'bottom' }];
       case 'blatnoyBuy': return [...blatnoyOptions(state, p, pend.from).slice(0, 1).map((o) => ({ type: 'blatnoyBuy' as const, address: o.address, card: o.card })), { type: 'pass' }];
       case 'sproutBonus': {
         const out: Action[] = [];

@@ -667,7 +667,7 @@ function determinize(state: GameState, rand: Rand, me: string): GameState {
 // Отложенные решения, которые бот при примерке додумывает сам (они следуют сразу за ходом).
 const FOLLOW_UP = new Set([
   'sproutBonus', 'posrednichestvoKeep', 'spisanieKeep', 'makulatura', 'posrednichestvoGroup', 'baraholkaLook', 'naslednikiPick', 'extraGroup', 'discardExcess',
-  'kontoraDecide', 'kontoraHandout', 'glavlitSwap', 'lieutenantPick', 'freeConnection', 'blatnoyBuy',
+  'kontoraDecide', 'kontoraHandout', 'glavlitSwap', 'lieutenantPick', 'freeConnection', 'blatnoyBuy', 'catalogPick',
 ]);
 
 function tryApply(state: GameState, me: string, a: Action): GameState | null {
@@ -1324,6 +1324,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         return out;
       }
       case 'freeConnection': return [...befriendTargets(state, me).map((patron) => ({ type: 'befriend' as const, patron })), { type: 'pass' }];
+      case 'catalogPick': return [{ type: 'catalogPick', from: 'top' }, { type: 'catalogPick', from: 'bottom' }];
       case 'blatnoyBuy': return [...blatnoyOptions(state, p, pend.from).map((o) => ({ type: 'blatnoyBuy' as const, address: o.address, card: o.card })), { type: 'pass' }];
       default: return []; // остальное решает простой бот
     }

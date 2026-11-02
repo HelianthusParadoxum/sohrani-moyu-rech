@@ -2299,3 +2299,49 @@ describe('Наводчик', () => {
     expect(viewFor(s, me).spotter).toBeUndefined();
   });
 });
+
+describe('Каталогизатор', () => {
+  it('Списание: видит столько же книг снизу стопки и берёт нижний набор; верхние остаются на месте; соперник не видит', () => {
+    let s = createGame({ players: players(2), seed: 5, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const other = s.order.find((id) => id !== me)!;
+    s.patrons[0] = { ...s.patrons[0], id: 'cataloguer', connections: [me] };
+    s.safehouses.push('spisanie');
+    const p = s.players.find((x) => x.id === me)!;
+    p.talons = 10;
+    p.capacity = 10;
+    const n = RULES.spisanieDraw;
+    const top = s.deck.slice(-n).reverse();
+    const bottom = s.deck.slice(0, n);
+    s = applyAction(s, me, { type: 'place', place: { address: 'spisanie' } });
+    expect(s.pending[0]).toMatchObject({ kind: 'catalogPick', player: me, top, bottom });
+    expect(viewFor(s, other).pending[0]).toEqual({ kind: 'catalogPick', player: me, secret: true });
+    s = applyAction(s, me, { type: 'catalogPick', from: 'bottom' });
+    expect(s.pending[0]).toMatchObject({ kind: 'spisanieKeep', cards: bottom });
+    expect(s.deck.slice(-n).reverse()).toEqual(top); // верх стопки не тронут
+    expect(bottom.some((c) => s.deck.includes(c))).toBe(false);
+  });
+
+  it('Госкниготорг: выбор для каждой книги, обе ложатся на склад', () => {
+    let s = createGame({ players: players(2), seed: 6, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    s.patrons[0] = { ...s.patrons[0], id: 'cataloguer', connections: [me] };
+    const p = s.players.find((x) => x.id === me)!;
+    p.capacity = 10;
+    const n0 = p.warehouse.length;
+    const loadBottom = s.loadDeck[0];
+    s = applyAction(s, me, { type: 'place', place: { address: 'gostorg', pairs: 1 } });
+    expect(s.pending[0]).toMatchObject({ kind: 'catalogPick', deck: 'load' });
+    s = applyAction(s, me, { type: 'catalogPick', from: 'bottom' });
+    expect(s.pending[0]).toMatchObject({ kind: 'catalogPick', deck: 'unprinted' });
+    s = applyAction(s, me, { type: 'catalogPick', from: 'top' });
+    const q = s.players.find((x) => x.id === me)!;
+    expect(q.warehouse.length).toBe(n0 + 2);
+    expect(q.warehouse.some((w) => w.card === loadBottom)).toBe(true);
+    expect(s.log.some((l) => l.text.includes('в Госкниготорге: 2 книги'))).toBe(true);
+  });
+});
