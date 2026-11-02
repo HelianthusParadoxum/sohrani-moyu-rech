@@ -5,7 +5,7 @@ import { GENRES } from './types';
 import {
   addBook, addSecretBook, check, discard, drawLoad, earn, freeSlots, hasBook, hasPatron, iconsOf, genresOf, genreOn, isBanned, isGenreBook, isPropaganda, log, pay, player,
   removeBook, saved, shuffle, talonsText, title, titles, logAfter, gain, pointsText,
-  forgetSpetskhran, seeSpetskhran, toSpetskhranPublic, addOpenBook,
+  forgetSpetskhran, seeSpetskhran, toSpetskhranPublic, addOpenBook, addBoughtBook, roomToBuy,
 } from './util';
 
 export const isFull = (state: GameState) => state.mode === 'full';
@@ -359,23 +359,23 @@ export function blatnoyOptions(state: GameState, p: PlayerState, from: AddressId
   if (from !== 'raspredelitel' && state.safehouses.includes('raspredelitel')) {
     for (const c of state.raspredelitel) out.push({ address: 'raspredelitel', card: c, cost: cost(RULES.raspredelitelPrice) });
   }
-  return out.filter((o) => o.cost <= p.talons);
+  // Нет места на складе — только сборник поэзии, который можно сразу заучить.
+  return out.filter((o) => o.cost <= p.talons && roomToBuy(state, p, [o.card]));
 }
 
 // После покупки — предложить Блатному ещё одну (если есть место, деньги и что купить).
 export function offerBlatnoy(state: GameState, p: PlayerState, from: AddressId) {
-  if (!hasPatron(state, p.id, 'blatnoy') || freeSlots(p) <= 0 || !blatnoyOptions(state, p, from).length) return;
+  if (!hasPatron(state, p.id, 'blatnoy') || !blatnoyOptions(state, p, from).length) return;
   state.pending.push({ kind: 'blatnoyBuy', player: p.id, from });
 }
 
 export function doBlatnoy(state: GameState, p: PlayerState, from: AddressId, address: BlatnoyShop, card: string) {
   const opt = blatnoyOptions(state, p, from).find((o) => o.address === address && o.card === card);
-  check(opt, 'Эту книгу Блатной купить не может: другое место, есть Талоны и книга на месте');
-  check(freeSlots(p) > 0, 'На складе нет места');
+  check(opt, 'Эту книгу Блатной купить не может: другое место, есть Талоны и книга на месте, есть место на складе');
   pay(p, price(state, p, address === 'razval' ? RULES.razvalPrices[state.razval.indexOf(card)] : address === 'tolkuchka' ? RULES.tolkuchkaBuy : RULES.raspredelitelPrice));
   if (address === 'razval') state.razval = state.razval.map((c) => (c === card ? null : c));
   else state[address] = state[address].filter((c) => c !== card);
-  addOpenBook(state, p, card);
   const where = address === 'razval' ? 'на Развале' : address === 'tolkuchka' ? 'на Толкучке' : 'в Распределителе';
   logAfter(state, `↳ Блатной: ${p.name} покупает ещё ${where} ${title(state, card)} за ${talonsText(opt.cost)}.`);
+  addBoughtBook(state, p, card);
 }

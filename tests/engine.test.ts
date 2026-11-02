@@ -383,6 +383,36 @@ describe('Поэзия «Заучить»', () => {
     expect(free(s)).toBe(before + 1);
     expect(s.order[s.turn]).toBe(me);
   });
+
+  it('склад полон: сборник поэзии можно купить, если заученного нет, — он сразу заучен', () => {
+    let s = createGame({ players: players(2), seed: 3, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    const pick = (ok: (c: string) => boolean) => { const c = s.deck.find((x) => s.cards[x].kind === 'genre' && ok(x))!; s.deck = s.deck.filter((x) => x !== c); return c; };
+    const poem = pick((c) => s.cards[c].icons.includes('poetry'));
+    const poem2 = pick((c) => s.cards[c].icons.includes('poetry'));
+    const prose = pick((c) => !s.cards[c].icons.includes('poetry'));
+    s.razval = [poem, prose, poem2, null];
+    p.talons = 10;
+    while (p.warehouse.length < p.capacity) p.warehouse.push({ card: s.deck.pop()!, hidden: false });
+    // Не поэзия — места нет.
+    expect(() => applyAction(s, me, { type: 'place', place: { address: 'razval', slot: 1 } })).toThrow(/места/);
+    s = applyAction(s, me, { type: 'place', place: { address: 'razval', slot: 0 } });
+    const q = s.players.find((x) => x.id === me)!;
+    expect(q.warehouse.find((w) => w.card === poem)?.memorized).toBe(true);
+    expect(q.warehouse.filter((w) => !w.memorized).length).toBe(q.capacity);
+    expect(s.log.some((l) => l.text.includes('сразу заучивает'))).toBe(true);
+    // Заученный сборник уже есть — второй без места не купить.
+    const t: GameState = structuredClone(s);
+    t.turn = t.order.indexOf(me);
+    const tp = t.players.find((x) => x.id === me)!;
+    tp.available = 2;
+    t.occupancy = {};
+    t.turnDone = undefined;
+    expect(() => applyAction(t, me, { type: 'place', place: { address: 'razval', slot: 2 } })).toThrow(/места/);
+  });
 });
 
 describe('Завсегдатаи: Ветеран, Лейтенант, Управдом', () => {

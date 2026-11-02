@@ -14,7 +14,7 @@ import type {
 } from './types';
 import { GENRES } from './types';
 import {
-  addBook, addOpenBook, countsAsLoad, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
+  addBook, addBoughtBook, addOpenBook, canMemorizeOnBuy, countsAsLoad, roomToBuy, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isPropagandaKind, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
   talonsText, title, titles, logEvent, logNote, logAfter, toSpetskhranPublic, seeSpetskhran, isExposed, saved, logRecap, plural, bulletTitles, iconCount, genresOf, genreOn,
 } from './util';
@@ -941,7 +941,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
           check(state.tolkuchka.includes(op.card), 'Этой книги нет на Толкучке');
           const cost = buy(RULES.tolkuchkaBuy);
           state.tolkuchka = state.tolkuchka.filter((c) => c !== op.card);
-          addOpenBook(state, p, op.card);
+          addBoughtBook(state, p, op.card);
           parts.push(`купил(а) ${title(state, op.card)} за ${talonsText(cost)}`);
         } else {
           check(hasBook(p, op.card), 'Продавать можно только книги со своего склада');
@@ -997,12 +997,15 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     case 'razval': {
       const slots = [...new Set(a.slots?.length ? a.slots : [a.slot])];
       check(slots.length === 1 || hasPatron(state, p.id, 'veteran'), 'Несколько книг за одно действие — только со связью с Ветераном');
+      check(roomToBuy(state, p, slots.map((i) => state.razval[i]).filter((c): c is string => !!c)), 'На складе нет места');
+      // Сборник, который можно заучить сверх склада, — последним: остальным достанутся свободные места.
+      slots.sort((x, y) => Number(!!state.razval[x] && canMemorizeOnBuy(state, p, state.razval[x]!)) - Number(!!state.razval[y] && canMemorizeOnBuy(state, p, state.razval[y]!)));
       const buy = purchases(state, p);
       for (const slot of slots) {
         const c = state.razval[slot];
         check(c, 'Эта ячейка Развала пуста');
         const cost = buy(RULES.razvalPrices[slot]);
-        addOpenBook(state, p, c);
+        addBoughtBook(state, p, c);
         state.razval[slot] = null;
         log(state, `${p.name} покупает на Развале ${title(state, c)} за ${talonsText(cost)}.`);
       }
@@ -1206,11 +1209,13 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     case 'raspredelitel': {
       const cards = [...new Set(a.cards?.length ? a.cards : [a.card])];
       check(cards.length === 1 || hasPatron(state, p.id, 'veteran'), 'Несколько книг за одно действие — только со связью с Ветераном');
+      for (const card of cards) check(state.raspredelitel.includes(card), 'Этой книги нет в Распределителе');
+      check(roomToBuy(state, p, cards), 'На складе нет места');
+      cards.sort((x, y) => Number(canMemorizeOnBuy(state, p, x)) - Number(canMemorizeOnBuy(state, p, y)));
       const buy = purchases(state, p);
       for (const card of cards) {
-        check(state.raspredelitel.includes(card), 'Этой книги нет в Распределителе');
         buy(RULES.raspredelitelPrice);
-        addOpenBook(state, p, card);
+        addBoughtBook(state, p, card);
         state.raspredelitel = state.raspredelitel.filter((c) => c !== card);
         log(state, `${p.name} получает из Распределителя ${title(state, card)}.`);
       }
@@ -1463,7 +1468,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         pend.bought = bought + 1;
         log(state, `${p.name} покупает книгу на Барахолке.`);
         log(state, `Вы купили ${title(state, card)}.`, [p.id]);
-        addSecretBook(state, p, card, 'взакрытую');
+        addBoughtBook(state, p, card, true);
       }
       if (action.next !== undefined) {
         check(veteran, 'Смотреть ещё книги может только игрок со связью с Ветераном');

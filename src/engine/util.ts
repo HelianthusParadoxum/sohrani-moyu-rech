@@ -294,6 +294,18 @@ export function freeSlots(p: PlayerState): number {
   return p.capacity - p.warehouse.filter((s) => !s.memorized).length;
 }
 
+// Полный режим, «Заучить»: сборник поэзии можно купить и без места на складе, если заученного сборника ещё нет, —
+// он сразу становится заученным (лежит сверх склада, виден всем).
+export function canMemorizeOnBuy(state: CardsInfo & Pick<GameState, 'mode'>, p: { warehouse: { memorized?: boolean }[] }, id: string): boolean {
+  return state.mode === 'full' && genreOn('poetry') && iconsOf(state, id).includes('poetry') && !p.warehouse.some((s) => s.memorized);
+}
+
+// Хватит ли места на покупку этих книг (с учётом сборника, который можно сразу заучить).
+export function roomToBuy(state: CardsInfo & Pick<GameState, 'mode'>, p: { capacity: number; warehouse: { memorized?: boolean }[] }, ids: string[]): boolean {
+  const free = p.capacity - p.warehouse.filter((s) => !s.memorized).length;
+  return ids.length <= free + (ids.some((c) => canMemorizeOnBuy(state, p, c)) ? 1 : 0);
+}
+
 export function addBook(p: PlayerState, id: string) {
   check(freeSlots(p) > 0, 'На складе нет места');
   p.warehouse.push({ card: id, hidden: false });
@@ -326,6 +338,18 @@ export function addOpenBook(state: GameState, p: PlayerState, id: string) {
   addBook(p, id);
   if (isPropaganda(state, id)) p.propagandaTaken = (p.propagandaTaken ?? 0) + 1;
   autoHide(state, p, id);
+}
+
+// Купленная книга: на свободное место (открыто или, с Барахолки, взакрытую), а если места нет — сборник поэзии сразу заучивается.
+export function addBoughtBook(state: GameState, p: PlayerState, id: string, secret = false) {
+  if (freeSlots(p) > 0) {
+    if (secret) addSecretBook(state, p, id, 'взакрытую');
+    else addOpenBook(state, p, id);
+    return;
+  }
+  check(canMemorizeOnBuy(state, p, id), 'На складе нет места');
+  p.warehouse.push({ card: id, hidden: false, memorized: true });
+  logAfter(state, `↳ Места на складе нет — ${p.name} сразу заучивает ${title(state, id)}.`);
 }
 
 // По умолчанию: опальная книга (не ЧНЛ — её изъятие обычному игроку на руку) сразу ложится в Тайник, если там есть место.

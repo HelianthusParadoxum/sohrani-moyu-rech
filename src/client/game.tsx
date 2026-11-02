@@ -7,7 +7,7 @@ import {
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
-import { title as bookTitle, bestFeedBooks, coversStep, freeSproutSlots, genresOf, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, roman } from '../engine/util';
+import { title as bookTitle, bestFeedBooks, canMemorizeOnBuy, coversStep, roomToBuy, freeSproutSlots, genresOf, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, roman } from '../engine/util';
 import { blatnoyOptions, kontoraTargets } from '../engine/full';
 import {
   BefriendPicker, ClubContents, fittingBooks, patronOpen, patronWhy, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
@@ -342,22 +342,26 @@ function addressBlocker(view: PlayerView, me: VPlayer, id: AddressId): string | 
   const books = me.warehouse.map((s) => s.card!).filter(Boolean);
   const talons = (cost: number) => (me.talons >= priceFor(view, me, cost) ? null : `Нужно ${priceFor(view, me, cost)}т, у вас ${me.talons}.`);
   const room = free > 0 ? null : 'На складе нет места.';
+  // Склад полон, но заученного сборника нет: сборник поэзии можно купить — он сразу заучивается.
+  const roomFor = (shelf: (string | null)[]) => (free > 0 || shelf.some((c) => c && canMemorizeOnBuy(view, me, c)) ? null
+    : 'На складе нет места (купить без места можно только сборник поэзии, если заученного у вас ещё нет).');
   const sellable = books.filter((c) => isGenreBook(view, c) && !['evidence', 'loadEvidence', 'propaganda', 'loadPropaganda'].includes(view.cards[c].kind));
   switch (id) {
     case 'gostorg':
       return free < 2 ? 'Нужно 2 свободных места на складе.' : null;
     case 'tolkuchka': {
-      const canBuy = view.tolkuchka.length > 0 && free > 0 && me.talons >= priceFor(view, me, RULES.tolkuchkaBuy);
+      const canBuy = view.tolkuchka.length > 0 && !roomFor(view.tolkuchka) && me.talons >= priceFor(view, me, RULES.tolkuchkaBuy);
       return canBuy || sellable.length ? null : 'Нечего продать и не на что (или некуда) купить.';
     }
     case 'razval': {
       const prices = view.razval.flatMap((c, i) => (c ? [priceFor(view, me, RULES.razvalPrices[i])] : []));
       if (!prices.length) return 'Развал пуст.';
-      return room ?? (me.talons >= Math.min(...prices) ? null : `Не хватает Талонов: самая дешёвая книга — ${Math.min(...prices)}т.`);
+      return roomFor(view.razval) ?? (me.talons >= Math.min(...prices) ? null : `Не хватает Талонов: самая дешёвая книга — ${Math.min(...prices)}т.`);
     }
     case 'baraholka':
       if (!view.baraholka.some(Boolean)) return 'На Барахолке не осталось книг.';
-      return room ?? talons(RULES.baraholkaPrice);
+      // Без места можно найти и сразу заучить сборник поэзии.
+      return (view.mode === 'full' && !me.warehouse.some((s) => s.memorized) ? null : room) ?? talons(RULES.baraholkaPrice);
     case 'podpiska':
       return talons(1);
     case 'sprouts':
@@ -378,7 +382,7 @@ function addressBlocker(view: PlayerView, me: VPlayer, id: AddressId): string | 
       return view.players.some((o) => o.id !== me.id && o.warehouse.some((s) => s.card && !s.hidden)) ? null : 'Ни у кого нет книг на виду.';
     case 'raspredelitel':
       if (!view.raspredelitel.length) return 'Распределитель пуст.';
-      return room ?? talons(RULES.raspredelitelPrice);
+      return roomFor(view.raspredelitel) ?? talons(RULES.raspredelitelPrice);
     case 'agitpunkt':
       if (!(view.agitpunkt ?? []).length) return 'Витрина пуста.';
       return room;
@@ -621,8 +625,9 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
                 onClick={() => setSel(veteran ? toggle(sel, String(i)) : [String(i)])} />
             ))}
           </div>
-          {confirmBtn(`Купить${costTag(buyCost(view, me, sel.map((i) => RULES.razvalPrices[Number(i)])))}`, sel.length && free >= sel.length ? { address: 'razval', slot: Number(sel[0]), ...(sel.length > 1 ? { slots: sel.map(Number) } : {}) } : null,
-            free >= Math.max(1, sel.length) ? undefined : 'Нет места на складе')}
+          {confirmBtn(`Купить${costTag(buyCost(view, me, sel.map((i) => RULES.razvalPrices[Number(i)])))}`, sel.length && roomToBuy(view, me, sel.map((i) => view.razval[Number(i)]!)) ? { address: 'razval', slot: Number(sel[0]), ...(sel.length > 1 ? { slots: sel.map(Number) } : {}) } : null,
+            !sel.length || roomToBuy(view, me, sel.map((i) => view.razval[Number(i)]!)) ? undefined : 'Нет места на складе')}
+          {free <= 0 && sel.some((i) => canMemorizeOnBuy(view, me, view.razval[Number(i)]!)) && <p className="muted small">Места на складе нет — сборник поэзии сразу станет заученным.</p>}
         </>
       );
       break;
@@ -728,8 +733,9 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
         <>
           {veteran && <p className="muted small">Ветеран: купите сколько угодно книг, в сумме на 1 Талон дешевле.</p>}
           {pickList(view.raspredelitel, sel, setSel, veteran ? {} : { max: 1 })}
-          {confirmBtn(`Купить${costTag(buyCost(view, me, (sel.length ? sel : ['']).map(() => RULES.raspredelitelPrice)))}`, sel.length && free >= sel.length
+          {confirmBtn(`Купить${costTag(buyCost(view, me, (sel.length ? sel : ['']).map(() => RULES.raspredelitelPrice)))}`, sel.length && roomToBuy(view, me, sel)
             ? { address: 'raspredelitel', card: sel[0], ...(sel.length > 1 ? { cards: sel } : {}) } : null)}
+          {free <= 0 && sel.some((c) => canMemorizeOnBuy(view, me, c)) && <p className="muted small">Места на складе нет — сборник поэзии сразу станет заученным.</p>}
         </>
       );
       break;
@@ -1117,7 +1123,7 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
             {p.seen.map((x) => (
               <div key={x.slot} className="col">
                 <Book v={view} id={x.card} />
-                <button className="primary small" disabled={me.talons < cost} onClick={() => act({ type: 'baraholkaBuy', slot: x.slot })}>Купить{costTag(cost) || ' (даром)'}</button>
+                <button className="primary small" disabled={me.talons < cost || !roomToBuy(view, me, [x.card])} title={roomToBuy(view, me, [x.card]) ? undefined : 'Нет места на складе'} onClick={() => act({ type: 'baraholkaBuy', slot: x.slot })}>Купить{costTag(cost) || ' (даром)'}</button>
               </div>
             ))}
           </div>
