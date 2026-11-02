@@ -11,7 +11,7 @@ import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
-  addSecretBook, cacheLimit, cloneJson, coversStep, freeSlots, freeSproutSlots, isFromLoadDeck, genreOn, genresOf, hasPatron, iconCount, iconsOf, isBanned, isWild, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
+  addSecretBook, cacheLimit, cloneJson, coversStep, freeSlots, freeSproutSlots, countsAsLoad, genreOn, genresOf, hasPatron, iconCount, iconsOf, isBanned, isWild, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
 } from './util';
 
 type Rand = () => number;
@@ -133,7 +133,10 @@ function reachablePropaganda(state: GameState, left: number): number {
   // Через Макулатуру Куратор дотягивается и до закрытых стопок (со сбросом — их перетасуют, когда стопка кончится).
   const decks = addressInGame(state, 'makulatura')
     ? [...state.deck, ...state.discard, ...state.loadDeck, ...state.loadDiscard].filter((c) => isPropaganda(state, c)).length : 0;
-  return open + 0.5 * discard + BOT_BASE.denyDeckShare * decks;
+  // Спецхран: Куратор выуживает оттуда ЧНЛ через Контору и Ростки (в примерке закрытые книги Спецхрана перемешаны заново —
+  // бот считает только ожидаемое, не подглядывая).
+  const spets = state.reserve ? 0 : state.spetskhran.filter((c) => isPropaganda(state, c)).length;
+  return open + 0.5 * discard + BOT_BASE.denyDeckShare * decks + BOT_BASE.denySpetskhranShare * spets;
 }
 
 // Подозрение, что соперник — Куратор. Только то, что видели все: ЧНЛ, открыто взятая со стола или лежащая
@@ -346,7 +349,7 @@ function ownBookValue(state: GameState, p: PlayerState, card: string, ctx: Ctx):
 function redCornerSqueeze(state: GameState, p: PlayerState, ctx: Ctx): number {
   if (state.phase === 'end' || state.phase === 'passion' || freeSlots(p) > 0) return 0;
   const weight = !p.visitedRedCorner ? BOT_BASE.redCornerSqueeze : RULES.rounds > ctx.round ? BOT_BASE.redCornerSqueezeNext : 0;
-  const unprinted = p.warehouse.map((s) => s.card).filter((c) => !isFromLoadDeck(state, c));
+  const unprinted = p.warehouse.map((s) => s.card).filter((c) => !countsAsLoad(state, c));
   if (!weight || !unprinted.length) return 0;
   return weight * Math.min(...unprinted.map((c) => ownBookValue(state, p, c, ctx)));
 }
@@ -1168,11 +1171,11 @@ function byValue(keep: Map<string, number>, cards: string[]): string[] {
 // Красный уголок: обязательная Нагрузка; нет места — отдать одну из самых ненужных книг Непечатных (Куратор ЧНЛ не отдаёт).
 function redCornerCandidates(state: GameState, me: string, keep: Map<string, number>): Action[] {
   const p = player(state, me);
-  const loadOnly = p.warehouse.every((s) => isFromLoadDeck(state, s.card));
+  const loadOnly = p.warehouse.every((s) => countsAsLoad(state, s.card));
   if (freeSlots(p) > 0 || loadOnly) return [{ type: 'place', place: { address: 'redCorner' } }];
   const drops = byValue(keep, p.warehouse.map((s) => s.card)
-    .filter((c) => !isFromLoadDeck(state, c) && !(p.passion === 'curator' && isPropaganda(state, c))));
-  const pick = drops.length ? drops.slice(0, 2) : p.warehouse.map((s) => s.card).filter((c) => !isFromLoadDeck(state, c)).slice(0, 1);
+    .filter((c) => !countsAsLoad(state, c) && !(p.passion === 'curator' && isPropaganda(state, c))));
+  const pick = drops.length ? drops.slice(0, 2) : p.warehouse.map((s) => s.card).filter((c) => !countsAsLoad(state, c)).slice(0, 1);
   return pick.map((drop) => ({ type: 'place', place: { address: 'redCorner', drop } }));
 }
 
@@ -1182,14 +1185,13 @@ function glavlitCandidates(state: GameState, me: string, keep: Map<string, numbe
   // Куратор ЧНЛ не сдаёт: в конце она срезает Ростки. Честный не сдаёт её, пока успеет разоблачить.
   const cards = p.warehouse.map((s) => s.card)
     .filter((c) => !isPropaganda(state, c) || (p.passion !== 'curator' && !canExposeLater(state, p, ctx)));
-  // ПСС Ленина (Нагрузка-ЧНЛ) сдаётся как Нагрузка, остальная ЧНЛ — как Непечатная.
-  const prop = cards.find((c) => isPropaganda(state, c) && state.cards[c].kind === 'propaganda');
-  const leninProp = cards.find((c) => isPropaganda(state, c) && state.cards[c].kind === 'loadPropaganda');
+  // ЧНЛ (и ПСС Ленина) сдаётся как Непечатная.
+  const prop = cards.find((c) => isPropaganda(state, c));
   const unprinted = byValue(keep, cards.filter((c) => !isLoad(state, c) && !isEvidence(state, c) && state.cards[c].kind !== 'loadEvidence' && state.cards[c].kind !== 'loadReturnable'));
   const loads = cards.filter((c) => isLoad(state, c) && !isEvidence(state, c));
   const ups = prop ? [prop] : unprinted.slice(0, 1);
   const out: string[][] = [];
-  for (const u of [...ups, null]) for (const l of [loads[0], leninProp, null]) {
+  for (const u of [...ups, null]) for (const l of [loads[0], null]) {
     const r = [u, l].filter((x): x is string => !!x);
     if (r.length) out.push(r);
   }

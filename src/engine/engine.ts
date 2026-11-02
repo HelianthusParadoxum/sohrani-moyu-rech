@@ -14,7 +14,7 @@ import type {
 } from './types';
 import { GENRES } from './types';
 import {
-  addBook, addOpenBook, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
+  addBook, addOpenBook, countsAsLoad, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isPropagandaKind, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
   talonsText, title, titles, logEvent, logNote, logAfter, toSpetskhranPublic, seeSpetskhran, isExposed, saved, logRecap, plural, bulletTitles, iconCount, genresOf, genreOn,
 } from './util';
@@ -964,13 +964,13 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       const used = p.workers - p.held - p.available;
       if (state.round < RULES.rounds && state.nextOrder.length === 0 && used <= 2) p.redEager = (p.redEager ?? 0) + 1;
       // Обязательная Нагрузка: нет места — отдать книгу Непечатных; склад весь в Нагрузке — не брать.
-      const loadOnly = p.warehouse.every((s) => isFromLoadDeck(state, s.card));
+      const loadOnly = p.warehouse.every((s) => countsAsLoad(state, s.card));
       const take = freeSlots(p) > 0 || !loadOnly;
       if (freeSlots(p) > 0 || !take) {
         check(!a.drop, 'Отдавать книгу не нужно');
       } else {
         check(a.drop, 'Для Нагрузки нет места: выберите книгу Непечатных, которую отдать');
-        check(hasBook(p, a.drop) && !isFromLoadDeck(state, a.drop), 'Отдать можно только книгу Непечатных со своего склада');
+        check(hasBook(p, a.drop) && !countsAsLoad(state, a.drop), 'Отдать можно только книгу Непечатных со своего склада');
       }
       p.visitedRedCorner = true;
       state.nextOrder.push(p.id);
@@ -1133,8 +1133,8 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     case 'glavlit': {
       const recycle = [...new Set(a.recycle)];
       check(recycle.length > 0 && recycle.length === a.recycle.length, 'Выберите книги, которые сдать');
-      const unprinted = recycle.filter((c) => !isFromLoadDeck(state, c));
-      const load = recycle.filter((c) => isFromLoadDeck(state, c));
+      const unprinted = recycle.filter((c) => !countsAsLoad(state, c));
+      const load = recycle.filter((c) => countsAsLoad(state, c));
       const komsorg = hasPatron(state, p.id, 'komsorg');
       check((unprinted.length <= 1 && load.length <= 1) || komsorg, 'Сдать можно до 1 Непечатной и до 1 книги Нагрузки');
       const extra = hasPatron(state, p.id, 'zavkhoz') ? 1 : 0;
@@ -1144,7 +1144,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       p.propagandaDumped = (p.propagandaDumped ?? 0) + recycle.filter((c) => isPropaganda(state, c)).length;
       for (const c of recycle) {
         check(hasBook(p, c), 'Сдать можно только книги со своего склада');
-        income += isFromLoadDeck(state, c) ? RULES.glavlitLoad : RULES.glavlitUnprinted;
+        income += countsAsLoad(state, c) ? RULES.glavlitLoad : RULES.glavlitUnprinted;
         if (editor) pts += iconCount(state, c);
         removeBook(p, c);
         discard(state, c);
@@ -1316,11 +1316,6 @@ function continueTake(state: GameState, p: PlayerState, cards: string[], then: C
       return;
     }
   }
-}
-
-function isFromLoadDeck(state: GameState, id: string) {
-  const k = state.cards[id].kind;
-  return k === 'load' || k === 'loadReturnable' || k === 'loadEvidence' || k === 'loadPropaganda';
 }
 
 // ---------- Действия Инициативной группы ----------

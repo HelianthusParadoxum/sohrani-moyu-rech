@@ -895,7 +895,7 @@ describe('Срезы Куратора', () => {
     expect(text.match(/Срез: Росток/g)).toHaveLength(1);
   });
 
-  it('ПСС Ленина сдаётся в Красный уголок как Нагрузка (+2т), рядом с обычной Непечатной', () => {
+  it('ПСС Ленина — не Нагрузка, а обычная ЧНЛ: в Главлите сдаётся как Непечатная, в Красном уголке её можно отдать', () => {
     let s = createGame({ players: players(2), seed: 4, mode: 'full' });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
     s = startOrders(s);
@@ -904,15 +904,26 @@ describe('Срезы Куратора', () => {
     const lenin = Object.values(s.cards).find((c) => c.kind === 'loadPropaganda')!.id;
     s.loadDeck = s.loadDeck.filter((c) => c !== lenin);
     const book = s.deck.find((c) => s.cards[c].kind === 'genre')!;
+    const load = s.loadDeck.find((c) => s.cards[c].kind === 'load')!;
     s.deck = s.deck.filter((c) => c !== book);
+    s.loadDeck = s.loadDeck.filter((c) => c !== load);
     p.capacity = 10;
-    p.warehouse = [{ card: lenin, hidden: false }, { card: book, hidden: false }];
+    p.warehouse = [{ card: lenin, hidden: false }, { card: book, hidden: false }, { card: load, hidden: false }];
+    // Ленин и обычная Непечатная — это две Непечатные: сдать вместе нельзя.
+    expect(() => applyAction(s, me, { type: 'place', place: { address: 'glavlit', recycle: [book, lenin] } })).toThrow(RuleError);
+    // Ленин (как Непечатная) + Нагрузка — можно.
     const before = p.talons;
-    s = applyAction(s, me, { type: 'place', place: { address: 'glavlit', recycle: [book, lenin] } });
-    const after = s.players.find((x) => x.id === me)!;
+    const s2 = applyAction(s, me, { type: 'place', place: { address: 'glavlit', recycle: [lenin, load] } });
+    const after = s2.players.find((x) => x.id === me)!;
     expect(after.talons - before).toBe(RULES.glavlitLoad + RULES.glavlitUnprinted);
     expect(after.propagandaDumped).toBe(1);
-    expect(s.loadDiscard).toContain(lenin);
+    expect(s2.loadDiscard).toContain(lenin); // уходит в сброс Нагрузки — в своей стопке
+    // Красный уголок: склад полон Лениным и Нагрузкой — склад не «весь в Нагрузке», Ленина можно отдать.
+    p.capacity = 2;
+    p.warehouse = [{ card: lenin, hidden: false }, { card: load, hidden: false }];
+    expect(() => applyAction(s, me, { type: 'place', place: { address: 'redCorner' } })).toThrow(RuleError);
+    const s3 = applyAction(s, me, { type: 'place', place: { address: 'redCorner', drop: lenin } });
+    expect(s3.players.find((x) => x.id === me)!.warehouse.some((w) => w.card === lenin)).toBe(false);
   });
 });
 

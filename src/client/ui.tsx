@@ -70,8 +70,9 @@ export const PLAYER_COLORS = ['#b03a2e', '#1f618d', '#1e8449', '#7d3c98', '#b977
 
 export { iconsOf, isLoad } from '../engine/util';
 
+// Книга Нагрузки по правилам (Главлит, Красный уголок). ПСС Ленина лежит в стопке Нагрузки, но это обычная ЧНЛ.
 export function fromLoadDeck(v: PlayerView, id: string) {
-  return ['load', 'loadReturnable', 'loadEvidence', 'loadPropaganda'].includes(v.cards[id].kind);
+  return ['load', 'loadReturnable', 'loadEvidence'].includes(v.cards[id].kind);
 }
 
 export function isBanned(v: PlayerView, id: string) {
@@ -110,7 +111,7 @@ export function GenreChip({ g, banned, favored }: { g: Genre; banned?: boolean; 
 }
 
 const KIND_LABEL: Record<string, string> = {
-  load: 'Нагрузка', loadReturnable: 'Нагрузка', loadEvidence: 'Нагрузка', loadPropaganda: 'Нагрузка',
+  load: 'Нагрузка', loadReturnable: 'Нагрузка', loadEvidence: 'Нагрузка',
 };
 
 export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
@@ -125,7 +126,7 @@ export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
   const restored = !!v.restored[id];
   const flex = c.wild ? null : flexGenres(v, id); // «Чукоккала» — значок «ЛЮБОЙ», без перечня всех жанров
   const label = c.kind === 'loadReturnable' && restored ? null : c.kind === 'loadEvidence' && restored ? null : (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && restored ? 'Разоблачение' : KIND_LABEL[c.kind];
-  // Значки вида: ЧНЛ (и у Нагрузки-ЧНЛ), УЛ — у Улик (и Нагрузки-улики после Возвращения смыслов).
+  // Значки вида: ЧНЛ (и у ПСС Ленина), УЛ — у Улик (и Нагрузки-улики после Возвращения смыслов).
   const kindChip = (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && !restored ? 'chnl' as const
     : c.kind === 'evidence' || (c.kind === 'loadEvidence' && restored) ? 'ul' as const : null;
   const t = c.kind === 'loadReturnable' && restored ? c.returned! : c.title;
@@ -135,7 +136,7 @@ export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
       className={`book k-${c.kind === 'loadEvidence' && !restored ? 'load' : (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && restored ? 'exposed' : c.kind} ${banned ? 'is-banned' : ''} ${selected ? 'selected' : ''} ${hidden ? 'in-cache' : ''} ${small ? 'small' : ''} ${onClick ? 'clickable' : ''}`}
       onClick={onClick}
       disabled={!onClick}
-      title={`${t} — ${c.author}${c.kind === 'loadPropaganda' && !restored ? '. Нагрузка-ЧНЛ: это ЧНЛ (опальна, −5 очков, у Куратора срезает Ростки), но сдаётся в Главлит как Нагрузка (+1т); Тайник не прикрывает' : ''}`}
+      title={`${t} — ${c.author}${c.kind === 'loadPropaganda' && !restored ? '. ЧНЛ из стопки Нагрузки: свойств Нагрузки у неё нет — обычная ЧНЛ' : ''}`}
     >
       <div className="book-icons">
         {(flex ? icons.slice(0, -1) : icons).map((g, i) => <GenreChip key={i} g={g} banned={v.banned.includes(g)} favored={favoredGenres(v).includes(g)} />)}

@@ -8,7 +8,7 @@ import { PERMANENT_ADDRESSES, RULES, SPROUTS } from './content';
 import { befriendTargets, blatnoyOptions } from './full';
 import type { Action, ClubGift, GameState, Genre, GroupAction } from './types';
 import { GENRES } from './types';
-import { cacheLimit, freeSlots, freeSproutSlots, isFromLoadDeck, genresOf, iconCount, iconsOf, isBanned, isLoad, isPropaganda, player, RuleError } from './util';
+import { cacheLimit, freeSlots, freeSproutSlots, countsAsLoad, genresOf, iconCount, iconsOf, isBanned, isLoad, isPropaganda, player, RuleError } from './util';
 
 type Rand = () => number;
 
@@ -156,7 +156,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
 function redCorner(state: GameState, me: string): Action[] {
   const p = player(state, me);
   // Нет места для Нагрузки — отдать первую попавшуюся книгу Непечатных.
-  const drop = freeSlots(p) > 0 ? undefined : p.warehouse.find((s) => !isFromLoadDeck(state, s.card))?.card;
+  const drop = freeSlots(p) > 0 ? undefined : p.warehouse.find((s) => !countsAsLoad(state, s.card))?.card;
   return [{ type: 'place', place: { address: 'redCorner', ...(drop ? { drop } : {}) } }];
 }
 

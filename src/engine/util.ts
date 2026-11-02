@@ -214,14 +214,19 @@ export function isFromLoadDeck(state: CardsInfo, id: string): boolean {
   return k === 'load' || k === 'loadReturnable' || k === 'loadEvidence' || k === 'loadPropaganda';
 }
 
+// Книга Нагрузки по правилам (Главлит, Красный уголок): всё из стопки Нагрузки, кроме ПСС Ленина —
+// та лежит в стопке Нагрузки, но по свойствам обычная ЧНЛ (Непечатная).
+export function countsAsLoad(state: CardsInfo, id: string): boolean {
+  return isFromLoadDeck(state, id) && state.cards[id].kind !== 'loadPropaganda';
+}
+
 export function isEvidence(state: CardsInfo, id: string): boolean {
   const k = state.cards[id].kind;
   // Нагрузка-улика становится Уликой (опальной, +5 очков) только после Возвращения смыслов.
   return k === 'evidence' || (k === 'loadEvidence' && !!state.restored[id]);
 }
 
-// ЧНЛ: обычная (ЧНЛ) и Нагрузка-ЧНЛ (ПСС Ленина — из стопки Нагрузки, сдаётся в Красный уголок как Нагрузка,
-// но Тайник не прикрывает).
+// ЧНЛ: обычная и ПСС Ленина (лежит в стопке Нагрузки, но свойства Нагрузки у неё нет — обычная ЧНЛ).
 export function isPropagandaKind(kind: string): boolean {
   return kind === 'propaganda' || kind === 'loadPropaganda';
 }
