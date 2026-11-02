@@ -2345,3 +2345,28 @@ describe('Каталогизатор', () => {
     expect(s.log.some((l) => l.text.includes('в Госкниготорге: 2 книги'))).toBe(true);
   });
 });
+
+describe('Каталогизатор и сброс', () => {
+  it('Библиотекарь после облавы: видит книги сверху и снизу сброса и выбирает; Пятилетка меняется после решения', () => {
+    let s = createGame({ players: players(2), seed: 7, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const [a] = s.order;
+    s.patrons[0] = { ...s.patrons[0], id: 'librarian', connections: [a] };
+    s.patrons[1] = { ...s.patrons[1], id: 'cataloguer', connections: [a] };
+    s.players.find((x) => x.id === a)!.capacity = 10;
+    s.discard = s.deck.splice(0, 10);
+    // Сразу к Укрытию: оба готовы — облава, затем Библиотекарь.
+    s.phase = 'hiding';
+    s.ready = [];
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'hiding', hidden: p.warehouse.filter((w) => w.hidden).map((w) => w.card) });
+    const round = s.round;
+    const pend = s.pending[0] as { kind: string; deck: string; bottom: string[] };
+    expect(pend).toMatchObject({ kind: 'catalogPick', player: a, deck: 'discard' });
+    expect(s.round).toBe(round);
+    s = applyAction(s, a, { type: 'catalogPick', from: 'bottom' });
+    expect(s.round).toBe(round + 1);
+    const wh = s.players.find((x) => x.id === a)!.warehouse.map((w) => w.card);
+    expect(pend.bottom.every((c) => wh.includes(c))).toBe(true);
+  });
+});

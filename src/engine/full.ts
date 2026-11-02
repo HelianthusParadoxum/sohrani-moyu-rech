@@ -293,6 +293,12 @@ export function afterRaid(state: GameState) {
     // Библиотекарь: до 2 книг сверху перетасованного сброса.
     if (hasPatron(state, p.id, 'librarian') && state.discard.length) {
       shuffle(state, state.discard);
+      // Каталогизатор: столько же книг и снизу сброса — игрок выбирает набор (Пятилетка сменится после решения).
+      const want = Math.min(2, Math.max(0, freeSlots(p)));
+      if (want && hasPatron(state, p.id, 'cataloguer') && state.discard.length >= 2 * want) {
+        state.pending.push({ kind: 'catalogPick', player: p.id, deck: 'discard', top: state.discard.slice(-want).reverse(), bottom: state.discard.slice(0, want), then: { kind: 'librarian' } });
+        continue;
+      }
       let n = 0;
       while (n < 2 && freeSlots(p) > 0 && state.discard.length) { addSecretBook(state, p, state.discard.pop()!); n++; }
       if (n) {

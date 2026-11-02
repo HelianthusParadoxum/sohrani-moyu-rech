@@ -1028,10 +1028,10 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
       return <FreeConnectionPrompt view={view} me={me} act={act} />;
     case 'catalogPick': {
       // Каталогизатор: верхний или нижний набор книг стопки.
-      const deck = p.deck === 'load' ? 'Нагрузки' : 'Непечатных';
+      const deck = p.deck === 'load' ? 'стопка Нагрузки' : p.deck === 'discard' ? 'сброс Непечатных (Библиотекарь)' : 'стопка Непечатных';
       return (
-        <Modal title={`Каталогизатор: стопка ${deck}`} wide>
-          <p>Выберите, какие книги взять: сверху стопки или снизу. Невыбранные останутся на своём месте.</p>
+        <Modal title={`Каталогизатор: ${deck}`} wide>
+          <p>Выберите, какие книги взять: сверху или снизу. Невыбранные останутся на своём месте.</p>
           <h4>Сверху</h4>
           <div className="shelf wrap">{p.top.map((c) => <Book key={c} v={view} id={c} />)}</div>
           <h4>Снизу</h4>

@@ -153,7 +153,7 @@ export type Pending =
   | { kind: 'extraGroup'; player: string } // Подмастерье
   | { kind: 'freeConnection'; player: string } // Председатель
   | { kind: 'blatnoyBuy'; player: string; from: AddressId } // Блатной: купил в from — можно купить ещё одну книгу в другом месте
-  | { kind: 'catalogPick'; player: string; deck: 'unprinted' | 'load'; top: string[]; bottom: string[]; then: CatalogThen } // Каталогизатор: верхний или нижний набор
+  | { kind: 'catalogPick'; player: string; deck: 'unprinted' | 'load' | 'discard'; top: string[]; bottom: string[]; then: CatalogThen } // Каталогизатор: верхний или нижний набор (стопки или сброса)
   | { kind: 'lieutenantPick'; player: string; cards: string[] } // Лейтенант: книги, изъятые облавой с адресов
   | { kind: 'discardExcess'; player: string; count: number }
   | { kind: 'glavlitSwap'; player: string; roundStart?: boolean }; // Главлитовец переносит опалу с жанра на жанр // склад уменьшился — игрок выбирает, что отдать
@@ -291,7 +291,7 @@ export type PlaceAction =
 // Каталогизатор: что делать с выбранными книгами (продолжение прерванного действия).
 export type CatalogThen =
   | { kind: 'posrednichestvo' } | { kind: 'spisanie' } | { kind: 'makulatura' }
-  | { kind: 'gostorg'; got: string[]; rest: ('load' | 'unprinted')[] } | { kind: 'redCorner'; drop?: string };
+  | { kind: 'gostorg'; got: string[]; rest: ('load' | 'unprinted')[] } | { kind: 'redCorner'; drop?: string } | { kind: 'librarian' };
 
 // Где Блатной докупает книгу.
 export type BlatnoyShop = 'razval' | 'tolkuchka' | 'raspredelitel';

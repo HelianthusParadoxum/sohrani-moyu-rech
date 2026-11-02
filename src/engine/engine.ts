@@ -761,6 +761,8 @@ function raid(state: GameState) {
 
 function finishRound(state: GameState) {
   afterRaid(state);
+  // Библиотекарь с Каталогизатором выбирает книги из сброса — Пятилетка сменится после решения.
+  if (state.pending.some((x) => x.kind === 'catalogPick')) return;
   changeRound(state);
 }
 
@@ -1298,6 +1300,12 @@ function continueTake(state: GameState, p: PlayerState, cards: string[], then: C
       if (cached.length) log(state, `В Тайник: ${titles(state, cached)}.`, [p.id]);
       return;
     }
+    case 'librarian': {
+      for (const c of cards) addSecretBook(state, p, c);
+      log(state, `${p.name}: Библиотекарь приносит книг из сброса: ${cards.length}.`);
+      state.log[state.log.length - 1].who = p.id;
+      return;
+    }
     case 'redCorner': {
       const load = cards[0];
       if (load) addBook(p, load);
@@ -1685,9 +1693,15 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       const cards = action.from === 'bottom' ? pend.bottom : pend.top;
       // Взятые — из стопки (где бы они ни лежали); невыбранные остаются на своих местах.
       if (pend.deck === 'load') state.loadDeck = state.loadDeck.filter((c) => !cards.includes(c));
+      else if (pend.deck === 'discard') state.discard = state.discard.filter((c) => !cards.includes(c));
       else state.deck = state.deck.filter((c) => !cards.includes(c));
-      if (action.from === 'bottom') log(state, `${p.name} берёт книги снизу стопки (Каталогизатор).`);
+      if (action.from === 'bottom') log(state, `${p.name} берёт книги снизу ${pend.deck === 'discard' ? 'сброса' : 'стопки'} (Каталогизатор).`);
       continueTake(state, p, cards, pend.then);
+      // Конец Пятилетки ждал этого решения (Библиотекарь) — теперь новая Пятилетка.
+      if (pend.then.kind === 'librarian' && !state.pending.length) {
+        changeRound(state);
+        state.holdTurn = true;
+      }
       return;
     }
     case 'blatnoyBuy': {
