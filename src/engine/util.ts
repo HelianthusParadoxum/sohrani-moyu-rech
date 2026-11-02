@@ -349,7 +349,7 @@ export function addBoughtBook(state: GameState, p: PlayerState, id: string, secr
   }
   check(canMemorizeOnBuy(state, p, id), 'На складе нет места');
   p.warehouse.push({ card: id, hidden: false, memorized: true });
-  logAfter(state, `↳ Места на складе нет — ${p.name} сразу заучивает ${title(state, id)}.`);
+  logAfter(state, `↳ ${p.name} сразу заучивает ${title(state, id)}.`);
 }
 
 // По умолчанию: опальная книга (не ЧНЛ — её изъятие обычному игроку на руку) сразу ложится в Тайник, если там есть место.
