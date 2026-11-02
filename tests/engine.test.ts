@@ -2370,3 +2370,26 @@ describe('Каталогизатор и сброс', () => {
     expect(pend.bottom.every((c) => wh.includes(c))).toBe(true);
   });
 });
+
+describe('Каталогизатор при короткой стопке', () => {
+  it('книг меньше, чем на два набора, — выбор всё равно есть, наборы совпадают частично', () => {
+    let s = createGame({ players: players(2), seed: 5, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    s.patrons[0] = { ...s.patrons[0], id: 'cataloguer', connections: [me] };
+    s.safehouses.push('spisanie');
+    const p = s.players.find((x) => x.id === me)!;
+    p.talons = 10;
+    p.capacity = 10;
+    const n = RULES.spisanieDraw;
+    s.discard.push(...s.deck.splice(0, s.deck.length - (n + 1))); // в стопке n + 1 книг
+    s = applyAction(s, me, { type: 'place', place: { address: 'spisanie' } });
+    const pend = s.pending[0] as { kind: string; top: string[]; bottom: string[] };
+    expect(pend.kind).toBe('catalogPick');
+    expect(pend.top.filter((c) => pend.bottom.includes(c)).length).toBe(n - 1);
+    s = applyAction(s, me, { type: 'catalogPick', from: 'bottom' });
+    expect(s.pending[0]).toMatchObject({ kind: 'spisanieKeep', cards: pend.bottom });
+    expect(s.deck).toHaveLength(1);
+  });
+});

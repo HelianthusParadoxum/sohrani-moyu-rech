@@ -1260,7 +1260,8 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
 // Взять n книг сверху стопки и продолжить действие. Каталогизатор: тайно смотрит ещё n книг снизу и выбирает набор.
 function takeTop(state: GameState, p: PlayerState, deck: 'unprinted' | 'load', n: number, then: CatalogThen) {
   const pile = deck === 'load' ? state.loadDeck : state.deck;
-  if (hasPatron(state, p.id, 'cataloguer') && pile.length >= 2 * n) {
+  // Книг меньше, чем на два набора, — наборы частично совпадают; меньше, чем на один, — берут как обычно (с перетасовкой сброса).
+  if (hasPatron(state, p.id, 'cataloguer') && pile.length >= n) {
     // Верх стопки — её конец: книги берут с конца (pop).
     state.pending.unshift({ kind: 'catalogPick', player: p.id, deck, top: pile.slice(-n).reverse(), bottom: pile.slice(0, n), then });
     return;
