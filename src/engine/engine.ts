@@ -499,8 +499,8 @@ function logStartBooks(state: GameState) {
     const seen = open.filter((c) => isPropaganda(state, c)).length;
     if (seen) p.propagandaDealt = (p.propagandaDealt ?? 0) + seen;
     if (hidden.length) {
+      // Без кружка игрока: он уже стоит у строки «на виду» прямо над этой.
       log(state, `${p.name} прячет в Тайнике: ${bulletTitles(state, hidden)}.`, [p.id]);
-      state.log[state.log.length - 1].who = p.id;
     }
   }
 }
