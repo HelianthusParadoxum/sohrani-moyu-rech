@@ -240,9 +240,9 @@ export function isExposed(state: CardsInfo, id: string): boolean {
   return isPropagandaKind(state.cards[id].kind) && !!state.restored[id];
 }
 
-// Опальная книга: ЧНЛ, Улики и книги со значком опального жанра.
+// Опальная книга: ЧНЛ (и Разоблачение — ЧНЛ с монографией остаётся опальной), Улики и книги со значком опального жанра.
 export function isBanned(state: CardsInfo & Pick<GameState, 'banned'>, id: string): boolean {
-  if (isPropaganda(state, id) || isEvidence(state, id)) return true;
+  if (isPropaganda(state, id) || isExposed(state, id) || isEvidence(state, id)) return true;
   return genresOf(state, id).some((g) => state.banned.includes(g));
 }
 

@@ -1173,11 +1173,11 @@ describe('Разоблачение', () => {
     return { s, me, prop };
   }
 
-  it('Возвращение смыслов делает ЧНЛ Разоблачением: +2 очка, не опальна, издаётся как книга с 1 значком', () => {
+  it('Возвращение смыслов делает ЧНЛ Разоблачением: +очки, остаётся опальной, издаётся как книга с 1 значком', () => {
     let { s, me, prop } = withPropaganda();
     expect(isBanned(s, prop)).toBe(true);
     s = applyAction(s, me, { type: 'group', group: { action: 'restore', card: prop } });
-    expect(isBanned(s, prop)).toBe(false); // Разоблачение не опально
+    expect(isBanned(s, prop)).toBe(true); // Разоблачение по-прежнему опально
     const p = () => s.players.find((x) => x.id === me)!;
     const line = finalScoringLine(s, me);
     expect(line).toBe(RULES.exposePoints);

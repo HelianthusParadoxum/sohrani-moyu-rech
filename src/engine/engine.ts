@@ -611,7 +611,7 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
   }
   // Опальные книги из Тайника, которые игрок не показал (честному показывать опальное выгодно; у Куратора в Тайнике —
   // ЧНЛ). Неопальные книги в Тайнике (спрятанные впрок) показать нельзя — они не в счёт.
-  const unshown = p.warehouse.filter((s) => s.hidden && !s.memorized && !show.includes(s.card) && isBanned(state, s.card)).length;
+  const unshown = p.warehouse.filter((s) => s.hidden && !s.memorized && !show.includes(s.card) && isBanned(state, s.card) && !isExposed(state, s.card)).length;
   if (unshown) p.cacheUnshown = (p.cacheUnshown ?? 0) + unshown;
   const shownCached = p.warehouse.filter((s) => s.hidden && show.includes(s.card)).length;
   (state.cacheAtGathering ??= {})[p.id] = { unshown, shown: shownCached };
