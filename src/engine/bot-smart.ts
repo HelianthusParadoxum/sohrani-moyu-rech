@@ -626,6 +626,9 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
       v -= BOT_BASE.opponent * others.reduce((s, o) => s + foe(o) * strength(state, o, left), 0) / Math.max(1, others.length);
     }
   }
+  // Бузотёр ещё не использован в эту Пятилетку — запас: пробиться на занятый адрес можно и позже, а свободные места,
+  // за которые идёт борьба, лучше занять сперва (их соперники отнимут, а Бузотёра у нас не отнять).
+  if (state.phase === 'orders' && p.available > 0 && !p.buzoterUsed && hasPatron(state, me, 'buzoter')) v += BOT_BASE.buzoterSpare;
   // Очередь хода в следующей Пятилетке.
   const pos = state.nextOrder.indexOf(me);
   if (pos >= 0 && left > 0) v += BOT_BASE.turnOrder * (state.players.length - pos) / state.players.length;
