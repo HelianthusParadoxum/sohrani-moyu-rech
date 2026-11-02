@@ -1405,12 +1405,25 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
           case 'zavoz': out.push({ type: 'place', place: { address: 'zavoz' } }); break;
           case 'baraholka': {
             // Незнакомые закрытые книги для бота одинаковы: смотрит сначала те, что ещё не видел.
-            // Уже виденную книгу можно взять «наверняка», досмотрев к ней незнакомую.
+            // Уже виденную книгу можно взять «наверняка», досмотрев к ней незнакомую, — но только ту, что выгодно купить:
+            // иначе такой заход открывает одну новую книгу вместо двух.
             const known = state.baraholkaSeen?.[me] ?? [];
             const filled = state.baraholka.map((c, i) => (c ? i : -1)).filter((i) => i >= 0);
-            const fresh = [...filled.filter((i) => !known.includes(i)), ...filled.filter((i) => known.includes(i))];
+            const canBuy = freeSlots(p) > 0 && p.talons >= RULES.baraholkaPrice;
+            const base = canBuy ? evaluate(state, me, ctx) : 0;
+            const worthKnown = !canBuy ? [] : filled.filter((i) => known.includes(i)).filter((i) => {
+              const x = cloneLight(state);
+              const q = player(x, me);
+              q.talons -= RULES.baraholkaPrice;
+              addSecretBook(x, q, state.baraholka[i]!, null);
+              return evaluate(x, me, ctx) > base;
+            });
+            const unknown = filled.filter((i) => !known.includes(i));
+            // Всё уже видел — идти, только если что-то выгодно купить; и не дважды за Пятилетку: книги те же, решение то же.
+            if (!unknown.length && (!worthKnown.length || p.actions.some((x) => x.target === 'baraholka'))) break;
+            const fresh = [...unknown, ...filled.filter((i) => known.includes(i))];
             const need = Math.min(RULES.baraholkaLook, filled.length);
-            const sets = [fresh.slice(0, need), ...known.filter((i) => filled.includes(i)).map((k) => [k, ...fresh.filter((i) => i !== k)].slice(0, need))];
+            const sets = [fresh.slice(0, need), ...worthKnown.map((k) => [k, ...fresh.filter((i) => i !== k)].slice(0, need))];
             const seenSets = new Set<string>();
             for (const slots of sets) {
               const key = [...slots].sort().join(',');

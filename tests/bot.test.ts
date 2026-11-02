@@ -411,3 +411,17 @@ describe('Подозрения: непоказ из Тайника', () => {
     expect(curatorSuspicion(alone, 'p1').p2).toBeGreaterThan(0.5);
   });
 });
+
+describe('Барахолка без пустых ходов', () => {
+  it('все книги уже видел, а купить не на что — на Барахолку не идёт', () => {
+    let s = started(5, 3);
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    // Без Талонов купить нельзя; пока что-то не видел — смотреть ещё есть смысл.
+    p.talons = 0;
+    const toBaraholka = (st: GameState) => rankActions(st, me, presetById('bookman'), seeded(1)).some((r) => r.a.type === 'place' && r.a.place.address === 'baraholka');
+    expect(toBaraholka(s)).toBe(true);
+    s.baraholkaSeen = { ...s.baraholkaSeen, [me]: s.baraholka.map((c, i) => (c ? i : -1)).filter((i) => i >= 0) };
+    expect(toBaraholka(s)).toBe(false);
+  }, 60_000);
+});
