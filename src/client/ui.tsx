@@ -2,7 +2,7 @@
 import type React from 'react';
 import { createContext, useContext, useEffect, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { ADDRESS_ICONS, BONUS_ICONS, GENRE_NAMES, GROUP_ICONS, ICON_JOIN, GENRE_SHORT, PASSIONS } from '../engine/content';
-import { AUTO_PRESET, selectablePresets } from '../engine/bot-presets';
+import { AUTO_PRESET, SOLO_PRESET, selectablePresets } from '../engine/bot-presets';
 import type { AddressId, Genre, GroupActionId, SproutBonusId } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
@@ -218,7 +218,8 @@ export function PresetSelect({ seat, host, send, solo }: { seat: RoomInfo['seats
   // «Наугад» — первым и по умолчанию; «Случайного» нет (он для внутренних тестов), «Одиночка» — только в одиночной игре.
   const auto = { id: AUTO_PRESET, name: 'Наугад', description: 'Случайная стратегия из списка — какая, не видно до конца партии.' };
   const options = [auto, ...selectablePresets(solo)];
-  const current = options.find((p) => p.id === seat.preset) ?? auto;
+  // По умолчанию — «Наугад», а в одиночной игре — «Одиночка».
+  const current = options.find((p) => p.id === (seat.preset ?? (solo ? SOLO_PRESET : AUTO_PRESET))) ?? auto;
   return (
     <>
       {host ? (

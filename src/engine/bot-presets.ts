@@ -154,6 +154,7 @@ export const BOT_PRESETS: BotPreset[] = [
 export const DEFAULT_PRESET = 'bookman';
 // «Наугад» — в лобби по умолчанию: на партию берётся случайная из стратегий, доступных за этим столом.
 export const AUTO_PRESET = 'auto';
+export const SOLO_PRESET = 'soloist'; // стратегия бота по умолчанию в одиночной игре
 // Какие стратегии можно выбрать в лобби: без «Случайного» (он для внутренних тестов), «Одиночка» — только в одиночной игре.
 export function selectablePresets(solo: boolean): BotPreset[] {
   return BOT_PRESETS.filter((p) => p.id !== 'random' && (solo || p.id !== 'soloist'));

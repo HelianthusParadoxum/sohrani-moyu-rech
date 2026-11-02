@@ -9,7 +9,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { applyAction, createGame, activePlayers, migrate } from '../engine/engine';
 import { botMove } from '../engine/bot';
 import { curatorSuspicionDetail, effectiveCuratorStyle } from '../engine/bot-smart';
-import { AUTO_PRESET, curatorStyleNote, presetById, selectablePresets } from '../engine/bot-presets';
+import { AUTO_PRESET, SOLO_PRESET, curatorStyleNote, presetById, selectablePresets } from '../engine/bot-presets';
 import { gainedInfo, viewFor } from '../engine/view';
 import { RuleError } from '../engine/util';
 import type { Action, GameState, Mode } from '../engine/types';
@@ -167,7 +167,8 @@ function roomInfo(room: Room): RoomInfo {
 // Что выбрано за местом в лобби: стратегия или «Наугад» (по умолчанию). «Одиночка» вне одиночной игры — «Наугад».
 function seatChoice(room: Room, seat: Seat): string {
   const solo = room.seats.length === 1;
-  const p = seat.preset ?? AUTO_PRESET;
+  // По умолчанию — «Наугад», а в одиночной игре — «Одиночка».
+  const p = seat.preset ?? (solo ? SOLO_PRESET : AUTO_PRESET);
   return p === AUTO_PRESET || !selectablePresets(solo).some((x) => x.id === p) ? AUTO_PRESET : p;
 }
 
