@@ -650,7 +650,7 @@ function determinize(state: GameState, rand: Rand, me: string): GameState {
   const deckTop = spot ? s.deck.at(-1) : undefined;
   if (deckTop) s.deck = s.deck.slice(0, -1);
   const hidden = (c: string | null, i: number) => !!c && !looking && !known.has(i);
-  const seenSpets = new Set(s.spetskhranSeen?.[me] ?? []);
+  const seenSpets = new Set(spot ? s.spetskhran : (s.spetskhranSeen?.[me] ?? []));
   const unknownSpets = s.spetskhran.filter((c) => !seenSpets.has(c));
   // Сортируем перед перемешиванием, чтобы настоящий порядок карт никак не влиял на решение.
   const pool = [...s.deck, ...s.baraholka.filter((c, i): c is string => hidden(c, i)), ...unknownSpets].sort();

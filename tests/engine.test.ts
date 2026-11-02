@@ -2278,7 +2278,7 @@ describe('Блатной', () => {
 });
 
 describe('Наводчик', () => {
-  it('в свой ход видит Барахолку, верх стопок и сбросы; соперник — нет; вне своего хода — нет', () => {
+  it('в свой ход видит Барахолку, Спецхран, верх стопок и сбросы; соперник — нет; вне своего хода — нет', () => {
     let s = createGame({ players: players(2), seed: 5, mode: 'full' });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
     s = startOrders(s);
@@ -2289,8 +2289,11 @@ describe('Наводчик', () => {
     const mine = viewFor(s, me);
     expect(mine.baraholkaKnown).toEqual(s.baraholka);
     expect(mine.spotter).toEqual({ deckTop: s.deck.at(-1), loadTop: s.loadDeck.at(-1), discard: s.discard, loadDiscard: s.loadDiscard });
+    expect(mine.spetskhranKnown).toEqual(s.spetskhran);
+    expect(s.spetskhran.length).toBeGreaterThan(0);
     const theirs = viewFor(s, other);
     expect(theirs.spotter).toBeUndefined();
+    expect(theirs.spetskhranKnown).toEqual([]);
     expect(theirs.baraholkaKnown.every((c) => c === null)).toBe(true);
     // Ход перешёл к сопернику — Наводчик ничего не показывает.
     s = applyAction(s, me, { type: 'place', place: { address: 'zavoz' } });

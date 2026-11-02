@@ -41,7 +41,8 @@ export function viewFor(state: GameState, me: string | null, omniscient = false)
     me,
     active: activePlayers(state),
     spetskhranCount: spetskhran.length,
-    spetskhranKnown: spetskhran.filter((c) => omniscient || (me !== null && (spetskhranSeen?.[me] ?? []).includes(c))),
+    // Наводчик в свой ход видит весь Спецхран.
+    spetskhranKnown: spetskhran.filter((c) => omniscient || spot || (me !== null && (spetskhranSeen?.[me] ?? []).includes(c))),
     deckCount: deck.length,
     discardCount: discard.length,
     loadDeckCount: loadDeck.length,

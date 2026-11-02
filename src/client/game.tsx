@@ -1235,6 +1235,8 @@ function SpotterButton({ view }: { view: PlayerView }) {
           {shelf(sp.deckTop ? [sp.deckTop] : [])}
           <h4>Верх стопки Нагрузки</h4>
           {shelf(sp.loadTop ? [sp.loadTop] : [])}
+          <h4>Спецхран ({view.spetskhranKnown.length})</h4>
+          {shelf(view.spetskhranKnown)}
           <h4>Сброс Непечатных ({sp.discard.length})</h4>
           {shelf([...sp.discard].reverse())}
           <h4>Сброс Нагрузки ({sp.loadDiscard.length})</h4>
