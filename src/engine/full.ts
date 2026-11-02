@@ -130,7 +130,7 @@ export function onConnect(state: GameState, p: PlayerState, id: PatronId) {
       state.pending.push({ kind: 'glavlitSwap', player: p.id });
       break;
     case 'housekeeper': {
-      const add = Math.min(2, RULES.maxCapacity - p.capacity);
+      const add = Math.min(RULES.housekeeperSlots, RULES.maxCapacity - p.capacity);
       p.capacity += add;
       p.patronBonus.capacity += add;
       break;

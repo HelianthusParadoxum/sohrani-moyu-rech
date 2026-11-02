@@ -8,7 +8,7 @@ import { finalScoring, passionPoints, scoreLine } from '../src/engine/scoring';
 import { FIRST_FEED_POINTS, PASSIONS, RULES, SPROUTS, STEP_REWARDS, limitFor, sproutBonusOptions, sproutSlotBonuses } from '../src/engine/content';
 import type { GameState, Genre, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
-import { proseBonus, removePatron, takeFromSpetskhran } from '../src/engine/full';
+import { onConnect, proseBonus, removePatron, takeFromSpetskhran } from '../src/engine/full';
 
 // Действие и сразу «Закончить ход».
 function act(s: GameState, who: string, a: Parameters<typeof applyAction>[2]): GameState {
@@ -423,6 +423,18 @@ describe('Завсегдатаи: Ветеран, Лейтенант, Управ
       found = s.log.some((l) => l.text.includes('Лейтенант приносит'));
     }
     expect(found).toBe(true);
+  });
+
+  it('Управдом: связь даёт +1 место на складе (не больше предела)', () => {
+    const s = started();
+    const p = s.players.find((x) => x.id === s.order[s.turn])!;
+    const cap = p.capacity;
+    onConnect(s, p, 'housekeeper');
+    expect(RULES.housekeeperSlots).toBe(1);
+    expect(p.capacity).toBe(Math.min(cap + 1, RULES.maxCapacity));
+    p.capacity = RULES.maxCapacity;
+    onConnect(s, p, 'housekeeper');
+    expect(p.capacity).toBe(RULES.maxCapacity);
   });
 
   it('Управдом: после Профилактики игрок сам выбирает, какие книги отдать', () => {
