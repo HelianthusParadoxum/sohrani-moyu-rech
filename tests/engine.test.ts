@@ -604,9 +604,10 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     const card = give(s, me, (icons) => icons.length === 1 && !icons.includes('irony'));
     const t = s.players.find((x) => x.id === me)!.talons;
     s = applyAction(s, me, { type: 'place', place: { address: 'samizdat', card } });
-    expect(s.players.find((x) => x.id === me)!.talons).toBe(t + RULES.samizdatTalons + RULES.correspondentTalons);
-    // Статистика: часть — Самиздату, часть — Корреспонденту.
-    expect(s.players.find((x) => x.id === me)!.talonsBy).toMatchObject({ samizdat: RULES.samizdatTalons, correspondent: RULES.correspondentTalons });
+    expect(s.players.find((x) => x.id === me)!.talons).toBe(t + RULES.correspondentTalons);
+    // Статистика Талонов: от Корреспондента; Самиздат даёт очки.
+    expect(s.players.find((x) => x.id === me)!.talonsBy).toMatchObject({ correspondent: RULES.correspondentTalons });
+    expect(s.players.find((x) => x.id === me)!.pointsBy.samizdat).toBe(RULES.samizdatPoints);
     expect(s.players.find((x) => x.id === me)!.pointsBy.correspondent).toBe(RULES.correspondentPoints);
     // Профессор: за ступень Ростка ещё +1 Талон и +2 очка.
     let s4 = started();
@@ -630,7 +631,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     const card3 = give(s3, me3, (icons) => icons.length === 1 && !icons.includes('irony'));
     const t3 = s3.players.find((x) => x.id === me3)!.talons;
     s3 = applyAction(s3, me3, { type: 'place', place: { address: 'samizdat', card: card3 } });
-    expect(s3.players.find((x) => x.id === me3)!.talons).toBe(t3 + RULES.samizdatTalons + RULES.correspondentTalons + RULES.tsekhovikBonus);
+    expect(s3.players.find((x) => x.id === me3)!.talons).toBe(t3 + RULES.correspondentTalons + RULES.tsekhovikBonus);
 
     let s2 = started();
     const me2 = s2.order[s2.turn];
@@ -1100,7 +1101,8 @@ describe('Разоблачение', () => {
     s.restored[prop] = true;
     const talons = p().talons;
     s = applyAction(s, me, { type: 'place', place: { address: 'samizdat', card: prop } });
-    expect(p().talons).toBe(talons + RULES.samizdatTalons);
+    expect(p().talons).toBe(talons);
+    expect(p().pointsBy.samizdat).toBe(RULES.samizdatPoints);
     expect(p().published).toContain(prop);
     expect(finalScoringLine(s, me)).toBe(RULES.exposePoints);
   });

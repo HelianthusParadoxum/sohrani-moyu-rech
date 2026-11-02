@@ -62,7 +62,7 @@ export const RULES = {
   spisanieDraw: 3, // Библиотечное списание: сколько книг тайно взять сверху стопки (оставить — сколько угодно)
   posrednichestvoDraw: 3, // Посредничество авторам: сколько книг тайно вытянуть
   posrednichestvoKeep: 1, // ...и сколько из них оставить (остальные — в сброс)
-  samizdatTalons: 2, // Самиздат: Талонов за значок
+  samizdatPoints: 2, // Самиздат: очков Гласности за значок
   tamizdatTalons: 1, // Тамиздат: Талонов за значок
   tamizdatPoints: 2, // Тамиздат: очков Гласности за значок
   glavlitUnprinted: 1, // Главлит: Талонов за сданную Непечатную книгу
@@ -159,7 +159,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   baraholka: { id: 'baraholka', name: 'Барахолка', limits: [4, 4, 4], short: 'Глянуть 2 вслепую, купить 1 за 1т', hint: 'Тайно посмотреть 2 из 4 закрытых книг и купить одну из них за 1т' },
   podpiska: { id: 'podpiska', name: 'Подписка', limits: [1, 1, 1], safehouse: true, short: 'Заказать жанр', hint: 'Заказать жанр: −1т за каждую Пятилетку доставки' },
   sprouts: { id: 'sprouts', name: 'Ростки Гласности', limits: [INF, INF, INF], short: 'Питать ступень Ростка', hint: (RULES.sproutFeedsPerAction === 1 ? 'Питать 1 ступень одного Ростка' : `Питать до ${RULES.sproutFeedsPerAction} ступеней Ростков`) + '; у каждого бонуса Ростка — одно место на Пятилетку' },
-  samizdat: { id: 'samizdat', name: 'Самиздат', limits: [1, 2, 3], short: `Издать: +${RULES.samizdatTalons}т/значок`, hint: `Издать книгу: +${RULES.samizdatTalons}т/значок` },
+  samizdat: { id: 'samizdat', name: 'Самиздат', limits: [1, 2, 3], short: `Издать: +${RULES.samizdatPoints} очка/значок`, hint: `Издать книгу: +${RULES.samizdatPoints} очка Гласности за значок` },
   tamizdat: { id: 'tamizdat', name: 'Тамиздат', limits: [1, 1, 1], safehouse: true, short: `Издать: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка/значок`, hint: `Издать книгу: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка/значок` },
   glavlit: { id: 'glavlit', name: 'Главлит', limits: [1, 1, 2], short: 'Сдать книги за Талоны', hint: `Сдать до 1 Непечатной (+${RULES.glavlitUnprinted}т) и до 1 Нагрузки (+${RULES.glavlitLoad}т). Здесь же — Спецхран: изъятые книги` },
   makulatura: { id: 'makulatura', name: 'Макулатура', limits: [1, 1, 2], short: `Тянуть вслепую по ${RULES.makulaturaPrice}т или книге, оставить 1`, hint: `За каждую книгу — ${RULES.makulaturaPrice}т или любая книга со склада (в сброс): тяните тайно сколько угодно книг из стопок Непечатных и Нагрузки (из любой), затем оставьте себе одну, остальные — в сброс` },
@@ -355,6 +355,7 @@ export const POINT_SOURCES: Record<PointSource, string> = {
   firstFeed: 'Первое питание Ростков',
   gathering: 'Посиделки',
   tamizdat: 'Тамиздат',
+  samizdat: 'Самиздат',
   prose: 'Проза «Вдохновиться»',
   drama: 'Драматургия «Разыграть»',
   testimony: 'Свидетельства «Придать огласке»',

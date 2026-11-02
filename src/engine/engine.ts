@@ -1117,8 +1117,8 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       removeBook(p, a.card);
       p.published.push(a.card);
       const genres = iconsOf(state, a.card);
-      const perIcon = a.address === 'samizdat' ? RULES.samizdatTalons : RULES.tamizdatTalons;
-      const talons = icons * perIcon;
+      // Самиздат — очки за значок, Тамиздат — Талоны и очки за значок.
+      const talons = a.address === 'tamizdat' ? icons * RULES.tamizdatTalons : 0;
       const corr = hasPatron(state, p.id, 'correspondent') ? RULES.correspondentTalons : 0;
       let pts = 0;
       const add = (n: number, src: Parameters<typeof gain>[2]) => { gain(p, n, src); pts += n; };
@@ -1126,12 +1126,13 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         p.tamizdat.push(a.card);
         add(icons * RULES.tamizdatPoints, 'tamizdat');
         if (isFull(state) && genreOn('testimony') && genres.includes('testimony')) add(RULES.testimonyPoints, 'testimony'); // «Придать огласке»
-      } else if (isFull(state) && genreOn('foreign') && genres.includes('foreign')) {
-        add(RULES.foreignPoints, 'foreign'); // «Перевести»
+      } else {
+        add(icons * RULES.samizdatPoints, 'samizdat');
+        if (isFull(state) && genreOn('foreign') && genres.includes('foreign')) add(RULES.foreignPoints, 'foreign'); // «Перевести»
       }
       if (corr) add(RULES.correspondentPoints, 'correspondent');
       gaveAway(state, p, a.card);
-      log(state, `${p.name} издаёт ${title(state, a.card)} через ${name}: +${talonsText(talons + corr)}${pts ? `, +${pointsText(pts)}` : ''}.`);
+      log(state, `${p.name} издаёт ${title(state, a.card)} через ${name}: ${[talons + corr ? `+${talonsText(talons + corr)}` : '', pts ? `+${pointsText(pts)}` : ''].filter(Boolean).join(', ')}.`);
       earn(state, p, 0, { [a.address]: talons, correspondent: corr });
       return;
     }

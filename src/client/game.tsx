@@ -657,9 +657,9 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
       const n = sel[0] ? iconCount(view, sel[0]) + (isExposed(view, sel[0]) ? 1 : 0) : 0;
       body = (
         <>
-          <p>Издайте одну книгу: она навсегда спасена, место на складе освобождается, а в подсчёте по Пристрастию книга участвует. {id === 'tamizdat' ? `+${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка за значок.` : `+${RULES.samizdatTalons}т за значок.`}</p>
+          <p>Издайте одну книгу: она навсегда спасена, место на складе освобождается, а в подсчёте по Пристрастию книга участвует. {id === 'tamizdat' ? `+${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка за значок.` : `+${RULES.samizdatPoints} очка за значок.`}</p>
           {pickList(mine.filter(ok), sel, setSel, { max: 1 })}
-          {confirmBtn(`Издать${sel.length ? costTag(-n * (id === 'tamizdat' ? RULES.tamizdatTalons : RULES.samizdatTalons), id === 'tamizdat' ? n * RULES.tamizdatPoints : 0) : ''}`, sel.length ? { address: id, card: sel[0] } : null)}
+          {confirmBtn(`Издать${sel.length ? costTag(-n * (id === 'tamizdat' ? RULES.tamizdatTalons : 0), n * (id === 'tamizdat' ? RULES.tamizdatPoints : RULES.samizdatPoints)) : ''}`, sel.length ? { address: id, card: sel[0] } : null)}
         </>
       );
       break;
@@ -1375,7 +1375,7 @@ function HidingPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (
 }
 
 // Источники очков «по ходу», возможные в этом режиме.
-const BEGINNER_SOURCES: PointSource[] = ['sprouts', 'firstFeed', 'gathering', 'tamizdat'];
+const BEGINNER_SOURCES: PointSource[] = ['sprouts', 'firstFeed', 'gathering', 'tamizdat', 'samizdat'];
 
 // Источники очков «по ходу» для итоговой таблицы: очки Завсегдатая — только если он был в Клубе, Вызволение — где есть Контора.
 function scoreSources(view: PlayerView): PointSource[] {

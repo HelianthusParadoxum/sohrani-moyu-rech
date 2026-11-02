@@ -83,13 +83,15 @@ describe('цены и доходы', () => {
     expect(iconsOf(s, c)).toHaveLength(2);
   });
 
-  it(`Самиздат приносит ${RULES.samizdatTalons}т за значок`, () => {
+  it(`Самиздат приносит ${RULES.samizdatPoints} очка за значок, без Талонов`, () => {
     let s = started();
     const p = me(s);
     const c = giveBook(s, p.id, 2);
-    const t = p.talons;
+    const [t, pts] = [p.talons, p.points];
     s = applyAction(s, p.id, { type: 'place', place: { address: 'samizdat', card: c } });
-    expect(byId(s, p.id).talons).toBe(t + 2 * RULES.samizdatTalons);
+    expect(byId(s, p.id).talons).toBe(t);
+    expect(byId(s, p.id).points).toBe(pts + 2 * RULES.samizdatPoints);
+    expect(byId(s, p.id).pointsBy.samizdat).toBe(2 * RULES.samizdatPoints);
   });
 
   it(`Распределитель и Библиотечное списание стоят ${RULES.raspredelitelPrice}т и ${RULES.spisaniePrice}т`, () => {
