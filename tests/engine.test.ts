@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { applyAction, createGame, startHide } from '../src/engine/engine';
-import { playOut } from '../src/engine/bot';
+import { activePlayers, applyAction, createGame, startHide } from '../src/engine/engine';
+import { botMove, playOut } from '../src/engine/bot';
 import { curatorSuspicion, curatorSuspicionDetail } from '../src/engine/bot-smart';
 import { gainedInfo, viewFor } from '../src/engine/view';
 import { RuleError, cacheLimit, bestFeedBooks, coversStep, iconCount, title, iconsOf, isBanned, isEvidence, isLoad, isPropaganda, discard, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
@@ -678,7 +678,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     const other = s.players.find((x) => x.id !== me)!.id;
     // Стартовые книги Спецхрана не знает никто.
     expect(viewFor(s, me).spetskhranKnown).toEqual([]);
-    expect(viewFor(s, me).spetskhranCount).toBe(RULES.spetskhranStart);
+    expect(viewFor(s, me).spetskhranCount).toBe(RULES.spetskhranPerPlayer * s.players.length);
     s = applyAction(s, me, { type: 'group', group: { action: 'spetskhran' } });
     // Посмотрев Спецхран, игрок знает все его книги, соперник — по-прежнему ни одной.
     expect(viewFor(s, me).spetskhranKnown).toEqual(s.spetskhran);
@@ -693,7 +693,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
 
   it('Возвращение из Спецхрана: Спецхран есть и в Периферии, можно взять 1 любую книгу', () => {
     let s = started('beginner');
-    expect(s.spetskhran.length).toBe(RULES.spetskhranStart);
+    expect(s.spetskhran.length).toBe(RULES.spetskhranPerPlayer * s.players.length);
     const me = s.order[s.turn];
     const other = s.players.find((x) => x.id !== me)!.id;
     s = applyAction(s, me, { type: 'group', group: { action: 'spetskhran' } });
@@ -703,7 +703,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     expect(pend.cards).toEqual(s.spetskhran);
     // Соперник содержимое Спецхрана не видит.
     expect(viewFor(s, other).pending[0]).toEqual({ kind: 'kontoraHandout', player: me, secret: true });
-    const card = pend.cards[2];
+    const card = pend.cards.at(-1)!;
     s = applyAction(s, me, { type: 'kontoraHandout', card });
     expect(s.spetskhran).not.toContain(card);
     expect(s.players.find((x) => x.id === me)!.warehouse.some((w) => w.card === card)).toBe(true);
@@ -1516,7 +1516,7 @@ describe('Заповедник', () => {
     s = startOrders(s);
     const me = s.order[s.turn];
     expect(() => applyAction(s, me, { type: 'place', place: { address: 'kontora' } })).toThrow(/нет на столе/);
-    expect(s.spetskhran.length).toBe(RULES.spetskhranStart); // Спецхран (в Главлите) — и без Конторы
+    expect(s.spetskhran.length).toBe(RULES.spetskhranPerPlayer * 2); // Спецхран (в Главлите) — и без Конторы
     // Партия доигрывается, и Контора никого не держит.
     const end = playOut(s, seeded(5), 6000);
     expect(end.phase).toBe('end');
@@ -1565,14 +1565,24 @@ describe('Ростки: места', () => {
 });
 
 describe('Спецхран и Проза', () => {
-  it('Спецхран (в Главлите) с начала партии хранит 5 Непечатных во всех режимах', () => {
-    const full = createGame({ players: players(3), seed: 4, mode: 'full' });
-    expect(full.spetskhran).toHaveLength(RULES.spetskhranStart);
-    expect(viewFor(full, 'p1').spetskhranCount).toBe(RULES.spetskhranStart);
-    // Только из колоды Непечатных — без Нагрузки.
-    expect(full.spetskhran.every((c) => !full.cards[c].kind.startsWith('load'))).toBe(true);
-    expect(createGame({ players: players(3), seed: 4 }).spetskhran).toHaveLength(RULES.spetskhranStart);
-    expect(createGame({ players: players(3), seed: 4, reserve: true }).spetskhran).toHaveLength(RULES.spetskhranStart);
+  it('Спецхран (в Главлите): в начале каждой Пятилетки — по книге Непечатных на игрока, во всех режимах', () => {
+    for (const opts of [{ mode: 'full' as const }, {}, { reserve: true }]) {
+      let g = createGame({ players: players(3), seed: 4, ...opts });
+      expect(g.spetskhran).toHaveLength(0); // до начала первой Пятилетки — пусто
+      for (const p of g.players) g = applyAction(g, p.id, { type: 'choosePassion', passion: p.passionOptions.find((x) => x !== 'curator') ?? p.passionOptions[0] });
+      expect(g.spetskhran).toHaveLength(RULES.spetskhranPerPlayer * 3);
+      // Только из колоды Непечатных — без Нагрузки; соперникам — только число.
+      expect(g.spetskhran.every((c) => !g.cards[c].kind.startsWith('load'))).toBe(true);
+      expect(viewFor(g, 'p1').spetskhranCount).toBe(RULES.spetskhranPerPlayer * 3);
+      expect(viewFor(g, 'p1').spetskhranKnown).toEqual([]);
+    }
+    // Следующая Пятилетка — ещё по книге на игрока.
+    let s = createGame({ players: players(3), seed: 4 });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const rand = seeded(4);
+    for (let i = 0; i < 3000 && s.round < 2; i++) s = botMove(s, activePlayers(s)[0], rand);
+    expect(s.log.filter((l) => l.text.startsWith('В Спецхран поступает вслепую книг: 3')).length).toBe(2);
   });
 
   it('Проза «Вдохновиться» — не больше 1 очка, сколько бы прозы ни было', () => {

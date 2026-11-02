@@ -102,13 +102,6 @@ export function createGame(opts: NewGameOptions): GameState {
   fillRazval(state);
   state.baraholka = Array.from({ length: RULES.displaySize }, () => draw(state));
   if (mode === 'full') setupClub(state);
-  // Спецхран (в Главлите) с начала партии не пуст — во всех режимах.
-  {
-    for (let i = 0; i < RULES.spetskhranStart; i++) {
-      const c = draw(state);
-      if (c) state.spetskhran.push(c);
-    }
-  }
   log(state, 'Партия началась.');
   logOrder(state);
   logSetup(state);
@@ -390,6 +383,15 @@ function startRound(state: GameState, newSafehouse?: AddressId, prevCensorship?:
   // Все открытые адреса обновлены полностью — перечислим всё, что на них лежит. (Раньше книги, лежавшие на столе и
   // в прошлой Пятилетке, — например, вернувшиеся после перетасовки сброса, — в перечень не попадали.)
   logArrivals(state, new Set());
+  // Спецхран (в Главлите): в начале каждой Пятилетки — по книге Непечатных на игрока, вслепую.
+  let toSpets = 0;
+  for (let i = 0; i < RULES.spetskhranPerPlayer * state.players.length; i++) {
+    const c = draw(state);
+    if (!c) break;
+    state.spetskhran.push(c);
+    toSpets++;
+  }
+  if (toSpets) log(state, `В Спецхран поступает вслепую книг: ${toSpets} (всего там ${state.spetskhran.length}).`);
   if (state.solo && isFull(state) && state.round >= 2) soloPressure(state);
   // Главлитовец: после Обстановки — в порядке, обратном порядку хода.
   if (isFull(state)) {
