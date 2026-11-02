@@ -3,7 +3,7 @@
 //
 // Честность: бот не подглядывает в закрытые карты. Перед примеркой он перемешивает свою копию
 // стопок и Барахолки, поэтому вытянутая при примерке книга — догадка, а не знание.
-import { applyAction, mustVisitRedCorner } from './engine';
+import { activePlayers, applyAction, mustVisitRedCorner } from './engine';
 import { BOT_BASE, CURATOR_STYLES, PATRON_POWER, curatorStyle, type BotGoal, type BotPreset, type CuratorStyle, type TunableBase } from './bot-presets';
 import { COPY_TEXT_ADDRESSES, PERMANENT_ADDRESSES, addressInGame, PASSIONS, RULES, SPROUTS, STEP_REWARDS, FIRST_FEED_POINTS, ADDRESSES, limitFor } from './content';
 import { befriendTargets, blatnoyOptions, heldTotal, kontoraTargets } from './full';
@@ -11,7 +11,7 @@ import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
-  addSecretBook, cacheLimit, cloneJson, coversStep, freeSlots, freeSproutSlots, countsAsLoad, genreOn, genresOf, hasPatron, iconCount, iconsOf, isBanned, isWild, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
+  addSecretBook, cacheLimit, cloneJson, roomToBuy, coversStep, freeSlots, freeSproutSlots, countsAsLoad, genreOn, genresOf, hasPatron, iconCount, iconsOf, isBanned, isWild, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
 } from './util';
 
 type Rand = () => number;
@@ -278,12 +278,12 @@ function soloTargetMet(state: GameState): boolean {
 function shopValue(state: GameState, p: PlayerState, ctx: Ctx): number {
   if (state.phase !== 'orders') return 0;
   const free = p.available + p.bonusGroupTurns - (p.visitedRedCorner || hasPatron(state, p.id, 'doctor') ? 0 : 1);
-  if (free <= 0 || freeSlots(p) <= 0) return 0;
+  if (free <= 0) return 0;
   const offers: { card: string; price: number }[] = [
     ...state.razval.flatMap((c, i) => (c ? [{ card: c, price: RULES.razvalPrices[i] }] : [])),
     ...state.tolkuchka.map((c) => ({ card: c, price: RULES.tolkuchkaBuy })),
     ...(state.safehouses.includes('raspredelitel') ? state.raspredelitel.map((c) => ({ card: c, price: RULES.raspredelitelPrice })) : []),
-  ].filter((o) => o.price <= p.talons && isGenreBook(state, o.card));
+  ].filter((o) => o.price <= p.talons && isGenreBook(state, o.card) && roomToBuy(state, p, [o.card])); // без места — только сборник, который сразу заучат
   if (!offers.length) return 0;
   const base = feedPotential(state, p, ctx);
   let best = 0;
@@ -875,6 +875,9 @@ export function rankActions(state: GameState, me: string, preset: BotPreset, ran
   // В свой ход — сначала спрятать в Тайник самое ценное из опального: потом (Контора, облава) будет поздно.
   const rehide = rehideAction(state, me, ctx);
   if (rehide) return [{ a: rehide, v: 0 }];
+  // «Заучить» сборник поэзии (свободно, без действия): он больше не занимает место на складе и облава его не тронет.
+  const memo = memorizeAction(state, me);
+  if (memo) return [{ a: memo, v: 0 }];
   // Клуб как свободное действие: сначала решаем, стоит ли отдать книгу Завсегдатаю, — это не тратит ход.
   const gifts = freeGiftCandidates(state, me, ctx);
   if (gifts.length) {
@@ -1225,6 +1228,20 @@ function hideList(state: GameState, me: string, ctx: Ctx, keep: Map<string, numb
 }
 
 // Пересобрать Тайник в свой ход: опальные книги — по ценности, остальное место — тому, что уже лежит в Тайнике.
+// Заученного сборника нет, а на складе лежит сборник поэзии — заучить его: освобождается место, облава его не тронет.
+// Открытый сборник (опальный — первым) заучиваем всегда: соперники его и так видели. Спрятанный — только когда
+// складу не хватает места (заученный лежит на виду).
+function memorizeAction(state: GameState, me: string): Action | null {
+  if (state.mode !== 'full' || !genreOn('poetry') || state.phase !== 'orders' || state.pending.length) return null;
+  if (!activePlayers(state).includes(me)) return null;
+  const p = player(state, me);
+  if (p.warehouse.some((s) => s.memorized)) return null;
+  const poems = p.warehouse.filter((s) => iconsOf(state, s.card).includes('poetry'))
+    .sort((a, b) => Number(isBanned(state, b.card)) - Number(isBanned(state, a.card)) || iconCount(state, b.card) - iconCount(state, a.card));
+  const pick = poems.find((s) => !s.hidden) ?? (freeSlots(p) <= 0 ? poems[0] : undefined);
+  return pick ? { type: 'memorize', card: pick.card } : null;
+}
+
 function rehideAction(state: GameState, me: string, ctx: Ctx): Action | null {
   if (state.phase !== 'orders' || state.pending.length) return null;
   const p = player(state, me);
@@ -1426,13 +1443,15 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
             // иначе такой заход открывает одну новую книгу вместо двух.
             const filled = state.baraholka.map((c, i) => (c ? i : -1)).filter((i) => i >= 0);
             const known = hasPatron(state, me, 'spotter') ? filled : state.baraholkaSeen?.[me] ?? [];
-            const canBuy = freeSlots(p) > 0 && p.talons >= RULES.baraholkaPrice;
+            // Без места на складе купить можно только сборник поэзии, если заученного ещё нет.
+            const canBuy = (freeSlots(p) > 0 || (state.mode === 'full' && !p.warehouse.some((w) => w.memorized))) && p.talons >= RULES.baraholkaPrice;
             const base = canBuy ? evaluate(state, me, ctx) : 0;
-            const worthKnown = !canBuy ? [] : filled.filter((i) => known.includes(i)).filter((i) => {
+            const worthKnown = !canBuy ? [] : filled.filter((i) => known.includes(i) && roomToBuy(state, p, [state.baraholka[i]!])).filter((i) => {
               const x = cloneLight(state);
               const q = player(x, me);
               q.talons -= RULES.baraholkaPrice;
-              addSecretBook(x, q, state.baraholka[i]!, null);
+              if (freeSlots(q) > 0) addSecretBook(x, q, state.baraholka[i]!, null);
+              else q.warehouse.push({ card: state.baraholka[i]!, hidden: false, memorized: true });
               return evaluate(x, me, ctx) > base;
             });
             const unknown = filled.filter((i) => !known.includes(i));
