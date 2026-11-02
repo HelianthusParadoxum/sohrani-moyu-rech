@@ -199,6 +199,7 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
           state.phase = 'orders';
           state.ready = [];
           logStartBooks(state);
+          logEvent(state, 'Поручения');
         }
         return done(state);
       }
@@ -393,6 +394,8 @@ function startRound(state: GameState, newSafehouse?: AddressId, prevCensorship?:
   }
   if (toSpets) log(state, `В 🗄️ Спецхран поступает книг: ${toSpets} (всего там ${state.spetskhran.length}).`);
   if (state.solo && isFull(state) && state.round >= 2) soloPressure(state);
+  // В 1-й Пятилетке поручения начинаются после раскладки стартовых книг.
+  if (state.round > 1) logEvent(state, 'Поручения');
   // Главлитовец: после Обстановки — в порядке, обратном порядку хода.
   if (isFull(state)) {
     for (const id of [...state.order].reverse()) {
@@ -566,7 +569,7 @@ function endOrders(state: GameState) {
   state.ready = [];
   state.shownAtGathering = {};
   state.cacheAtGathering = {};
-  logEvent(state, 'Посиделки.');
+  logEvent(state, 'Посиделки');
   const pts = RULES.gatheringPoints;
   logNote(state, `Можно показать опальные книги и Улики со склада — ${pointsText(pts)} за каждую.${ambushPossible(state) ? ' Но Куратор может раскрыться и устроить Засаду: всех, кто показал опальное, ждёт Контора.' : ''}`);
   // Раскрывшийся Куратор на Посиделки не допускается: выбора у него нет.
@@ -654,7 +657,7 @@ function ambushPossible(state: GameState): boolean {
 function startHiding(state: GameState) {
   state.phase = 'hiding';
   state.ready = [];
-  logEvent(state, 'Укрытие.');
+  logEvent(state, 'Укрытие');
   logNote(state, 'Прячьте опальные книги в Тайник (каждые 2 Нагрузки на складе дают +1 место).');
 }
 
