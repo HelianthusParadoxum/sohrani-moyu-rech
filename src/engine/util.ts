@@ -46,7 +46,7 @@ export function log(state: GameState, text: string, only?: string[]) {
   state.log.push(only ? { round: state.round, text, only } : { round: state.round, text });
 }
 
-// Тайная запись-пересказ уже увиденного игроком («Вы оставили…»): нового знания не даёт, «Назад» после неё возможен.
+// Тайная запись-пересказ уже увиденного игроком («Оставлена: …»): нового знания не даёт, «Назад» после неё возможен.
 export function logRecap(state: GameState, text: string, only: string[]) {
   log(state, text, only);
   state.log[state.log.length - 1].recap = true;

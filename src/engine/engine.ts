@@ -1535,7 +1535,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         else discard(state, c);
       }
       log(state, `${p.name} оставляет себе ${action.keep.length} книг(и).`);
-      logRecap(state, `Вы оставили: ${titles(state, action.keep)}.`, [p.id]);
+      logRecap(state, `${action.keep.length > 1 ? 'Оставлены' : 'Оставлена'}: ${titles(state, action.keep)}.`, [p.id]);
       state.pending.shift();
       state.pending.unshift({ kind: 'posrednichestvoGroup', player: p.id });
       offerBlatnoy(state, p, 'posrednichestvo');
@@ -1565,7 +1565,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       for (const c of pend.cards) if (c !== action.card) discard(state, c);
       addSecretBook(state, p, action.card);
       log(state, `${p.name} оставляет себе одну книгу из Макулатуры (вытянуто: ${pend.cards.length}).`);
-      logRecap(state, `Вы оставили ${title(state, action.card)}.`, [p.id]);
+      logRecap(state, `Оставлена: ${title(state, action.card)}.`, [p.id]);
       break;
     }
     case 'spisanieKeep': {
@@ -1578,7 +1578,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         else discard(state, c);
       }
       log(state, `${p.name} оставляет себе из Библиотечного списания ${action.keep.length} книг(и).`);
-      if (action.keep.length) logRecap(state, `Вы оставили: ${titles(state, action.keep)}.`, [p.id]);
+      if (action.keep.length) logRecap(state, `${action.keep.length > 1 ? 'Оставлены' : 'Оставлена'}: ${titles(state, action.keep)}.`, [p.id]);
       if (action.keep.length) offerBlatnoy(state, p, 'spisanie');
       break;
     }
