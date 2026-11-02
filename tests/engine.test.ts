@@ -1605,7 +1605,7 @@ describe('Спецхран и Проза', () => {
     s = startOrders(s);
     const rand = seeded(4);
     for (let i = 0; i < 3000 && s.round < 2; i++) s = botMove(s, activePlayers(s)[0], rand);
-    expect(s.log.filter((l) => l.text.startsWith('В Спецхран поступает вслепую книг: 3')).length).toBe(2);
+    expect(s.log.filter((l) => l.text.startsWith('В 🗄️ Спецхран поступает книг: 3')).length).toBe(2);
   });
 
   it('Проза «Вдохновиться» — не больше 1 очка, сколько бы прозы ни было', () => {

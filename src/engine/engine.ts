@@ -391,7 +391,7 @@ function startRound(state: GameState, newSafehouse?: AddressId, prevCensorship?:
     state.spetskhran.push(c);
     toSpets++;
   }
-  if (toSpets) log(state, `В Спецхран поступает вслепую книг: ${toSpets} (всего там ${state.spetskhran.length}).`);
+  if (toSpets) log(state, `В 🗄️ Спецхран поступает книг: ${toSpets} (всего там ${state.spetskhran.length}).`);
   if (state.solo && isFull(state) && state.round >= 2) soloPressure(state);
   // Главлитовец: после Обстановки — в порядке, обратном порядку хода.
   if (isFull(state)) {
