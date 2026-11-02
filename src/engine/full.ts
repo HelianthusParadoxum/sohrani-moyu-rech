@@ -348,8 +348,9 @@ export function payPrice(state: GameState, p: PlayerState, cost: number) {
 
 // ---------- Блатной ----------
 
-// Блатной: купив книгу в одном месте, за то же действие можно купить ещё одну в любом другом — на Развале, Толкучке
-// или в Распределителе (если он на столе), по обычной цене.
+// Блатной: купив книгу в одном месте (Развал, Толкучка, Барахолка и платные явочные адреса — Распределитель, Наследники,
+// Посредничество, Списание), за то же действие можно купить ещё одну в другом — на Развале, Толкучке или в Распределителе
+// (если он на столе), по обычной цене.
 export function blatnoyOptions(state: GameState, p: PlayerState, from: AddressId): { address: BlatnoyShop; card: string; cost: number }[] {
   const cost = (base: number) => (base > 0 && hasPatron(state, p.id, 'buyer') ? Math.max(1, base - 1) : base);
   const out: { address: BlatnoyShop; card: string; cost: number }[] = [];

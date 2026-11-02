@@ -1497,6 +1497,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       state.discard = [];
       log(state, `${p.name} берёт у Наследников ${action.cards.length} книг(и); сброс замешан в стопку.`);
       logRecap(state, `Вы взяли: ${titles(state, action.cards)}.`, [p.id]);
+      offerBlatnoy(state, p, 'nasledniki');
       break;
     }
     case 'posrednichestvoKeep': {
@@ -1513,6 +1514,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       logRecap(state, `Вы оставили: ${titles(state, action.keep)}.`, [p.id]);
       state.pending.shift();
       state.pending.unshift({ kind: 'posrednichestvoGroup', player: p.id });
+      offerBlatnoy(state, p, 'posrednichestvo');
       return;
     }
     case 'makulatura': {
@@ -1553,6 +1555,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       }
       log(state, `${p.name} оставляет себе из Библиотечного списания ${action.keep.length} книг(и).`);
       if (action.keep.length) logRecap(state, `Вы оставили: ${titles(state, action.keep)}.`, [p.id]);
+      if (action.keep.length) offerBlatnoy(state, p, 'spisanie');
       break;
     }
     case 'posrednichestvoGroup': {

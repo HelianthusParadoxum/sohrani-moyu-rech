@@ -2296,6 +2296,25 @@ describe('Блатной', () => {
     expect(s.tolkuchka).not.toContain(card);
     expect(s.log.some((l) => l.text.includes('Блатной:'))).toBe(true);
   });
+
+  it('работает и на явочных адресах: после Библиотечного списания — ещё одна покупка', () => {
+    let s = createGame({ players: players(2), seed: 5, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    s.patrons[0] = { ...s.patrons[0], id: 'blatnoy', connections: [me] };
+    if (!s.safehouses.includes('spisanie')) s.safehouses = [...s.safehouses, 'spisanie'];
+    const p = s.players.find((x) => x.id === me)!;
+    p.talons = 10;
+    p.capacity = 10;
+    s = applyAction(s, me, { type: 'place', place: { address: 'spisanie' } });
+    const pend = s.pending[0] as Extract<GameState['pending'][number], { kind: 'spisanieKeep' }>;
+    expect(pend.kind).toBe('spisanieKeep');
+    s = applyAction(s, me, { type: 'spisanieKeep', keep: [pend.cards[0]] });
+    expect(s.pending[0]).toMatchObject({ kind: 'blatnoyBuy', player: me, from: 'spisanie' });
+    s = applyAction(s, me, { type: 'blatnoyBuy', address: 'tolkuchka', card: s.tolkuchka[0] });
+    expect(s.pending.length).toBe(0);
+  });
 });
 
 describe('Наводчик', () => {
