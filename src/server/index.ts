@@ -53,10 +53,12 @@ function noteAutoPresets(room: Room) {
   if (!s || s.phase !== 'end') return;
   const autos = room.seats.filter((x) => x.bot && x.autoPreset && seatChoice(room, x) === AUTO_PRESET);
   if (!autos.length) return;
-  const text = `Стратегии ботов «Наугад»: ${autos.map((x) => `${x.name} — ${presetById(x.autoPreset).name}`).join(', ')}.`;
-  if (s.log.some((l) => l.text === text)) return;
+  // Заголовок и по строке на бота — с кружком игрока.
+  const head = 'Стратегии ботов «Наугад»:';
+  if (s.log.some((l) => l.text === head)) return;
   const win = s.log.findIndex((l) => l.winners);
-  s.log.splice(win >= 0 ? win : s.log.length, 0, { round: s.round, text });
+  s.log.splice(win >= 0 ? win : s.log.length, 0, { round: s.round, text: head },
+    ...autos.map((x) => ({ round: s.round, text: `${x.name} — ${presetById(x.autoPreset).name}`, who: x.id })));
 }
 
 // Партия окончена, Куратор — бот: в конце журнала пишем, какой стратегии он держался (один раз).

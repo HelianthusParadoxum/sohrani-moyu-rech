@@ -692,6 +692,7 @@ function doHiding(state: GameState, p: PlayerState, a: Extract<Action, { type: '
   setHidden(state, p, a.hidden, a.memorize);
   state.ready.push(p.id);
   log(state, `${p.name} готов(а) к облаве.`);
+  state.log[state.log.length - 1].who = p.id;
   if (state.ready.length === state.players.length) raid(state);
 }
 
