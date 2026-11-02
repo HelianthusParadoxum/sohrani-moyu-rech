@@ -2314,7 +2314,7 @@ describe('Монография теряется, когда книга уход�
 });
 
 describe('Журнал: сначала действие, потом тайное', () => {
-  it('«берёт книгу вслепую и кладёт в Тайник» — перед тайным «Вы получили…»', () => {
+  it('«берёт книгу вслепую и кладёт в Тайник» — перед тайным «Получена: …»', () => {
     let s = createGame({ players: players(2), seed: 6 });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
     s = startOrders(s);
@@ -2325,7 +2325,7 @@ describe('Журнал: сначала действие, потом тайное
     s = applyAction(s, me, { type: 'kontoraHandout', card: (s.pending[0] as { cards: string[] }).cards[0] });
     const texts = s.log.slice(from).map((l) => l.text);
     const cache = texts.findIndex((t) => t.endsWith('кладёт в Тайник.'));
-    const secret = texts.findIndex((t) => t.startsWith('Вы получили'));
+    const secret = texts.findIndex((t) => t.startsWith('Получена:'));
     expect(cache).toBeGreaterThan(-1);
     expect(secret).toBeGreaterThan(cache);
   });

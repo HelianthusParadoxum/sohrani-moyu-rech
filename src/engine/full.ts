@@ -259,7 +259,7 @@ export function takeFromSpetskhran(state: GameState, p: PlayerState, card: strin
   forgetSpetskhran(state, card);
   // Сперва — что сделано, потом куда легла книга (в Тайник, если есть место).
   log(state, group ? `${p.name} выуживает книгу из Спецхрана.` : `${p.name} получает книгу из Спецхрана (Выдача на руки).`);
-  log(state, `Вы получили ${title(state, card)}.`, [p.id]);
+  log(state, `Получена: ${title(state, card)}.`, [p.id]);
   addSecretBook(state, p, card);
 }
 

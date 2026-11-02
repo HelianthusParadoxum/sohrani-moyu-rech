@@ -209,14 +209,14 @@ describe('Посредничество авторам и Библиотечно�
     const line = s.log.find((l) => l.text.includes('в Госкниготорге'))!;
     expect(line.only).toBeUndefined();
     expect(line.text).toMatch(/берёт в Госкниготорге даром 2 книги\.$/);
-    // По строке на книгу: открытая — при всех, спрятанная — «кладёт в Тайник» при всех и «Вы получили» только себе.
+    // По строке на книгу: открытая — при всех, спрятанная — «кладёт в Тайник» при всех и «Получена:» только себе.
     const texts = s.log.filter((l) => !l.only).map((l) => l.text);
     const open = byId(s, p.id).warehouse.find((w) => !w.hidden)!.card;
     expect(texts).toContain(`${p.name} получает ${title(s, open)}.`);
     expect(texts).toContain(`${p.name} берёт книгу вслепую и кладёт в Тайник.`);
     const hidden = byId(s, p.id).warehouse.find((w) => w.hidden)!.card;
-    const secret = s.log.find((l) => l.only?.includes(p.id) && l.text.startsWith('Вы получили'))!;
-    expect(secret.text).toBe(`Вы получили ${title(s, hidden)}.`);
+    const secret = s.log.find((l) => l.only?.includes(p.id) && l.text.startsWith('Получена:'))!;
+    expect(secret.text).toBe(`Получена: ${title(s, hidden)}.`);
     // Книга в Тайнике чужим в журнале не видна.
     expect(texts.join('\n')).not.toContain(s.cards[hidden].title);
   });

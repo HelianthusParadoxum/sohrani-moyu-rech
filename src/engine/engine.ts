@@ -1313,13 +1313,13 @@ function continueTake(state: GameState, p: PlayerState, cards: string[], then: C
       const got = [...then.got, ...cards];
       if (then.rest.length) { takeTop(state, p, then.rest[0], 1, { kind: 'gostorg', got, rest: then.rest.slice(1) }); return; }
       // Как при выуживании из Спецхрана: сперва что сделано, потом по строке на каждую книгу —
-      // открытая ложится на склад при всех, спрятанную в Тайник соперники не видят («Вы получили…» — только себе).
+      // открытая ложится на склад при всех, спрятанную в Тайник соперники не видят («Получена: …» — только себе).
       log(state, `${p.name} берёт в Госкниготорге даром ${plural(got.length, 'книгу', 'книги', 'книг')}.`);
       for (const c of got) {
         addSecretBook(state, p, c, null);
         if (p.warehouse.find((x) => x.card === c)?.hidden) {
           log(state, `${p.name} берёт книгу вслепую и кладёт в Тайник.`);
-          log(state, `Вы получили ${title(state, c)}.`, [p.id]);
+          log(state, `Получена: ${title(state, c)}.`, [p.id]);
         } else {
           log(state, `${p.name} получает ${title(state, c)}.`);
         }
@@ -1471,7 +1471,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         pend.seen.splice(i, 1);
         pend.bought = bought + 1;
         log(state, `${p.name} покупает книгу на Барахолке.`);
-        log(state, `Вы купили ${title(state, card)}.`, [p.id]);
+        log(state, `Куплена: ${title(state, card)}.`, [p.id]);
         addBoughtBook(state, p, card, true);
       }
       if (action.next !== undefined) {
@@ -1520,7 +1520,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       state.deck = shuffle(state, [...state.deck, ...state.discard]);
       state.discard = [];
       log(state, `${p.name} берёт у Наследников ${action.cards.length} книг(и); сброс замешан в стопку.`);
-      logRecap(state, `Вы взяли: ${titles(state, action.cards)}.`, [p.id]);
+      logRecap(state, `${action.cards.length > 1 ? 'Получены' : 'Получена'}: ${titles(state, action.cards)}.`, [p.id]);
       offerBlatnoy(state, p, 'nasledniki');
       break;
     }
