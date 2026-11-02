@@ -63,7 +63,7 @@ describe('пресеты ботов', () => {
 
 describe('думающий бот', () => {
   for (const n of [2, 3, 4]) {
-    it(`${n} игрока доигрывают Райцентр, карты не теряются`, () => {
+    it(`${n} игрока доигрывают Периферию, карты не теряются`, () => {
       for (let seed = 1; seed <= 2; seed++) {
         const s = playOut(createGame({ players: players(n), seed }), seeded(seed));
         expect(s.phase).toBe('end');

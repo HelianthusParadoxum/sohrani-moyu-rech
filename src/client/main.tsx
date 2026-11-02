@@ -128,7 +128,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
         <>
           <label>Режим
             <select value={room.reserve ? 'reserve' : room.mode} onChange={(e) => net.send({ t: 'setMode', mode: e.target.value as 'beginner' })}>
-              <option value="beginner">Райцентр (для начинающих)</option>
+              <option value="beginner">Периферия (для начинающих)</option>
               <option value="full">Полные правила</option>
               <option value="reserve">Заповедник (полные правила без Конторы и Куратора)</option>
             </select>

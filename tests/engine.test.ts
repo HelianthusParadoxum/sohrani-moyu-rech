@@ -60,7 +60,7 @@ describe('подготовка', () => {
       expect(p.talons).toBe(5);
       expect(p.passionOptions).toHaveLength(2);
     }
-    expect(s.sprouts).toHaveLength(3); // Райцентр: Ростков по числу игроков
+    expect(s.sprouts).toHaveLength(3); // Периферия: Ростков по числу игроков
     expect(createGame({ players: players(3), seed: 1, mode: 'full' }).sprouts).toHaveLength(3); // полный: по числу игроков (в «Заповеднике» +1)
     expect(s.razval.every(Boolean)).toBe(true);
     expect(new Set(allCards(s)).size).toBe(133);
@@ -690,7 +690,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     expect(t.log.some((l) => l.text.includes('книгу уже забрали'))).toBe(true);
   });
 
-  it('Возвращение из Спецхрана: Спецхран есть и в Райцентре, можно взять 1 любую книгу', () => {
+  it('Возвращение из Спецхрана: Спецхран есть и в Периферии, можно взять 1 любую книгу', () => {
     let s = started('beginner');
     expect(s.spetskhran.length).toBe(RULES.spetskhranStart);
     const me = s.order[s.turn];
@@ -1335,7 +1335,7 @@ describe('Бонус Ростка «Завязать знакомство»', ()
 describe('Несистемный (одиночная игра)', () => {
   const solo = (seed: number, mode: 'beginner' | 'full' = 'full') => createGame({ players: [{ id: 'p1', name: 'Один' }], seed, mode });
 
-  it('3 Ростка (в Райцентре — 2), без Куратора в Пристрастиях', () => {
+  it('3 Ростка (в Периферии — 2), без Куратора в Пристрастиях', () => {
     for (let seed = 1; seed <= 30; seed++) {
       const s = solo(seed);
       expect(s.solo).toBe(true);
@@ -2080,7 +2080,7 @@ describe('Фантастика в Ростках', () => {
     expect(coversStep(cards, ['ff'], 'poetry', 1, 'testimony', wild)).toBe(false);
     expect(coversStep(cards, ['t', 'ff'], 'poetry', 2, 'testimony', wild)).toBe(false);
     expect(coversStep(cards, ['p', 't', 'f'], 'poetry', 2, 'testimony', wild)).toBe(true);
-    // Без свойства (Райцентр) Фантастика ничего не заменяет.
+    // Без свойства (Периферия) Фантастика ничего не заменяет.
     expect(coversStep(cards, ['p', 'f'], 'poetry', 1, 'testimony')).toBe(false);
   });
 });
