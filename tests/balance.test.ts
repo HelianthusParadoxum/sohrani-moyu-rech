@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction, createGame } from '../src/engine/engine';
 import { RULES } from '../src/engine/content';
-import { RuleError, iconsOf } from '../src/engine/util';
+import { RuleError, iconsOf, title } from '../src/engine/util';
 import { gainedInfo, viewFor } from '../src/engine/view';
 import { passionPoints } from '../src/engine/scoring';
 import type { Action, GameState } from '../src/engine/types';
@@ -208,12 +208,17 @@ describe('Посредничество авторам и Библиотечно�
     s = applyAction(s, p.id, { type: 'place', place: { address: 'gostorg', pairs: 1 } });
     const line = s.log.find((l) => l.text.includes('в Госкниготорге'))!;
     expect(line.only).toBeUndefined();
-    expect(line.text).toMatch(/2 книги даром:\n• .+\n• В Тайник: 1 книга$/);
-    const secret = s.log.find((l) => l.only?.includes(p.id) && l.text.startsWith('В Тайник:'))!;
-    expect(secret.text).toMatch(/^В Тайник: .+\.$/);
-    // Книга в Тайнике чужим в журнале не видна.
+    expect(line.text).toMatch(/берёт в Госкниготорге даром 2 книги\.$/);
+    // По строке на книгу: открытая — при всех, спрятанная — «кладёт в Тайник» при всех и «Вы получили» только себе.
+    const texts = s.log.filter((l) => !l.only).map((l) => l.text);
+    const open = byId(s, p.id).warehouse.find((w) => !w.hidden)!.card;
+    expect(texts).toContain(`${p.name} получает ${title(s, open)}.`);
+    expect(texts).toContain(`${p.name} берёт книгу вслепую и кладёт в Тайник.`);
     const hidden = byId(s, p.id).warehouse.find((w) => w.hidden)!.card;
-    expect(line.text).not.toContain(s.cards[hidden].title);
+    const secret = s.log.find((l) => l.only?.includes(p.id) && l.text.startsWith('Вы получили'))!;
+    expect(secret.text).toBe(`Вы получили ${title(s, hidden)}.`);
+    // Книга в Тайнике чужим в журнале не видна.
+    expect(texts.join('\n')).not.toContain(s.cards[hidden].title);
   });
 });
 

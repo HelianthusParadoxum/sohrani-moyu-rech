@@ -882,7 +882,7 @@ describe('Тайник и закрытые книги', () => {
     const theirs = viewFor(s, other);
     expect(theirs.players.find((x) => x.id === me)!.warehouse.map((x) => x.card)).not.toContain(card);
     expect(theirs.log.map((l) => l.text).join('\n')).not.toContain(s.cards[card].title);
-    expect(theirs.log.map((l) => l.text).join('\n')).toMatch(/• В Тайник: 1 книга/);
+    expect(theirs.log.map((l) => l.text).join('\n')).toContain('берёт книгу вслепую и кладёт в Тайник.');
     expect(viewFor(s, me).players.find((x) => x.id === me)!.warehouse.map((x) => x.card)).toContain(card);
   });
 });
@@ -2459,7 +2459,7 @@ describe('Каталогизатор', () => {
     const q = s.players.find((x) => x.id === me)!;
     expect(q.warehouse.length).toBe(n0 + 2);
     expect(q.warehouse.some((w) => w.card === loadBottom)).toBe(true);
-    expect(s.log.some((l) => l.text.includes('в Госкниготорге: 2 книги'))).toBe(true);
+    expect(s.log.some((l) => l.text.includes('в Госкниготорге даром 2 книги'))).toBe(true);
   });
 });
 

@@ -1312,14 +1312,18 @@ function continueTake(state: GameState, p: PlayerState, cards: string[], then: C
     case 'gostorg': {
       const got = [...then.got, ...cards];
       if (then.rest.length) { takeTop(state, p, then.rest[0], 1, { kind: 'gostorg', got, rest: then.rest.slice(1) }); return; }
-      // Всем — что легло на склад открыто и сколько книг ушло в Тайник; тайно — какие именно в Тайнике.
-      for (const c of got) addSecretBook(state, p, c, null);
-      const cached = got.filter((c) => p.warehouse.find((x) => x.card === c)?.hidden);
-      const open = got.filter((c) => !cached.includes(c));
-      // Списком: открытые книги на склад, последней строкой — сколько ушло в Тайник.
-      const items = [...open.map((c) => title(state, c)), ...(cached.length ? [`В Тайник: ${plural(cached.length, 'книга', 'книги', 'книг')}`] : [])];
-      log(state, `${p.name} в Госкниготорге: ${plural(got.length, 'книга', 'книги', 'книг')} даром${items.length ? `:\n${items.map((x) => `• ${x}`).join('\n')}` : '.'}`);
-      if (cached.length) log(state, `В Тайник: ${titles(state, cached)}.`, [p.id]);
+      // Как при выуживании из Спецхрана: сперва что сделано, потом по строке на каждую книгу —
+      // открытая ложится на склад при всех, спрятанную в Тайник соперники не видят («Вы получили…» — только себе).
+      log(state, `${p.name} берёт в Госкниготорге даром ${plural(got.length, 'книгу', 'книги', 'книг')}.`);
+      for (const c of got) {
+        addSecretBook(state, p, c, null);
+        if (p.warehouse.find((x) => x.card === c)?.hidden) {
+          log(state, `${p.name} берёт книгу вслепую и кладёт в Тайник.`);
+          log(state, `Вы получили ${title(state, c)}.`, [p.id]);
+        } else {
+          log(state, `${p.name} получает ${title(state, c)}.`);
+        }
+      }
       return;
     }
     case 'librarian': {
