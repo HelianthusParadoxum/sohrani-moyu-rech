@@ -1129,8 +1129,12 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
     if (patrons[0]) items.push({ prophylaxis: patrons[0].id });
   }
   const out: KontoraChoice[] = [];
-  // Вызволение из бед (вместо «Пришить дело»): Куратор не вызволяет, против подозреваемого Куратора его не вызволяют.
-  if (!ctx.curator) {
+  // Вызволение из бед (вместо «Пришить дело»). Куратор вызволяет только своих — лишнее действие и очки, — чужих не трогает;
+  // против подозреваемого Куратора его Единомышленников не вызволяют.
+  const mine = player(state, me).held;
+  if (ctx.curator) {
+    if (mine > 0) out.push({ rescue: { [me]: Math.min(mine, RULES.rescueMax) } });
+  } else {
     for (const rescue of rescueOptions(state, me)) {
       if (united && rescue[enemy[0]]) continue;
       out.push({ rescue });
@@ -1301,7 +1305,11 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         // Соперник идёт в Контору: перепрятать самое ценное из опального.
         return [{ type: 'kontoraHide', hidden: hideList(state, me, ctx, keepMap()) }];
       case 'kontoraDecide':
-        return [...kontoraChoices(state, me, ctx, keepMap()).map((choice) => ({ type: 'kontoraDecide' as const, go: true, choice })), { type: 'kontoraDecide', go: false }];
+      {
+        // Передумать — только если выбрать нечего: иначе при примерке похода «передумать» перевешивает, и бот ходит туда-сюда.
+        const choices = kontoraChoices(state, me, ctx, keepMap()).map((choice) => ({ type: 'kontoraDecide' as const, go: true, choice }));
+        return choices.length ? choices : [{ type: 'kontoraDecide', go: false }];
+      }
       case 'kontoraHandout': {
         const left = pend.cards.filter((c) => state.spetskhran.includes(c));
         return left.length ? left.map((card) => ({ type: 'kontoraHandout' as const, card })) : [{ type: 'pass' }];
@@ -1441,7 +1449,10 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
             // Только что передумал идти (соперники перепрятали книги) — второй раз за ход не объявляет.
             const mine = state.log.filter((l) => l.text.startsWith(p.name + ' ')).pop();
             const changedMind = mine?.text === `${p.name} передумывает идти в Контору.`;
-            if (!changedMind && (kontoraTargets(state, me).length || heldTotal(state) > 0)) out.push({ type: 'place', place: { address: 'kontora' } });
+            // Заявлять поход, только если там будет что выбрать (иначе бот передумывает — пустой ход в журнале).
+            if (!changedMind && (kontoraTargets(state, me).length || heldTotal(state) > 0) && kontoraChoices(state, me, ctx, keepMap()).length) {
+              out.push({ type: 'place', place: { address: 'kontora' } });
+            }
             break;
           }
           case 'kvartirnik': {
