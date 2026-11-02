@@ -72,11 +72,18 @@ function noteCuratorStyle(room: Room) {
   s.log.splice(win >= 0 ? win : s.log.length, 0, { round: s.round, text });
 }
 
-// Записи только для зрителя (хост без места видит всё): стратегия Куратора-бота сразу после выбора Пристрастия
+// Записи только для зрителя (хост без места видит всё): стратегии ботов «Наугад», стратегия Куратора-бота сразу после выбора Пристрастия
 // и в начале каждой Пятилетки — насколько каждый честный бот подозревает в каждом другом Куратора.
 function noteForSpectator(room: Room) {
   const s = room.state;
-  if (!s || s.mode !== 'full') return;
+  if (!s) return;
+  // Боты «Наугад»: какая стратегия им выпала (соперники узнают это только в конце партии).
+  const autos = room.seats.filter((x) => x.bot && x.autoPreset && seatChoice(room, x) === AUTO_PRESET);
+  for (const x of autos) {
+    const text = `Для зрителя. ${x.name} («Наугад») играет по стратегии «${presetById(x.autoPreset).name}».`;
+    if (!s.log.some((l) => l.text === text)) s.log.push({ round: s.round, text, only: [], em: true });
+  }
+  if (s.mode !== 'full') return;
   const bots = new Set(room.seats.filter((x) => x.bot).map((x) => x.id));
   const cur = s.players.find((p) => p.passion === 'curator' && bots.has(p.id));
   if (cur) {
@@ -331,6 +338,8 @@ function handle(ws: WebSocket, msg: ClientMessage) {
       if (room.seats.length < 1) return send(ws, { t: 'error', message: 'За столом никого нет' });
       // «Наугад» — новая стратегия на каждую партию.
       for (const s of room.seats) delete s.autoPreset;
+      // Стратегию «Наугад» выбираем сразу, чтобы зритель видел её с начала партии.
+      for (const s of room.seats) if (s.bot) seatPreset(room, s);
       room.state = createGame({
         players: room.seats.map((s) => ({ id: s.id, name: s.name })), mode: room.mode, curator: !room.noCurator, reserve: room.reserve,
         forceCurator: room.forceCurator, curatorStyle: room.curatorStyle || undefined,
