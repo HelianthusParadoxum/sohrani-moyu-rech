@@ -1136,10 +1136,11 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
           genreBonus = `↳ Иностранная переведена: +${pointsText(RULES.foreignPoints)}.`;
         }
       }
-      if (corr) add(RULES.correspondentPoints, 'correspondent');
+      if (corr) gain(p, RULES.correspondentPoints, 'correspondent');
       gaveAway(state, p, a.card);
-      log(state, `${p.name} издаёт ${title(state, a.card)} через ${name}: ${[talons + corr ? `+${talonsText(talons + corr)}` : '', pts ? `+${pointsText(pts)}` : ''].filter(Boolean).join(', ')}.`);
+      log(state, `${p.name} издаёт ${title(state, a.card)} через ${name}: ${[talons ? `+${talonsText(talons)}` : '', pts ? `+${pointsText(pts)}` : ''].filter(Boolean).join(', ')}.`);
       if (genreBonus) logAfter(state, genreBonus);
+      if (corr) logAfter(state, `↳ Корреспондент: +${talonsText(corr)} и +${pointsText(RULES.correspondentPoints)}.`);
       earn(state, p, 0, { [a.address]: talons, correspondent: corr });
       return;
     }

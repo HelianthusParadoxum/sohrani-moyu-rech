@@ -621,6 +621,11 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     expect(s.players.find((x) => x.id === me)!.talonsBy).toMatchObject({ correspondent: RULES.correspondentTalons });
     expect(s.players.find((x) => x.id === me)!.pointsBy.samizdat).toBe(RULES.samizdatPoints);
     expect(s.players.find((x) => x.id === me)!.pointsBy.correspondent).toBe(RULES.correspondentPoints);
+    // В журнале бонус Корреспондента — отдельной строкой, в строке издания только Самиздат.
+    const texts = s.log.map((l) => l.text);
+    const pub = texts.findIndex((x) => x.includes('издаёт'));
+    expect(texts[pub]).not.toContain('Талон');
+    expect(texts.slice(pub + 1)).toContain('↳ Корреспондент: +1 Талон и +1 очко.');
     // Профессор: за ступень Ростка ещё +1 Талон и +2 очка.
     let s4 = started();
     const me4 = s4.order[s4.turn];
