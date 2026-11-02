@@ -350,3 +350,7 @@ label.row { flex-direction: row; align-items: center; gap: 8px; }
 .log div { line-height: 18px; }
 .log .dot, .log .log-genres { vertical-align: middle; position: relative; top: -1px; }
 .log .dot.num { margin-top: -2px; margin-bottom: -2px; }
+/* Телефон: описание хода — отдельной строкой под фазой и кнопками, чтобы строка с фазой не прыгала от длины текста */
+@media (max-width: 600px) {
+  .status .status-text { order: 10; flex-basis: 100%; }
+}
