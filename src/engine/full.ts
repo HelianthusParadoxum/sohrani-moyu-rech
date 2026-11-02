@@ -91,10 +91,12 @@ export function giveToPatron(state: GameState, p: PlayerState, gift: ClubGift) {
   const icons = genresOf(state, gift.card);
   check(icons.includes(patron.genre) || (genreOn('album') && icons.includes('album')),
     `${name} ждёт книгу жанра «${GENRE_NAMES[patron.genre]}» (или Альбом)`);
+  // Альбом «Подарить»: книга без жанра Завсегдатая — связь за Альбом.
+  const album = !icons.includes(patron.genre);
   removeBook(p, gift.card);
   discard(state, gift.card);
   gaveAway(state, p, gift.card);
-  linkPatron(state, p, patron, `отдана ${title(state, gift.card)}`);
+  linkPatron(state, p, patron, `отдана ${title(state, gift.card)}`, album ? '↳ Альбом подарен: связь с любым Завсегдатаем.' : undefined);
 }
 
 // Бонус Ростка «Завязать знакомство»: связь с любым Завсегдатаем без книги — и даже с занятым на эту Пятилетку.
@@ -110,12 +112,13 @@ export function befriendTargets(state: GameState, me: string): PatronId[] {
   return state.patrons.filter((x) => !x.removed && !x.connections.includes(me)).map((x) => x.id);
 }
 
-function linkPatron(state: GameState, p: PlayerState, patron: GameState['patrons'][number], how: string) {
+function linkPatron(state: GameState, p: PlayerState, patron: GameState['patrons'][number], how: string, note?: string) {
   patron.connections.push(p.id);
   patron.since = { ...patron.since, [p.id]: state.round };
   patron.turned = true;
   log(state, `${p.name} заводит связь в Клубе: ${PATRONS[patron.id].name} (${how}).`);
   state.log[state.log.length - 1].club = { player: p.id, round: state.round };
+  if (note) logAfter(state, note);
   onConnect(state, p, patron.id);
   // Маклер: каждая следующая связь — Талоны (связь с ним самим — нет).
   if (patron.id !== 'broker' && hasPatron(state, p.id, 'broker')) {

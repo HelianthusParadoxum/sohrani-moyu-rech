@@ -2521,3 +2521,48 @@ describe('Каталогизатор при короткой стопке', () =
     expect(s.deck).toHaveLength(1);
   });
 });
+
+describe('Журнал: свойства Альбома и Фантастики', () => {
+  function started() {
+    let s = createGame({ players: players(2), seed: 5, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    return startOrders(s);
+  }
+  const take = (s: GameState, ok: (icons: string[]) => boolean) => {
+    const c = s.deck.find((x) => s.cards[x].kind === 'genre' && ok(s.cards[x].icons))!;
+    s.deck = s.deck.filter((x) => x !== c);
+    return c;
+  };
+
+  it('Альбом «Подарить»: связь за Альбом — отдельной строкой; за книгу жанра Завсегдатая — без неё', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    const patron = s.patrons.find((x) => x.genre !== 'album' && x.id !== 'glavlit')!;
+    const album = take(s, (icons) => icons.length === 1 && icons[0] === 'album');
+    p.warehouse.push({ card: album, hidden: false });
+    s = applyAction(s, me, { type: 'clubGift', gift: { patron: patron.id, card: album } });
+    const texts = s.log.map((l) => l.text);
+    const link = texts.findIndex((t) => t.includes('заводит связь'));
+    expect(texts[link + 1]).toBe('↳ Альбом подарен: связь с любым Завсегдатаем.');
+
+    let t = started();
+    const me2 = t.order[t.turn];
+    const own = take(t, (icons) => icons.length === 1 && icons[0] === patron.genre);
+    t.players.find((x) => x.id === me2)!.warehouse.push({ card: own, hidden: false });
+    t = applyAction(t, me2, { type: 'clubGift', gift: { patron: patron.id, card: own } });
+    expect(t.log.some((l) => l.text.startsWith('↳ Альбом'))).toBe(false);
+  });
+
+  it('Фантастика «Заронить зерно»: ступень закрыта значком Фантастики — отдельной строкой', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    const sp = s.sprouts.find((x) => SPROUTS.find((y) => y.id === x.id)!.main !== 'scifi' && !SPROUTS.find((y) => y.id === x.id)!.steps[0].support)!;
+    const sf = take(s, (icons) => icons.length === 1 && icons[0] === 'scifi');
+    s.players.find((x) => x.id === me)!.warehouse.push({ card: sf, hidden: false });
+    s = applyAction(s, me, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: [sf] }] } });
+    const texts = s.log.map((l) => l.text);
+    const feed = texts.findIndex((t) => t.includes('питает ступень'));
+    expect(texts[feed + 1]).toBe('↳ Фантастика заронила зерно: значок Фантастики засчитан за другой жанр.');
+  });
+});

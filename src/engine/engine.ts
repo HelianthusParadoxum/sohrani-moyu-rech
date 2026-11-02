@@ -1097,6 +1097,10 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
           text += `, +${pointsText(FIRST_FEED_POINTS)} за первое питание`;
         }
         log(state, text + '.');
+        // Фантастика «Заронить зерно»: без неё (её значков вместо других жанров) ступень не закрылась бы.
+        if (isFull(state) && !coversStep(state, f.books, info.main, step.main, step.support, { labtech: lab })) {
+          logAfter(state, '↳ Фантастика заронила зерно: значок Фантастики засчитан за другой жанр.');
+        }
         const bonus = slots[slot];
         const options = bonus && (bonus !== 'acquaintance' || befriendTargets(state, p.id).length > 0) ? [bonus] : [];
         if (options.length) state.pending.push({ kind: 'sproutBonus', player: p.id, sprout: sp.id, options });
