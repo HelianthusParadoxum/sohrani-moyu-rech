@@ -1,11 +1,11 @@
 // Полный режим: Клуб книголюбов, Завсегдатаи, Контора, особенности жанров.
 import { CLUB_SIZE, GENRE_NAMES, KONTORA_PATRONS, PATRONS, RULES } from './content';
-import type { ClubGift, GameState, KontoraChoice, PatronId, PlayerState } from './types';
+import type { AddressId, BlatnoyShop, ClubGift, GameState, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
   addBook, addSecretBook, check, discard, drawLoad, earn, freeSlots, hasBook, hasPatron, iconsOf, genresOf, genreOn, isBanned, isGenreBook, isPropaganda, log, pay, player,
   removeBook, saved, shuffle, talonsText, title, titles, logAfter, gain, pointsText,
-  forgetSpetskhran, seeSpetskhran, toSpetskhranPublic,
+  forgetSpetskhran, seeSpetskhran, toSpetskhranPublic, addOpenBook,
 } from './util';
 
 export const isFull = (state: GameState) => state.mode === 'full';
@@ -338,4 +338,37 @@ export function payPrice(state: GameState, p: PlayerState, cost: number) {
   const c = price(state, p, cost);
   pay(p, c);
   return c;
+}
+
+// ---------- Блатной ----------
+
+// Блатной: купив книгу в одном месте, за то же действие можно купить ещё одну в любом другом — на Развале, Толкучке
+// или в Распределителе (если он на столе), по обычной цене.
+export function blatnoyOptions(state: GameState, p: PlayerState, from: AddressId): { address: BlatnoyShop; card: string; cost: number }[] {
+  const cost = (base: number) => (base > 0 && hasPatron(state, p.id, 'buyer') ? Math.max(1, base - 1) : base);
+  const out: { address: BlatnoyShop; card: string; cost: number }[] = [];
+  if (from !== 'razval') state.razval.forEach((c, i) => { if (c) out.push({ address: 'razval', card: c, cost: cost(RULES.razvalPrices[i]) }); });
+  if (from !== 'tolkuchka') for (const c of state.tolkuchka) out.push({ address: 'tolkuchka', card: c, cost: cost(RULES.tolkuchkaBuy) });
+  if (from !== 'raspredelitel' && state.safehouses.includes('raspredelitel')) {
+    for (const c of state.raspredelitel) out.push({ address: 'raspredelitel', card: c, cost: cost(RULES.raspredelitelPrice) });
+  }
+  return out.filter((o) => o.cost <= p.talons);
+}
+
+// После покупки — предложить Блатному ещё одну (если есть место, деньги и что купить).
+export function offerBlatnoy(state: GameState, p: PlayerState, from: AddressId) {
+  if (!hasPatron(state, p.id, 'blatnoy') || freeSlots(p) <= 0 || !blatnoyOptions(state, p, from).length) return;
+  state.pending.push({ kind: 'blatnoyBuy', player: p.id, from });
+}
+
+export function doBlatnoy(state: GameState, p: PlayerState, from: AddressId, address: BlatnoyShop, card: string) {
+  const opt = blatnoyOptions(state, p, from).find((o) => o.address === address && o.card === card);
+  check(opt, 'Эту книгу Блатной купить не может: другое место, есть Талоны и книга на месте');
+  check(freeSlots(p) > 0, 'На складе нет места');
+  pay(p, price(state, p, address === 'razval' ? RULES.razvalPrices[state.razval.indexOf(card)] : address === 'tolkuchka' ? RULES.tolkuchkaBuy : RULES.raspredelitelPrice));
+  if (address === 'razval') state.razval = state.razval.map((c) => (c === card ? null : c));
+  else state[address] = state[address].filter((c) => c !== card);
+  addOpenBook(state, p, card);
+  const where = address === 'razval' ? 'на Развале' : address === 'tolkuchka' ? 'на Толкучке' : 'в Распределителе';
+  logAfter(state, `↳ Блатной: ${p.name} покупает ещё ${where} ${title(state, card)} за ${talonsText(opt.cost)}.`);
 }

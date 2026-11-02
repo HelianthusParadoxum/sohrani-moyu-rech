@@ -158,7 +158,7 @@ export const PATRON_POWER: Partial<Record<PatronId, number>> = {
   apprentice: 1, doctor: 0.8, carpenter: 0.8, librarian: 0.75, lieutenant: 0.65, buyer: 0.6, postgrad: 0.6, housekeeper: 0.6,
   chairman: 0.55, tsekhovik: 0.55, geologist: 0.5, buzoter: 0.5, professor: 0.45, komsorg: 0.45, labtech: 0.7, zavmag: 0.35,
   zavkhoz: 0.3, editor: 0.3, partorg: 0.3, broker: 0.3, veteran: 0.25, typist: 0.25, psychiatrist: 0.25, fartsovshchik: 0.2,
-  correspondent: 0.2, glavlit: 0.15, nesun: 0.15,
+  correspondent: 0.2, glavlit: 0.15, nesun: 0.15, blatnoy: 0.4, // Блатной — оценка до замера
 };
 
 // ---------- Характеры Куратора-бота ----------

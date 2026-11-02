@@ -152,6 +152,7 @@ export type Pending =
   | { kind: 'kontoraHandout'; player: string; cards: string[]; group?: boolean; seize?: { player: string; card: string; by?: string; shielded?: boolean } } // seize — Сигнал и Изъятие после выбора книги
   | { kind: 'extraGroup'; player: string } // Подмастерье
   | { kind: 'freeConnection'; player: string } // Председатель
+  | { kind: 'blatnoyBuy'; player: string; from: AddressId } // Блатной: купил в from — можно купить ещё одну книгу в другом месте
   | { kind: 'lieutenantPick'; player: string; cards: string[] } // Лейтенант: книги, изъятые облавой с адресов
   | { kind: 'discardExcess'; player: string; count: number }
   | { kind: 'glavlitSwap'; player: string; roundStart?: boolean }; // Главлитовец переносит опалу с жанра на жанр // склад уменьшился — игрок выбирает, что отдать
@@ -286,6 +287,8 @@ export type PlaceAction =
   | { address: 'kontora' };
 
 // Покупка в рамках Тиражирования текста.
+// Где Блатной докупает книгу.
+export type BlatnoyShop = 'razval' | 'tolkuchka' | 'raspredelitel';
 export type CopyTextAddress = 'razval' | 'tolkuchka' | 'raspredelitel' | 'knigoobmen' | 'agitpunkt';
 export type CopyTextBuy = Extract<PlaceAction, { address: CopyTextAddress }>;
 
@@ -330,6 +333,7 @@ export type Action =
   | { type: 'kontoraHandout'; card: string }
   | { type: 'clubGift'; gift: ClubGift | null }
   | { type: 'befriend'; patron: PatronId } // Председатель: связь с любым Завсегдатаем без книги
+  | { type: 'blatnoyBuy'; address: BlatnoyShop; card: string } // Блатной: ещё одна книга в другом месте
   | { type: 'memorize'; card: string | null }
   | { type: 'lieutenantPick'; card: string | null }
   | { type: 'discardExcess'; cards: string[] }

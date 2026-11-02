@@ -5,7 +5,7 @@ import { applyAction, activePlayers, mustVisitRedCorner } from './engine';
 import { curatorStyle, presetById } from './bot-presets';
 import { copyTextOptions, effectiveCuratorStyle, smartMove } from './bot-smart';
 import { PERMANENT_ADDRESSES, RULES, SPROUTS } from './content';
-import { befriendTargets } from './full';
+import { befriendTargets, blatnoyOptions } from './full';
 import type { Action, ClubGift, GameState, Genre, GroupAction } from './types';
 import { GENRES } from './types';
 import { cacheLimit, freeSlots, freeSproutSlots, isFromLoadDeck, genresOf, iconCount, iconsOf, isBanned, isLoad, isPropaganda, player, RuleError } from './util';
@@ -59,6 +59,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
       }
       case 'extraGroup': return [...groupCandidates(state, me, rand).filter((g) => g.type === 'group' && p.groupUsed.includes(g.group.action)), { type: 'pass' }];
       case 'freeConnection': return [...befriendTargets(state, me).map((patron) => ({ type: 'befriend' as const, patron })), { type: 'pass' }];
+      case 'blatnoyBuy': return [...blatnoyOptions(state, p, pend.from).slice(0, 1).map((o) => ({ type: 'blatnoyBuy' as const, address: o.address, card: o.card })), { type: 'pass' }];
       case 'sproutBonus': {
         const out: Action[] = [];
         for (const b of pend.options) {

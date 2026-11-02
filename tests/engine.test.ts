@@ -791,7 +791,8 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     let s3 = started();
     const me3 = s3.order[s3.turn];
     connect(s3, 'broker', []);
-    const card3 = give(s3, me3, (icons) => icons.includes(s3.patrons[0].genre) && !icons.includes('irony'));
+    s3.patrons[0].genre = 'prose'; // не Ирония: её свойство тоже даёт Талоны (от раздачи не зависим)
+    const card3 = give(s3, me3, (icons) => icons.includes('prose') && !icons.includes('irony'));
     const t3 = s3.players.find((x) => x.id === me3)!.talons;
     s3 = applyAction(s3, me3, { type: 'clubGift', gift: { patron: 'broker', card: card3 } });
     expect(s3.patrons[0].connections).toContain(me3);
@@ -2245,5 +2246,33 @@ describe('Контора без проигрыша по числу удержа�
     s = applyAction(s, me, { type: 'group', group: { action: 'expandCache' } });
     expect(s.phase).not.toBe('end');
     expect(s.result).toBeUndefined();
+  });
+});
+
+describe('Блатной', () => {
+  it('купив на Развале, за то же действие покупает ещё одну книгу на Толкучке (но не на Развале)', () => {
+    let s = createGame({ players: players(2), seed: 5, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    s.patrons[0] = { ...s.patrons[0], id: 'blatnoy', connections: [me] };
+    const p = s.players.find((x) => x.id === me)!;
+    p.talons = 10;
+    p.capacity = 10;
+    const slot = s.razval.findIndex(Boolean);
+    const avail = p.available;
+    s = applyAction(s, me, { type: 'place', place: { address: 'razval', slot } });
+    expect(s.pending[0]).toMatchObject({ kind: 'blatnoyBuy', player: me, from: 'razval' });
+    const other = s.razval.find(Boolean)!;
+    expect(() => applyAction(s, me, { type: 'blatnoyBuy', address: 'razval', card: other })).toThrow(RuleError);
+    const card = s.tolkuchka[0];
+    const talons = s.players.find((x) => x.id === me)!.talons;
+    s = applyAction(s, me, { type: 'blatnoyBuy', address: 'tolkuchka', card });
+    const q = s.players.find((x) => x.id === me)!;
+    expect(q.warehouse.some((w) => w.card === card)).toBe(true);
+    expect(q.talons).toBe(talons - RULES.tolkuchkaBuy);
+    expect(q.available).toBe(avail - 1); // одно действие на обе покупки
+    expect(s.tolkuchka).not.toContain(card);
+    expect(s.log.some((l) => l.text.includes('Блатной:'))).toBe(true);
   });
 });

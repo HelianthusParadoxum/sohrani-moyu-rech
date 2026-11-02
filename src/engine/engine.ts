@@ -6,7 +6,7 @@ import {
 } from './content';
 import { finalScoring } from './scoring';
 import {
-  afterRaid, befriendPatron, befriendTargets, doKontora, gaveAway, giveToPatron, holdWorker, isFull, partorgFill, payPrice, price, proseBonus, purchases,
+  afterRaid, befriendPatron, befriendTargets, doKontora, gaveAway, giveToPatron, holdWorker, isFull, partorgFill, offerBlatnoy, doBlatnoy, payPrice, price, proseBonus, purchases,
   flushIrony, removePatron, seizeDenounced, setupClub, startKontora, takeFromSpetskhran,
 } from './full';
 import type {
@@ -889,6 +889,8 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
     return;
   }
   doPlace(state, p, a);
+  // Блатной: купил здесь — можно ещё одну книгу в другом месте.
+  if (a.address === 'razval' || a.address === 'raspredelitel' || (a.address === 'tolkuchka' && a.ops.some((op) => op.op === 'buy'))) offerBlatnoy(state, p, a.address);
   if (buzoter) { p.buzoterUsed = true; log(state, `${p.name}: Бузотёр пробивается на занятый адрес.`); }
   state.occupancy[a.address] = [...here, p.id];
   track(p, a.address);
@@ -1414,6 +1416,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       // Ветеран покупает сколько угодно книг: решение закрывается, только когда он заканчивает.
       if (veteran && (action.slot !== undefined || action.next !== undefined)) return;
       if (action.slot === undefined) log(state, `${p.name} ${bought ? 'больше ничего не берёт' : 'ничего не берёт'} на Барахолке.`);
+      if ((pend.bought ?? 0) > 0) offerBlatnoy(state, p, 'baraholka');
       break;
     }
     case 'kvartirnikReply': {
@@ -1638,6 +1641,12 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       logEvent(state, `${p.name}: дополнительное действие за Подмастерья — «${GROUP_ACTIONS[action.group.action].name}»`);
       state.log[state.log.length - 1].who = p.id;
       doGroup(state, p, action.group, { limited: false });
+      break;
+    }
+    case 'blatnoyBuy': {
+      if (action.type === 'pass') break;
+      check(action.type === 'blatnoyBuy', 'Купите книгу или откажитесь');
+      doBlatnoy(state, p, pend.from, action.address, action.card);
       break;
     }
     case 'freeConnection': {

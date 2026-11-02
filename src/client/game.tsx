@@ -8,7 +8,7 @@ import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupActio
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import { title as bookTitle, bestFeedBooks, coversStep, freeSproutSlots, genresOf, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, roman } from '../engine/util';
-import { kontoraTargets } from '../engine/full';
+import { blatnoyOptions, kontoraTargets } from '../engine/full';
 import {
   BefriendPicker, ClubContents, fittingBooks, patronOpen, patronWhy, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
   KontoraWarningPrompt,
@@ -1026,6 +1026,25 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
       return <HandoutPrompt view={view} cards={p.cards} act={act} group={p.group} />;
     case 'freeConnection':
       return <FreeConnectionPrompt view={view} me={me} act={act} />;
+    case 'blatnoyBuy': {
+      // Блатной: ещё одна книга в другом месте — по обычной цене.
+      const opts = blatnoyOptions(view as never, me as never, p.from);
+      const where = { razval: 'Развал', tolkuchka: 'Толкучка', raspredelitel: 'Распределитель' } as const;
+      return (
+        <Modal title="Блатной: ещё одна книга" wide>
+          <p>За то же действие можно купить ещё одну книгу в другом месте — по обычной цене. У вас {me.talons}🎫.</p>
+          {(['razval', 'tolkuchka', 'raspredelitel'] as const).filter((a) => opts.some((o) => o.address === a)).map((a) => (
+            <div key={a}>
+              <h4>{addressIcons(where[a])}</h4>
+              <div className="shelf wrap">
+                {opts.filter((o) => o.address === a).map((o) => <Book key={o.card} v={view} id={o.card} price={o.cost} onClick={() => act({ type: 'blatnoyBuy', address: a, card: o.card })} />)}
+              </div>
+            </div>
+          ))}
+          <div className="modal-foot"><button onClick={() => act({ type: 'pass' })}>Не покупать</button></div>
+        </Modal>
+      );
+    }
     case 'makulatura': {
       // Вытянутые книги и свои книги со склада не пересекаются: выбранная вытянутая — оставить, своя — отдать в уплату.
       const own = me.warehouse.map((s) => s.card!).filter(Boolean);
