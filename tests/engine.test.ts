@@ -2276,3 +2276,26 @@ describe('Блатной', () => {
     expect(s.log.some((l) => l.text.includes('Блатной:'))).toBe(true);
   });
 });
+
+describe('Наводчик', () => {
+  it('в свой ход видит Барахолку, верх стопок и сбросы; соперник — нет; вне своего хода — нет', () => {
+    let s = createGame({ players: players(2), seed: 5, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const other = s.order.find((id) => id !== me)!;
+    s.patrons[0] = { ...s.patrons[0], id: 'spotter', connections: [me] };
+    s.discard = [s.deck.pop()!];
+    const mine = viewFor(s, me);
+    expect(mine.baraholkaKnown).toEqual(s.baraholka);
+    expect(mine.spotter).toEqual({ deckTop: s.deck.at(-1), loadTop: s.loadDeck.at(-1), discard: s.discard, loadDiscard: s.loadDiscard });
+    const theirs = viewFor(s, other);
+    expect(theirs.spotter).toBeUndefined();
+    expect(theirs.baraholkaKnown.every((c) => c === null)).toBe(true);
+    // Ход перешёл к сопернику — Наводчик ничего не показывает.
+    s = applyAction(s, me, { type: 'place', place: { address: 'zavoz' } });
+    if (s.turnDone === me) s = applyAction(s, me, { type: 'endTurn' });
+    expect(s.order[s.turn]).toBe(other);
+    expect(viewFor(s, me).spotter).toBeUndefined();
+  });
+});

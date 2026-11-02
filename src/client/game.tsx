@@ -135,7 +135,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
         <div className="title">Сохрани мою речь</div>
         <div>Пятилетка <b>{view.round}</b>/{RULES.rounds}</div>
         <div className="banned">Цензура {view.censorship}: {view.banned.map((g) => <GenreChip key={g} g={g} banned />)}</div>
-        <div className="muted small">📃 Непечатные: {view.deckCount} (сброс {view.discardCount}) · 📕 Нагрузка: {view.loadDeckCount} (сброс {view.loadDiscardCount})</div>
+        <div className="muted small">📃 Непечатные: {view.deckCount} (сброс {view.discardCount}) · 📕 Нагрузка: {view.loadDeckCount} (сброс {view.loadDiscardCount}){view.spotter && <SpotterButton view={view} />}</div>
         {isHost && (
           <div className="host-tools">
             <label className="row small">
@@ -1200,6 +1200,32 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
       );
     }
   }
+}
+
+// Наводчик: в свой ход — верхние книги стопок и сбросы целиком (книги Барахолки открыты на её карточке).
+function SpotterButton({ view }: { view: PlayerView }) {
+  const [open, setOpen] = useState(false);
+  const sp = view.spotter!;
+  const shelf = (cards: string[]) => (cards.length
+    ? <div className="shelf wrap">{cards.map((c) => <Book key={c} v={view} id={c} small />)}</div>
+    : <p className="muted">Пусто</p>);
+  return (
+    <>
+      {' · '}<button className="small" onClick={() => setOpen(true)} title="Наводчик: верх стопок и сбросы">👁 Наводчик</button>
+      {open && (
+        <Modal title="Наводчик" wide onClose={() => setOpen(false)}>
+          <h4>Верх стопки Непечатных</h4>
+          {shelf(sp.deckTop ? [sp.deckTop] : [])}
+          <h4>Верх стопки Нагрузки</h4>
+          {shelf(sp.loadTop ? [sp.loadTop] : [])}
+          <h4>Сброс Непечатных ({sp.discard.length})</h4>
+          {shelf([...sp.discard].reverse())}
+          <h4>Сброс Нагрузки ({sp.loadDiscard.length})</h4>
+          {shelf([...sp.loadDiscard].reverse())}
+        </Modal>
+      )}
+    </>
+  );
 }
 
 // Значки жанров в журнале: «[ПР ФА]» → цветные значки, как в Клубе. Прочие пометки («[Нагрузка]») — как есть.

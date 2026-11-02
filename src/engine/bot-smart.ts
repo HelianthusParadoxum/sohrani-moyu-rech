@@ -644,7 +644,11 @@ function cloneLight(state: GameState): GameState {
 function determinize(state: GameState, rand: Rand, me: string): GameState {
   const s = cloneLight(state);
   const looking = s.pending.some((x) => x.kind === 'baraholkaLook');
-  const known = new Set(s.baraholkaSeen?.[me] ?? []);
+  // Наводчик видит все книги Барахолки и верхние книги стопок.
+  const spot = hasPatron(s, me, 'spotter');
+  const known = new Set(spot ? s.baraholka.map((_, i) => i) : (s.baraholkaSeen?.[me] ?? []));
+  const deckTop = spot ? s.deck.at(-1) : undefined;
+  if (deckTop) s.deck = s.deck.slice(0, -1);
   const hidden = (c: string | null, i: number) => !!c && !looking && !known.has(i);
   const seenSpets = new Set(s.spetskhranSeen?.[me] ?? []);
   const unknownSpets = s.spetskhran.filter((c) => !seenSpets.has(c));
@@ -653,8 +657,9 @@ function determinize(state: GameState, rand: Rand, me: string): GameState {
   shuffleWith(pool, rand);
   s.baraholka = s.baraholka.map((c, i) => (hidden(c, i) ? pool.pop()! : c));
   s.spetskhran = [...s.spetskhran.filter((c) => seenSpets.has(c)), ...unknownSpets.map(() => pool.pop()!)];
-  s.deck = pool;
-  s.loadDeck = shuffleWith([...s.loadDeck].sort(), rand);
+  s.deck = deckTop ? [...pool, deckTop] : pool;
+  const loadTop = spot ? s.loadDeck.at(-1) : undefined;
+  s.loadDeck = [...shuffleWith((loadTop ? s.loadDeck.slice(0, -1) : [...s.loadDeck]).sort(), rand), ...(loadTop ? [loadTop] : [])];
   s.rng = Math.floor(rand() * 2 ** 31);
   return s;
 }
@@ -1408,8 +1413,8 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
             // Незнакомые закрытые книги для бота одинаковы: смотрит сначала те, что ещё не видел.
             // Уже виденную книгу можно взять «наверняка», досмотрев к ней незнакомую, — но только ту, что выгодно купить:
             // иначе такой заход открывает одну новую книгу вместо двух.
-            const known = state.baraholkaSeen?.[me] ?? [];
             const filled = state.baraholka.map((c, i) => (c ? i : -1)).filter((i) => i >= 0);
+            const known = hasPatron(state, me, 'spotter') ? filled : state.baraholkaSeen?.[me] ?? [];
             const canBuy = freeSlots(p) > 0 && p.talons >= RULES.baraholkaPrice;
             const base = canBuy ? evaluate(state, me, ctx) : 0;
             const worthKnown = !canBuy ? [] : filled.filter((i) => known.includes(i)).filter((i) => {
