@@ -1412,6 +1412,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
       // Возвращение из Спецхрана: игрок смотрит Спецхран и выбирает книгу следом.
       check(state.spetskhran.length > 0, 'Спецхран пуст');
       check(freeSlots(p) > 0, 'На складе нет места');
+      payPrice(state, p, RULES.spetskhranCost);
       state.pending.push({ kind: 'kontoraHandout', player: p.id, cards: [...state.spetskhran], group: true });
       seeSpetskhran(state, p.id, state.spetskhran);
       break;

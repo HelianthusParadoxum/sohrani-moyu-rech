@@ -46,6 +46,7 @@ export const RULES = {
   scifiWild: 'any' as 'any' | 'support', // Фантастика «Заронить зерно» в Ростках: 'any' — заменяет любой значок, 'support' — только значок поддержки
   scifiWildMax: 1, // ...и не больше стольких значков на ступень Ростка
   genreOff: [] as Genre[], // жанры, чьё свойство выключено (для замеров: насколько свойство влияет на партию)
+  spetskhranCost: 1, // Выудить из Спецхрана: цена в Талонах
   restoreCost: 0, // Возвращение смыслов: цена в Талонах (0 — бесплатно)
   tolkuchkaBuy: 2, // за книгу
   tolkuchkaSellBanned: 2, // книга с опальным жанром
@@ -220,7 +221,7 @@ export const GROUP_ACTIONS: Record<GroupActionId, { name: string; hint: string; 
   expandWarehouse: { name: 'Увеличить Склад', hint: `−${RULES.expandWarehouseCost}т: +1 место на складе (до 10)` },
   expandCache: { name: 'Заложить Тайник', hint: `−${RULES.expandCacheCost}т: 1 место склада становится потайным (до ${RULES.maxCache})` },
   copyText: { name: 'Тиражировать Текст', hint: 'Бесплатно взять открыто лежащую книгу с адреса, где уже стоит хотя бы один ваш Единомышленник (Развал, Толкучка, Распределитель, Книгообмен, Агитпункт)' },
-  spetskhran: { name: 'Выудить из Спецхрана', hint: 'Посмотреть Спецхран (он в Главлите) и взять оттуда 1 любую книгу' },
+  spetskhran: { name: 'Выудить из Спецхрана', hint: `−${RULES.spetskhranCost}т: посмотреть Спецхран (он в Главлите) и взять оттуда 1 любую книгу` },
   restore: { name: 'Написать Монографию', hint: `${RULES.restoreCost ? `${RULES.restoreCost}т: ` : ''}+1 значок жанровой книге или 3 значка возвращаемой Нагрузке` },
   hire: { name: 'Расширить Сеть', hint: `−${RULES.hireCost}т: +1 Единомышленник, сразу доступен (до 7)` },
 };
@@ -228,7 +229,7 @@ export const GROUP_ACTIONS: Record<GroupActionId, { name: string; hint: string; 
 // Цена действия Группы в Талонах (без скидок Завсегдатаев); 0 — бесплатно.
 export function groupCost(id: string): number {
   return id === 'expandWarehouse' ? RULES.expandWarehouseCost : id === 'expandCache' ? RULES.expandCacheCost
-    : id === 'restore' ? RULES.restoreCost : id === 'hire' ? RULES.hireCost : 0;
+    : id === 'restore' ? RULES.restoreCost : id === 'spetskhran' ? RULES.spetskhranCost : id === 'hire' ? RULES.hireCost : 0;
 }
 
 export const SPROUT_BONUS_NAMES: Record<SproutBonusId, string> = {

@@ -703,12 +703,18 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     expect(t.log.some((l) => l.text.includes('книгу уже забрали'))).toBe(true);
   });
 
-  it('Возвращение из Спецхрана: Спецхран есть и в Периферии, можно взять 1 любую книгу', () => {
+  it('Возвращение из Спецхрана: Спецхран есть и в Периферии, можно взять 1 любую книгу за 1 Талон', () => {
     let s = started('beginner');
     expect(s.spetskhran.length).toBe(RULES.spetskhranPerPlayer * s.players.length);
     const me = s.order[s.turn];
     const other = s.players.find((x) => x.id !== me)!.id;
+    expect(RULES.spetskhranCost).toBe(1);
+    const broke: GameState = structuredClone(s);
+    broke.players.find((x) => x.id === me)!.talons = 0;
+    expect(() => applyAction(broke, me, { type: 'group', group: { action: 'spetskhran' } })).toThrow(RuleError);
+    const talons = s.players.find((x) => x.id === me)!.talons;
     s = applyAction(s, me, { type: 'group', group: { action: 'spetskhran' } });
+    expect(s.players.find((x) => x.id === me)!.talons).toBe(talons - RULES.spetskhranCost);
     const pend = s.pending[0] as { kind: string; cards: string[]; group?: boolean };
     expect(pend.kind).toBe('kontoraHandout');
     expect(pend.group).toBe(true);

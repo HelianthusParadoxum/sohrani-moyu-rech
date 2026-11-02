@@ -934,6 +934,7 @@ function groupBlocker(view: PlayerView, me: VPlayer, id: GroupActionId): string 
     }
     case 'spetskhran':
       if (!view.spetskhranCount) return 'Спецхран пуст.';
+      if (me.talons < priceFor(view, me, RULES.spetskhranCost)) return `Нужно ${priceFor(view, me, RULES.spetskhranCost)}т, у вас ${me.talons}.`;
       return free < 1 ? 'На складе нет свободного места.' : null;
     case 'restore':
       if (me.talons < RULES.restoreCost) return `Нужно ${RULES.restoreCost}т, у вас ${me.talons}.`;

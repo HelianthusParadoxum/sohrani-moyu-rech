@@ -1032,7 +1032,7 @@ function groupCandidates(state: GameState, me: string, ctx: Ctx, free = false): 
     if (!state.restored[s.card] && !ownWeapon && ['genre', 'loadReturnable', 'loadEvidence', ...(RULES.exposePropaganda ? ['propaganda', 'loadPropaganda'] : [])].includes(state.cards[s.card].kind)) out.push({ action: 'restore', card: s.card });
   }
   void free;
-  if (state.spetskhran.length && freeSlots(p) > 0) out.push({ action: 'spetskhran' });
+  if (state.spetskhran.length && freeSlots(p) > 0 && p.talons >= RULES.spetskhranCost) out.push({ action: 'spetskhran' });
   return out;
 }
 
