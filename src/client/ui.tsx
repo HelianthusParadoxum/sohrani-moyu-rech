@@ -2,7 +2,7 @@
 import type React from 'react';
 import { createContext, useContext, useEffect, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { ADDRESS_ICONS, BONUS_ICONS, GENRE_NAMES, GROUP_ICONS, ICON_JOIN, GENRE_SHORT, PASSIONS } from '../engine/content';
-import { BOT_PRESETS, presetById } from '../engine/bot-presets';
+import { AUTO_PRESET, selectablePresets } from '../engine/bot-presets';
 import type { AddressId, Genre, GroupActionId, SproutBonusId } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
@@ -214,9 +214,10 @@ export function SpeedSelect({ room, send }: { room: RoomInfo; send: (m: ClientMe
 
 // Пресет бота: хост выбирает, остальные видят название. Под строкой — описание (подсказки при наведении на телефоне не видны).
 export function PresetSelect({ seat, host, send, solo }: { seat: RoomInfo['seats'][number]; host: boolean; send: (m: ClientMessage) => void; solo: boolean }) {
-  // «Одиночка» — только в одиночной игре.
-  const options = BOT_PRESETS.filter((p) => solo || p.id !== 'soloist');
-  const current = presetById(solo || seat.preset !== 'soloist' ? seat.preset : undefined);
+  // «Наугад» — первым и по умолчанию; «Случайного» нет (он для внутренних тестов), «Одиночка» — только в одиночной игре.
+  const auto = { id: AUTO_PRESET, name: 'Наугад', description: 'Случайная стратегия из списка — какая, не видно до конца партии.' };
+  const options = [auto, ...selectablePresets(solo)];
+  const current = options.find((p) => p.id === seat.preset) ?? auto;
   return (
     <>
       {host ? (

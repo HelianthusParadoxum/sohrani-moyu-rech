@@ -152,6 +152,12 @@ export const BOT_PRESETS: BotPreset[] = [
 ];
 
 export const DEFAULT_PRESET = 'bookman';
+// «Наугад» — в лобби по умолчанию: на партию берётся случайная из стратегий, доступных за этим столом.
+export const AUTO_PRESET = 'auto';
+// Какие стратегии можно выбрать в лобби: без «Случайного» (он для внутренних тестов), «Одиночка» — только в одиночной игре.
+export function selectablePresets(solo: boolean): BotPreset[] {
+  return BOT_PRESETS.filter((p) => p.id !== 'random' && (solo || p.id !== 'soloist'));
+}
 
 // Сила Завсегдатаев (0..1) по замеру `npm run patrons`: сколько очков приносит связь. Куратор блокирует сильных.
 export const PATRON_POWER: Partial<Record<PatronId, number>> = {

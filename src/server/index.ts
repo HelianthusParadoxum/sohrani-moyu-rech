@@ -9,7 +9,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { applyAction, createGame, activePlayers, migrate } from '../engine/engine';
 import { botMove } from '../engine/bot';
 import { curatorSuspicionDetail, effectiveCuratorStyle } from '../engine/bot-smart';
-import { BOT_PRESETS, DEFAULT_PRESET, curatorStyleNote, presetById } from '../engine/bot-presets';
+import { AUTO_PRESET, curatorStyleNote, presetById, selectablePresets } from '../engine/bot-presets';
 import { gainedInfo, viewFor } from '../engine/view';
 import { RuleError } from '../engine/util';
 import type { Action, GameState, Mode } from '../engine/types';
@@ -20,7 +20,7 @@ const DIST = resolve('dist');
 const SAVE_DIR = resolve(process.env.SAVE_DIR ?? 'data/games');
 mkdirSync(SAVE_DIR, { recursive: true });
 
-interface Seat { id: string; name: string; token: string; bot: boolean; preset?: string }
+interface Seat { id: string; name: string; token: string; bot: boolean; preset?: string; autoPreset?: string } // autoPreset — что выпало «Наугад» на эту партию
 interface Room {
   code: string; host: string; seats: Seat[]; mode: Mode; state: GameState | null; history: GameState[]; updated: number;
   botDelay?: number;
@@ -46,6 +46,18 @@ const rooms = new Map<string, Room>();
 const sockets = new Map<WebSocket, { room: string; seat: string | null; host: boolean }>();
 
 // ---------- Сохранение ----------
+
+// Партия окончена: какие стратегии выпали ботам «Наугад» (один раз, перед строкой о победителе).
+function noteAutoPresets(room: Room) {
+  const s = room.state;
+  if (!s || s.phase !== 'end') return;
+  const autos = room.seats.filter((x) => x.bot && x.autoPreset && seatChoice(room, x) === AUTO_PRESET);
+  if (!autos.length) return;
+  const text = `Стратегии ботов «Наугад»: ${autos.map((x) => `${x.name} — ${presetById(x.autoPreset).name}`).join(', ')}.`;
+  if (s.log.some((l) => l.text === text)) return;
+  const win = s.log.findIndex((l) => l.winners);
+  s.log.splice(win >= 0 ? win : s.log.length, 0, { round: s.round, text });
+}
 
 // Партия окончена, Куратор — бот: в конце журнала пишем, какой стратегии он держался (один раз).
 function noteCuratorStyle(room: Room) {
@@ -91,6 +103,7 @@ function save(room: Room) {
   room.updated = Date.now();
   noteForSpectator(room);
   noteCuratorStyle(room);
+  noteAutoPresets(room);
   const { history, ...rest } = room;
   writeFileSync(join(SAVE_DIR, `${room.code}.json`), JSON.stringify({ ...rest, history: history.slice(-20) }));
 }
@@ -130,7 +143,7 @@ const newId = () => randomBytes(6).toString('hex');
 function roomInfo(room: Room): RoomInfo {
   return {
     code: room.code, host: room.host, mode: room.mode, reserve: room.reserve, started: !!room.state,
-    seats: room.seats.map((s) => ({ id: s.id, name: s.name, bot: s.bot, online: isOnline(room, s.id), preset: seatPreset(room, s) })),
+    seats: room.seats.map((s) => ({ id: s.id, name: s.name, bot: s.bot, online: isOnline(room, s.id), preset: seatChoice(room, s) })),
     canUndo: room.history.length > 0,
     hostBot: hostSeat(room)?.bot ?? false,
     botDelay: room.botDelay ?? 700,
@@ -142,12 +155,20 @@ function roomInfo(room: Room): RoomInfo {
   };
 }
 
-// Пресет бота за местом: выбранный хостом, а если не выбран — «Одиночка» в одиночной игре и «Книжник» в остальных.
-// «Одиночка» — только в одиночной игре: если игроков стало больше, бот играет пресетом по умолчанию.
-function seatPreset(room: Room, seat: Seat): string {
+// Что выбрано за местом в лобби: стратегия или «Наугад» (по умолчанию). «Одиночка» вне одиночной игры — «Наугад».
+function seatChoice(room: Room, seat: Seat): string {
   const solo = room.seats.length === 1;
-  if (seat.preset === 'soloist' && !solo) return DEFAULT_PRESET;
-  return seat.preset ?? (solo ? 'soloist' : DEFAULT_PRESET);
+  const p = seat.preset ?? AUTO_PRESET;
+  return p === AUTO_PRESET || !selectablePresets(solo).some((x) => x.id === p) ? AUTO_PRESET : p;
+}
+
+// Какой стратегией бот играет: выбранной — или выпавшей «Наугад» (одна на партию, из доступных за этим столом).
+function seatPreset(room: Room, seat: Seat): string {
+  const choice = seatChoice(room, seat);
+  if (choice !== AUTO_PRESET) return choice;
+  const options = selectablePresets(room.seats.length === 1).map((p) => p.id);
+  if (!seat.autoPreset || !options.includes(seat.autoPreset)) seat.autoPreset = options[Math.floor(Math.random() * options.length)];
+  return seat.autoPreset;
 }
 
 function hostSeat(room: Room) {
@@ -203,10 +224,12 @@ function scheduleBots(room: Room) {
 function renameBots(room: Room) {
   const bots = room.seats.filter((s) => s.bot && s.id !== room.host);
   const count = new Map<string, number>();
-  for (const s of bots) count.set(presetById(s.preset ?? DEFAULT_PRESET).name, (count.get(presetById(s.preset ?? DEFAULT_PRESET).name) ?? 0) + 1);
+  // «Наугад» — просто «Бот»: имя не выдаёт выпавшую стратегию.
+  const baseOf = (s: Seat) => (seatChoice(room, s) === AUTO_PRESET ? 'Бот' : presetById(seatChoice(room, s)).name);
+  for (const s of bots) count.set(baseOf(s), (count.get(baseOf(s)) ?? 0) + 1);
   const seen = new Map<string, number>();
   for (const s of bots) {
-    const base = presetById(s.preset ?? DEFAULT_PRESET).name;
+    const base = baseOf(s);
     const k = (seen.get(base) ?? 0) + 1;
     seen.set(base, k);
     s.name = count.get(base)! > 1 ? `${base} ${k}` : base;
@@ -306,6 +329,8 @@ function handle(ws: WebSocket, msg: ClientMessage) {
     case 'start': {
       if (!isHost || room.state) return;
       if (room.seats.length < 1) return send(ws, { t: 'error', message: 'За столом никого нет' });
+      // «Наугад» — новая стратегия на каждую партию.
+      for (const s of room.seats) delete s.autoPreset;
       room.state = createGame({
         players: room.seats.map((s) => ({ id: s.id, name: s.name })), mode: room.mode, curator: !room.noCurator, reserve: room.reserve,
         forceCurator: room.forceCurator, curatorStyle: room.curatorStyle || undefined,
@@ -384,8 +409,9 @@ function handle(ws: WebSocket, msg: ClientMessage) {
     case 'botPreset': {
       // Пресет бота можно менять и до, и во время партии.
       const seat = room.seats.find((s) => s.id === msg.seat);
-      if (!isHost || !seat || !BOT_PRESETS.some((p) => p.id === msg.preset)) return;
-      if (msg.preset === 'soloist' && room.seats.length > 1) return; // «Одиночка» — только в одиночной игре
+      // «Наугад» или стратегия из доступных за этим столом (без «Случайного»; «Одиночка» — только в одиночной игре).
+      if (!isHost || !seat || (msg.preset !== AUTO_PRESET && !selectablePresets(room.seats.length === 1).some((p) => p.id === msg.preset))) return;
+      delete seat.autoPreset;
       seat.preset = msg.preset;
       break;
     }

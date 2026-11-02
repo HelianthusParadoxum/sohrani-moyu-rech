@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { activePlayers as activePlayersOf, applyAction, createGame } from '../src/engine/engine';
 import { botMove, playOut } from '../src/engine/bot';
 import { curatorSuspicion, effectiveCuratorStyle, rankActions } from '../src/engine/bot-smart';
-import { BOT_BASE, BOT_GOALS, BOT_PRESETS, CURATOR_STYLES, curatorStyle, curatorStyleNote, presetById } from '../src/engine/bot-presets';
+import { BOT_BASE, BOT_GOALS, BOT_PRESETS, CURATOR_STYLES, curatorStyle, curatorStyleNote, presetById, selectablePresets } from '../src/engine/bot-presets';
 import { isBanned, isEvidence, isGenreBook } from '../src/engine/util';
 import { RULES } from '../src/engine/content';
 import type { GameState } from '../src/engine/types';
@@ -424,4 +424,16 @@ describe('Барахолка без пустых ходов', () => {
     s.baraholkaSeen = { ...s.baraholkaSeen, [me]: s.baraholka.map((c, i) => (c ? i : -1)).filter((i) => i >= 0) };
     expect(toBaraholka(s)).toBe(false);
   }, 60_000);
+});
+
+describe('Выбор стратегии бота в лобби', () => {
+  it('без «Случайного»; «Одиночка» — только в одиночной игре', () => {
+    const multi = selectablePresets(false).map((p) => p.id);
+    const solo = selectablePresets(true).map((p) => p.id);
+    expect(multi).not.toContain('random');
+    expect(multi).not.toContain('soloist');
+    expect(solo).toContain('soloist');
+    expect(solo).not.toContain('random');
+    expect(multi.length).toBeGreaterThanOrEqual(5);
+  });
 });
