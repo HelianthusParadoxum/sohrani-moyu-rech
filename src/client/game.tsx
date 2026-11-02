@@ -1,5 +1,5 @@
 // Игровой стол.
-import { createContext, Fragment, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, Fragment, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import {
   ADDRESSES, ADDRESS_ICONS, addressLabel, BONUS_ICONS, GROUP_ICONS, ICON_JOIN, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, groupCost, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
   groupInGame, addressInGame, PATRONS, sproutSlotBonuses,
@@ -52,10 +52,23 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
   // Имя игрока в строке статуса — с его цветным кружком.
   const who = (id: string) => <Fragment key={id}><span className="dot" style={{ background: PLAYER_COLORS[seatIndex(id)] }} /> {nameOf(id)}</Fragment>;
   const whoList = (ids: string[]) => ids.map((id, i) => <Fragment key={id}>{i ? ', ' : ''}{who(id)}</Fragment>);
+  // Итог партии: перед именем каждого победителя — его кружок.
+  const withWinnerDots = (note: string, winners: string[]): ReactNode => {
+    let parts: (string | ReactElement)[] = [note];
+    for (const id of winners) {
+      const name = nameOf(id);
+      parts = parts.flatMap((x) => {
+        if (typeof x !== 'string') return [x];
+        const i = x.indexOf(name);
+        return i < 0 ? [x] : [x.slice(0, i), who(id), x.slice(i + name.length)];
+      });
+    }
+    return <>{parts}</>;
+  };
   // Строка статуса начинается с того, кто действует; ждём нескольких сразу — «Ждём: …».
   const mine = (text: string) => <>{you && who(you)} (вы): {workerIcon(text)}</>;
   let status: ReactNode;
-  if (view.phase === 'end') status = view.result?.note ?? 'Партия окончена';
+  if (view.phase === 'end') status = view.result ? withWinnerDots(view.result.note, view.result.winners) : 'Партия окончена';
   else if (head && head.player !== you) status = <>{who(head.player)} принимает решение…</>;
   else if (myPending) status = mine('примите решение');
   else if (view.phase === 'orders') {
