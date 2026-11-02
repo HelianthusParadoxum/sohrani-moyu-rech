@@ -127,7 +127,7 @@ export function finalScoring(state: GameState): GameResult {
         ? `Гласность не наступила. Побеждает Куратор — ${curator.name}.`
         : 'Гласность не наступила: все Единомышленники проиграли.',
       summary: curator ? 'Гласность не наступила.' : 'Гласность не наступила: все Единомышленники проиграли.',
-      winTail: ' (Куратор).',
+      winTail: ', Куратор.',
     };
   }
   if (curator) {
@@ -146,7 +146,7 @@ export function finalScoring(state: GameState): GameResult {
         glasnost: false, scores, winners: [curator.id],
         note: `Куратор (${curator.name}) срезал Ростки (${cutLog.join(', ')}) — Гласность не устояла. Куратор побеждает в одиночку.`,
         summary: `Куратор (${curator.name}) срезал Ростки (${cutLog.join(', ')}) — Гласность не устояла.`,
-        winTail: ' (Куратор, в одиночку).',
+        winTail: ', Куратор.',
       };
     }
   }

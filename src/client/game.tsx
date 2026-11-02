@@ -183,7 +183,19 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
         )}
       </div>
       {view.phase === 'passion' && me ? (
-        <p className="center muted">Стол откроется, когда все выберут Пристрастия.</p>
+        <>
+          <p className="center muted">Адреса откроются, когда все выберут Пристрастия. Завсегдатаи и Ростки Гласности — уже на столе.</p>
+          {/* Перед выбором Пристрастия видно, какие в партии Завсегдатаи и Ростки. */}
+          <main className="layout">
+            <section className="board">
+              <div className="addresses">
+                {full && card('club')}
+                <Sprouts view={view} me={me} beside={full && !view.reserve} seatIndex={seatIndex}
+                  head={<AddressHead id="sprouts" view={view} seatIndex={seatIndex} me={me} enabled={false} onOpen={() => {}} rightHint={SPROUTS_TIP} />} />
+              </div>
+            </section>
+          </main>
+        </>
       ) : (
       <main className="layout">
         <section className="board">

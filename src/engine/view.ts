@@ -28,7 +28,7 @@ export interface PlayerView extends Omit<GameState, 'rng' | 'seed' | 'deck' | 'd
 export function viewFor(state: GameState, me: string | null, omniscient = false): PlayerView {
   const ended = state.phase === 'end' || omniscient;
   const { rng, seed, deck, discard, loadDeck, loadDiscard, baraholka, baraholkaSeen, players, pending, log, spetskhran, spetskhranSeen, ...rest } = state;
-  // Пока выбирают Пристрастия, стол ещё не открыт: видны только свои стартовые книги.
+  // Пока выбирают Пристрастия, стол ещё не открыт: видны свои стартовые книги, Ростки и Завсегдатаи (они в журнале).
   const closedTable = state.phase === 'passion' && !omniscient;
   // Наводчик: в любой момент своего хода — закрытые книги Барахолки, сбросы целиком и верх стопок.
   const spot = me !== null && !closedTable && hasPatron(state, me, 'spotter') && activePlayers(state).includes(me);
@@ -36,7 +36,7 @@ export function viewFor(state: GameState, me: string | null, omniscient = false)
     ...rest,
     ...(closedTable ? {
       razval: rest.razval.map(() => null), tolkuchka: [], knigoobmen: [], raspredelitel: [], agitpunkt: [],
-      sprouts: [], patrons: [], safehouses: [],
+      safehouses: [],
     } : {}),
     me,
     active: activePlayers(state),

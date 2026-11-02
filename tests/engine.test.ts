@@ -1495,7 +1495,7 @@ describe('Стартовый Тайник', () => {
 });
 
 describe('Выбор Пристрастий', () => {
-  it('видны свои стартовые книги, но не стол и не чужие книги', () => {
+  it('видны свои стартовые книги, Ростки и Завсегдатаи, но не адреса и не чужие книги', () => {
     const s = createGame({ players: players(3), seed: 12, mode: 'full' });
     expect(s.phase).toBe('passion');
     expect(s.razval.some(Boolean)).toBe(true);
@@ -1506,11 +1506,12 @@ describe('Выбор Пристрастий', () => {
     expect(v.razval.every((c) => c === null)).toBe(true);
     expect(v.baraholka.every((x) => !x)).toBe(true);
     expect(v.tolkuchka).toEqual([]);
-    expect(v.sprouts).toEqual([]);
+    // Ростки и Завсегдатаи видны: от них зависит выбор Пристрастия.
+    expect(v.sprouts).toEqual(s.sprouts);
     // Опала первой Пятилетки уже известна.
     expect(v.banned).toEqual(s.banned);
     expect(v.banned).toHaveLength(s.censorship);
-    expect(v.patrons).toEqual([]);
+    expect(v.patrons).toEqual(s.patrons);
     // Наблюдатель-хост видит всё.
     expect(viewFor(s, null, true).razval.some(Boolean)).toBe(true);
   });
