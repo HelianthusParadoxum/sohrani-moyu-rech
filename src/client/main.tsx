@@ -113,7 +113,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
             <span className="dot" style={{ background: PLAYER_COLORS[i] }} />
             {s.name}{s.id === room.host && ' (хост)'}{s.bot && ' 🤖'}
             {!s.bot && <span className={s.online ? 'online' : 'offline'}>{s.online ? ' в сети' : ' не в сети'}</span>}
-            {s.bot && <PresetSelect seat={s} host={host} send={net.send} />}
+            {s.bot && <PresetSelect seat={s} host={host} send={net.send} solo={room.seats.length === 1} />}
             {host && s.id !== room.host && <button className="small" onClick={() => net.send({ t: 'removeSeat', seat: s.id })}>убрать</button>}
           </li>
         ))}

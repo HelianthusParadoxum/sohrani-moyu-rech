@@ -143,8 +143,11 @@ function roomInfo(room: Room): RoomInfo {
 }
 
 // Пресет бота за местом: выбранный хостом, а если не выбран — «Одиночка» в одиночной игре и «Книжник» в остальных.
+// «Одиночка» — только в одиночной игре: если игроков стало больше, бот играет пресетом по умолчанию.
 function seatPreset(room: Room, seat: Seat): string {
-  return seat.preset ?? (room.seats.length === 1 ? 'soloist' : DEFAULT_PRESET);
+  const solo = room.seats.length === 1;
+  if (seat.preset === 'soloist' && !solo) return DEFAULT_PRESET;
+  return seat.preset ?? (solo ? 'soloist' : DEFAULT_PRESET);
 }
 
 function hostSeat(room: Room) {
@@ -382,6 +385,7 @@ function handle(ws: WebSocket, msg: ClientMessage) {
       // Пресет бота можно менять и до, и во время партии.
       const seat = room.seats.find((s) => s.id === msg.seat);
       if (!isHost || !seat || !BOT_PRESETS.some((p) => p.id === msg.preset)) return;
+      if (msg.preset === 'soloist' && room.seats.length > 1) return; // «Одиночка» — только в одиночной игре
       seat.preset = msg.preset;
       break;
     }
