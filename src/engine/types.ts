@@ -291,9 +291,9 @@ export type CopyTextBuy = Extract<PlaceAction, { address: CopyTextAddress }>;
 
 export interface ClubGift { patron: PatronId; card: string }
 
-// Контора: либо «Пришить дело» (донос + пункты), либо «Вызволение из бед» (rescue — больше ничего).
+// Контора: либо «Пришить дело» (донос + пункты), либо «Вызволить из бед» (rescue — больше ничего).
 export interface KontoraChoice {
-  rescue?: Record<string, number>; // Вызволение из бед: сколько Единомышленников вернуть каждому (всего до RULES.rescueMax)
+  rescue?: Record<string, number>; // Вызволить из бед: сколько Единомышленников вернуть каждому (всего до RULES.rescueMax)
   petition?: string[]; // Ходатайство: чьих Единомышленников вернуть (до 2)
   handout?: boolean; // Выдача на руки
   prophylaxis?: PatronId; // Профилактика: какого Завсегдатая удалить

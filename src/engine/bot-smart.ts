@@ -5,7 +5,7 @@
 // стопок и Барахолки, поэтому вытянутая при примерке книга — догадка, а не знание.
 import { applyAction, mustVisitRedCorner } from './engine';
 import { BOT_BASE, CURATOR_STYLES, PATRON_POWER, curatorStyle, type BotGoal, type BotPreset, type CuratorStyle, type TunableBase } from './bot-presets';
-import { COPY_TEXT_ADDRESSES, PERMANENT_ADDRESSES, addressInGame, PASSIONS, RULES, SPROUTS, STEP_REWARDS, FIRST_FEED_POINTS, ADDRESSES, KONTORA_LOSS, limitFor } from './content';
+import { COPY_TEXT_ADDRESSES, PERMANENT_ADDRESSES, addressInGame, PASSIONS, RULES, SPROUTS, STEP_REWARDS, FIRST_FEED_POINTS, ADDRESSES, limitFor } from './content';
 import { befriendTargets, heldTotal, kontoraTargets } from './full';
 import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
@@ -604,9 +604,6 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
     }
   }
   if (ctx.full) {
-    // Общая угроза: при 7 удержанных проигрывают все.
-    const held = heldTotal(state);
-    v -= BOT_BASE.heldDoom * held * held * (held >= KONTORA_LOSS - 1 ? 3 : 1);
     // ЧНЛ, до которой может дотянуться Куратор (на столе, а пока есть Наследники — и в сбросе), — это будущие срезы.
     // Подозревая Куратора, бот забирает её себе и сдаёт, когда Куратор уже не доберётся.
     const sus = Math.max(0, ...Object.values(ctx.suspect));
@@ -1129,7 +1126,7 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
     if (patrons[0]) items.push({ prophylaxis: patrons[0].id });
   }
   const out: KontoraChoice[] = [];
-  // Вызволение из бед (вместо «Пришить дело»). Куратор вызволяет только своих — лишнее действие и очки, — чужих не трогает;
+  // Вызволить из бед (вместо «Пришить дело»). Куратор вызволяет только своих — лишнее действие и очки, — чужих не трогает;
   // против подозреваемого Куратора его Единомышленников не вызволяют.
   const mine = player(state, me).held;
   if (ctx.curator) {

@@ -1,6 +1,6 @@
 // Интерфейс полного режима: Клуб книголюбов, Контора.
 import { useState, type ReactNode } from 'react';
-import { CLUB_ORDER, GENRE_NAMES, GENRE_SHORT, KONTORA_LOSS, PATRONS, RULES } from '../engine/content';
+import { CLUB_ORDER, GENRE_NAMES, GENRE_SHORT, PATRONS, RULES } from '../engine/content';
 import type { Action, ClubGift, Genre, GroupAction, KontoraChoice, PatronId, PlaceAction } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import { cacheLimit, genresOf } from '../engine/util';
@@ -81,11 +81,10 @@ export function KontoraContents({ view, seatIndex }: { view: PlayerView; seatInd
   const total = held.length;
   return (
     <div className="small">
-      <div className="held-figures" title={`Удержано: ${total} из ${KONTORA_LOSS}`}>
+      <div className="held-figures" title={`Удержано Конторой: ${total}`}>
         {held.map((p, i) => <Figure key={i} color={PLAYER_COLORS[seatIndex(p.id)]} title={p.name} />)}
-        {Array.from({ length: Math.max(0, KONTORA_LOSS - total) }, (_, i) => <Figure key={`f${i}`} />)}
+        {!total && <span className="muted">Никто не удержан</span>}
       </div>
-      {total >= 5 && <div className="warn-text">При 7 удержанных подполье проигрывает!</div>}
     </div>
   );
 }
@@ -180,8 +179,8 @@ export function KontoraPanel({ view, place }: { view: PlayerView; place: (p: Pla
   const held = view.players.some((p) => p.held > 0);
   return (
     <>
-      <p>В Конторе — одно на выбор: <b>Пришить дело</b> или <b>Вызволение из бед</b>.</p>
-      <h3>Вызволение из бед</h3>
+      <p>В Конторе — одно на выбор: <b>Пришить дело</b> или <b>Вызволить из бед</b>.</p>
+      <h3>Вызволить из бед</h3>
       <p>Вернуть из Конторы до {RULES.rescueMax} удерживаемых 👤 (своих или чужих): +{RULES.rescuePoints} очка за каждого. Донос не нужен.</p>
       {!held && <p className="warn-text">Сейчас Контора никого не удерживает.</p>}
       <h3>Пришить дело</h3>
@@ -249,7 +248,7 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
     <Modal title="Контора" wide>
       <div className="genres">
         <button className={mode === 'case' ? 'selected' : ''} disabled={!targets.length} onClick={() => setMode('case')}>Пришить дело</button>
-        <button className={mode === 'rescue' ? 'selected' : ''} disabled={!held.length} onClick={() => setMode('rescue')}>Вызволение из бед</button>
+        <button className={mode === 'rescue' ? 'selected' : ''} disabled={!held.length} onClick={() => setMode('rescue')}>Вызволить из бед</button>
       </div>
       {mode === 'rescue' ? (
         <>
@@ -312,7 +311,7 @@ export function FreeConnectionPrompt({ view, me, act }: { view: PlayerView; me: 
   );
 }
 
-// Вызволение из бед в Конторе: кого вернуть.
+// Вызволить из бед в Конторе: кого вернуть.
 export function RescuePanel({ view, onDone }: { view: PlayerView; onDone: (returns: Record<string, number>) => void }) {
   const [returns, setReturns] = useState<Record<string, number>>({});
   const held = view.players.filter((p) => p.held > 0);

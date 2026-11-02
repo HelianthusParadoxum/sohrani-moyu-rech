@@ -6,7 +6,7 @@ import {
 } from './content';
 import { finalScoring } from './scoring';
 import {
-  afterRaid, befriendPatron, befriendTargets, doKontora, gaveAway, giveToPatron, holdWorker, isFull, kontoraLost, partorgFill, payPrice, price, proseBonus, purchases,
+  afterRaid, befriendPatron, befriendTargets, doKontora, gaveAway, giveToPatron, holdWorker, isFull, partorgFill, payPrice, price, proseBonus, purchases,
   flushIrony, removePatron, seizeDenounced, setupClub, startKontora, takeFromSpetskhran,
 } from './full';
 import type {
@@ -303,24 +303,6 @@ function finishAction(state: GameState, p: PlayerState, pointsBefore: number, lo
     }
     state.log = [...state.log.slice(0, logStart), ...main.slice(0, at + 1), ...tail, ...main.slice(at + 1), ...rest];
     for (const l of fresh) delete l.after;
-  }
-  if (state.phase !== 'end' && kontoraLost(state)) {
-    state.phase = 'end';
-    state.pending = [];
-    const curator = state.players.find((x) => x.passion === 'curator');
-    state.result = {
-      glasnost: false,
-      winners: curator ? [curator.id] : [],
-      scores: [],
-      note: `Контора удерживает ${7} Единомышленников — подполье разгромлено.${curator ? ` Побеждает Куратор — ${curator.name}.` : ' Все проиграли.'}`,
-      summary: `Контора удерживает ${7} Единомышленников — подполье разгромлено.${curator ? '' : ' Все проиграли.'}`,
-      winTail: ' (Куратор).',
-    };
-    log(state, state.result.summary);
-    if (curator) {
-      log(state, `Победа: ${curator.name} (Куратор).`);
-      state.log[state.log.length - 1].winners = [curator.id];
-    }
   }
   return state;
 }

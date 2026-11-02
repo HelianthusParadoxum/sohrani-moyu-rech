@@ -654,7 +654,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     expect(next.players.find((x) => x.id === me)!.capacity).toBe(p.capacity + 1);
   });
 
-  it('Контора: Вызволение из бед вместо «Пришить дело» — +2 очка за каждого, не больше 2 за раз, без доноса', () => {
+  it('Контора: Вызволить из бед вместо «Пришить дело» — +2 очка за каждого, не больше 2 за раз, без доноса', () => {
     let s = started();
     const me = s.order[s.turn];
     const other = s.players.find((x) => x.id !== me)!;
@@ -2230,5 +2230,18 @@ describe('Журнал: сначала действие, потом тайное
     const secret = texts.findIndex((t) => t.startsWith('Вы получили'));
     expect(cache).toBeGreaterThan(-1);
     expect(secret).toBeGreaterThan(cache);
+  });
+});
+
+describe('Контора без проигрыша по числу удержанных', () => {
+  it('сколько бы Единомышленников ни удержала Контора, партия продолжается', () => {
+    let s = createGame({ players: players(3), seed: 4, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions.find((x) => x !== 'curator') ?? p.passionOptions[0] });
+    s = startOrders(s);
+    for (const p of s.players) { p.held = 3; p.available = 2; }
+    const me = s.order[s.turn];
+    s = applyAction(s, me, { type: 'group', group: { action: 'expandCache' } });
+    expect(s.phase).not.toBe('end');
+    expect(s.result).toBeUndefined();
   });
 });

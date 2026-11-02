@@ -1,5 +1,5 @@
 // Полный режим: Клуб книголюбов, Завсегдатаи, Контора, особенности жанров.
-import { CLUB_SIZE, GENRE_NAMES, KONTORA_LOSS, KONTORA_PATRONS, PATRONS, RULES } from './content';
+import { CLUB_SIZE, GENRE_NAMES, KONTORA_PATRONS, PATRONS, RULES } from './content';
 import type { ClubGift, GameState, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
@@ -192,8 +192,8 @@ export function startKontora(state: GameState, p: PlayerState) {
 
 export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
   if (c.rescue) {
-    // Вызволение из бед — вместо «Пришить дело»: без доноса и без пунктов.
-    check(!c.denounce && !c.petition?.length && !c.handout && !c.prophylaxis, 'В Конторе — либо «Пришить дело», либо «Вызволение из бед»');
+    // Вызволить из бед — вместо «Пришить дело»: без доноса и без пунктов.
+    check(!c.denounce && !c.petition?.length && !c.handout && !c.prophylaxis, 'В Конторе — либо «Пришить дело», либо «Вызволить из бед»');
     const n = rescue(state, p, c.rescue);
     gain(p, n * RULES.rescuePoints, 'rescue');
     logAfter(state, `↳ За помощь товарищам: +${pointsText(n * RULES.rescuePoints)}.`);
@@ -272,14 +272,11 @@ export function rescue(state: GameState, p: PlayerState, returns: Record<string,
     total += releaseWorker(state, o, n);
   }
   check(total > 0, 'Выберите, кого вызволить');
-  check(total <= RULES.rescueMax, `За одно Вызволение — не больше ${RULES.rescueMax} Единомышленников`);
+  check(total <= RULES.rescueMax, `За одно «Вызволить из бед» — не больше ${RULES.rescueMax} Единомышленников`);
   log(state, `${p.name} вызволяет из Конторы Единомышленников: ${total}.`);
   return total;
 }
 
-export function kontoraLost(state: GameState): boolean {
-  return isFull(state) && heldTotal(state) >= KONTORA_LOSS;
-}
 
 // ---------- Конец Пятилетки ----------
 
