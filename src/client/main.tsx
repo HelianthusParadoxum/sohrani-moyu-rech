@@ -114,7 +114,10 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
   const link = location.href;
   return (
     <div className="home lobby">
-      <h1>Комната {room.code}</h1>
+      <h1 className="room-title">
+        <button className="back" aria-label="Назад, в начальное меню" title="В начальное меню" onClick={() => { location.hash = ''; }}>←</button>
+        Комната {room.code}
+      </h1>
       <p className="muted">Отправьте ссылку тестировщикам: <a href={link}>{link}</a>{' '}
         <button className="small" onClick={() => navigator.clipboard?.writeText(link)}>Копировать</button>
       </p>
