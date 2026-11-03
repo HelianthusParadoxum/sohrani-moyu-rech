@@ -12,6 +12,7 @@ export interface NetState {
   error: string | null;
   gone: boolean; // комнаты больше нет на сервере
   canStepBack: boolean; // можно нажать «Назад» в своём ходу
+  probe: { code: string; exists: boolean } | null; // ответ на вопрос «есть ли комната с таким кодом»
 }
 
 export const tokenKey = (code: string) => `smr:token:${code}`;
@@ -24,7 +25,7 @@ function writeToken(code: string, token: string) {
 }
 
 export function useServer(code: string | null) {
-  const [state, setState] = useState<NetState>({ connected: false, room: null, you: null, isHost: false, view: null, error: null, gone: false, canStepBack: false });
+  const [state, setState] = useState<NetState>({ connected: false, room: null, you: null, isHost: false, view: null, error: null, gone: false, canStepBack: false, probe: null });
   const ws = useRef<WebSocket | null>(null);
   const queue = useRef<ClientMessage[]>([]);
   // Комната, к которой привязано соединение. Соединение одно на всю страницу: при создании комнаты сервер сразу
@@ -63,6 +64,8 @@ export function useServer(code: string | null) {
             if (tried !== msg.build) { location.reload(); return; }
           }
           setState((s) => ({ ...s, room: msg.room, you: msg.you, isHost: msg.isHost, view: msg.view, error: null, canStepBack: !!msg.canStepBack }));
+        } else if (msg.t === 'probe') {
+          setState((s) => ({ ...s, probe: { code: msg.code, exists: msg.exists } }));
         } else if (msg.t === 'gone') {
           if (msg.code === codeRef.current) setState((s) => ({ ...s, gone: true }));
         } else if (msg.t === 'error') {

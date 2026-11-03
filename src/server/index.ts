@@ -274,6 +274,9 @@ function handle(ws: WebSocket, msg: ClientMessage) {
       broadcast(room);
       return;
     }
+    case 'probe':
+      send(ws, { t: 'probe', code: msg.code, exists: rooms.has(msg.code) });
+      return;
     case 'hello': {
       const room = rooms.get(msg.code);
       if (!room) return send(ws, { t: 'gone', code: msg.code });

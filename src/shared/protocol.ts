@@ -23,6 +23,7 @@ export type ClientMessage =
   | { t: 'create'; name: string }
   | { t: 'join'; code: string; name: string }
   | { t: 'hello'; code: string; token: string | null }
+  | { t: 'probe'; code: string } // есть ли такая комната (вход по коду)
   | { t: 'addBot' }
   | { t: 'removeSeat'; seat: string }
   | { t: 'setMode'; mode: Mode | 'reserve' }
@@ -43,4 +44,5 @@ export type ServerMessage =
   | { t: 'joined'; code: string; token: string }
   | { t: 'room'; room: RoomInfo; you: string | null; isHost: boolean; view: PlayerView | null; canStepBack?: boolean; build?: string }
   | { t: 'error'; message: string }
-  | { t: 'gone'; code: string }; // комнаты нет (например, сервер обновили и сохранения пропали)
+  | { t: 'gone'; code: string } // комнаты нет (например, сервер обновили и сохранения пропали)
+  | { t: 'probe'; code: string; exists: boolean };
