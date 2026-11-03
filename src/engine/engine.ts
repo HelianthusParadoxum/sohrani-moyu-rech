@@ -1331,9 +1331,10 @@ function continueTake(state: GameState, p: PlayerState, cards: string[], then: C
       return;
     }
     case 'librarian': {
-      for (const c of cards) addSecretBook(state, p, c);
+      for (const c of cards) addSecretBook(state, p, c, null);
       log(state, `${p.name}: Библиотекарь приносит из сброса ${plural(cards.length, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}.`);
       state.log[state.log.length - 1].who = p.id;
+      logCached(state, p, cards);
       return;
     }
     case 'redCorner': {
@@ -1449,6 +1450,12 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
 
 // ---------- Отложенные решения ----------
 
+// После строки «оставляет себе…» — сколько из этих книг легло в Тайник (их видел только он — «взакрытую»).
+function logCached(state: GameState, p: PlayerState, cards: string[]) {
+  const n = cards.filter((c) => p.warehouse.find((w) => w.card === c)?.hidden).length;
+  if (n) log(state, `${p.name} кладёт взакрытую в Тайник ${plural(n, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}.`);
+}
+
 // Игрок помнит, какие книги Барахолки он уже видел (до её обновления или покупки этой книги).
 function rememberBaraholka(state: GameState, playerId: string, slots: number[]) {
   state.baraholkaSeen ??= {};
@@ -1519,12 +1526,13 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       for (const c of action.cards) {
         check(state.discard.includes(c), 'Этой книги нет в сбросе');
         state.discard = state.discard.filter((x) => x !== c);
-        addSecretBook(state, p, c);
+        addSecretBook(state, p, c, null);
       }
       state.deck = shuffle(state, [...state.deck, ...state.discard]);
       state.discard = [];
       log(state, `${p.name} берёт у Наследников ${plural(action.cards.length, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}; сброс замешан в стопку.`);
       logRecap(state, `${action.cards.length > 1 ? 'Получены' : 'Получена'}: ${titles(state, action.cards)}.`, [p.id]);
+      logCached(state, p, action.cards);
       offerBlatnoy(state, p, 'nasledniki');
       break;
     }
@@ -1535,11 +1543,12 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       check(action.keep.length <= freeSlots(p), 'На складе не хватит места');
       for (const c of action.keep) check(pend.cards.includes(c), 'Эта книга не из вытянутых');
       for (const c of pend.cards) {
-        if (action.keep.includes(c)) addSecretBook(state, p, c);
+        if (action.keep.includes(c)) addSecretBook(state, p, c, null);
         else discard(state, c);
       }
       log(state, `${p.name} оставляет себе ${plural(action.keep.length, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}.`);
       logRecap(state, `${action.keep.length > 1 ? 'Оставлены' : 'Оставлена'}: ${titles(state, action.keep)}.`, [p.id]);
+      logCached(state, p, action.keep);
       state.pending.shift();
       state.pending.unshift({ kind: 'posrednichestvoGroup', player: p.id });
       offerBlatnoy(state, p, 'posrednichestvo');
@@ -1582,11 +1591,12 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       check(action.keep.length <= freeSlots(p), 'На складе не хватит места');
       for (const c of action.keep) check(pend.cards.includes(c), 'Эта книга не из взятых');
       for (const c of pend.cards) {
-        if (action.keep.includes(c)) addSecretBook(state, p, c);
+        if (action.keep.includes(c)) addSecretBook(state, p, c, null);
         else discard(state, c);
       }
       log(state, `${p.name} оставляет себе из Библиотечного списания ${plural(action.keep.length, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}.`);
       if (action.keep.length) logRecap(state, `${action.keep.length > 1 ? 'Оставлены' : 'Оставлена'}: ${titles(state, action.keep)}.`, [p.id]);
+      logCached(state, p, action.keep);
       if (action.keep.length) offerBlatnoy(state, p, 'spisanie');
       break;
     }

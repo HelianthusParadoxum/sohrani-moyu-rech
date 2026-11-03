@@ -305,10 +305,16 @@ export function afterRaid(state: GameState) {
         continue;
       }
       let n = 0;
-      while (n < 2 && freeSlots(p) > 0 && state.discard.length) { addSecretBook(state, p, state.discard.pop()!); n++; }
+      let cached = 0;
+      while (n < 2 && freeSlots(p) > 0 && state.discard.length) {
+        addSecretBook(state, p, state.discard.pop()!, null);
+        if (p.warehouse[p.warehouse.length - 1].hidden) cached++;
+        n++;
+      }
       if (n) {
         log(state, `${p.name}: Библиотекарь приносит из сброса ${plural(n, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}.`);
         state.log[state.log.length - 1].who = p.id;
+        if (cached) log(state, `${p.name} кладёт взакрытую в Тайник ${plural(cached, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}.`);
       }
     }
   }
