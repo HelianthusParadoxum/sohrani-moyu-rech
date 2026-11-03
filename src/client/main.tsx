@@ -166,6 +166,10 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
               options={[{ value: 'beginner', label: 'Периферия (для начинающих)' }, { value: 'full', label: 'Полные правила' },
                 { value: 'reserve', label: 'Заповедник (без Конторы и Куратора)' }]} />
           </label>
+          <label className="row">
+            <input type="checkbox" checked={room.hostBot} onChange={(e) => net.send({ t: 'hostBot', on: e.target.checked })} />
+            За меня играет бот — я смотрю партию со стороны
+          </label>
           {room.mode === 'full' && !room.reserve && room.seats.length > 1 && (
             <label className="row">
               <input type="checkbox" checked={room.curator} onChange={(e) => net.send({ t: 'setCurator', on: e.target.checked })} />
@@ -186,10 +190,6 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
               )}
             </div>
           )}
-          <label className="row">
-            <input type="checkbox" checked={room.hostBot} onChange={(e) => net.send({ t: 'hostBot', on: e.target.checked })} />
-            За меня играет бот — я смотрю партию со стороны
-          </label>
           <SpeedSelect room={room} send={net.send} />
         </>
       )}
