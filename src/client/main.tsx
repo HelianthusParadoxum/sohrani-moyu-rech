@@ -79,17 +79,14 @@ function Apology({ children, onOk }: { children: React.ReactNode; onOk: () => vo
   );
 }
 
-// Код комнаты — 4 русские буквы. Набранное в латинской раскладке переводим в русскую (q → Й, w → Ц…).
-const LAT = "qwertyuiop[]asdfghjkl;'zxcvbnm,.`";
-const RUS = 'йцукенгшщзхъфывапролджэячсмитьбюё';
+// Код комнаты — 4 цифры.
 function codeChars(raw: string): string {
-  return [...raw.toLowerCase()].map((ch) => (LAT.includes(ch) ? RUS[LAT.indexOf(ch)] : ch))
-    .filter((ch) => /[а-яё]/.test(ch)).join('').toUpperCase().slice(0, 4);
+  return raw.replace(/\D/g, '').slice(0, 4);
 }
 
 function Home({ name, setName, onCreate, net }: { name: string; setName: (s: string) => void; onCreate: () => void; net: ReturnType<typeof useServer> }) {
   const [code, setCode] = useState('');
-  // Четвёртая буква — спрашиваем сервер, есть ли такая комната; есть — сразу входим.
+  // Четвёртая цифра — спрашиваем сервер, есть ли такая комната; есть — сразу входим.
   useEffect(() => { if (code.length === 4) net.send({ t: 'probe', code }); }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
   const answer = net.probe?.code === code ? net.probe : null;
   useEffect(() => { if (answer?.exists) location.hash = `#/r/${code}`; }, [answer, code]);
@@ -102,7 +99,7 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
       <div className="or">или войдите по коду</div>
       {/* Одно поле поверх четырёх ячеек: так работают и вставка, и стирание. */}
       <label className="code-cells" aria-label="Код комнаты">
-        <input value={code} onChange={(e) => setCode(codeChars(e.target.value))} inputMode="text" autoComplete="off" autoCapitalize="characters" spellCheck={false} />
+        <input value={code} onChange={(e) => setCode(codeChars(e.target.value))} inputMode="numeric" pattern="[0-9]*" autoComplete="off" spellCheck={false} />
         {[0, 1, 2, 3].map((i) => <span key={i} className={`cell ${i === Math.min(code.length, 3) ? 'cur' : ''}`}>{code[i] ?? ''}</span>)}
       </label>
       {answer && !answer.exists && <p className="muted code-miss">Комнаты с кодом {code} нет.</p>}

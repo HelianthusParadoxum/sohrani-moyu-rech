@@ -139,7 +139,7 @@ function resetOutdated(room: Room) {
 
 // ---------- Комнаты ----------
 
-const ALPHABET = 'АБВГДЕЖИКЛМНПРСТУФХЦЧШЭЮЯ';
+const ALPHABET = '0123456789'; // код комнаты — 4 цифры (буквы есть не на всякой клавиатуре)
 function newCode(): string {
   for (;;) {
     const bytes = randomBytes(4);
