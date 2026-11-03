@@ -211,8 +211,8 @@ describe('Посредничество авторам и Библиотечно�
     // По строке на книгу: открытая — при всех, спрятанная — «кладёт в Тайник» при всех и «Получена:» только себе.
     const texts = s.log.filter((l) => !l.only).map((l) => l.text);
     const open = byId(s, p.id).warehouse.find((w) => !w.hidden)!.card;
-    expect(texts).toContain(`${p.name} получает ${title(s, open)}.`);
-    expect(texts).toContain(`${p.name} берёт непечатный текст вслепую и кладёт в Тайник.`);
+    expect(texts).toContain(`↳ ${title(s, open)}.`);
+    expect(texts).toContain('↳ Взакрытую в Тайник: 1 непечатный текст.');
     const hidden = byId(s, p.id).warehouse.find((w) => w.hidden)!.card;
     const secret = s.log.find((l) => l.only?.includes(p.id) && l.text.startsWith('Получена:'))!;
     expect(secret.text).toBe(`Получена: ${title(s, hidden)}.`);

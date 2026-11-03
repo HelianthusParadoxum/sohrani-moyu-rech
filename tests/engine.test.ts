@@ -880,7 +880,7 @@ describe('Тайник и закрытые книги', () => {
     const theirs = viewFor(s, other);
     expect(theirs.players.find((x) => x.id === me)!.warehouse.map((x) => x.card)).not.toContain(card);
     expect(theirs.log.map((l) => l.text).join('\n')).not.toContain(s.cards[card].title);
-    expect(theirs.log.map((l) => l.text).join('\n')).toContain('берёт непечатный текст вслепую и кладёт в Тайник.');
+    expect(theirs.log.map((l) => l.text).join('\n')).toContain('↳ Взакрытую в Тайник: 1 непечатный текст.');
     expect(viewFor(s, me).players.find((x) => x.id === me)!.warehouse.map((x) => x.card)).toContain(card);
   });
 });

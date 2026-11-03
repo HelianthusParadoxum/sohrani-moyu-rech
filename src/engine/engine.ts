@@ -1322,10 +1322,10 @@ function continueTake(state: GameState, p: PlayerState, cards: string[], then: C
       for (const c of got) {
         addSecretBook(state, p, c, null);
         if (p.warehouse.find((x) => x.card === c)?.hidden) {
-          log(state, `${p.name} берёт непечатный текст вслепую и кладёт в Тайник.`);
+          log(state, '↳ Взакрытую в Тайник: 1 непечатный текст.');
           log(state, `Получена: ${title(state, c)}.`, [p.id]);
         } else {
-          log(state, `${p.name} получает ${title(state, c)}.`);
+          log(state, `↳ ${title(state, c)}.`);
         }
       }
       return;
@@ -1453,7 +1453,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
 // После строки «оставляет себе…» — сколько из этих книг легло в Тайник (их видел только он — «взакрытую»).
 function logCached(state: GameState, p: PlayerState, cards: string[]) {
   const n = cards.filter((c) => p.warehouse.find((w) => w.card === c)?.hidden).length;
-  if (n) log(state, `${p.name} кладёт взакрытую в Тайник ${plural(n, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}.`);
+  if (n) log(state, `↳ Взакрытую в Тайник: ${plural(n, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}.`);
 }
 
 // Игрок помнит, какие книги Барахолки он уже видел (до её обновления или покупки этой книги).
@@ -1581,7 +1581,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       log(state, `${p.name} оставляет себе одну книгу из Макулатуры (вытянуто: ${pend.cards.length}).`);
       logRecap(state, `Оставлена: ${title(state, action.card)}.`, [p.id]);
       if (p.warehouse.find((w) => w.card === action.card)?.hidden) {
-        log(state, `${p.name} берёт ${isFromLoadDeck(state, action.card) ? 'книгу Нагрузки' : 'непечатный текст'} взакрытую и кладёт в Тайник.`);
+        log(state, `↳ Взакрытую в Тайник: ${isFromLoadDeck(state, action.card) ? 'книга Нагрузки' : '1 непечатный текст'}.`);
       }
       break;
     }

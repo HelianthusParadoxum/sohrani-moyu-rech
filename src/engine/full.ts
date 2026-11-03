@@ -314,7 +314,7 @@ export function afterRaid(state: GameState) {
       if (n) {
         log(state, `${p.name}: Библиотекарь приносит из сброса ${plural(n, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}.`);
         state.log[state.log.length - 1].who = p.id;
-        if (cached) log(state, `${p.name} кладёт взакрытую в Тайник ${plural(cached, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}.`);
+        if (cached) log(state, `↳ Взакрытую в Тайник: ${plural(cached, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}.`);
       }
     }
   }
