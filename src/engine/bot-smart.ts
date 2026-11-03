@@ -245,7 +245,9 @@ function feedPotential(state: GameState, p: PlayerState, ctx: Ctx): number {
     if (!step) continue;
     const reward = stepReward(state, p, sp.progress, sp.id, ctx);
     if (coversStep(state, books, info.main, step.main, step.support, stepOpts(state, p.id))) {
-      v += reward * BOT_BASE.feedReady;
+      // Готовый набор ценится не выше доли feedReady от награды, даже при большом весе «Книги для Ростков»:
+      // иначе держать книги выходит почти так же выгодно, как питать (Садовник копил и не питал).
+      v += reward * BOT_BASE.feedReady / Math.max(1, ctx.w.sproutBooks);
       continue;
     }
     // Часть нужного уже есть: значки основного жанра и значок поддержки.

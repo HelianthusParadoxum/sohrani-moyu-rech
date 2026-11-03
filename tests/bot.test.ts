@@ -125,6 +125,8 @@ describe('думающий бот', () => {
         a = botMove(a, activePlayersOf(a)[0], rand);
       }
       if (a.phase !== 'orders' || a.order[a.turn] !== me) continue;
+      // Наводчик видит Спецхран по правилам — такую раздачу не проверяем.
+      if (a.patrons.some((x) => x.id === 'spotter' && x.connections.includes(me))) continue;
       // В одном варианте вся ЧНЛ из стопки — в незнакомой ему части Спецхрана, в другом её там нет.
       // Куратору это очень важно (Выдача на руки), но знать этого он не может.
       const known = a.spetskhranSeen?.[me] ?? [];
