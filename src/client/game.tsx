@@ -1589,7 +1589,7 @@ function MobileBar({ view, me }: { view: PlayerView; me: VPlayer }) {
   return (
     <div className="mobile-bar" ref={bar}>
       <div className="mb-row"><span className="muted small">Опала:</span>{view.banned.length ? view.banned.map((g) => <GenreChip key={g} g={g} banned />) : <span className="muted small">нет</span>}
-        {me.passion && <span className="mb-passion" title={`Пристрастие: ${PASSIONS[me.passion].name} — ${PASSIONS[me.passion].hint}`}>{passionMarks(me.passion)}</span>}
+        {me.passion && <span className="mb-passion" title={`Пристрастие: ${PASSIONS[me.passion].name} — ${PASSIONS[me.passion].hint}`}><span className="muted small">Пристрастие:</span>{passionMarks(me.passion)}</span>}
       </div>
       <Stats p={me} view={view} />
       <div className="mb-row mb-books">
