@@ -260,10 +260,11 @@ export function takeFromSpetskhran(state: GameState, p: PlayerState, card: strin
   check(state.spetskhran.includes(card), 'Этой книги нет в Спецхране');
   state.spetskhran = state.spetskhran.filter((c) => c !== card);
   forgetSpetskhran(state, card);
-  // Сперва — что сделано, потом куда легла книга (в Тайник, если есть место).
-  log(state, group ? `${p.name} выуживает книгу из Спецхрана.` : `${p.name} получает книгу из Спецхрана (Выдача на руки).`);
+  // Одной строкой — что сделано и куда легла книга (в Тайник, если есть место); тайно — какая это книга.
+  addSecretBook(state, p, card, null);
+  const cached = p.warehouse.find((x) => x.card === card)?.hidden ? ' и кладёт её в Тайник' : '';
+  log(state, group ? `${p.name} выуживает книгу из Спецхрана${cached}.` : `${p.name} получает книгу из Спецхрана (Выдача на руки)${cached}.`);
   log(state, `Получена: ${title(state, card)}.`, [p.id]);
-  addSecretBook(state, p, card);
 }
 
 export function rescue(state: GameState, p: PlayerState, returns: Record<string, number>) {

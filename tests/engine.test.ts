@@ -758,7 +758,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     s = applyAction(s, me, { type: 'kontoraHandout', card });
     expect(s.spetskhran).not.toContain(card);
     expect(s.players.find((x) => x.id === me)!.warehouse.some((w) => w.card === card)).toBe(true);
-    expect(s.log.some((l) => l.text.endsWith('выуживает книгу из Спецхрана.'))).toBe(true);
+    expect(s.log.some((l) => /выуживает книгу из Спецхрана( и кладёт её в Тайник)?\.$/.test(l.text))).toBe(true);
   });
 
   it('Госкниготорг: бесплатно, но за заход — одна пара', () => {
@@ -2227,7 +2227,7 @@ describe('Журнал: номер действия', () => {
     s = applyAction(s, me, { type: 'group', group: { action: 'spetskhran' } });
     const card = (s.pending[0] as { cards: string[] }).cards[0];
     s = applyAction(s, me, { type: 'kontoraHandout', card });
-    const line = s.log.find((l) => l.text.endsWith('выуживает книгу из Спецхрана.'))!;
+    const line = s.log.find((l) => /выуживает книгу из Спецхрана( и кладёт её в Тайник)?\.$/.test(l.text))!;
     expect(line.act).toEqual({ player: me, n: 1 });
     expect(s.pendingAct).toBeUndefined();
   });
@@ -2323,7 +2323,7 @@ describe('Монография теряется, когда книга уход�
 });
 
 describe('Журнал: сначала действие, потом тайное', () => {
-  it('«берёт книгу вслепую и кладёт в Тайник» — перед тайным «Получена: …»', () => {
+  it('«выуживает книгу из Спецхрана и кладёт её в Тайник» — перед тайным «Получена: …»', () => {
     let s = createGame({ players: players(2), seed: 6 });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
     s = startOrders(s);
@@ -2333,7 +2333,7 @@ describe('Журнал: сначала действие, потом тайное
     s = applyAction(s, me, { type: 'group', group: { action: 'spetskhran' } });
     s = applyAction(s, me, { type: 'kontoraHandout', card: (s.pending[0] as { cards: string[] }).cards[0] });
     const texts = s.log.slice(from).map((l) => l.text);
-    const cache = texts.findIndex((t) => t.endsWith('кладёт в Тайник.'));
+    const cache = texts.findIndex((t) => t.endsWith('выуживает книгу из Спецхрана и кладёт её в Тайник.'));
     const secret = texts.findIndex((t) => t.startsWith('Получена:'));
     expect(cache).toBeGreaterThan(-1);
     expect(secret).toBeGreaterThan(cache);
