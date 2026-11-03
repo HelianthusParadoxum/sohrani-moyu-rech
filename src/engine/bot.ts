@@ -2,7 +2,7 @@
 // Здесь же простой бот: перебирает варианты действий и выбирает случайный допустимый,
 // с лёгкими предпочтениями. Он — пресет «Случайный» и запасной вариант для редких решений.
 import { applyAction, activePlayers, mustVisitRedCorner } from './engine';
-import { curatorStyle, presetById } from './bot-presets';
+import { BOT_BASE, curatorStyle, presetById } from './bot-presets';
 import { copyTextOptions, effectiveCuratorStyle, smartMove } from './bot-smart';
 import { PERMANENT_ADDRESSES, RULES, SPROUTS } from './content';
 import { befriendTargets, blatnoyOptions } from './full';
@@ -212,10 +212,12 @@ function weight(a: Action): number {
 }
 
 // Ход бота с пресетом (id из BOT_PRESETS; не задан — пресет по умолчанию).
-export function botMove(state: GameState, me: string, rand: Rand = Math.random, presetId?: string | null): GameState {
+// skill — умелость ботов: 'standard' (как раньше) или 'thoughtful' («Вдумчивые»: цепочки из нескольких своих ходов).
+export type BotSkill = 'standard' | 'thoughtful';
+export function botMove(state: GameState, me: string, rand: Rand = Math.random, presetId?: string | null, skill: BotSkill = 'standard'): GameState {
   const preset = presetById(presetId);
   if (!preset.random) {
-    const next = smartMove(state, me, preset, rand);
+    const next = smartMove(state, me, preset, rand, skill === 'thoughtful' ? BOT_BASE.lookaheadDepth : 0);
     if (next) {
       const unmask = curatorUnmask(state, me)
         ?? (next.curatorRevealed === me && !state.curatorUnmask ? { round: state.round, act: player(state, me).actions?.length ?? 0, why: 'ambush' as const } : null);

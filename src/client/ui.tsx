@@ -200,6 +200,17 @@ export function toggle<T>(list: T[], x: T): T[] {
   return list.includes(x) ? list.filter((y) => y !== x) : [...list, x];
 }
 
+// Умелость ботов (лобби): «Стандарт» — как раньше, «Вдумчивые» — все боты смотрят на 3 своих хода вперёд.
+export function SkillSelect({ room, send }: { room: RoomInfo; send: (m: ClientMessage) => void }) {
+  return (
+    <label className="row">Умелость ботов:
+      <Dropdown value={room.botSkill ?? 'standard'} onChange={(skill) => send({ t: 'botSkill', skill })} ariaLabel="Умелость ботов"
+        options={[{ value: 'standard', label: 'Стандарт' }, { value: 'thoughtful', label: 'Вдумчивые' }]} />
+      {room.botSkill === 'thoughtful' && <span className="muted small">думают на 3 своих хода вперёд — заметно сильнее</span>}
+    </label>
+  );
+}
+
 export function SpeedSelect({ room, send }: { room: RoomInfo; send: (m: ClientMessage) => void }) {
   return (
     <label className="row">Скорость ботов:

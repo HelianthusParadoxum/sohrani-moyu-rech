@@ -24,6 +24,7 @@ interface Seat { id: string; name: string; token: string; bot: boolean; preset?:
 interface Room {
   code: string; host: string; seats: Seat[]; mode: Mode; state: GameState | null; history: GameState[]; updated: number;
   botDelay?: number;
+  botSkill?: 'standard' | 'thoughtful'; // умелость ботов в этой комнате
   paused?: boolean; // ходы ботов остановлены
   noCurator?: boolean; // настройка: без Куратора в колоде Пристрастий
   forceCurator?: boolean; // для тестов: первый игрок — Куратор
@@ -156,6 +157,7 @@ function roomInfo(room: Room): RoomInfo {
     canUndo: room.history.length > 0,
     hostBot: hostSeat(room)?.bot ?? false,
     botDelay: room.botDelay ?? 700,
+    botSkill: room.botSkill ?? 'standard',
     paused: !!room.paused,
     curator: !room.noCurator,
     forceCurator: !!room.forceCurator,
@@ -217,7 +219,7 @@ function scheduleBots(room: Room) {
     if (!room.state) return;
     try {
       const seat = room.seats.find((s) => s.id === who);
-      room.state = botMove(room.state, who, Math.random, seat && seatPreset(room, seat));
+      room.state = botMove(room.state, who, Math.random, seat && seatPreset(room, seat), room.botSkill ?? 'standard');
     } catch (e) {
       console.error('Ошибка бота', e);
       return;
@@ -419,6 +421,11 @@ function handle(ws: WebSocket, msg: ClientMessage) {
     case 'botDelay': {
       if (!isHost) return;
       room.botDelay = Math.max(30, Math.min(3000, Math.round(msg.ms)));
+      break;
+    }
+    case 'botSkill': {
+      if (!isHost || room.state) return;
+      room.botSkill = msg.skill === 'thoughtful' ? 'thoughtful' : 'standard';
       break;
     }
     case 'botPreset': {

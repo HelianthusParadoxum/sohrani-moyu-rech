@@ -441,3 +441,12 @@ describe('Выбор стратегии бота в лобби', () => {
     expect(multi.length).toBeGreaterThanOrEqual(5);
   });
 });
+
+describe('Умелость ботов', () => {
+  it('«Вдумчивые» боты доигрывают партию на троих (полный режим)', () => {
+    let s = createGame({ players: players(3), seed: 3, mode: 'full' });
+    const rand = seeded(3);
+    for (let i = 0; i < 4000 && s.phase !== 'end'; i++) s = botMove(s, activePlayersOf(s)[0], rand, 'bookman', 'thoughtful');
+    expect(s.phase).toBe('end');
+  }, 120_000);
+});

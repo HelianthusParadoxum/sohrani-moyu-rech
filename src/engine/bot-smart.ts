@@ -842,7 +842,8 @@ function makulaturaDigValue(next: GameState, me: string, ctx: Ctx): number {
 
 // Лучшие по оценке ходы, от лучшего к худшему.
 // honest — оценить ход так, будто бот честный книжник (Куратору — для маскировки).
-export function rankActions(state: GameState, me: string, preset: BotPreset, rand: Rand, honest = false): { a: Action; v: number }[] {
+// lookahead — умелость ботов: 0 — «Стандарт» (1–2 шага), 3 — «Вдумчивые» (цепочки из 3 своих ходов).
+export function rankActions(state: GameState, me: string, preset: BotPreset, rand: Rand, honest = false, lookahead = 0): { a: Action; v: number }[] {
   const ctx = makeCtx(state, me, preset, honest);
   let cands = candidates(state, me, ctx);
   if (!cands.length) return [];
@@ -919,9 +920,9 @@ export function rankActions(state: GameState, me: string, preset: BotPreset, ran
   const noise = preset.character.randomness * 2;
   for (const r of rated) r.v += (rand() - 0.5) * 2 * noise;
   rated.sort((x, y) => y.v - x.v);
-  // Взгляд на несколько ходов вперёд: в одиночной игре — у «Одиночки», с соперниками — у «Вдумчивого»
-  // (ходы соперников между своими бот не угадывает: считает, что они ничего не меняют).
-  const depth = (state.solo || preset.lookaheadAlways) ? preset.lookahead ?? 0 : 0;
+  // «Вдумчивые» боты смотрят на несколько своих ходов вперёд (ходы соперников между своими не угадывают:
+  // считают, что те ничего не меняют).
+  const depth = lookahead;
   if (depth > 1 && state.phase === 'orders' && !state.pending.length && state.turnDone !== me && rated.length > 1) {
     const top = rated.slice(0, BOT_BASE.lookaheadBeam);
     for (const r of top) r.v = samples.reduce((s, x) => s + planValue(x, me, r.a, ctx, depth - 1), 0) / samples.length + (rand() - 0.5) * 2 * noise;
@@ -979,8 +980,8 @@ function lowestFeed(state: GameState, feeds: { sprout: string; books: string[]; 
   return first.sort((a, b) => progress(a) - progress(b))[0] ?? null;
 }
 
-export function smartMove(state: GameState, me: string, preset: BotPreset, rand: Rand): GameState | null {
-  for (const r of rankActions(state, me, preset, rand)) {
+export function smartMove(state: GameState, me: string, preset: BotPreset, rand: Rand, lookahead = 0): GameState | null {
+  for (const r of rankActions(state, me, preset, rand, false, lookahead)) {
     const next = tryApply(state, me, r.a);
     if (next) return next;
   }

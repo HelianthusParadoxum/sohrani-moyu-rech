@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { NAVIGATE, navigate, useServer } from './net';
 import { Game } from './game';
 import { RULES } from '../engine/content';
-import { Dropdown, KindChip, Modal, PLAYER_COLORS, PresetSelect, SpeedSelect } from './ui';
+import { Dropdown, KindChip, Modal, PLAYER_COLORS, PresetSelect, SkillSelect } from './ui';
 import './style.css';
 import './tips';
 
@@ -191,7 +191,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
               )}
             </div>
           )}
-          <SpeedSelect room={room} send={net.send} />
+          <SkillSelect room={room} send={net.send} />
         </>
       )}
       {/* Кто за столом — после всех настроек. */}
