@@ -488,3 +488,4 @@ label.row > .dropdown { display: inline-block; }
   .code-cells { justify-content: stretch; }
   .code-cells .cell { flex: 1 1 0; width: auto; height: auto; aspect-ratio: 66 / 80; font-size: 3rem; }
 }
+.chip.mb-load { background: #e4dccb; color: var(--muted); }

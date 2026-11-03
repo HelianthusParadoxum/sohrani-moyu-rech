@@ -1814,7 +1814,13 @@ function Published({ view, p }: { view: PlayerView; p: VPlayer }) {
         const icons = iconsOf(view, c);
         return (
           <span key={c} className="pub-book" title={view.cards[c].title}>
-            {icons.length ? icons.map((g, i) => <GenreChip key={i} g={g} />) : isEvidence(view, c) ? <KindChip k="ul" /> : <span className="kind">—</span>}
+            {view.cards[c].wild
+              // «Чукоккала»: значок любого жанра (с монографией — два).
+              ? Array.from({ length: Math.max(1, iconCount(view, c)) }, (_, i) => <span key={i} className="chip wild">ЛЮБОЙ</span>)
+              : icons.length ? icons.map((g, i) => <GenreChip key={i} g={g} />)
+              : isEvidence(view, c) ? <KindChip k="ul" />
+              : isExposed(view, c) ? <span className="chip mb-load" title="Разоблачение">РАЗ</span>
+              : <span className="kind">—</span>}
           </span>
         );
       })}
