@@ -2561,6 +2561,6 @@ describe('Журнал: свойства Альбома и Фантастики'
     s = applyAction(s, me, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: [sf] }] } });
     const texts = s.log.map((l) => l.text);
     const feed = texts.findIndex((t) => t.includes('питает ступень'));
-    expect(texts[feed + 1]).toBe('↳ Фантастика заронила зерно: значок Фантастики засчитан за другой жанр.');
+    expect(texts[feed + 1]).toBe('↳ Фантастика заронила зерно: значок засчитан за другой жанр.');
   });
 });
