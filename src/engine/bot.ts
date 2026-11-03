@@ -269,11 +269,11 @@ function randomMove(state: GameState, me: string, rand: Rand): GameState {
 }
 
 // Доиграть партию ботами. presets — пресет для всех или для каждого игрока (id игрока → id пресета).
-export function playOut(state: GameState, rand: Rand = Math.random, maxSteps = 5000, presets: Record<string, string> | string = {}): GameState {
+export function playOut(state: GameState, rand: Rand = Math.random, maxSteps = 5000, presets: Record<string, string> | string = {}, skill: BotSkill = 'standard'): GameState {
   let s = state;
   for (let i = 0; i < maxSteps && s.phase !== 'end'; i++) {
     const who = activePlayers(s)[0];
-    s = botMove(s, who, rand, typeof presets === 'string' ? presets : presets[who]);
+    s = botMove(s, who, rand, typeof presets === 'string' ? presets : presets[who], skill);
   }
   return s;
 }

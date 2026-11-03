@@ -18,7 +18,8 @@
     "talons": "tsx tools/talons.ts",
     "club": "tsx tools/club.ts",
     "patrons": "tsx tools/patrons.ts",
-    "motives": "tsx tools/motives.ts"
+    "motives": "tsx tools/motives.ts",
+    "curator": "tsx tools/curator.ts"
   },
   "dependencies": {
     "react": "^19.3.1",
