@@ -123,7 +123,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
           <label>Режим
             <Dropdown value={room.reserve ? 'reserve' : room.mode} ariaLabel="Режим" onChange={(mode) => net.send({ t: 'setMode', mode: mode as 'beginner' })}
               options={[{ value: 'beginner', label: 'Периферия (для начинающих)' }, { value: 'full', label: 'Полные правила' },
-                { value: 'reserve', label: 'Заповедник (полные правила без Конторы и Куратора)' }]} />
+                { value: 'reserve', label: 'Заповедник (без Конторы и Куратора)' }]} />
           </label>
           {room.mode === 'full' && !room.reserve && room.seats.length > 1 && (
             <label className="row">
