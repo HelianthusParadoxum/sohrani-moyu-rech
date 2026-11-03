@@ -100,7 +100,7 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
     <div className="home title-screen">
       <h1>Сохрани мою речь</h1>
       <p className="subtitle">книжное подполье СССР</p>
-      <label>Ваше имя<input value={name} onChange={(e) => setName(e.target.value)} maxLength={24} placeholder="Как вас называть" /></label>
+      <label>Как вас называть<input value={name} onChange={(e) => setName(e.target.value)} maxLength={24} placeholder="Имя" /></label>
       {/* На телефоне — на плашке внизу экрана, во всю ширину. */}
       <div className="create-bar"><button className="primary" disabled={!name.trim()} onClick={onCreate}>Создать свою игру</button></div>
       <div className="or">Присоединитесь к игре по коду</div>
