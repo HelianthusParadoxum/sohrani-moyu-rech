@@ -492,3 +492,11 @@ label.row > .dropdown { display: inline-block; }
 /* Заголовок адреса в две строки (Посредничество авторам и т. п.) — плотнее */
 .addr-head > b { line-height: 1.15; }
 .passion-chips { display: inline-flex; gap: 8px; margin-left: 8px; vertical-align: 1px; }
+/* ПК: планшеты игроков и журнал — слева, поле с адресами — справа */
+@media (min-width: 1001px) {
+  .layout { grid-template-columns: 380px minmax(0, 1fr); }
+  .layout > .side { order: -1; }
+}
+@media (min-width: 1300px) {
+  .layout { grid-template-columns: 760px minmax(0, 1fr); }
+}
