@@ -453,7 +453,10 @@ label.row > .dropdown { display: inline-block; }
 }
 /* Титульный экран: на телефоне — по центру экрана; «Создать комнату» — на плашке внизу во всю ширину */
 @media (max-width: 600px) {
-  .home.title-screen { min-height: 100svh; margin: 0 auto; padding: 16px 16px 96px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; }
+  /* Свободное место делится 1 : 2 — блок стоит на трети высоты экрана, а не посередине. */
+  .home.title-screen { min-height: 100svh; margin: 0 auto; padding: 16px 16px 96px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-start; }
+  .home.title-screen::before { content: ''; flex: 1; }
+  .home.title-screen::after { content: ''; flex: 2; }
   .title-screen .create-bar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
     padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
