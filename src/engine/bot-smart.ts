@@ -442,6 +442,11 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
     v += BOT_BASE.curatorFlip * (props >= need ? 1 : BOT_BASE.curatorFlipPartial * props / need);
   }
   v += attack * BOT_BASE.curatorHeld * state.players.filter((o) => o.id !== p.id).reduce((s, o) => s + o.held, 0);
+  // Открытая опальная книга честного — повод для доноса: поход в Контору (Сигнал удержит Единомышленника, книгу изымут).
+  // Ценится, пока в эту Пятилетку у Куратора есть свободный Единомышленник и он ещё не был в Конторе. Так Куратор
+  // с Главлитовцем видит, что выгодно наложить опалу на жанр, книга которого открыто лежит у соперника, — и тут же донести.
+  if (state.phase === 'orders' && !state.reserve && p.available > 0 && !(state.occupancy.kontora ?? []).includes(p.id)
+    && kontoraTargets(state, p.id).length) v += attack * BOT_BASE.curatorTarget;
   // Жанровые книги — разменная монета: Книгообмен на ЧНЛ, Главлит «прокруткой», оплата Конторы своей книгой.
   for (const s of p.warehouse) {
     if (!isGenreBook(state, s.card)) continue;
