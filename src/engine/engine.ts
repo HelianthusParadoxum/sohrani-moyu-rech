@@ -1531,8 +1531,8 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       state.deck = shuffle(state, [...state.deck, ...state.discard]);
       state.discard = [];
       log(state, `${p.name} берёт у Наследников ${plural(action.cards.length, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}; сброс замешан в стопку.`);
-      logRecap(state, `${action.cards.length > 1 ? 'Получены' : 'Получена'}: ${titles(state, action.cards)}.`, [p.id]);
       logCached(state, p, action.cards);
+      logRecap(state, `${action.cards.length > 1 ? 'Получены' : 'Получена'}: ${titles(state, action.cards)}.`, [p.id]);
       offerBlatnoy(state, p, 'nasledniki');
       break;
     }
@@ -1547,8 +1547,8 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         else discard(state, c);
       }
       log(state, `${p.name} оставляет себе ${plural(action.keep.length, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}.`);
-      logRecap(state, `${action.keep.length > 1 ? 'Оставлены' : 'Оставлена'}: ${titles(state, action.keep)}.`, [p.id]);
       logCached(state, p, action.keep);
+      logRecap(state, `${action.keep.length > 1 ? 'Оставлены' : 'Оставлена'}: ${titles(state, action.keep)}.`, [p.id]);
       state.pending.shift();
       state.pending.unshift({ kind: 'posrednichestvoGroup', player: p.id });
       offerBlatnoy(state, p, 'posrednichestvo');
@@ -1576,13 +1576,13 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       check(pend.cards.includes(action.card), 'Эта книга не из вытянутых');
       check(freeSlots(p) > 0, 'На складе нет места: отдайте книгу, вытягивая следующую');
       for (const c of pend.cards) if (c !== action.card) discard(state, c);
-      // По порядку: что оставил (тайно — какую), затем — что спрятал в Тайник (её видел только он — «взакрытую»).
+      // По порядку: что оставил и что спрятал в Тайник (её видел только он — «взакрытую»), затем тайно — какую.
       addSecretBook(state, p, action.card, null);
       log(state, `${p.name} оставляет себе одну книгу из Макулатуры (вытянуто: ${pend.cards.length}).`);
-      logRecap(state, `Оставлена: ${title(state, action.card)}.`, [p.id]);
       if (p.warehouse.find((w) => w.card === action.card)?.hidden) {
         log(state, `↳ Взакрытую в Тайник: ${isFromLoadDeck(state, action.card) ? 'книга Нагрузки' : '1 непечатный текст'}.`);
       }
+      logRecap(state, `Оставлена: ${title(state, action.card)}.`, [p.id]);
       break;
     }
     case 'spisanieKeep': {
@@ -1595,8 +1595,8 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         else discard(state, c);
       }
       log(state, `${p.name} оставляет себе из Библиотечного списания ${plural(action.keep.length, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}.`);
-      if (action.keep.length) logRecap(state, `${action.keep.length > 1 ? 'Оставлены' : 'Оставлена'}: ${titles(state, action.keep)}.`, [p.id]);
       logCached(state, p, action.keep);
+      if (action.keep.length) logRecap(state, `${action.keep.length > 1 ? 'Оставлены' : 'Оставлена'}: ${titles(state, action.keep)}.`, [p.id]);
       if (action.keep.length) offerBlatnoy(state, p, 'spisanie');
       break;
     }
