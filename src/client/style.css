@@ -481,3 +481,5 @@ label.row > .dropdown { display: inline-block; }
   .lobby .lobby-actions button { white-space: nowrap; padding: 0 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 }
 @media (max-width: 600px) { .mobile-bar .mb-round { margin-right: 8px; white-space: nowrap; } }
+/* Барахолка в окне: книги сеткой 2 × 2 */
+.shelf.grid2 { display: grid; grid-template-columns: repeat(2, max-content); gap: 8px; justify-content: start; }

@@ -663,7 +663,7 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
         <>
           <p>Выберите {need === 1 ? 'закрытую книгу' : `${need} закрытые книги`}. Вы тайно посмотрите их и сможете купить одну за {RULES.baraholkaPrice}т.
             {view.baraholkaKnown?.some(Boolean) && ' Открытые — те, что вы уже видели.'}</p>
-          <div className="shelf">
+          <div className="shelf grid2">
             {view.baraholka.map((has, i) => has && (view.baraholkaKnown?.[i]
               ? <Book key={i} v={view} id={view.baraholkaKnown[i]} selected={sel.includes(String(i))} onClick={() => pick(String(i))} note="вы видели" />
               : <button key={i} className={`book back ${sel.includes(String(i)) ? 'selected' : ''} clickable`} onClick={() => pick(String(i))}><span>{i + 1}</span></button>
