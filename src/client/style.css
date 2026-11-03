@@ -438,3 +438,9 @@ label.row > .dropdown { display: inline-block; }
 .room-title { display: flex; align-items: center; gap: 10px; }
 .room-title .back { flex: none; width: 40px; height: 40px; padding: 0 2px 0 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--ink); }
 .room-title .back svg { display: block; }
+/* Лобби: ссылка на комнату и кнопка-иконка «скопировать» */
+.lobby .share { display: flex; align-items: center; gap: 10px; }
+.lobby .share p { margin: 8px 0; min-width: 0; }
+.icon-btn { flex: none; width: 36px; height: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--ink); }
+.icon-btn svg { display: block; }
+@media (max-width: 600px) { .lobby .share { justify-content: space-between; } }

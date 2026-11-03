@@ -107,6 +107,35 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
   );
 }
 
+// Кнопка-иконка «скопировать ссылку»; после нажатия на секунду — галочка.
+function CopyButton({ text }: { text: string }) {
+  const [done, setDone] = useState(false);
+  const copy = () => {
+    const ok = () => { setDone(true); setTimeout(() => setDone(false), 1200); };
+    // Без доступа к буферу (старый браузер, не https) — через временное поле.
+    const fallback = () => {
+      const t = document.createElement('textarea');
+      t.value = text; t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select();
+      try { if (document.execCommand('copy')) ok(); } catch { /* ignore */ }
+      t.remove();
+    };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(ok, fallback);
+    else fallback();
+  };
+  return (
+    <button className="icon-btn" onClick={copy} aria-label="Скопировать ссылку" title={done ? 'Скопировано' : 'Скопировать ссылку'}>
+      {done ? (
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3.5 9.5l3.5 3.5 7.5-8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      ) : (
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
+          <rect x="6" y="6" width="9" height="9.5" rx="1.8" /><path d="M12 6V4.3A1.8 1.8 0 0 0 10.2 2.5H4.3A1.8 1.8 0 0 0 2.5 4.3v6A1.8 1.8 0 0 0 4.3 12H6" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
 function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServer>; name: string; setName: (s: string) => void; onJoin: () => void }) {
   const room = net.room!;
   const seated = !!net.you || net.isHost;
@@ -120,9 +149,10 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
         </button>
         Комната {room.code}
       </h1>
-      <p className="muted">Отправьте ссылку тестировщикам: <a href={link}>{link}</a>{' '}
-        <button className="small" onClick={() => navigator.clipboard?.writeText(link)}>Копировать</button>
-      </p>
+      <div className="share">
+        <p className="muted">Отправьте ссылку тестировщикам: <a href={link}>{link}</a></p>
+        <CopyButton text={link} />
+      </div>
       {host && (
         <>
           <label>Режим
