@@ -97,11 +97,12 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
   const answer = net.probe?.code === code ? net.probe : null;
   useEffect(() => { if (answer?.exists) navigate(code); }, [answer, code]);
   return (
-    <div className="home">
+    <div className="home title-screen">
       <h1>Сохрани мою речь</h1>
       <p className="subtitle">книжное подполье СССР</p>
       <label>Ваше имя<input value={name} onChange={(e) => setName(e.target.value)} maxLength={24} placeholder="Как вас называть" /></label>
-      <button className="primary" disabled={!name.trim()} onClick={onCreate}>Создать комнату</button>
+      {/* На телефоне — на плашке внизу экрана, во всю ширину. */}
+      <div className="create-bar"><button className="primary" disabled={!name.trim()} onClick={onCreate}>Создать комнату</button></div>
       <div className="or">или войдите по коду</div>
       {/* Одно поле поверх четырёх ячеек: так работают и вставка, и стирание. */}
       <label className="code-cells" aria-label="Код комнаты">

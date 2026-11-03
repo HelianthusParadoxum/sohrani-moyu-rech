@@ -451,3 +451,16 @@ label.row > .dropdown { display: inline-block; }
   .side > :not(.player) { order: 99; }
   .addresses > .address { order: var(--mo, 0); }
 }
+/* Титульный экран: на телефоне — по центру экрана; «Создать комнату» — на плашке внизу во всю ширину */
+@media (max-width: 600px) {
+  .home.title-screen { min-height: 100svh; margin: 0 auto; padding: 16px 16px 96px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; }
+  .title-screen .create-bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    background: var(--paper); border-top: 1px solid rgba(0,0,0,.15); box-shadow: 0 -4px 16px rgba(0,0,0,.18);
+  }
+  .title-screen .create-bar button { width: 100%; padding: 12px; font-size: 1.05rem; }
+}
+/* Ячейки кода — крупнее */
+.code-cells { gap: 12px; }
+.code-cells .cell { width: 66px; height: 80px; font-size: 2.6rem; }
