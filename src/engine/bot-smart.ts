@@ -583,6 +583,8 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
     // Одиночная игра: прямая цель — все Ростки до III ступени, а самый развитый — до IV (запас против ЧНЛ при вскрытии).
     const prog = state.sprouts.map((sp) => sp.progress).sort((a, b) => b - a);
     v += BOT_BASE.soloGoal * (ctx.preset.soloGoal ?? 1) * prog.reduce((s, x, i) => s + Math.min(x, i === 0 ? 4 : RULES.glasnostStep), 0);
+    // Запасные ступени IV у остальных Ростков — страховка от ЧНЛ при вскрытии (так играет живой игрок: доводит всё до IV).
+    v += BOT_BASE.soloGoal * BOT_BASE.soloSpareIV * prog.slice(1).filter((x) => x >= 4).length;
   }
   if (ctx.full || state.solo) {
     // «Громоотвод»: запасные ступени сверх 3-й на случай срезов Куратора (в одиночной игре — ЧНЛ из 30 вскрытых карт).
