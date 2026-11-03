@@ -444,8 +444,10 @@ label.row > .dropdown { display: inline-block; }
 .icon-btn { flex: none; width: 36px; height: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--ink); }
 .icon-btn svg { display: block; }
 @media (max-width: 600px) { .lobby .share { justify-content: space-between; } }
-/* Телефон: свой планшет — последним среди планшетов игроков (свои показатели и так видны в плашке сверху), журнал — после */
+/* Телефон: свой планшет — первым, планшеты соперников — в обратном порядке, журнал — после;
+   на поле — явочные адреса выше обычных (новые — первыми), обычные — в обратном порядке */
 @media (max-width: 600px) {
-  .side > .player.me { order: 1; }
-  .side > :not(.player) { order: 2; }
+  .side > .player:not(.me) { order: var(--rev, 0); }
+  .side > :not(.player) { order: 99; }
+  .addresses > .address { order: var(--mo, 0); }
 }

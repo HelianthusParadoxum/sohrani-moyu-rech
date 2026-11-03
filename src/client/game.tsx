@@ -231,8 +231,8 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
               onMemorize={view.mode === 'full' && (canPlace || bonusTurn || afterAction) ? (card) => act({ type: 'memorize', card }) : null}
               onCache={canPlace || bonusTurn || afterAction ? () => setPanel({ kind: 'cache' }) : null} />
           )}
-          {view.players.filter((p) => p.id !== you).map((p) => (
-            <OtherPlayer key={p.id} view={view} p={p} color={PLAYER_COLORS[seatIndex(p.id)]} active={view.active.includes(p.id)} />
+          {view.players.filter((p) => p.id !== you).map((p, i, all) => (
+            <OtherPlayer key={p.id} view={view} p={p} color={PLAYER_COLORS[seatIndex(p.id)]} active={view.active.includes(p.id)} rev={all.length - i} />
           ))}
           <Log view={view} seatIndex={seatIndex} />
         </aside>
@@ -435,9 +435,13 @@ function AddressCard(props: AddressProps) {
   const onPick = open ? (key: string) => props.onOpen(key) : undefined;
   // На адресе — краткое описание; полное — подсказкой (наведение мышью или удержание пальцем).
   const tip = iconize(info.hint) + (props.blocked && !open ? `\nСейчас нельзя: ${props.blocked}` : '');
+  // Порядок на телефоне: явочные — выше обычных (новые — первыми), обычные — в обратном порядке.
+  const sIdx = props.view.safehouses.indexOf(id);
+  const bIdx = BOARD_ORDER.indexOf(id);
+  const mo = sIdx >= 0 ? 100 + props.view.safehouses.length - sIdx : bIdx >= 0 ? 200 + BOARD_ORDER.length - bIdx : 0;
   return (
     <div className={`address addr-${id} ${info.safehouse ? 'safehouse' : ''} ${open ? 'can' : ''}`} onClick={open ?? (why ? () => explain(why) : undefined)}
-      role={open ? 'button' : undefined} title={tip} data-tip={tip}>
+      role={open ? 'button' : undefined} title={tip} data-tip={tip} style={{ '--mo': mo } as React.CSSProperties}>
       <AddressHead {...props} inlineHint={inlineHint} />
       {!inlineHint && <div className="hint">{iconize(info.short)}</div>}
       <AddressContents id={id} view={view} seatIndex={seatIndex} me={me} onPatron={props.onPatron} onBlocked={props.onBlocked} onPick={onPick} />
@@ -1669,9 +1673,9 @@ function MyPanel({ view, me, color, groupWhy, onGroup, onMemorize, onCache }: {
   );
 }
 
-function OtherPlayer({ view, p, color, active }: { view: PlayerView; p: VPlayer; color: string; active: boolean }) {
+function OtherPlayer({ view, p, color, active, rev }: { view: PlayerView; p: VPlayer; color: string; active: boolean; rev: number }) {
   return (
-    <div className={`player ${active ? 'active' : ''}`} style={{ borderColor: color }}>
+    <div className={`player ${active ? 'active' : ''}`} style={{ borderColor: color, '--rev': rev } as React.CSSProperties}>
       <div className="addr-head"><b style={{ color }}><span className="dot" style={{ background: color }} /> {p.name}</b>
         {/* Зрителю видно всё — и Пристрастия. */}
         {view.me === null && p.passion && <span className="muted small" title={PASSIONS[p.passion].hint}>({PASSIONS[p.passion].name})</span>}
