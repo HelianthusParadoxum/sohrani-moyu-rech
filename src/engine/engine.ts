@@ -1091,7 +1091,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         if (prof) gain(p, RULES.professorPoints, 'professor');
         let text = `${p.name} питает ступень ${roman(sp.progress)} Ростка «${info.name}» (${titles(state, f.books)}${lab ? '; скидка Лаборанта' : ''})`;
         text += `, +${[reward.talons ? talonsText(reward.talons) : '', reward.points ? pointsText(reward.points) : ''].filter(Boolean).join(' и +')}`;
-        // Кто вкладывался в Росток (видно на поле; по этому боты судят, кто не Куратор). Бонуса за первое питание нет.
+        // Кто вкладывался в Росток — запоминаем: по этому боты судят, кто не Куратор (на поле не показывается).
         if (!p.sproutsFed.includes(sp.id)) p.sproutsFed.push(sp.id);
         log(state, text + '.');
         // Фантастика «Заронить зерно»: без неё (её значков вместо других жанров) ступень не закрылась бы.

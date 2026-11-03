@@ -862,14 +862,6 @@ function Sprouts({ view, me, beside, seatIndex, head, onOpen, why, turnWhy }: { 
                 );
               })}
             </div>
-            {/* Кто хоть раз вкладывался в этот Росток: слот на каждого игрока. */}
-            <div className="fed-row muted small" title="Кто вкладывался в этот Росток">
-              Вложились:{' '}
-              {view.players.filter((p) => p.sproutsFed.includes(sp.id)).map((p) => (
-                <span key={p.id} className="dot" style={{ background: PLAYER_COLORS[seatIndex(p.id)] }} title={p.name} />
-              ))}
-              {view.players.filter((p) => !p.sproutsFed.includes(sp.id)).map((p) => <span key={p.id} className="dot slot-free" />)}
-            </div>
           </div>
         );
       })}
