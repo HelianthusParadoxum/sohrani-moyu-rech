@@ -1369,7 +1369,11 @@ function PassionPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: 
       <div className="passions">
         {me.passionOptions.map((id) => (
           <button key={id} className="passion" onClick={() => act({ type: 'choosePassion', passion: id })}>
-            <b>{passionLabel(id)}</b><span>{withKindChips(PASSIONS[id].hint)}</span>
+            {/* Заголовок: название и жанры — значками; описание — словами, очки — значком ★. */}
+            <b>{PASSIONS[id].genres
+              ? <>{PASSIONS[id].name}<span className="passion-chips">{PASSIONS[id].genres!.map((g) => <GenreChip key={g} g={g} favored />)}</span></>
+              : passionLabel(id)}</b>
+            <span>{withKindChips(PASSIONS[id].hint.replace(/(\d+) очк(?:о|а|ов)(?![а-яё])/g, '$1★'))}</span>
           </button>
         ))}
       </div>
