@@ -73,7 +73,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
   else if (myPending) status = mine('примите решение');
   else if (view.phase === 'orders') {
     if (afterAction) status = mine('действие сделано. Можно пересобрать Тайник' + (view.mode === 'full' ? ', заучить сборник поэзии, отдать книгу в Клуб' : '') + ' — или закончите ход');
-    else if (canPlace) status = mine(mustRed ? 'последнего 👤 — в Красный уголок' : 'отправьте 👤 по адресу или в Инициативную группу');
+    else if (canPlace) status = mine(mustRed ? 'последнего 👤 — в Красный уголок' : 'отправьте 👤 действовать');
     else if (bonusTurn) status = mine('дополнительное действие Группы с явочного адреса — или откажитесь');
     else status = view.active.length === 1 ? <>{who(view.active[0])} ходит</> : <>Ходят: {whoList(view.active)}</>;
   } else if (you && view.active.includes(you)) status = mine('ваше решение');
