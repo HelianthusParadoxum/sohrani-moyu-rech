@@ -1,19 +1,25 @@
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { useServer } from './net';
+import { NAVIGATE, navigate, useServer } from './net';
 import { Game } from './game';
 import { RULES } from '../engine/content';
 import { Dropdown, KindChip, Modal, PLAYER_COLORS, PresetSelect, SpeedSelect } from './ui';
 import './style.css';
 import './tips';
 
-function useHashCode(): string | null {
-  const read = () => decodeURIComponent(location.hash).match(/^#\/r\/(.+)$/)?.[1] ?? null;
+// Комната — в адресе страницы: сайт/1428. Старые ссылки вида сайт/#/r/1428 переводим на новый вид.
+function useRoomCode(): string | null {
+  const read = () => {
+    const legacy = decodeURIComponent(location.hash).match(/^#\/r\/(.+)$/)?.[1];
+    if (legacy) history.replaceState(null, '', `/${encodeURIComponent(legacy)}`);
+    return decodeURIComponent(location.pathname).match(/^\/([^/]+)$/)?.[1] ?? null;
+  };
   const [code, setCode] = useState(read);
   useEffect(() => {
     const on = () => setCode(read());
-    addEventListener('hashchange', on);
-    return () => removeEventListener('hashchange', on);
+    addEventListener('popstate', on);
+    addEventListener(NAVIGATE, on);
+    return () => { removeEventListener('popstate', on); removeEventListener(NAVIGATE, on); };
   }, []);
   return code;
 }
@@ -26,7 +32,7 @@ function storeName(n: string) {
 }
 
 function App() {
-  const code = useHashCode();
+  const code = useRoomCode();
   const net = useServer(code);
   const [name, setName] = useState(savedName);
   const [seenOutdated, setSeenOutdated] = useState<string | null>(null);
@@ -40,7 +46,7 @@ function App() {
   if (code && net.gone) {
     // Комнаты нет: после обновления игры сервер начал с чистого листа.
     body = (
-      <Apology onOk={() => { location.hash = ''; }}>
+      <Apology onOk={() => navigate(null)}>
         Эта партия не сохранилась: игру обновили, и продолжить её нельзя. Начните, пожалуйста, новую партию.
       </Apology>
     );
@@ -89,7 +95,7 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
   // Четвёртая цифра — спрашиваем сервер, есть ли такая комната; есть — сразу входим.
   useEffect(() => { if (code.length === 4) net.send({ t: 'probe', code }); }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
   const answer = net.probe?.code === code ? net.probe : null;
-  useEffect(() => { if (answer?.exists) location.hash = `#/r/${code}`; }, [answer, code]);
+  useEffect(() => { if (answer?.exists) navigate(code); }, [answer, code]);
   return (
     <div className="home">
       <h1>Сохрани мою речь</h1>
@@ -140,11 +146,11 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
   const room = net.room!;
   const seated = !!net.you || net.isHost;
   const host = net.isHost;
-  const link = location.href;
+  const link = `${location.origin}/${encodeURIComponent(room.code)}`;
   return (
     <div className="home lobby">
       <h1 className="room-title">
-        <button className="back" aria-label="Назад, в начальное меню" title="В начальное меню" onClick={() => { location.hash = ''; }}>
+        <button className="back" aria-label="Назад, в начальное меню" title="В начальное меню" onClick={() => navigate(null)}>
           <svg width="12" height="18" viewBox="0 0 12 18" aria-hidden="true"><path d="M9 2L3 9l6 7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
         Комната {room.code}

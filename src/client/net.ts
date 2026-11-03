@@ -15,6 +15,15 @@ export interface NetState {
   probe: { code: string; exists: boolean } | null; // ответ на вопрос «есть ли комната с таким кодом»
 }
 
+// Переход на страницу комнаты (code) или на главную (null) без перезагрузки страницы.
+export const NAVIGATE = 'smr:navigate';
+export function navigate(code: string | null) {
+  const path = code ? `/${encodeURIComponent(code)}` : '/';
+  if (location.pathname + location.hash === path) return;
+  history.pushState(null, '', path);
+  dispatchEvent(new Event(NAVIGATE));
+}
+
 export const tokenKey = (code: string) => `smr:token:${code}`;
 
 function readToken(code: string): string | null {
@@ -53,7 +62,7 @@ export function useServer(code: string | null) {
         if (msg.t === 'joined') {
           writeToken(msg.code, msg.token);
           bound.current = msg.code;
-          if (location.hash !== `#/r/${msg.code}`) location.hash = `#/r/${msg.code}`;
+          navigate(msg.code);
         } else if (msg.t === 'room') {
           // Сведения о комнате, которую страница уже не показывает (ушли на главную), не нужны.
           if (msg.room.code !== bound.current) return;
