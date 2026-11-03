@@ -1164,7 +1164,8 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       }
       if (corr) gain(p, RULES.correspondentPoints, 'correspondent');
       gaveAway(state, p, a.card);
-      log(state, `${p.name} издаёт ${title(state, a.card)} через ${name}: ${[talons ? `+${talonsText(talons)}` : '', pts ? `+${pointsText(pts)}` : ''].filter(Boolean).join(', ')}.`);
+      const gains = [talons ? `+${talonsText(talons)}` : '', pts ? `+${pointsText(pts)}` : ''].filter(Boolean).join(', ');
+      log(state, `${p.name} издаёт ${title(state, a.card)} через ${name}${gains ? `: ${gains}` : ''}.`);
       if (genreBonus) logAfter(state, genreBonus);
       if (corr) logAfter(state, `↳ Корреспондент: +${talonsText(corr)} и +${pointsText(RULES.correspondentPoints)}.`);
       earn(state, p, 0, { [a.address]: talons, correspondent: corr });

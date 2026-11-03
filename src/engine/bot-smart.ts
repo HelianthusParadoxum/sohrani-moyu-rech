@@ -613,16 +613,7 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
     }
     // Открыто лежащая опальная книга посреди Пятилетки — готовый донос: Контора её изымет и удержит Единомышленника.
     // Чем сильнее подозрение на Куратора, тем вероятнее (а он ходит в Контору охотно).
-    if (state.phase === 'orders') {
-      const exposed = p.warehouse.filter((s) => !s.hidden && !s.memorized && isGenreBook(state, s.card) && isBanned(state, s.card));
-      if (exposed.length && state.players.some((o) => o.id !== me && o.available > 0)) {
-        const sus = Math.max(0, ...Object.values(ctx.suspect));
-        const risk = Math.min(1, BOT_BASE.exposeRisk + BOT_BASE.exposeRiskSuspect * sus);
-        const book = Math.max(...exposed.map((s) => Math.max(0, ownBookValue(state, p, s.card, ctx))));
-        const worker = hasPatron(state, me, 'psychiatrist') ? 0 : (left + 1) * BOT_BASE.action;
-        v -= risk * (book + worker) * ctx.preset.character.caution;
-      }
-    }
+    v -= exposurePenalty(state, p, ctx, left);
   }
   if (ctx.full) {
     // ЧНЛ, до которой может дотянуться Куратор (на столе, а пока есть Наследники — и в сбросе), — это будущие срезы.
@@ -643,6 +634,21 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   const pos = state.nextOrder.indexOf(me);
   if (pos >= 0 && left > 0) v += BOT_BASE.turnOrder * (state.players.length - pos) / state.players.length;
   return v;
+}
+
+// Открытая опальная книга посреди Пятилетки — повод для доноса: Контора изымет её и удержит Единомышленника.
+// Раскрывшийся Куратор, у которого ещё есть ход в Контору, донесёт наверняка.
+function exposurePenalty(state: GameState, p: PlayerState, ctx: Ctx, left: number): number {
+  if (state.phase !== 'orders' || state.reserve) return 0;
+  const exposed = p.warehouse.filter((s) => !s.hidden && !s.memorized && isGenreBook(state, s.card) && isBanned(state, s.card));
+  if (!exposed.length || !state.players.some((o) => o.id !== p.id && o.available > 0)) return 0;
+  const sus = Math.max(0, ...Object.values(ctx.suspect));
+  const cur = state.curatorRevealed && state.curatorRevealed !== p.id ? player(state, state.curatorRevealed) : null;
+  const sure = !!cur && cur.available > 0 && !(state.occupancy.kontora ?? []).includes(cur.id);
+  const risk = sure ? 1 : Math.min(1, BOT_BASE.exposeRisk + BOT_BASE.exposeRiskSuspect * sus);
+  const book = Math.max(...exposed.map((s) => Math.max(0, ownBookValue(state, p, s.card, ctx))));
+  const worker = hasPatron(state, p.id, 'psychiatrist') ? 0 : (left + 1) * BOT_BASE.action;
+  return risk * (book + worker) * ctx.preset.character.caution;
 }
 
 // ---------- Примерка ----------
@@ -961,6 +967,9 @@ function planValue(state: GameState, me: string, a: Action, ctx: Ctx, depth: num
   if (!next) return -Infinity;
   const mine = next.phase === 'orders' && next.round === state.round && !next.pending.length && activePlayers(next).includes(me) && next.turnDone !== me;
   if (depth <= 0 || !mine) return evaluate(next, me, ctx);
+  // С соперниками: пока бот «ждёт» свой следующий ход, они успеют сходить — открытую опальную книгу могут изъять
+  // доносом. Этот риск считаем на промежуточном шаге (иначе цепочка «взять сейчас — сдать потом» кажется безопасной).
+  const between = next.solo || !ctx.full ? 0 : exposurePenalty(next, player(next, me), ctx, RULES.rounds - ctx.round);
   const scored: { a: Action; v: number }[] = [];
   for (const b of candidates(next, me, ctx)) {
     const v = score(next, me, b, ctx, 2);
@@ -970,7 +979,7 @@ function planValue(state: GameState, me: string, a: Action, ctx: Ctx, depth: num
   scored.sort((x, y) => y.v - x.v);
   let best = -Infinity;
   for (const r of scored.slice(0, BOT_BASE.lookaheadBeam)) best = Math.max(best, planValue(next, me, r.a, ctx, depth - 1));
-  return best;
+  return best - between;
 }
 
 // Ступень у самого слабого Ростка из списка (только первые ступени каждого Ростка — их можно закрыть по отдельности).
