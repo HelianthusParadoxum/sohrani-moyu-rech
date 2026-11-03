@@ -919,8 +919,9 @@ export function rankActions(state: GameState, me: string, preset: BotPreset, ran
   const noise = preset.character.randomness * 2;
   for (const r of rated) r.v += (rand() - 0.5) * 2 * noise;
   rated.sort((x, y) => y.v - x.v);
-  // Взгляд на несколько ходов вперёд (пока — только одиночная игра: соперников, чьи ходы не угадать, нет).
-  const depth = state.solo ? preset.lookahead ?? 0 : 0;
+  // Взгляд на несколько ходов вперёд: в одиночной игре — у «Одиночки», с соперниками — у «Вдумчивого»
+  // (ходы соперников между своими бот не угадывает: считает, что они ничего не меняют).
+  const depth = (state.solo || preset.lookaheadAlways) ? preset.lookahead ?? 0 : 0;
   if (depth > 1 && state.phase === 'orders' && !state.pending.length && state.turnDone !== me && rated.length > 1) {
     const top = rated.slice(0, BOT_BASE.lookaheadBeam);
     for (const r of top) r.v = samples.reduce((s, x) => s + planValue(x, me, r.a, ctx, depth - 1), 0) / samples.length + (rand() - 0.5) * 2 * noise;
@@ -945,6 +946,10 @@ function advance(state: GameState, me: string, a: Action, ctx: Ctx): GameState |
     s = tryApply(s, me, best.a);
   }
   if (s && s.turnDone === me && !s.pending.length) s = tryApply(s, me, { type: 'endTurn' }) ?? s;
+  // С соперниками: их ходы не угадать — считаем, что следующий ход снова наш (если ещё есть Единомышленники).
+  if (s && !s.solo && s.phase === 'orders' && !s.pending.length && !activePlayers(s).includes(me) && player(s, me).available > 0) {
+    s = { ...s, turn: s.order.indexOf(me), turnDone: undefined };
+  }
   return s;
 }
 

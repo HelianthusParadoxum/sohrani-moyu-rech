@@ -36,7 +36,8 @@ export interface BotPreset {
   goals: Record<BotGoal, [number, number, number, number, number]>; // вес по Пятилеткам 1..5
   character: BotCharacter;
   soloGoal?: number; // одиночная игра: множитель цели «все Ростки до III, один до IV» (1 — как у всех)
-  lookahead?: number; // одиночная игра: на сколько своих ходов вперёд бот примеряет цепочки (1–2 — как обычно, 3 — дальше)
+  lookahead?: number; // на сколько своих ходов вперёд бот примеряет цепочки (1–2 — как обычно, 3 — дальше); по умолчанию — только в одиночной игре
+  lookaheadAlways?: boolean; // взгляд вперёд и в партиях с соперниками («Вдумчивый»)
   base?: Partial<Record<TunableBase, number>>; // свои числа вместо BOT_BASE (для замеров A/B)
 }
 
@@ -120,6 +121,24 @@ export const BOT_PRESETS: BotPreset[] = [
       club: [5, 5, 5, 4, 3],
     },
     character: { reserve: 0, caution: 0.8, randomness: 0.1, aggression: 0.3 },
+  },
+  {
+    id: 'thinker',
+    name: 'Вдумчивый',
+    description: 'Как Книжник, но думает на 3 своих хода вперёд: заранее копит книги под ступень и собирает цепочки ходов. Думает дольше.',
+    goals: {
+      network: [7, 6, 5, 4, 3],
+      sprouts: [6, 6, 7, 8, 9],
+      sproutBooks: [6, 6, 6, 5, 3],
+      publish: [5, 5, 5, 5, 5],
+      talons: [5, 5, 5, 5, 5],
+      passion: [4, 4, 5, 6, 7],
+      storage: [5, 5, 4, 3, 0],
+      club: [6, 6, 5, 4, 3],
+    },
+    character: { reserve: 0, caution: 0.9, randomness: 0.1, aggression: 0.3 },
+    lookahead: 3,
+    lookaheadAlways: true,
   },
   {
     id: 'soloist',
