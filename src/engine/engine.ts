@@ -14,7 +14,7 @@ import type {
 } from './types';
 import { GENRES } from './types';
 import {
-  addBook, addBoughtBook, addOpenBook, canMemorizeOnBuy, countsAsLoad, roomToBuy, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
+  addBook, addBoughtBook, addOpenBook, canMemorizeOnBuy, countsAsLoad, isFromLoadDeck, roomToBuy, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isPropagandaKind, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
   talonsText, title, titles, logEvent, logNote, logAfter, toSpetskhranPublic, seeSpetskhran, isExposed, saved, logRecap, plural, bulletTitles, iconCount, genresOf, genreOn,
 } from './util';
@@ -1567,9 +1567,13 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       check(pend.cards.includes(action.card), 'Эта книга не из вытянутых');
       check(freeSlots(p) > 0, 'На складе нет места: отдайте книгу, вытягивая следующую');
       for (const c of pend.cards) if (c !== action.card) discard(state, c);
-      addSecretBook(state, p, action.card);
+      // По порядку: что оставил (тайно — какую), затем — что спрятал в Тайник (её видел только он — «взакрытую»).
+      addSecretBook(state, p, action.card, null);
       log(state, `${p.name} оставляет себе одну книгу из Макулатуры (вытянуто: ${pend.cards.length}).`);
       logRecap(state, `Оставлена: ${title(state, action.card)}.`, [p.id]);
+      if (p.warehouse.find((w) => w.card === action.card)?.hidden) {
+        log(state, `${p.name} берёт ${isFromLoadDeck(state, action.card) ? 'книгу Нагрузки' : 'непечатный текст'} взакрытую и кладёт в Тайник.`);
+      }
       break;
     }
     case 'spisanieKeep': {
