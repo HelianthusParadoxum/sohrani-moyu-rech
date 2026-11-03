@@ -179,6 +179,8 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
         {canPlace && (me.visitedRedCorner || hasPatron(view, me.id, 'doctor')) && <button className="small" onClick={() => confirm('Спасовать до конца Пятилетки? Оставшиеся 👤 не будут действовать.') && act({ type: 'pass' })}>Спасовать</button>}
       </div>
 
+      {me && view.phase !== 'passion' && <MobileBar view={view} me={me} />}
+
       {/* На телефоне «Закончить ход» выезжает снизу экрана, чтобы не листать к строке статуса. Там же — «Развернуть» свёрнутое окно. */}
       <div className={`end-turn-sheet ${afterAction || collapsed ? 'show' : ''}`} aria-hidden={!afterAction && !collapsed}>
         {collapsed ? (
@@ -1546,6 +1548,32 @@ function emptySlots(n: number) {
 // Свободные места Склада (заученный сборник места не занимает).
 function freeShelf(p: VPlayer): number {
   return p.capacity - p.warehouse.filter((s) => !s.memorized).length;
+}
+
+// Телефон: закреплённая сверху плашка — опала, свои показатели и книги склада (только значки; в Тайнике — пунктиром).
+function MobileBar({ view, me }: { view: PlayerView; me: VPlayer }) {
+  const marks = (c: string) => {
+    if (isPropaganda(view, c)) return <KindChip k="chnl" />;
+    if (isEvidence(view, c)) return <KindChip k="ul" />;
+    if (isExposed(view, c)) return <span className="chip mb-load" title="Разоблачение">РАЗ</span>;
+    if (view.cards[c].wild) return <span className={`chip wild ${view.banned.length ? 'banned' : ''}`} title="Любой жанр">ЛЮБОЙ</span>;
+    const icons = iconsOf(view, c);
+    if (!icons.length) return <span className="chip mb-load" title="Нагрузка">Н</span>;
+    return icons.map((g, i) => <GenreChip key={i} g={g} banned={view.banned.includes(g)} />);
+  };
+  return (
+    <div className="mobile-bar">
+      <div className="mb-row"><span className="muted small">Опала:</span>{view.banned.length ? view.banned.map((g) => <GenreChip key={g} g={g} banned />) : <span className="muted small">нет</span>}</div>
+      <Stats p={me} view={view} />
+      <div className="mb-row mb-books">
+        {me.warehouse.map((s, i) => s.card && (
+          <span key={i} className={`mb-book ${s.hidden ? 'cached' : ''} ${s.memorized ? 'memo' : ''}`}
+            title={`${view.cards[s.card].title}${s.hidden ? ' — в Тайнике' : s.memorized ? ' — заучено' : ''}`}>{marks(s.card)}</span>
+        ))}
+        {!me.warehouse.length && <span className="muted small">склад пуст</span>}
+      </div>
+    </div>
+  );
 }
 
 function Stats({ p, view }: { p: VPlayer; view: PlayerView }) {

@@ -413,3 +413,18 @@ label.row > .dropdown { display: inline-block; }
 .dropdown-list li.selected { font-weight: 700; }
 .host-tools .dropdown-btn { padding: 1px 18px 1px 4px; background-position: right 5px top calc(50% + 1px); }
 .seats .dropdown-list li { border: 0; display: block; padding: 8px 12px; margin: 0; }
+/* Телефон: закреплённая сверху плашка — опала, показатели, книги склада */
+.mobile-bar { display: none; }
+@media (max-width: 600px) {
+  .mobile-bar {
+    display: block; position: sticky; top: 0; z-index: 35;
+    padding: 6px 12px; background: var(--paper); border-bottom: 1px solid var(--line); box-shadow: 0 3px 10px rgba(0,0,0,.12);
+  }
+  .mobile-bar .mb-row { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 4px; }
+  .mobile-bar .stats { margin: 4px 0; }
+  .mobile-bar .mb-books { gap: 4px; }
+  .mobile-bar .mb-book { display: inline-flex; gap: 1px; padding: 1px; border: 1.5px solid transparent; border-radius: 4px; }
+  .mobile-bar .mb-book.cached { border: 1.5px dashed var(--ink); background: rgba(0,0,0,.06); }
+  .mobile-bar .mb-book.memo { border: 1.5px solid var(--g-poetry); }
+  .mobile-bar .chip.mb-load { background: #e4dccb; color: var(--muted); }
+}
