@@ -5,7 +5,7 @@ import { GENRES } from './types';
 import {
   addBook, addSecretBook, check, discard, drawLoad, earn, freeSlots, hasBook, hasPatron, iconsOf, genresOf, genreOn, isBanned, isGenreBook, isPropaganda, log, pay, player,
   removeBook, saved, shuffle, talonsText, title, titles, logAfter, gain, pointsText,
-  forgetSpetskhran, seeSpetskhran, toSpetskhranPublic, addOpenBook, addBoughtBook, roomToBuy,
+  forgetSpetskhran, seeSpetskhran, toSpetskhranPublic, addOpenBook, addBoughtBook, roomToBuy, plural,
 } from './util';
 
 export const isFull = (state: GameState) => state.mode === 'full';
@@ -306,7 +306,7 @@ export function afterRaid(state: GameState) {
       let n = 0;
       while (n < 2 && freeSlots(p) > 0 && state.discard.length) { addSecretBook(state, p, state.discard.pop()!); n++; }
       if (n) {
-        log(state, `${p.name}: Библиотекарь приносит книг из сброса: ${n}.`);
+        log(state, `${p.name}: Библиотекарь приносит из сброса ${plural(n, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}.`);
         state.log[state.log.length - 1].who = p.id;
       }
     }

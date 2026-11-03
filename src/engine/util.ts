@@ -324,7 +324,7 @@ export function addSecretBook(state: GameState, p: PlayerState, id: string, how:
     if (how) {
       // Сначала — что сделано (видят все), потом — тайное «Получена: …»: строку ставим перед идущими прямо перед ней
       // тайными строками этого игрока.
-      log(state, `${p.name} берёт книгу ${how} и кладёт в Тайник.`);
+      log(state, `${p.name} берёт ${isFromLoadDeck(state, id) ? 'книгу Нагрузки' : 'непечатный текст'} ${how} и кладёт в Тайник.`);
       const line = state.log.pop()!;
       let at = state.log.length;
       while (at > 0 && state.log[at - 1].only?.length === 1 && state.log[at - 1].only![0] === p.id) at--;

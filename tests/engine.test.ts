@@ -880,7 +880,7 @@ describe('Тайник и закрытые книги', () => {
     const theirs = viewFor(s, other);
     expect(theirs.players.find((x) => x.id === me)!.warehouse.map((x) => x.card)).not.toContain(card);
     expect(theirs.log.map((l) => l.text).join('\n')).not.toContain(s.cards[card].title);
-    expect(theirs.log.map((l) => l.text).join('\n')).toContain('берёт книгу вслепую и кладёт в Тайник.');
+    expect(theirs.log.map((l) => l.text).join('\n')).toContain('берёт непечатный текст вслепую и кладёт в Тайник.');
     expect(viewFor(s, me).players.find((x) => x.id === me)!.warehouse.map((x) => x.card)).toContain(card);
   });
 });
@@ -1676,7 +1676,7 @@ describe('Спецхран и Проза', () => {
     s = startOrders(s);
     const rand = seeded(4);
     for (let i = 0; i < 3000 && s.round < 2; i++) s = botMove(s, activePlayers(s)[0], rand);
-    expect(s.log.filter((l) => l.text.startsWith('В 🗄️ Спецхран поступает книг: 3')).length).toBe(2);
+    expect(s.log.filter((l) => l.text.startsWith('В 🗄️ Спецхран поступает 3 непечатных текста')).length).toBe(2);
   });
 
   it('Проза «Вдохновиться» — не больше 1 очка, сколько бы прозы ни было', () => {

@@ -212,7 +212,7 @@ describe('Посредничество авторам и Библиотечно�
     const texts = s.log.filter((l) => !l.only).map((l) => l.text);
     const open = byId(s, p.id).warehouse.find((w) => !w.hidden)!.card;
     expect(texts).toContain(`${p.name} получает ${title(s, open)}.`);
-    expect(texts).toContain(`${p.name} берёт книгу вслепую и кладёт в Тайник.`);
+    expect(texts).toContain(`${p.name} берёт непечатный текст вслепую и кладёт в Тайник.`);
     const hidden = byId(s, p.id).warehouse.find((w) => w.hidden)!.card;
     const secret = s.log.find((l) => l.only?.includes(p.id) && l.text.startsWith('Получена:'))!;
     expect(secret.text).toBe(`Получена: ${title(s, hidden)}.`);
