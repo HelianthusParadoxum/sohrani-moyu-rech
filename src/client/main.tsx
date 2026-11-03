@@ -159,7 +159,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
           )}
           <label className="row">
             <input type="checkbox" checked={room.hostBot} onChange={(e) => net.send({ t: 'hostBot', on: e.target.checked })} />
-            За меня играет бот — я смотрю партию со стороны и вижу всё
+            За меня играет бот — я смотрю партию со стороны
           </label>
           <SpeedSelect room={room} send={net.send} />
           {/* На телефоне — плашка внизу экрана, как «Закончить ход» в игре. */}
