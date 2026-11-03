@@ -152,9 +152,10 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
   check(activePlayers(state).includes(playerId), 'Сейчас не ваш ход');
   const p = player(state, playerId);
   const pointsBefore = p.points;
+  const talonsBefore = p.talons;
   const logStart = state.log.length;
   const shown = displayed(state);
-  const done = (s: GameState) => finishAction(s, p, pointsBefore, logStart, shown);
+  const done = (s: GameState) => finishAction(s, p, pointsBefore, logStart, shown, talonsBefore);
 
   if (state.pending.length) {
     const logFrom = state.log.length;
@@ -266,7 +267,7 @@ function logArrivals(state: GameState, before: Set<string>, mentioned = '') {
   }
 }
 
-function finishAction(state: GameState, p: PlayerState, pointsBefore: number, logStart = state.log.length, shown?: Set<string>): GameState {
+function finishAction(state: GameState, p: PlayerState, pointsBefore: number, logStart = state.log.length, shown?: Set<string>, talonsBefore?: number): GameState {
   flushIrony(state);
   tsekhovikBonus(state);
   if (shown) logArrivals(state, shown, state.log.slice(logStart).map((l) => l.text).join('\n'));
@@ -276,6 +277,17 @@ function finishAction(state: GameState, p: PlayerState, pointsBefore: number, lo
     if (bonus) {
       gain(p, bonus, 'prose');
       logAfter(state, `↳ Проза вдохновляет: +${pointsText(bonus)}.`);
+    }
+  }
+  // Талоны изменились — в конце действия: сколько было и сколько стало. Если строки самого действия ещё нет
+  // (Талоны отданы, а действие продолжится решением — Спецхран и т. п.), строка — после неё, когда она появится.
+  if (talonsBefore !== undefined) {
+    const from = state.talonCarry?.player === p.id ? state.talonCarry.from : talonsBefore;
+    delete state.talonCarry;
+    const ownLine = state.log.slice(logStart).some((l) => !l.only && l.text.startsWith(`${p.name} `));
+    if (p.talons !== from) {
+      if (ownLine || !state.pending.some((x) => x.player === p.id)) logAfter(state, `↳ Талоны ${from} → ${p.talons}`);
+      else state.talonCarry = { player: p.id, from };
     }
   }
   // Следствия («↳ …») — сразу после последней строки самого действия игрока (до смены фазы и прочего).
@@ -986,6 +998,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       p.visitedRedCorner = true;
       state.nextOrder.push(p.id);
       log(state, `${p.name} в Красном уголке (${state.nextOrder.length}-й в очереди).`);
+      const dropTitle = a.drop ? title(state, a.drop) : undefined; // до сброса (с монографией)
       if (a.drop) {
         if (isPropaganda(state, a.drop)) p.propagandaDumped = (p.propagandaDumped ?? 0) + 1;
         removeBook(p, a.drop);
@@ -998,7 +1011,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         logAfter(state, !take ? '↳ Склад полон Нагрузки — новую не берёт.' : `↳ Отдаёт ${title(state, a.drop!)}, но места для Нагрузки всё равно нет — не берёт.`);
         return;
       }
-      takeTop(state, p, 'load', 1, { kind: 'redCorner', drop: a.drop });
+      takeTop(state, p, 'load', 1, { kind: 'redCorner', drop: a.drop, dropTitle });
       return;
     }
     case 'razval': {
@@ -1088,6 +1101,8 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
           check(!labtechUsed, 'Скидка Лаборанта — только один раз за поручение');
           labtechUsed = true;
         }
+        // Названия — до сброса: в сброс книга уходит без монографии (её значок пропал бы из журнала).
+        const fedTitles = titles(state, f.books);
         for (const b of f.books) { removeBook(p, b); discard(state, b); gaveAway(state, p, b); }
         const reward = STEP_REWARDS[sp.progress];
         sp.progress++;
@@ -1096,7 +1111,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         earn(state, p, 0, { sprouts: reward.talons, professor: prof ? RULES.professorTalons : 0 });
         gain(p, reward.points, 'sprouts');
         if (prof) gain(p, RULES.professorPoints, 'professor');
-        let text = `${p.name} питает ступень ${roman(sp.progress)} Ростка «${info.name}» (${titles(state, f.books)}${lab ? '; скидка Лаборанта' : ''})`;
+        let text = `${p.name} питает ступень ${roman(sp.progress)} Ростка «${info.name}» (${fedTitles}${lab ? '; скидка Лаборанта' : ''})`;
         text += `, +${[reward.talons ? talonsText(reward.talons) : '', reward.points ? pointsText(reward.points) : ''].filter(Boolean).join(' и +')}`;
         // Кто вкладывался в Росток — запоминаем: по этому боты судят, кто не Куратор (на поле не показывается).
         if (!p.sproutsFed.includes(sp.id)) p.sproutsFed.push(sp.id);
@@ -1167,6 +1182,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       let income = 0;
       let pts = 0;
       p.propagandaDumped = (p.propagandaDumped ?? 0) + recycle.filter((c) => isPropaganda(state, c)).length;
+      const recycledTitles = titles(state, recycle); // до сброса (с монографией)
       for (const c of recycle) {
         check(hasBook(p, c), 'Сдать можно только книги со своего склада');
         income += countsAsLoad(state, c) ? RULES.glavlitLoad : RULES.glavlitUnprinted;
@@ -1175,7 +1191,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         discard(state, c);
         gaveAway(state, p, c);
       }
-      log(state, `${p.name} сдаёт в Главлит: ${titles(state, recycle)}.`);
+      log(state, `${p.name} сдаёт в Главлит: ${recycledTitles}.`);
       earn(state, p, 0, { glavlit: income, zavkhoz: extra * recycle.length });
       // Комсорг: за каждую сданную книгу — очко Гласности.
       if (komsorg) {
@@ -1191,6 +1207,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     case 'knigoobmen': {
       check(hasBook(p, a.give) && isGenreBook(state, a.give), 'Отдать нужно жанровую книгу со своего склада');
       check(state.knigoobmen.includes(a.take), 'Этой книги нет на витрине Книгообмена');
+      const givenTitle = title(state, a.give); // до сброса (с монографией)
       removeBook(p, a.give);
       addOpenBook(state, p, a.take);
       // Отданная книга уходит в сброс, а не на витрину.
@@ -1199,7 +1216,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       gaveAway(state, p, a.give);
       p.bonusGroupTurns++;
       (p.bonusGroupFrom ??= []).push('knigoobmen');
-      log(state, `${p.name} на Книгообмене: отдаёт ${title(state, a.give)}, берёт ${title(state, a.take)}.`);
+      log(state, `${p.name} на Книгообмене: отдаёт ${givenTitle}, берёт ${title(state, a.take)}.`);
       return;
     }
     case 'kvartirnik': {
@@ -1344,7 +1361,7 @@ function continueTake(state: GameState, p: PlayerState, cards: string[], then: C
     case 'redCorner': {
       const load = cards[0];
       if (load) addBook(p, load);
-      logAfter(state, load ? `↳ ${title(state, load)}${then.drop ? `; места нет — отдаёт ${title(state, then.drop)}` : ''}.` : '↳ Нагрузка кончилась.');
+      logAfter(state, load ? `↳ ${title(state, load)}${then.drop ? `; места нет — отдаёт ${then.dropTitle ?? title(state, then.drop)}` : ''}.` : '↳ Нагрузка кончилась.');
       return;
     }
   }
@@ -1561,6 +1578,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
     case 'makulatura': {
       if (action.type === 'makulaturaDraw') {
         const from = action.deck === 'load' ? 'Нагрузки' : 'Непечатных';
+        const payTitle = action.pay ? title(state, action.pay) : ''; // до сброса (с монографией)
         if (action.pay) {
           check(hasBook(p, action.pay), 'Платить можно только книгой со своего склада');
           check((action.deck === 'load' ? state.loadDeck.length + state.loadDiscard.length : state.deck.length + state.discard.length) > 0, `Стопка ${from} пуста`);
@@ -1572,7 +1590,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
           payPrice(state, p, RULES.makulaturaPrice);
         }
         check(action.deck === 'load' ? state.loadDeck.length + state.loadDiscard.length > 0 : state.deck.length + state.discard.length > 0, `Стопка ${from} пуста`);
-        log(state, `${p.name} тянет ${action.deck === 'load' ? 'книгу из стопки Нагрузки' : 'непечатный текст'} (${action.pay ? `отдаёт ${title(state, action.pay)}` : `−${talonsText(RULES.makulaturaPrice)}`}).`);
+        log(state, `${p.name} тянет ${action.deck === 'load' ? 'книгу из стопки Нагрузки' : 'непечатный текст'} (${action.pay ? `отдаёт ${payTitle}` : `−${talonsText(RULES.makulaturaPrice)}`}).`);
         takeTop(state, p, action.deck, 1, { kind: 'makulatura' });
         return;
       }

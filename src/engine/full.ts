@@ -94,10 +94,11 @@ export function giveToPatron(state: GameState, p: PlayerState, gift: ClubGift) {
     `${name} ждёт книгу жанра «${GENRE_NAMES[patron.genre]}» (или Альбом)`);
   // Альбом «Подарить»: книга без жанра Завсегдатая — связь за Альбом.
   const album = !icons.includes(patron.genre);
+  const giftTitle = title(state, gift.card); // до сброса (с монографией)
   removeBook(p, gift.card);
   discard(state, gift.card);
   gaveAway(state, p, gift.card);
-  linkPatron(state, p, patron, `отдана ${title(state, gift.card)}`, album ? '↳ Альбом подарен: связь с любым Завсегдатаем.' : undefined);
+  linkPatron(state, p, patron, `отдана ${giftTitle}`, album ? '↳ Альбом подарен: связь с любым Завсегдатаем.' : undefined);
 }
 
 // Бонус Ростка «Завязать знакомство»: связь с любым Завсегдатаем без книги — и даже с занятым на эту Пятилетку.

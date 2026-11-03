@@ -216,6 +216,7 @@ export interface GameState {
   sproutRound?: Record<string, string[]>; // кто в эту Пятилетку закрывал ступени каждого Ростка (места Ростка)
   sproutRoundN?: Record<string, number[]>; // ...и каким по счёту поручением игрока (номер на кружке)
   sproutRoundSlot?: Record<string, number[]>; // ...и какое место (бонус) заняли: индекс в sproutSlotBonuses
+  talonCarry?: { player: string; from: number }; // журнал: Талоны потрачены, а строка действия будет позже (после решения)
   ironyDue?: Record<string, number>; // Ирония пущена в народ: сколько Талонов начислить в конце действия
   shownAtGathering?: Record<string, string[]>; // что каждый показал на Посиделках этой Пятилетки (опальное и Улики)
   cacheAtGathering?: Record<string, { unshown: number; shown: number }>; // опальное из Тайника на этих Посиделках: не показано / показано
@@ -291,7 +292,7 @@ export type PlaceAction =
 // Каталогизатор: что делать с выбранными книгами (продолжение прерванного действия).
 export type CatalogThen =
   | { kind: 'posrednichestvo' } | { kind: 'spisanie' } | { kind: 'makulatura' }
-  | { kind: 'gostorg'; got: string[]; rest: ('load' | 'unprinted')[] } | { kind: 'redCorner'; drop?: string } | { kind: 'librarian' };
+  | { kind: 'gostorg'; got: string[]; rest: ('load' | 'unprinted')[] } | { kind: 'redCorner'; drop?: string; dropTitle?: string } | { kind: 'librarian' };
 
 // Где Блатной докупает книгу.
 export type BlatnoyShop = 'razval' | 'tolkuchka' | 'raspredelitel';

@@ -5,7 +5,7 @@ import { curatorSuspicion, curatorSuspicionDetail } from '../src/engine/bot-smar
 import { gainedInfo, viewFor } from '../src/engine/view';
 import { RuleError, cacheLimit, bestFeedBooks, coversStep, iconCount, title, iconsOf, isBanned, isEvidence, isLoad, isPropaganda, discard, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
 import { finalScoring, passionPoints, scoreLine } from '../src/engine/scoring';
-import { PASSIONS, RULES, SPROUTS, STEP_REWARDS, limitFor, sproutBonusOptions, sproutSlotBonuses } from '../src/engine/content';
+import { GENRE_SHORT, PASSIONS, RULES, SPROUTS, STEP_REWARDS, limitFor, sproutBonusOptions, sproutSlotBonuses } from '../src/engine/content';
 import type { GameState, Genre, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
 import { onConnect, proseBonus, removePatron, takeFromSpetskhran } from '../src/engine/full';
@@ -2524,6 +2524,8 @@ describe('Каталогизатор при короткой стопке', () =
   });
 });
 
+const GENRE_SHORT_OF = (g: Genre) => GENRE_SHORT[g];
+
 describe('Журнал: свойства Альбома и Фантастики', () => {
   function started() {
     let s = createGame({ players: players(2), seed: 5, mode: 'full' });
@@ -2554,6 +2556,20 @@ describe('Журнал: свойства Альбома и Фантастики'
     t.players.find((x) => x.id === me2)!.warehouse.push({ card: own, hidden: false });
     t = applyAction(t, me2, { type: 'clubGift', gift: { patron: patron.id, card: own } });
     expect(t.log.some((l) => l.text.startsWith('↳ Альбом'))).toBe(false);
+  });
+
+  it('питание Ростка книгой с монографией: в журнале значок 💡 и дополнительный значок жанра', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    const sp = s.sprouts.find((x) => !SPROUTS.find((y) => y.id === x.id)!.steps[0].support)!;
+    const main = SPROUTS.find((y) => y.id === sp.id)!.main;
+    const book = take(s, (icons) => icons.length === 1 && icons[0] === main);
+    s.players.find((x) => x.id === me)!.warehouse.push({ card: book, hidden: false });
+    s.restored[book] = true;
+    s = applyAction(s, me, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: [book] }] } });
+    const line = s.log.find((l) => l.text.includes('питает ступень'))!.text;
+    expect(line).toContain('💡');
+    expect(line).toContain(`[${GENRE_SHORT_OF(main)} ${GENRE_SHORT_OF(main)}]`);
   });
 
   it('Фантастика «Заронить зерно»: ступень закрыта значком Фантастики — отдельной строкой', () => {
