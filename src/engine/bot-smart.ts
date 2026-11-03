@@ -918,7 +918,53 @@ export function rankActions(state: GameState, me: string, preset: BotPreset, ran
   // Немного случайности: оценка ±randomness×2 очка.
   const noise = preset.character.randomness * 2;
   for (const r of rated) r.v += (rand() - 0.5) * 2 * noise;
-  return rated.sort((x, y) => y.v - x.v);
+  rated.sort((x, y) => y.v - x.v);
+  // Взгляд на несколько ходов вперёд (пока — только одиночная игра: соперников, чьи ходы не угадать, нет).
+  const depth = state.solo ? preset.lookahead ?? 0 : 0;
+  if (depth > 1 && state.phase === 'orders' && !state.pending.length && state.turnDone !== me && rated.length > 1) {
+    const top = rated.slice(0, BOT_BASE.lookaheadBeam);
+    for (const r of top) r.v = samples.reduce((s, x) => s + planValue(x, me, r.a, ctx, depth - 1), 0) / samples.length + (rand() - 0.5) * 2 * noise;
+    top.sort((x, y) => y.v - x.v);
+    return [...top, ...rated.slice(BOT_BASE.lookaheadBeam)];
+  }
+  return rated;
+}
+
+// Сделать ход на примерке: само действие, свои решения следом (лучшие по оценке) и «Закончить ход».
+function advance(state: GameState, me: string, a: Action, ctx: Ctx): GameState | null {
+  let s = tryApply(state, me, a);
+  for (let guard = 0; s && guard < 8; guard++) {
+    const pend = s.pending[0];
+    if (!pend || pend.player !== me || !FOLLOW_UP.has(pend.kind)) break;
+    let best: { a: Action; v: number } | null = null;
+    for (const b of candidates(s, me, ctx)) {
+      const v = score(s, me, b, ctx, 1);
+      if (v !== null && (!best || v > best.v)) best = { a: b, v };
+    }
+    if (!best) break;
+    s = tryApply(s, me, best.a);
+  }
+  if (s && s.turnDone === me && !s.pending.length) s = tryApply(s, me, { type: 'endTurn' }) ?? s;
+  return s;
+}
+
+// Ценность хода с продолжением: после него — ещё depth своих ходов (в пределах этой Пятилетки), на каждом шаге
+// разворачиваем только lookaheadBeam лучших по обычной оценке вариантов.
+function planValue(state: GameState, me: string, a: Action, ctx: Ctx, depth: number): number {
+  const next = advance(state, me, a, ctx);
+  if (!next) return -Infinity;
+  const mine = next.phase === 'orders' && next.round === state.round && !next.pending.length && activePlayers(next).includes(me) && next.turnDone !== me;
+  if (depth <= 0 || !mine) return evaluate(next, me, ctx);
+  const scored: { a: Action; v: number }[] = [];
+  for (const b of candidates(next, me, ctx)) {
+    const v = score(next, me, b, ctx, 2);
+    if (v !== null) scored.push({ a: b, v });
+  }
+  if (!scored.length) return evaluate(next, me, ctx);
+  scored.sort((x, y) => y.v - x.v);
+  let best = -Infinity;
+  for (const r of scored.slice(0, BOT_BASE.lookaheadBeam)) best = Math.max(best, planValue(next, me, r.a, ctx, depth - 1));
+  return best;
 }
 
 // Ступень у самого слабого Ростка из списка (только первые ступени каждого Ростка — их можно закрыть по отдельности).

@@ -36,6 +36,7 @@ export interface BotPreset {
   goals: Record<BotGoal, [number, number, number, number, number]>; // вес по Пятилеткам 1..5
   character: BotCharacter;
   soloGoal?: number; // одиночная игра: множитель цели «все Ростки до III, один до IV» (1 — как у всех)
+  lookahead?: number; // одиночная игра: на сколько своих ходов вперёд бот примеряет цепочки (1–2 — как обычно, 3 — дальше)
   base?: Partial<Record<TunableBase, number>>; // свои числа вместо BOT_BASE (для замеров A/B)
 }
 
@@ -136,6 +137,7 @@ export const BOT_PRESETS: BotPreset[] = [
     },
     character: { reserve: 0, caution: 0.9, randomness: 0.05, aggression: 0 },
     soloGoal: 2,
+    lookahead: 3,
   },
   {
     id: 'random',
@@ -326,6 +328,7 @@ export const BOT_BASE = {
   boaHideAware: [1, 1, 0.8, 0.4, 0], // «Удав» по Пятилеткам: насколько учитывает, что ЧНЛ в Тайнике выдаст его на Посиделках // «Удав»: разовое прикрытие за ступень II, закрытую наперерез сопернику
   curatorTurnOrder: 4, // ранний Красный уголок для Куратора (× нападение характера)
   soloGoal: 8, // одиночная игра: каждая ступень к цели «все Ростки до III, один до IV»
+  lookaheadBeam: 5, // взгляд вперёд: сколько лучших вариантов разворачивать на каждом шаге
   soloSpareIV: 0, // одиночная игра: доля soloGoal за каждую ступень IV сверх первой (запас против ЧНЛ при вскрытии)
   insurance: 3, // «Громоотвод»: ступень сверх 3-й у любого Ростка страхует от срезов Куратора (засчитывается до 3 ступеней)
   insuranceSteps: 3,
