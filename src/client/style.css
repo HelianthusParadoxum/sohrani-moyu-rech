@@ -499,3 +499,15 @@ label.row > .dropdown { display: inline-block; }
 @media (min-width: 1300px) {
   .layout { grid-template-columns: 760px minmax(0, 1fr); }
 }
+/* Наведение мышью: адреса и Ростки откликаются (доступные — заметнее) */
+@media (hover: hover) {
+  .address, .sprout { transition: box-shadow .12s, background-color .12s; }
+  .address:hover, .sprout:hover { background-color: rgba(255,255,255,.45); }
+  .address.can:hover, .sprout.can:hover { box-shadow: 0 0 0 3px #d99a2b; background-color: #fff8e6; }
+}
+/* Подписка — значками жанров */
+.subs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.subs > span { display: inline-flex; align-items: center; gap: 2px; }
+/* Эрудит: все жанры; уже собранные — погашены */
+.erudite { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 8px; }
+.erudite .got { opacity: .25; filter: grayscale(.6); }

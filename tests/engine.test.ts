@@ -904,6 +904,10 @@ describe('Тайник в свой ход', () => {
     const w = s.players.find((p) => p.id === me)!.warehouse;
     expect(w.find((x) => x.card === a)!.hidden).toBe(false);
     expect(w.find((x) => x.card === b)!.hidden).toBe(true);
+    // В журнале — что ушло в Тайник и что вышло из него на склад.
+    const texts = s.log.map((l) => l.text);
+    expect(texts).toContain(`↳ В Тайник: ${title(s, b)}.`);
+    expect(texts).toContain(`↳ Из Тайника на склад: ${title(s, a)}.`);
     expect(() => applyAction(s, other, { type: 'hiding', hidden: [] })).toThrow(RuleError); // не в свой ход
   });
 });

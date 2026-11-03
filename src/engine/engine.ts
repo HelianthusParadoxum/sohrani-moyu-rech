@@ -815,8 +815,15 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
   }
   if (action.type === 'hiding') {
     // Пересобрать Тайник в свой ход — свободно, ход не заканчивается.
+    // Что было на виду и ушло в Тайник (его все видели), и что вышло из Тайника на склад (теперь видно всем).
+    const wasHidden = new Set(p.warehouse.filter((w) => w.hidden).map((w) => w.card));
     setHidden(state, p, action.hidden);
+    const nowHidden = new Set(p.warehouse.filter((w) => w.hidden).map((w) => w.card));
+    const toCache = p.warehouse.filter((w) => w.hidden && !wasHidden.has(w.card)).map((w) => w.card);
+    const fromCache = p.warehouse.filter((w) => !nowHidden.has(w.card) && wasHidden.has(w.card)).map((w) => w.card);
     log(state, `${p.name} перекладывает книги в Тайнике.`);
+    if (toCache.length) log(state, `↳ В Тайник: ${titles(state, toCache)}.`);
+    if (fromCache.length) log(state, `↳ Из Тайника на склад: ${titles(state, fromCache)}.`);
     state.holdTurn = true;
     return;
   }

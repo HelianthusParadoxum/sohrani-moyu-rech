@@ -1531,7 +1531,7 @@ function resultText(view: PlayerView): string {
     const p = view.players.find((x) => x.id === s.player)!;
     const by = sources.map((k) => `${POINT_SOURCES[k]} ${s.duringBy?.[k] ?? 0}`).join(', ');
     const parts = [`по ходу ${s.during}${by ? ` (${by})` : ''}`, ...(full ? [`связи ${s.connections ?? 0}`] : []),
-      `за Пристрастие ${s.passion}`, `Улики ${s.evidence}`, `за Талоны ${s.talonPoints ?? 0}`, `ЧНЛ ${s.propaganda}`];
+      `Пристрастие ${s.passion}`, `Улики ${s.evidence}`, `Талоны ${s.talonPoints ?? 0}`, `ЧНЛ ${s.propaganda}`];
     return `• ${p.name}${r.winners.includes(s.player) ? ' (победа)' : ''}, ${p.passion ? passionLabel(p.passion) : '—'}: итого ${s.total} — ${parts.join('; ')}.`;
   });
   return `\n\nИтоговый подсчёт очков. ${r.note}\n${lines.join('\n')}`;
@@ -1546,7 +1546,7 @@ function Results({ view, seatIndex, close }: { view: PlayerView; seatIndex: (id:
     <Modal title="Конец Застоя" onClose={close} wide>
       <p><b>{r.note}</b></p>
       <div className="scores-wrap"><table className="scores">
-        <thead><tr><th>Игрок</th><th>Пристрастие</th><th>По ходу</th>{full && <th>Связи</th>}<th>За Пристрастие</th><th>Улики</th><th title={`1 очко за каждые ${RULES.talonsPerPoint} Талона`}>За Талоны</th><th><KindChip k="chnl" /></th><th>Итого</th></tr></thead>
+        <thead><tr><th>Игрок</th><th>По ходу</th>{full && <th>Связи</th>}<th>Пристрастие</th><th>Улики</th><th title={`1 очко за каждые ${RULES.talonsPerPoint} Талона`}>Талоны</th><th><KindChip k="chnl" /></th><th>Итого</th></tr></thead>
         <tbody>
           {r.scores.map((s) => {
             const p = view.players.find((x) => x.id === s.player)!;
@@ -1554,12 +1554,12 @@ function Results({ view, seatIndex, close }: { view: PlayerView; seatIndex: (id:
             return (
               <Fragment key={s.player}>
                 <tr className={r.winners.includes(s.player) ? 'winner' : ''}>
-                  <td><span className="dot" style={{ background: PLAYER_COLORS[seatIndex(s.player)] }} /> {name(s.player)}</td><td>{p.passion ? passionLabel(p.passion) : '—'}</td>
-                  <td>{s.during}</td>{full && <td>{s.connections ?? 0}</td>}<td>{s.passion}</td><td>{s.evidence}</td><td>{s.talonPoints ?? 0}</td><td>{s.propaganda}</td><td><b>{s.total}</b></td>
+                  <td><span className="dot" style={{ background: PLAYER_COLORS[seatIndex(s.player)] }} /> {name(s.player)}</td>
+                  <td>{s.during}</td>{full && <td>{s.connections ?? 0}</td>}<td>{s.passion} — {p.passion ? passionLabel(p.passion) : '—'}</td><td>{s.evidence}</td><td>{s.talonPoints ?? 0}</td><td>{s.propaganda}</td><td><b>{s.total}</b></td>
                 </tr>
                 {by.length > 0 && (
                   <tr className="score-detail">
-                    <td colSpan={full ? 9 : 8}>
+                    <td colSpan={full ? 8 : 7}>
                       По ходу игры: {by.map(([k, n]) => <span key={k} className="src">{POINT_SOURCES[k]} <b>{n}</b></span>)}
                     </td>
                   </tr>
@@ -1583,6 +1583,16 @@ function emptySlots(n: number) {
 // Свободные места Склада (заученный сборник места не занимает).
 function freeShelf(p: VPlayer): number {
   return p.capacity - p.warehouse.filter((s) => !s.memorized).length;
+}
+
+// Эрудит: все жанры; погашены те, что уже есть — на складе или в изданном.
+function EruditePanel({ view, me }: { view: PlayerView; me: VPlayer }) {
+  const have = new Set([...me.warehouse.map((s) => s.card!).filter(Boolean), ...me.published].flatMap((c) => genresOf(view, c)));
+  return (
+    <div className="erudite" title="Эрудит: жанры, которые уже есть (на складе или в изданном), — погашены">
+      {GENRES.map((g) => <span key={g} className={have.has(g) ? 'got' : ''}><GenreChip g={g} /></span>)}
+    </div>
+  );
 }
 
 // Что ценит Пристрастие — коротко, значками (для плашки на телефоне).
@@ -1642,8 +1652,8 @@ function Stats({ p, view }: { p: VPlayer; view: PlayerView }) {
   const cover = loadCover(view, p.warehouse);
   return (
     <div className="stats">
-      <span title="Талоны"><i>🎫</i>{p.talons}</span>
       <span title="Единомышленники: свободны / всего"><i>👤</i>{p.available}/{p.workers}</span>
+      <span title="Талоны"><i>🎫</i>{p.talons}</span>
       <span title="Склад: занято / мест (заученный сборник поэзии — сверх склада)"><i>📚</i>{p.warehouse.filter((s) => !s.memorized).length}/{p.capacity}</span>
       <span title={`Тайник: занято / мест (${p.cache}${cover ? ` + ${cover} за Нагрузку на складе` : ''})`}><i>🔒</i>{p.warehouse.filter((s) => s.hidden).length}/{p.cache + cover}{cover ? '*' : ''}</span>
       {view.mode === 'full' && <span title="Связи в Клубе книголюбов"><i>🤝</i>{view.patrons.filter((x) => !x.removed && x.connections.includes(p.id)).length}</span>}
@@ -1672,6 +1682,7 @@ function MyPanel({ view, me, color, groupWhy, onGroup, onMemorize, onCache }: {
             : <span className="muted small"> — {withKindChips(PASSIONS[me.passion].hint)}</span>}
         </div>
       )}
+      {me.passion === 'erudite' && <EruditePanel view={view} me={me} />}
       <div className="shelf wrap">{me.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}{emptySlots(freeShelf(me))}</div>
       {onCache && (
         <div className="group-actions">
@@ -1686,7 +1697,11 @@ function MyPanel({ view, me, color, groupWhy, onGroup, onMemorize, onCache }: {
         </div>
       )}
       <Published view={view} p={me} />
-      {me.subscriptions.length > 0 && <div className="muted small">Подписка: {me.subscriptions.map((s) => `${GENRE_NAMES[s.genre]} (${s.rounds})`).join(', ')}</div>}
+      {me.subscriptions.length > 0 && (
+        <div className="muted small subs">Подписка: {me.subscriptions.map((s, i) => (
+          <span key={i} title={`${GENRE_NAMES[s.genre]}: ещё Пятилеток — ${s.rounds}`}><GenreChip g={s.genre} />×{s.rounds}</span>
+        ))}</div>
+      )}
       <div className="group">
         <div className="muted small">Инициативная группа (каждое действие — раз в Пятилетку):</div>
         <div className="group-actions">
