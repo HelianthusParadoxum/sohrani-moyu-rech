@@ -200,7 +200,8 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .queue li.pending { opacity: 0.55; }
 button.short { border-style: dashed; color: var(--muted); }
 
-label.row { flex-direction: row; align-items: center; gap: 8px; }
+label.row { flex-direction: row; align-items: center; gap: 8px; flex-wrap: nowrap; }
+label.row > input[type="checkbox"] { flex: none; }
 .address.addr-club { grid-column: 1 / -1; }
 .patrons { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 12px; }
 .patrons li { padding: 2px 0; }
@@ -376,3 +377,8 @@ select {
   background-repeat: no-repeat; background-position: right 9px top calc(50% + 2px); background-size: 10px 6px;
 }
 .host-tools select { padding-right: 18px; background-position: right 5px top calc(50% + 1px); }
+/* Телефон: лобби и главная — от верхнего края, без большого отступа */
+@media (max-width: 600px) {
+  .home { margin-top: 0; padding-top: 16px; }
+  .home h1 { margin-top: 0; }
+}

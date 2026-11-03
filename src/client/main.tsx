@@ -107,23 +107,6 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
       <p className="muted">Отправьте ссылку тестировщикам: <a href={link}>{link}</a>{' '}
         <button className="small" onClick={() => navigator.clipboard?.writeText(link)}>Копировать</button>
       </p>
-      <ul className="seats">
-        {room.seats.map((s, i) => (
-          <li key={s.id}>
-            <span className="dot" style={{ background: PLAYER_COLORS[i] }} />
-            {s.name}{s.id === room.host && ' (хост)'}{s.bot && ' 🤖'}
-            {!s.bot && <span className={s.online ? 'online' : 'offline'}>{s.online ? ' в сети' : ' не в сети'}</span>}
-            {s.bot && <PresetSelect seat={s} host={host} send={net.send} solo={room.seats.length === 1} />}
-            {host && s.id !== room.host && <button className="small" onClick={() => net.send({ t: 'removeSeat', seat: s.id })}>убрать</button>}
-          </li>
-        ))}
-      </ul>
-      {!seated && !room.started && (
-        <div className="row">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ваше имя" maxLength={24} />
-          <button className="primary" disabled={!name.trim() || room.seats.length >= 5} onClick={onJoin}>Сесть за стол</button>
-        </div>
-      )}
       {host && (
         <>
           <label>Режим
@@ -162,6 +145,28 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
             За меня играет бот — я смотрю партию со стороны
           </label>
           <SpeedSelect room={room} send={net.send} />
+        </>
+      )}
+      {/* Кто за столом — после всех настроек. */}
+      <ul className="seats">
+        {room.seats.map((s, i) => (
+          <li key={s.id}>
+            <span className="dot" style={{ background: PLAYER_COLORS[i] }} />
+            {s.name}{s.id === room.host && ' (хост)'}{s.bot && ' 🤖'}
+            {!s.bot && <span className={s.online ? 'online' : 'offline'}>{s.online ? ' в сети' : ' не в сети'}</span>}
+            {s.bot && <PresetSelect seat={s} host={host} send={net.send} solo={room.seats.length === 1} />}
+            {host && s.id !== room.host && <button className="small" onClick={() => net.send({ t: 'removeSeat', seat: s.id })}>убрать</button>}
+          </li>
+        ))}
+      </ul>
+      {!seated && !room.started && (
+        <div className="row">
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ваше имя" maxLength={24} />
+          <button className="primary" disabled={!name.trim() || room.seats.length >= 5} onClick={onJoin}>Сесть за стол</button>
+        </div>
+      )}
+      {host && (
+        <>
           {/* На телефоне — плашка внизу экрана, как «Закончить ход» в игре. */}
           <div className="row lobby-actions">
             <button disabled={room.seats.length >= 5} onClick={() => net.send({ t: 'addBot' })}>Добавить бота</button>
