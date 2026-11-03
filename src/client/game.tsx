@@ -1,7 +1,7 @@
 // Игровой стол.
 import { createContext, Fragment, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import {
-  ADDRESSES, ADDRESS_ICONS, CENSOR_ICON, ROUND_ICON, addressLabel, BONUS_ICONS, GROUP_ICONS, ICON_JOIN, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, groupCost, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
+  ADDRESSES, ADDRESS_ICONS, CENSOR_ICON, PASSION_ICON, ROUND_ICON, addressLabel, BONUS_ICONS, GROUP_ICONS, ICON_JOIN, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, groupCost, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
   groupInGame, addressInGame, PATRONS, sproutSlotBonuses,
 } from '../engine/content';
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PassionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
@@ -1627,8 +1627,8 @@ function MobileBar({ view, me }: { view: PlayerView; me: VPlayer }) {
   }, []);
   return (
     <div className="mobile-bar" ref={bar}>
-      <div className="mb-row"><span className="mb-round" title="Пятилетка">{ROUND_ICON}<b>{view.round}</b>/{RULES.rounds}</span><span className="mb-censor" title="Цензура: жанры в опале">{CENSOR_ICON}:</span>{view.banned.length ? view.banned.map((g) => <GenreChip key={g} g={g} banned />) : <span className="muted small">нет</span>}
-        {me.passion && <span className="mb-passion" title={`Пристрастие: ${PASSIONS[me.passion].name} — ${PASSIONS[me.passion].hint}`}><span className="muted small">Пристрастие:</span>{passionMarks(me.passion)}</span>}
+      <div className="mb-row"><span className="mb-round" title="Пятилетка">{ROUND_ICON}<b>{view.round}</b>/{RULES.rounds}</span><span className="mb-censor" title="Цензура: жанры в опале">{CENSOR_ICON}</span>{view.banned.length ? view.banned.map((g) => <GenreChip key={g} g={g} banned />) : <span className="muted small">нет</span>}
+        {me.passion && <span className="mb-passion" title={`Пристрастие: ${PASSIONS[me.passion].name} — ${PASSIONS[me.passion].hint}`}><span>{PASSION_ICON}</span>{passionMarks(me.passion)}</span>}
       </div>
       <Stats p={me} view={view} />
       <div className="mb-row mb-books">
@@ -1670,7 +1670,7 @@ function MyPanel({ view, me, color, groupWhy, onGroup, onMemorize, onCache }: {
       <Stats p={me} view={view} />
       {me.passion && (
         <div className="passion-line" title={PASSIONS[me.passion].hint}>
-          <span className="muted small">Пристрастие:</span> <b>{PASSIONS[me.passion].name}</b>
+          <span title="Пристрастие">{PASSION_ICON}</span> <b>{PASSIONS[me.passion].name}</b>
           {PASSIONS[me.passion].genres
             ? <> — 2 очка за значок: {PASSIONS[me.passion].genres!.map((g) => <GenreChip key={g} g={g} favored />)}</>
             : <span className="muted small"> — {withKindChips(PASSIONS[me.passion].hint)}</span>}
@@ -1713,7 +1713,7 @@ function OtherPlayer({ view, p, color, active, rev }: { view: PlayerView; p: VPl
     <div className={`player ${active ? 'active' : ''}`} style={{ borderColor: color, '--rev': rev } as React.CSSProperties}>
       <div className="addr-head"><b style={{ color }}><span className="dot" style={{ background: color }} /> {p.name}</b>
         {/* Зрителю видно всё — и Пристрастия. */}
-        {view.me === null && p.passion && <span className="muted small" title={PASSIONS[p.passion].hint}>({PASSIONS[p.passion].name})</span>}
+        {view.me === null && p.passion && <span className="small" title={PASSIONS[p.passion].hint}>{PASSION_ICON} {PASSIONS[p.passion].name}</span>}
       </div>
       <Stats p={p} view={view} />
       <div className="shelf wrap">{p.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}{emptySlots(freeShelf(p))}</div>
