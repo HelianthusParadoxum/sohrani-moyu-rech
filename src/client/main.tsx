@@ -162,7 +162,8 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
             За меня играет бот — я смотрю партию со стороны и вижу всё
           </label>
           <SpeedSelect room={room} send={net.send} />
-          <div className="row">
+          {/* На телефоне — плашка внизу экрана, как «Закончить ход» в игре. */}
+          <div className="row lobby-actions">
             <button disabled={room.seats.length >= 5} onClick={() => net.send({ t: 'addBot' })}>Добавить бота</button>
             <button className="primary" disabled={room.seats.length < 1} onClick={() => net.send({ t: 'start' })}>
               {room.seats.length === 1 ? 'Начать одиночную партию' : 'Начать партию'}
