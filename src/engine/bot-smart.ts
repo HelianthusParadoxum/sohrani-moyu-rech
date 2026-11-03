@@ -5,7 +5,7 @@
 // стопок и Барахолки, поэтому вытянутая при примерке книга — догадка, а не знание.
 import { activePlayers, applyAction, mustVisitRedCorner } from './engine';
 import { BOT_BASE, CURATOR_STYLES, PATRON_POWER, curatorStyle, type BotGoal, type BotPreset, type CuratorStyle, type TunableBase } from './bot-presets';
-import { COPY_TEXT_ADDRESSES, PERMANENT_ADDRESSES, addressInGame, PASSIONS, RULES, SPROUTS, STEP_REWARDS, FIRST_FEED_POINTS, ADDRESSES, limitFor } from './content';
+import { COPY_TEXT_ADDRESSES, PERMANENT_ADDRESSES, addressInGame, PASSIONS, RULES, SPROUTS, STEP_REWARDS, ADDRESSES, limitFor } from './content';
 import { befriendTargets, blatnoyOptions, heldTotal, kontoraTargets } from './full';
 import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
@@ -221,7 +221,6 @@ export function curatorSuspicionDetail(state: GameState, me: string): Record<str
 function stepReward(state: GameState, p: PlayerState, progress: number, sproutId: string, ctx: Ctx): number {
   const r = STEP_REWARDS[progress];
   let v = r.points + r.talons * ctx.talon * ctx.w.talons;
-  if (!p.sproutsFed.includes(sproutId)) v += FIRST_FEED_POINTS;
   v += progress < RULES.glasnostStep ? ctx.glasnost * ctx.w.sprouts * (BOT_BASE.glasnostLag[progress] ?? 1) : BOT_BASE.lateStep;
   // Бонус места Ростка (действие Группы и т. п.) — примерной ценностью.
   v += tune(ctx, 'feedBonus');
@@ -863,7 +862,7 @@ export function rankActions(state: GameState, me: string, preset: BotPreset, ran
     if (feed) return [{ a: { type: 'place', place: { address: 'sprouts', feeds: [feed] } }, v: 0 }];
   }
   // Дальше Куратор почти никогда не кормит Ростки: это слишком дорого (но изредка — чтобы не читался железно).
-  // «Удав» в маске кормит прицельно: ступени I (отнимает у честных первое питание и снимает с себя подозрение) и один раз
+  // «Удав» в маске кормит прицельно: ступени I (отнимает у честных лёгкую ступень и снимает с себя подозрение) и один раз
   // ступень II — «подрезая» того, кто сам собирался её закрыть: со стороны это жёсткая борьба книжника.
   if (ctx.curator && rand() >= BOT_BASE.curatorFeedChance) {
     const boa = ctx.style === 'boa';

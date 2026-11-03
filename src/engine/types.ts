@@ -74,7 +74,7 @@ export interface PatronState {
 }
 
 export type PointSource =
-  | 'gathering' | 'drama' | 'sprouts' | 'firstFeed' | 'tamizdat' | 'samizdat' | 'testimony' | 'foreign' | 'editor' | 'postgrad' | 'prose' | 'komsorg' | 'rescue' | 'correspondent' | 'professor';
+  | 'gathering' | 'drama' | 'sprouts' | 'tamizdat' | 'samizdat' | 'testimony' | 'foreign' | 'editor' | 'postgrad' | 'prose' | 'komsorg' | 'rescue' | 'correspondent' | 'professor';
 
 export type SproutBonusId = GroupActionId | 'sideJob' | 'underCounter' | 'acquaintance';
 

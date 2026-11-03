@@ -5,7 +5,7 @@ import { curatorSuspicion, curatorSuspicionDetail } from '../src/engine/bot-smar
 import { gainedInfo, viewFor } from '../src/engine/view';
 import { RuleError, cacheLimit, bestFeedBooks, coversStep, iconCount, title, iconsOf, isBanned, isEvidence, isLoad, isPropaganda, discard, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
 import { finalScoring, passionPoints, scoreLine } from '../src/engine/scoring';
-import { FIRST_FEED_POINTS, PASSIONS, RULES, SPROUTS, STEP_REWARDS, limitFor, sproutBonusOptions, sproutSlotBonuses } from '../src/engine/content';
+import { PASSIONS, RULES, SPROUTS, STEP_REWARDS, limitFor, sproutBonusOptions, sproutSlotBonuses } from '../src/engine/content';
 import type { GameState, Genre, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
 import { onConnect, proseBonus, removePatron, takeFromSpetskhran } from '../src/engine/full';
@@ -2250,7 +2250,7 @@ describe('Награды за ступени Ростков', () => {
     s = applyAction(s, me, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: [card] }] } });
     const q = s.players.find((x) => x.id === me)!;
     expect(q.talons - t).toBe(STEP_REWARDS[0].talons);
-    expect(q.points - pts).toBe(STEP_REWARDS[0].points + FIRST_FEED_POINTS);
+    expect(q.points - pts).toBe(STEP_REWARDS[0].points); // бонуса за первое питание нет
     expect(s.log.some((l) => l.text.includes(`+${STEP_REWARDS[0].talons} Талона и +${STEP_REWARDS[0].points} очка`))).toBe(true);
   });
 });

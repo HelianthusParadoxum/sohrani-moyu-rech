@@ -1,7 +1,7 @@
 // Игровой стол.
 import { createContext, Fragment, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import {
-  ADDRESSES, ADDRESS_ICONS, CENSOR_ICON, PASSION_ICON, ROUND_ICON, addressLabel, BONUS_ICONS, GROUP_ICONS, ICON_JOIN, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, groupCost, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
+  ADDRESSES, ADDRESS_ICONS, CENSOR_ICON, PASSION_ICON, ROUND_ICON, addressLabel, BONUS_ICONS, GROUP_ICONS, ICON_JOIN, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, groupCost, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, limitFor,
   groupInGame, addressInGame, PATRONS, sproutSlotBonuses,
 } from '../engine/content';
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PassionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
@@ -862,8 +862,8 @@ function Sprouts({ view, me, beside, seatIndex, head, onOpen, why, turnWhy }: { 
                 );
               })}
             </div>
-            {/* Кто хоть раз вкладывался в этот Росток (+2 очка за первое питание): слот на каждого игрока. */}
-            <div className="fed-row muted small" title={`Вложились в этот Росток (+${FIRST_FEED_POINTS} очка за первое вложение)`}>
+            {/* Кто хоть раз вкладывался в этот Росток: слот на каждого игрока. */}
+            <div className="fed-row muted small" title="Кто вкладывался в этот Росток">
               Вложились:{' '}
               {view.players.filter((p) => p.sproutsFed.includes(sp.id)).map((p) => (
                 <span key={p.id} className="dot" style={{ background: PLAYER_COLORS[seatIndex(p.id)] }} title={p.name} />
@@ -1518,7 +1518,7 @@ function HidingPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (
 }
 
 // Источники очков «по ходу», возможные в этом режиме.
-const BEGINNER_SOURCES: PointSource[] = ['sprouts', 'firstFeed', 'gathering', 'tamizdat', 'samizdat'];
+const BEGINNER_SOURCES: PointSource[] = ['sprouts', 'gathering', 'tamizdat', 'samizdat'];
 
 // Источники очков «по ходу» для итоговой таблицы: очки Завсегдатая — только если он был в Клубе, Вызволение — где есть Контора.
 function scoreSources(view: PlayerView): PointSource[] {

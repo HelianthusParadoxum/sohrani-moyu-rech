@@ -2,7 +2,7 @@
 // applyAction не меняет переданное состояние, а возвращает новое.
 import {
   ADDRESSES, CARDS, CLUB_ORDER, COPY_TEXT_ADDRESSES, GENRE_NAMES, GENRE_SHORT, GROUP_ACTIONS, KEEPERS, PASSIONS, PATRONS, PERMANENT_ADDRESSES, RULES, SAFEHOUSES,
-  SPECIALS, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, sproutSlotBonuses, FIRST_FEED_POINTS, addressInGame, groupInGame, limitFor,
+  SPECIALS, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, sproutSlotBonuses, addressInGame, groupInGame, limitFor,
 } from './content';
 import { finalScoring } from './scoring';
 import {
@@ -1091,11 +1091,8 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         if (prof) gain(p, RULES.professorPoints, 'professor');
         let text = `${p.name} питает ступень ${roman(sp.progress)} Ростка «${info.name}» (${titles(state, f.books)}${lab ? '; скидка Лаборанта' : ''})`;
         text += `, +${[reward.talons ? talonsText(reward.talons) : '', reward.points ? pointsText(reward.points) : ''].filter(Boolean).join(' и +')}`;
-        if (!p.sproutsFed.includes(sp.id)) {
-          p.sproutsFed.push(sp.id);
-          gain(p, FIRST_FEED_POINTS, 'firstFeed');
-          text += `, +${pointsText(FIRST_FEED_POINTS)} за первое питание`;
-        }
+        // Кто вкладывался в Росток (видно на поле; по этому боты судят, кто не Куратор). Бонуса за первое питание нет.
+        if (!p.sproutsFed.includes(sp.id)) p.sproutsFed.push(sp.id);
         log(state, text + '.');
         // Фантастика «Заронить зерно»: без неё (её значков вместо других жанров) ступень не закрылась бы.
         if (isFull(state) && !coversStep(state, f.books, info.main, step.main, step.support, { labtech: lab })) {

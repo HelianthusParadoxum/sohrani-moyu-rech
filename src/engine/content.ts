@@ -281,7 +281,6 @@ export const STEP_REWARDS = [
   { talons: 0, points: 10 },
   { talons: 0, points: 15 },
 ];
-export const FIRST_FEED_POINTS = 2;
 
 export interface PassionInfo { id: PassionId; name: string; hint: string; genres?: [Genre, Genre]; special?: boolean }
 
@@ -358,7 +357,6 @@ export const CLUB_SIZE = 8;
 // Завсегдатаи, Вызволить из бед.
 export const POINT_SOURCES: Record<PointSource, string> = {
   sprouts: 'Ступени Ростков',
-  firstFeed: 'Первое питание Ростков',
   gathering: 'Посиделки',
   tamizdat: 'Тамиздат',
   samizdat: 'Самиздат',
