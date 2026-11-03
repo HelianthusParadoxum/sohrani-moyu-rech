@@ -5,7 +5,7 @@ import type { Action, ClubGift, Genre, GroupAction, KontoraChoice, PatronId, Pla
 import type { PlayerView } from '../engine/view';
 import { cacheLimit, genresOf } from '../engine/util';
 import { kontoraTargets } from '../engine/full';
-import { Book, GenreChip, Modal, PLAYER_COLORS, iconize, iconsOf, isBanned, isLoad, toggle, withKindChips } from './ui';
+import { Book, Dropdown, GenreChip, Modal, PLAYER_COLORS, iconize, iconsOf, isBanned, isLoad, toggle, withKindChips } from './ui';
 
 type VPlayer = PlayerView['players'][number];
 
@@ -269,10 +269,8 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
       <label className="row"><input type="checkbox" checked={handout} onChange={(e) => setHandout(e.target.checked)} /> Выдача на руки — взять книгу из Спецхрана</label>
       {target && <p className="muted small">В конце похода: Сигнал — Контора удержит 👤 игрока {target.name}; его книга уйдёт в Спецхран.</p>}
       <label>Профилактика — удалить Завсегдатая, с которым связан тот, на кого донос:
-        <select value={prophylaxis} onChange={(e) => setProphylaxis(e.target.value as PatronId)}>
-          <option value="">— нет —</option>
-          {view.patrons.filter((x) => !x.removed && (!denounce || x.connections.includes(denounce.player))).map((x) => <option key={x.id} value={x.id}>{PATRONS[x.id].name}</option>)}
-        </select>
+        <Dropdown value={prophylaxis as string} ariaLabel="Профилактика" onChange={(v) => setProphylaxis(v as PatronId)}
+          options={[{ value: '', label: '— нет —' }, ...view.patrons.filter((x) => !x.removed && (!denounce || x.connections.includes(denounce.player))).map((x) => ({ value: x.id as string, label: PATRONS[x.id].name }))]} />
       </label>
       <h4>Донос (обязательно): укажите открытую опальную книгу</h4>
       {targets.length === 0

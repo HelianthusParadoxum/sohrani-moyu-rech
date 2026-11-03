@@ -1,6 +1,6 @@
 // Общие элементы интерфейса: карты книг, окна, жанры.
 import type React from 'react';
-import { createContext, useContext, useEffect, type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { ADDRESS_ICONS, BONUS_ICONS, GENRE_NAMES, GROUP_ICONS, ICON_JOIN, GENRE_SHORT, PASSIONS } from '../engine/content';
 import { AUTO_PRESET, SOLO_PRESET, selectablePresets } from '../engine/bot-presets';
 import type { AddressId, Genre, GroupActionId, SproutBonusId } from '../engine/types';
@@ -202,12 +202,8 @@ export function toggle<T>(list: T[], x: T): T[] {
 export function SpeedSelect({ room, send }: { room: RoomInfo; send: (m: ClientMessage) => void }) {
   return (
     <label className="row">Скорость ботов:
-      <select value={room.botDelay} onChange={(e) => send({ t: 'botDelay', ms: Number(e.target.value) })}>
-        <option value={1500}>медленно</option>
-        <option value={700}>обычно</option>
-        <option value={200}>быстро</option>
-        <option value={30}>мгновенно</option>
-      </select>
+      <Dropdown value={room.botDelay} onChange={(ms) => send({ t: 'botDelay', ms })} ariaLabel="Скорость ботов"
+        options={[{ value: 1500, label: 'медленно' }, { value: 700, label: 'обычно' }, { value: 200, label: 'быстро' }, { value: 30, label: 'мгновенно' }]} />
     </label>
   );
 }
@@ -223,11 +219,41 @@ export function PresetSelect({ seat, host, send, solo }: { seat: RoomInfo['seats
   return (
     <>
       {host ? (
-        <select value={current.id} aria-label="Пресет бота" onChange={(e) => send({ t: 'botPreset', seat: seat.id, preset: e.target.value })}>
-          {options.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
+        <Dropdown value={current.id} ariaLabel="Пресет бота" onChange={(preset) => send({ t: 'botPreset', seat: seat.id, preset })}
+          options={options.map((p) => ({ value: p.id, label: p.name }))} />
       ) : <span className="small">{current.name}</span>}
       <span className="preset-desc muted small">{current.description}</span>
     </>
+  );
+}
+
+// Выпадающий список: раскрывается прямо под полем (а не системным окном, как <select> на телефоне).
+export function Dropdown<T extends string | number>({ value, options, onChange, ariaLabel }: {
+  value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; ariaLabel?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: Event) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('pointerdown', away);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('pointerdown', away); document.removeEventListener('keydown', esc); };
+  }, [open]);
+  const current = options.find((o) => o.value === value) ?? options[0];
+  return (
+    <span className={`dropdown ${open ? 'open' : ''}`} ref={box}>
+      <button type="button" className="dropdown-btn" aria-label={ariaLabel} aria-haspopup="listbox" aria-expanded={open}
+        onClick={(e) => { e.preventDefault(); setOpen(!open); }}>{current?.label}</button>
+      {open && (
+        <ul className="dropdown-list" role="listbox">
+          {options.map((o) => (
+            <li key={String(o.value)} role="option" aria-selected={o.value === value} className={o.value === value ? 'selected' : ''}
+              onClick={(e) => { e.preventDefault(); setOpen(false); if (o.value !== value) onChange(o.value); }}>{o.label}</li>
+          ))}
+        </ul>
+      )}
+    </span>
   );
 }

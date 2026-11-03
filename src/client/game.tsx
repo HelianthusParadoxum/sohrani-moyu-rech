@@ -14,7 +14,7 @@ import {
   KontoraWarningPrompt,
 } from './full-ui';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
-import { Book, GENRE_SHORT, GenreChip, KindChip, withKindChips, workerIcon, addressIcons, iconize, SpeedSelect, Modal, ModalCollapse, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, isLoad, toggle } from './ui';
+import { Book, Dropdown, GENRE_SHORT, GenreChip, KindChip, withKindChips, workerIcon, addressIcons, iconize, SpeedSelect, Modal, ModalCollapse, PLAYER_COLORS, fromLoadDeck, iconsOf, isBanned, isLoad, toggle } from './ui';
 
 type Send = (m: ClientMessage) => void;
 type VPlayer = PlayerView['players'][number];
@@ -729,9 +729,8 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
       body = (
         <>
           <p>Предложите обмен другому игроку. Он может согласиться или отказаться.</p>
-          <label>С кем: <select value={target} onChange={(e) => { setTarget(e.target.value); setSel2([]); }}>
-            {view.players.filter((p) => p.id !== me.id).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select></label>
+          <label>С кем: <Dropdown value={target} ariaLabel="С кем обмен" onChange={(t) => { setTarget(t); setSel2([]); }}
+            options={view.players.filter((p) => p.id !== me.id).map((p) => ({ value: p.id, label: p.name }))} /></label>
           <h4>Что вы просите</h4>
           {pickList((other?.warehouse ?? []).filter((s) => !s.hidden && s.card).map((s) => s.card!), sel2, setSel2, { max: 1 })}
           <h4>Что вы отдаёте</h4>

@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { useServer } from './net';
 import { Game } from './game';
 import { RULES } from '../engine/content';
-import { KindChip, Modal, PLAYER_COLORS, PresetSelect, SpeedSelect } from './ui';
+import { Dropdown, KindChip, Modal, PLAYER_COLORS, PresetSelect, SpeedSelect } from './ui';
 import './style.css';
 import './tips';
 
@@ -121,11 +121,9 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
       {host && (
         <>
           <label>Режим
-            <select value={room.reserve ? 'reserve' : room.mode} onChange={(e) => net.send({ t: 'setMode', mode: e.target.value as 'beginner' })}>
-              <option value="beginner">Периферия (для начинающих)</option>
-              <option value="full">Полные правила</option>
-              <option value="reserve">Заповедник (полные правила без Конторы и Куратора)</option>
-            </select>
+            <Dropdown value={room.reserve ? 'reserve' : room.mode} ariaLabel="Режим" onChange={(mode) => net.send({ t: 'setMode', mode: mode as 'beginner' })}
+              options={[{ value: 'beginner', label: 'Периферия (для начинающих)' }, { value: 'full', label: 'Полные правила' },
+                { value: 'reserve', label: 'Заповедник (полные правила без Конторы и Куратора)' }]} />
           </label>
           {room.mode === 'full' && !room.reserve && room.seats.length > 1 && (
             <label className="row">
@@ -141,12 +139,8 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
               </label>
               {room.forceCurator && (
                 <label>Стратегия Куратора-бота
-                  <select value={room.curatorStyle ?? ''} onChange={(e) => net.send({ t: 'setForceCurator', on: true, style: e.target.value as '' })}>
-                    <option value="">Случайная</option>
-                    <option value="open">Открытое забрало</option>
-                    <option value="ambush">Хищник в засаде</option>
-                    <option value="boa">Удав</option>
-                  </select>
+                  <Dropdown value={room.curatorStyle ?? ''} ariaLabel="Стратегия Куратора-бота" onChange={(style) => net.send({ t: 'setForceCurator', on: true, style: style as '' })}
+                    options={[{ value: '', label: 'Случайная' }, { value: 'open', label: 'Открытое забрало' }, { value: 'ambush', label: 'Хищник в засаде' }, { value: 'boa', label: 'Удав' }]} />
                 </label>
               )}
             </div>
