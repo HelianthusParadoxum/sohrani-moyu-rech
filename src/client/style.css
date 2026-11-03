@@ -483,3 +483,8 @@ label.row > .dropdown { display: inline-block; }
 @media (max-width: 600px) { .mobile-bar .mb-round { margin-right: 8px; white-space: nowrap; } }
 /* Барахолка в окне: книги сеткой 2 × 2 */
 .shelf.grid2 { display: grid; grid-template-columns: repeat(2, max-content); gap: 10px; justify-content: start; overflow: visible; padding: 4px; }
+/* Телефон: ячейки кода — во всю ширину содержимого (как поле имени), промежутки прежние */
+@media (max-width: 600px) {
+  .code-cells { justify-content: stretch; }
+  .code-cells .cell { flex: 1 1 0; width: auto; height: auto; aspect-ratio: 66 / 80; font-size: 3rem; }
+}
