@@ -319,7 +319,6 @@ label.row > input[type="checkbox"] { flex: none; }
 
 /* Ростки: подсказка справа в заголовке и строка «Вложились» */
 .hint.inline.right { font-size: 0.75rem; text-align: right; white-space: nowrap; margin-left: auto; }
-.fed-row { display: flex; align-items: center; gap: 4px; margin-top: 4px; }
 .dot.slot-free { background: transparent; border: 1.5px dashed rgba(0,0,0,.35); }
 /* ПСС Ленина: ЧНЛ (тёмная) с нагрузочной полосой сверху */
 .book.k-loadPropaganda { background: #2b2620; color: #f3ecdc; border-top: 6px solid #f0e4c8; }
