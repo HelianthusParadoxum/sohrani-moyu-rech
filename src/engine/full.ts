@@ -61,14 +61,15 @@ export function holdWorker(state: GameState, p: PlayerState, reason: string): bo
   if (state.reserve) return false; // «Заповедник»: Конторы нет — никого не удерживают
   if (hasPatron(state, p.id, 'psychiatrist')) {
     log(state, `${p.name}: Психиатр не даёт Конторе удержать Единомышленника.`);
-    state.log[state.log.length - 1].who = p.id;
+    if (!state.solo) state.log[state.log.length - 1].who = p.id;
     return false;
   }
   if (p.held >= p.workers) return false;
   p.held++;
   if (p.available > 0) p.available--;
   log(state, `Контора удерживает Единомышленника ${p.name} (${reason}). Всего удержано: ${heldTotal(state)}.`);
-  state.log[state.log.length - 1].who = p.id;
+  // В одиночной игре игрок один — кружок не нужен.
+  if (!state.solo) state.log[state.log.length - 1].who = p.id;
   return true;
 }
 
