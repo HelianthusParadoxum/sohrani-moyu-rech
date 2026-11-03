@@ -1,7 +1,7 @@
 // Игровой стол.
 import { createContext, Fragment, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import {
-  ADDRESSES, ADDRESS_ICONS, addressLabel, BONUS_ICONS, GROUP_ICONS, ICON_JOIN, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, groupCost, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
+  ADDRESSES, ADDRESS_ICONS, ROUND_ICON, addressLabel, BONUS_ICONS, GROUP_ICONS, ICON_JOIN, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, groupCost, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
   groupInGame, addressInGame, PATRONS, sproutSlotBonuses,
 } from '../engine/content';
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PassionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
@@ -146,7 +146,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
     <div className="game">
       <header className="topbar">
         <div className="title">Сохрани мою речь</div>
-        <div>Пятилетка <b>{view.round}</b>/{RULES.rounds}</div>
+        <div>{ROUND_ICON} Пятилетка <b>{view.round}</b>/{RULES.rounds}</div>
         <div className="banned">Цензура {view.censorship}: {view.banned.map((g) => <GenreChip key={g} g={g} banned />)}</div>
         <div className="muted small">📃 Непечатные: {view.deckCount} (сброс {view.discardCount}) · 📕 Нагрузка: {view.loadDeckCount} (сброс {view.loadDiscardCount}){view.spotter && <SpotterButton view={view} />}</div>
         {isHost && (
@@ -1627,7 +1627,7 @@ function MobileBar({ view, me }: { view: PlayerView; me: VPlayer }) {
   }, []);
   return (
     <div className="mobile-bar" ref={bar}>
-      <div className="mb-row"><span className="muted small">Опала:</span>{view.banned.length ? view.banned.map((g) => <GenreChip key={g} g={g} banned />) : <span className="muted small">нет</span>}
+      <div className="mb-row"><span className="mb-round" title="Пятилетка">{ROUND_ICON}<b>{view.round}</b>/{RULES.rounds}</span><span className="muted small">Опала:</span>{view.banned.length ? view.banned.map((g) => <GenreChip key={g} g={g} banned />) : <span className="muted small">нет</span>}
         {me.passion && <span className="mb-passion" title={`Пристрастие: ${PASSIONS[me.passion].name} — ${PASSIONS[me.passion].hint}`}><span className="muted small">Пристрастие:</span>{passionMarks(me.passion)}</span>}
       </div>
       <Stats p={me} view={view} />

@@ -480,3 +480,4 @@ label.row > .dropdown { display: inline-block; }
   .lobby .lobby-actions { flex-wrap: nowrap; }
   .lobby .lobby-actions button { white-space: nowrap; padding: 0 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 }
+@media (max-width: 600px) { .mobile-bar .mb-round { margin-right: 8px; white-space: nowrap; } }

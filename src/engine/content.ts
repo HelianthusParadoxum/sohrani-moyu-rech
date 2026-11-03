@@ -129,6 +129,8 @@ export const ADDRESS_ICONS: Record<AddressId, string> = {
 };
 
 // Значки действий Инициативной группы — так же, как у адресов: не повторяются и не совпадают с прочими значками.
+export const ROUND_ICON = '🗓️'; // Пятилетка
+
 export const GROUP_ICONS: Record<GroupActionId, string> = {
   expandWarehouse: '🧱', expandCache: '🗝️', copyText: '🖨️', spetskhran: '🗄️', restore: '💡', hire: '🕸️',
 };
