@@ -115,7 +115,9 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
   return (
     <div className="home lobby">
       <h1 className="room-title">
-        <button className="back" aria-label="Назад, в начальное меню" title="В начальное меню" onClick={() => { location.hash = ''; }}>←</button>
+        <button className="back" aria-label="Назад, в начальное меню" title="В начальное меню" onClick={() => { location.hash = ''; }}>
+          <svg width="12" height="18" viewBox="0 0 12 18" aria-hidden="true"><path d="M9 2L3 9l6 7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
         Комната {room.code}
       </h1>
       <p className="muted">Отправьте ссылку тестировщикам: <a href={link}>{link}</a>{' '}

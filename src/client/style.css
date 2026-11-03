@@ -436,4 +436,5 @@ label.row > .dropdown { display: inline-block; }
 }
 /* Лобби: стрелка «назад» в начальное меню перед заголовком комнаты */
 .room-title { display: flex; align-items: center; gap: 10px; }
-.room-title .back { flex: none; width: 40px; height: 40px; padding: 0; font-size: 1.4rem; line-height: 1; border-radius: 50%; }
+.room-title .back { flex: none; width: 40px; height: 40px; padding: 0 2px 0 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--ink); }
+.room-title .back svg { display: block; }
