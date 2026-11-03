@@ -102,8 +102,8 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
       <p className="subtitle">книжное подполье СССР</p>
       <label>Ваше имя<input value={name} onChange={(e) => setName(e.target.value)} maxLength={24} placeholder="Как вас называть" /></label>
       {/* На телефоне — на плашке внизу экрана, во всю ширину. */}
-      <div className="create-bar"><button className="primary" disabled={!name.trim()} onClick={onCreate}>Создать комнату</button></div>
-      <div className="or">или войдите по коду</div>
+      <div className="create-bar"><button className="primary" disabled={!name.trim()} onClick={onCreate}>Создать свою игру</button></div>
+      <div className="or">Присоединитесь к игре по коду</div>
       {/* Одно поле поверх четырёх ячеек: так работают и вставка, и стирание. */}
       <label className="code-cells" aria-label="Код комнаты">
         <input value={code} onChange={(e) => setCode(codeChars(e.target.value))} inputMode="numeric" pattern="[0-9]*" autoComplete="off" spellCheck={false} />
