@@ -10,7 +10,7 @@ export interface NetState {
   isHost: boolean;
   view: PlayerView | null;
   error: string | null;
-  gone: boolean; // комнаты больше нет на сервере
+  gone: false | 'update' | 'restart'; // комнаты больше нет на сервере: игру обновили или сервер перезапускался
   canStepBack: boolean; // можно нажать «Назад» в своём ходу
   probe: { code: string; exists: boolean } | null; // ответ на вопрос «есть ли комната с таким кодом»
 }
@@ -24,6 +24,7 @@ export function navigate(code: string | null) {
   dispatchEvent(new Event(NAVIGATE));
 }
 
+const versionKey = (code: string) => `smr:version:${code}`;
 export const tokenKey = (code: string) => `smr:token:${code}`;
 
 function readToken(code: string): string | null {
@@ -72,11 +73,16 @@ export function useServer(code: string | null) {
             try { tried = sessionStorage.getItem('smr:reloaded'); sessionStorage.setItem('smr:reloaded', msg.build); } catch { /* ignore */ }
             if (tried !== msg.build) { location.reload(); return; }
           }
+          if (msg.version) { try { localStorage.setItem(versionKey(msg.room.code), msg.version); } catch { /* ignore */ } }
           setState((s) => ({ ...s, room: msg.room, you: msg.you, isHost: msg.isHost, view: msg.view, error: null, canStepBack: !!msg.canStepBack }));
         } else if (msg.t === 'probe') {
           setState((s) => ({ ...s, probe: { code: msg.code, exists: msg.exists } }));
         } else if (msg.t === 'gone') {
-          if (msg.code === codeRef.current) setState((s) => ({ ...s, gone: true }));
+          // Версия игры та же, что была при последнем заходе в комнату, — значит, не обновление, а перезапуск сервера.
+          let seen: string | null = null;
+          try { seen = localStorage.getItem(versionKey(msg.code)); } catch { /* ignore */ }
+          const why = seen && msg.version && seen === msg.version ? 'restart' : seen ? 'update' : 'restart';
+          if (msg.code === codeRef.current) setState((s) => ({ ...s, gone: why }));
         } else if (msg.t === 'error') {
           setState((s) => ({ ...s, error: msg.message }));
         }

@@ -203,7 +203,7 @@ function broadcast(room: Room) {
     // Хост, за которого играет бот, смотрит партию со стороны и видит всё.
     const omniscient = c.host && !c.seat;
     const canStepBack = !!c.seat && room.stepBack?.player === c.seat && room.stepBack.states.length > 0;
-    send(ws, { t: 'room', room: info, you: c.seat, isHost: c.host, view: room.state ? viewFor(room.state, c.seat, omniscient) : null, canStepBack, build: CLIENT_BUILD });
+    send(ws, { t: 'room', room: info, you: c.seat, isHost: c.host, view: room.state ? viewFor(room.state, c.seat, omniscient) : null, canStepBack, build: CLIENT_BUILD, version: BUILD });
   }
 }
 
@@ -281,7 +281,7 @@ function handle(ws: WebSocket, msg: ClientMessage) {
       return;
     case 'hello': {
       const room = rooms.get(msg.code);
-      if (!room) return send(ws, { t: 'gone', code: msg.code });
+      if (!room) return send(ws, { t: 'gone', code: msg.code, version: BUILD });
       // Сохранение не читается новой версией движка — тоже считаем партию устаревшей.
       if (room.state) {
         try { viewFor(room.state, null, true); } catch { resetOutdated(room); save(room); }
@@ -496,3 +496,7 @@ wss.on('connection', (ws) => {
 });
 
 server.listen(PORT, () => console.log(`Сервер: http://localhost:${PORT}`));
+
+// Сбой в обработке одного сообщения не должен ронять весь сервер (а с ним — все партии в памяти).
+process.on('uncaughtException', (e) => console.error('Непойманная ошибка сервера', e));
+process.on('unhandledRejection', (e) => console.error('Необработанный отказ промиса', e));

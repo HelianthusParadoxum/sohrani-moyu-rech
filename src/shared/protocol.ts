@@ -44,7 +44,7 @@ export type ClientMessage =
 
 export type ServerMessage =
   | { t: 'joined'; code: string; token: string }
-  | { t: 'room'; room: RoomInfo; you: string | null; isHost: boolean; view: PlayerView | null; canStepBack?: boolean; build?: string }
+  | { t: 'room'; room: RoomInfo; you: string | null; isHost: boolean; view: PlayerView | null; canStepBack?: boolean; build?: string; version?: string } // version — версия игры на сервере
   | { t: 'error'; message: string }
-  | { t: 'gone'; code: string } // комнаты нет (например, сервер обновили и сохранения пропали)
+  | { t: 'gone'; code: string; version?: string } // комнаты нет: игру обновили (другая version) или сервер перезапускался
   | { t: 'probe'; code: string; exists: boolean };
