@@ -552,6 +552,8 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
   const [num, setNum] = useState(1);
   const [genre, setGenre] = useState<Genre>('prose');
   const [loadN, setLoadN] = useState(1);
+  // Свой заголовок окна (Ростки: второй шаг — «Бонус Ростка …»).
+  const [title, setTitle] = useState<string | null>(null);
   const [target, setTarget] = useState<string>(view.players.find((p) => p.id !== me.id)?.id ?? '');
   // Рядом с кнопкой — всегда, сколько у игрока Талонов (и предупреждение, если есть).
   const explain = useContext(Explain);
@@ -685,7 +687,7 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
       break;
     }
     case 'sprouts':
-      body = <SproutFeeder view={view} me={me} place={place} initial={sprout} initialSlot={slot} />;
+      body = <SproutFeeder view={view} me={me} place={place} initial={sprout} initialSlot={slot} setTitle={setTitle} />;
       break;
     case 'samizdat':
     case 'tamizdat': {
@@ -784,7 +786,7 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
         free <= 0 ? 'Нет места на складе' : me.talons < safehouseCost(id) ? `Не хватает Талонов: нужно ${safehouseCost(id)}, у вас ${me.talons}` : undefined)}</>;
       break;
   }
-  return <Modal title={addressLabel(id)} onClose={close} wide>{body}</Modal>;
+  return <Modal title={title ?? addressLabel(id)} onClose={close} wide>{body}</Modal>;
 }
 
 // ---------- Ростки ----------
@@ -876,7 +878,7 @@ function Sprouts({ view, me, beside, seatIndex, head, onOpen, why, turnWhy }: { 
   );
 }
 
-function SproutFeeder({ view, me, place, initial, initialSlot }: { view: PlayerView; me: VPlayer; place: (p: PlaceAction) => void; initial?: string; initialSlot?: number }) {
+function SproutFeeder({ view, me, place, initial, initialSlot, setTitle }: { view: PlayerView; me: VPlayer; place: (p: PlaceAction) => void; initial?: string; initialSlot?: number; setTitle: (t: string | null) => void }) {
   const [feeds, setFeeds] = useState<{ sprout: string; books: string[]; slot?: number; labtech?: boolean }[]>([]);
   const progressOf = (id: string, fs = feeds) => view.sprouts.find((s) => s.id === id)!.progress + fs.filter((f) => f.sprout === id).length;
   const wildScifi = view.mode === 'full';
@@ -894,7 +896,9 @@ function SproutFeeder({ view, me, place, initial, initialSlot }: { view: PlayerV
   const [books, setBooks] = useState<string[]>(() => (initial ? suggest(initial) : []));
   // Место (бонус) Ростка: свободное, по умолчанию — то, на которое нажали, иначе первое свободное.
   const freeSlots = (id: string) => freeSproutSlots(view, id).filter((i) => !feeds.some((f) => f.sprout === id && f.slot === i));
-  const [slot, setSlot] = useState<number | undefined>(() => (initial ? (initialSlot ?? freeSproutSlots(view, initial)[0]) : undefined));
+  // Нажали на кружок бонуса — бонус уже выбран; иначе он выбирается в следующем окне («Бонус Ростка …»).
+  const [slot, setSlot] = useState<number | undefined>(() => (initial ? initialSlot : undefined));
+  const [choosing, setChoosing] = useState(false);
   const used = feeds.flatMap((f) => f.books);
   const mine = me.warehouse.map((s) => s.card!).filter((c) => c && !used.includes(c));
   const info = SPROUTS.find((s) => s.id === sprout);
@@ -904,15 +908,49 @@ function SproutFeeder({ view, me, place, initial, initialSlot }: { view: PlayerV
   const discount = !plain && !!info && !!step && hasPatron(view, me.id, 'labtech') && !feeds.some((f) => f.labtech)
     && coversStep(view, books, info.main, step.main, step.support, { wildScifi, labtech: true });
   const ok = plain || discount;
+  // Отдать ступень с выбранным бонусом: последняя ступень поручения — сразу поручение, иначе — к следующей ступени.
+  const commit = (sl: number) => {
+    setChoosing(false); setTitle(null);
+    if (feeds.length + 1 >= RULES.sproutFeedsPerAction) {
+      place({ address: 'sprouts', feeds: [...feeds.map(({ labtech: _, ...f }) => f), { sprout, books, slot: sl }] });
+      return;
+    }
+    const fs = [...feeds, { sprout, books, slot: sl, labtech: discount }];
+    setFeeds(fs); setBooks(suggest(sprout, fs)); setSlot(undefined);
+  };
+  // Дальше: бонус уже известен (нажали на его кружок) или свободен только один — сразу; иначе — окно выбора бонуса.
+  const next = () => {
+    const free = freeSlots(sprout);
+    if (slot !== undefined && free.includes(slot)) commit(slot);
+    else if (free.length === 1) commit(free[0]);
+    else { setChoosing(true); setTitle(`Бонус Ростка «${info!.name}»`); }
+  };
+  if (choosing && info) {
+    return (
+      <>
+        <p>Ступень {roman(progressOf(sprout) + 1)} Ростка «{info.name}» питается книгами: {books.map((b) => view.cards[b].title).join(', ')}. Выберите бонус — у каждого бонуса одно место на Пятилетку.</p>
+        <div className="genres">
+          {sproutSlotBonuses(view, info).map((b, i) => (
+            <button key={i} disabled={!freeSlots(sprout).includes(i)} onClick={() => commit(i)}
+              title={freeSlots(sprout).includes(i) ? undefined : 'Этот бонус в эту Пятилетку уже взят'}>{slotLabel(view, me, b)}</button>
+          ))}
+        </div>
+        <div className="modal-foot"><button onClick={() => { setChoosing(false); setTitle(null); }}>← К выбору книг</button></div>
+      </>
+    );
+  }
+  const only = info ? freeSlots(sprout) : [];
+  const fixed = slot !== undefined && only.includes(slot) ? slot : only.length === 1 ? only[0] : undefined;
+  const fixedNote = info && fixed !== undefined ? ` — бонус: ${slotLabel(view, me, sproutSlotBonuses(view, info)[fixed])}` : '';
   return (
     <>
-      <p>Питайте ступень: отдайте книги, на которых есть все значки ступени. Лучшие книги (меньше всего значков) уже отмечены — их можно заменить. {RULES.sproutFeedsPerAction === 1 ? 'За одно поручение — только 1 ступень одного Ростка.' : `За одно поручение — до ${RULES.sproutFeedsPerAction} ступеней у разных Ростков.`}</p>
+      <p>Питайте ступень: отдайте книги, на которых есть все значки ступени. Лучшие книги (меньше всего значков) уже отмечены — их можно заменить. Бонус Ростка — в следующем окне. {RULES.sproutFeedsPerAction === 1 ? 'За одно поручение — только 1 ступень одного Ростка.' : `За одно поручение — до ${RULES.sproutFeedsPerAction} ступеней у разных Ростков.`}</p>
       <div className="genres">
         {view.sprouts.map((sp) => {
           const inf = SPROUTS.find((s) => s.id === sp.id)!;
           const pr = progressOf(sp.id);
           return (
-            <button key={sp.id} disabled={pr >= 4 || !freeSlots(sp.id).length} className={sprout === sp.id ? 'selected' : ''} onClick={() => { setSprout(sp.id); setBooks(suggest(sp.id)); setSlot(freeSlots(sp.id)[0]); }}>
+            <button key={sp.id} disabled={pr >= 4 || !freeSlots(sp.id).length} className={sprout === sp.id ? 'selected' : ''} onClick={() => { setSprout(sp.id); setBooks(suggest(sp.id)); setSlot(undefined); }}>
               {inf.name} · ступень {roman(pr + 1)}: {pr < 4 ? stepText(inf.main, inf.steps[pr]) : '—'}
             </button>
           );
@@ -920,20 +958,17 @@ function SproutFeeder({ view, me, place, initial, initialSlot }: { view: PlayerV
       </div>
       {info && step && (
         <>
-          <h4>Бонус</h4>
-          <div className="genres">
-            {sproutSlotBonuses(view, info).map((b, i) => (
-              <button key={i} disabled={!freeSlots(sprout).includes(i)} className={slot === i ? 'selected' : ''} onClick={() => setSlot(i)}
-                title={freeSlots(sprout).includes(i) ? undefined : 'Этот бонус в эту Пятилетку уже взят'}>{slotLabel(view, me, b)}</button>
-            ))}
-          </div>
           <h4>Книги для ступени {roman(progressOf(sprout) + 1)}</h4>
           <div className="shelf wrap">
             {mine.map((c) => <Book key={c} v={view} id={c} selected={books.includes(c)} onClick={() => setBooks(toggle(books, c))} />)}
           </div>
-          {feeds.length + 1 >= RULES.sproutFeedsPerAction
-            ? <button className="primary" disabled={!ok || slot === undefined} onClick={() => place({ address: 'sprouts', feeds: [...feeds.map(({ labtech: _, ...f }) => f), { sprout, books, slot }] })}>Питать ступень{discount ? ' (скидка Лаборанта)' : ''}</button>
-            : <button disabled={!ok || slot === undefined} onClick={() => { const fs = [...feeds, { sprout, books, slot, labtech: discount }]; setFeeds(fs); setBooks(suggest(sprout, fs)); setSlot(undefined); }}>Добавить ступень{discount ? ' (скидка Лаборанта)' : ''}</button>}
+          <div className="modal-foot">
+            <button className={feeds.length + 1 >= RULES.sproutFeedsPerAction ? 'primary' : ''} disabled={!ok} onClick={next}>
+              {fixed !== undefined
+                ? `${feeds.length + 1 >= RULES.sproutFeedsPerAction ? 'Питать ступень' : 'Добавить ступень'}${discount ? ' (скидка Лаборанта)' : ''}${fixedNote}`
+                : `Дальше: бонус Ростка${discount ? ' (скидка Лаборанта)' : ''}`}
+            </button>
+          </div>
         </>
       )}
       {feeds.length > 0 && (
