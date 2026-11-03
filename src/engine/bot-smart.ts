@@ -222,6 +222,8 @@ function stepReward(state: GameState, p: PlayerState, progress: number, sproutId
   const r = STEP_REWARDS[progress];
   let v = r.points + r.talons * ctx.talon * ctx.w.talons;
   v += progress < RULES.glasnostStep ? ctx.glasnost * ctx.w.sprouts * (BOT_BASE.glasnostLag[progress] ?? 1) : BOT_BASE.lateStep;
+  // Одиночная игра: ступень IV — запас против ЧНЛ при вскрытии; бот копит под неё книги (см. soloSpareIV).
+  if (state.solo && progress >= RULES.glasnostStep) v += BOT_BASE.soloGoal * BOT_BASE.soloSpareIV;
   // Бонус места Ростка (действие Группы и т. п.) — примерной ценностью.
   v += tune(ctx, 'feedBonus');
   return v;
