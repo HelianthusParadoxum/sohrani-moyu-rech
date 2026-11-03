@@ -417,7 +417,7 @@ label.row > .dropdown { display: inline-block; }
 .mobile-bar { display: none; }
 @media (max-width: 600px) {
   .mobile-bar {
-    display: block; position: sticky; top: 0; z-index: 35;
+    display: block; position: fixed; top: 0; left: 0; right: 0; z-index: 20;
     padding: 6px 12px; background: var(--paper); border-bottom: 1px solid var(--line); box-shadow: 0 3px 10px rgba(0,0,0,.12);
   }
   .mobile-bar .mb-row { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 4px; }
@@ -427,4 +427,10 @@ label.row > .dropdown { display: inline-block; }
   .mobile-bar .mb-book.cached { border: 1.5px dashed var(--ink); background: rgba(0,0,0,.06); }
   .mobile-bar .mb-book.memo { border: 1.5px solid var(--g-poetry); }
   .mobile-bar .chip.mb-load { background: #e4dccb; color: var(--muted); }
+}
+@media (max-width: 600px) { .mobile-bar .mb-passion { margin-left: auto; display: inline-flex; gap: 3px; align-items: center; } }
+/* Телефон: под закреплённой плашкой — и страница, и всплывающие окна (окно начинается ниже плашки) */
+@media (max-width: 600px) {
+  body.has-mb { padding-top: var(--mb-h, 0px); }
+  body.has-mb .modal-bg { padding-top: calc(var(--mb-h, 0px) + 12px); }
 }

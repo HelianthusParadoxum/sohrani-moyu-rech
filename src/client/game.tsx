@@ -4,7 +4,7 @@ import {
   ADDRESSES, ADDRESS_ICONS, addressLabel, BONUS_ICONS, GROUP_ICONS, ICON_JOIN, COPY_TEXT_ADDRESSES, GENRE_NAMES, GROUP_ACTIONS, groupCost, safehouseCost, PASSIONS, POINT_SOURCES, passionLabel, RULES, SPROUTS, SPROUT_BONUS_NAMES, STEP_REWARDS, FIRST_FEED_POINTS, limitFor,
   groupInGame, addressInGame, PATRONS, sproutSlotBonuses,
 } from '../engine/content';
-import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
+import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PassionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import { title as bookTitle, bestFeedBooks, canMemorizeOnBuy, coversStep, roomToBuy, freeSproutSlots, genresOf, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, roman } from '../engine/util';
@@ -1550,6 +1550,18 @@ function freeShelf(p: VPlayer): number {
   return p.capacity - p.warehouse.filter((s) => !s.memorized).length;
 }
 
+// Что ценит Пристрастие — коротко, значками (для плашки на телефоне).
+function passionMarks(id: PassionId): ReactNode {
+  const ps = PASSIONS[id];
+  if (ps.genres) return ps.genres.map((g) => <GenreChip key={g} g={g} favored />);
+  if (id === 'curator') return <KindChip k="chnl" />;
+  if (id === 'historian') return <><KindChip k="ul" /><span className="chip mb-load">РАЗ</span></>;
+  if (id === 'erudite') return <span className="muted small">все жанры</span>;
+  if (id === 'monogamist') return <span className="muted small">лучший жанр</span>;
+  if (id === 'innovator') return <span className="muted small">двужанровые</span>;
+  return <span className="muted small">{ps.name}</span>;
+}
+
 // Телефон: закреплённая сверху плашка — опала, свои показатели и книги склада (только значки; в Тайнике — пунктиром).
 function MobileBar({ view, me }: { view: PlayerView; me: VPlayer }) {
   const marks = (c: string) => {
@@ -1561,9 +1573,24 @@ function MobileBar({ view, me }: { view: PlayerView; me: VPlayer }) {
     if (!icons.length) return <span className="chip mb-load" title="Нагрузка">Н</span>;
     return icons.map((g, i) => <GenreChip key={i} g={g} banned={view.banned.includes(g)} />);
   };
+  // Плашка закреплена у верхнего края: её высоту знает вся страница — под неё сдвигаются поле и окна.
+  const bar = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = bar.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const set = () => root.style.setProperty('--mb-h', `${el.offsetHeight}px`);
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    document.body.classList.add('has-mb');
+    return () => { ro.disconnect(); document.body.classList.remove('has-mb'); root.style.removeProperty('--mb-h'); };
+  }, []);
   return (
-    <div className="mobile-bar">
-      <div className="mb-row"><span className="muted small">Опала:</span>{view.banned.length ? view.banned.map((g) => <GenreChip key={g} g={g} banned />) : <span className="muted small">нет</span>}</div>
+    <div className="mobile-bar" ref={bar}>
+      <div className="mb-row"><span className="muted small">Опала:</span>{view.banned.length ? view.banned.map((g) => <GenreChip key={g} g={g} banned />) : <span className="muted small">нет</span>}
+        {me.passion && <span className="mb-passion" title={`Пристрастие: ${PASSIONS[me.passion].name} — ${PASSIONS[me.passion].hint}`}>{passionMarks(me.passion)}</span>}
+      </div>
       <Stats p={me} view={view} />
       <div className="mb-row mb-books">
         {me.warehouse.map((s, i) => s.card && (
