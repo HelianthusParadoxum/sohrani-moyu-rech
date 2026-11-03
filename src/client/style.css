@@ -467,3 +467,16 @@ label.row > .dropdown { display: inline-block; }
 /* Ячейки кода — крупнее */
 .code-cells { gap: 12px; }
 .code-cells .cell { width: 66px; height: 80px; font-size: 2.6rem; }
+/* Нижние плашки (Закончить ход, лобби, титульный экран) — одной высоты, кнопки в них — тоже */
+.end-turn-sheet, .lobby .lobby-actions, .title-screen .create-bar { min-height: 64px; box-sizing: border-box; align-items: center; }
+.end-turn-sheet button, .lobby .lobby-actions button, .title-screen .create-bar button {
+  height: 44px; padding: 0 18px; font-size: 1rem; line-height: 1; box-sizing: border-box;
+}
+@media (max-width: 600px) {
+  .end-turn-sheet, .lobby .lobby-actions, .title-screen .create-bar { padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
+  .title-screen .create-bar { display: flex; }
+}
+@media (max-width: 600px) {
+  .lobby .lobby-actions { flex-wrap: nowrap; }
+  .lobby .lobby-actions button { white-space: nowrap; padding: 0 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+}
