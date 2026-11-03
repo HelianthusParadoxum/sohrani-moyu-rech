@@ -489,3 +489,5 @@ label.row > .dropdown { display: inline-block; }
   .code-cells .cell { flex: 1 1 0; width: auto; height: auto; aspect-ratio: 66 / 80; font-size: 3rem; }
 }
 .chip.mb-load { background: #e4dccb; color: var(--muted); }
+/* Заголовок адреса в две строки (Посредничество авторам и т. п.) — плотнее */
+.addr-head > b { line-height: 1.15; }
