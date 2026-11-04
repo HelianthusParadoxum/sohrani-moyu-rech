@@ -206,6 +206,7 @@ label.row > input[type="checkbox"] { flex: none; }
 /* Каждый Завсегдатай — на своей подложке, как Ростки */
 .patrons { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
 .patrons li { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+.score-passion { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .patron-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
 .addr-club .patrons li { display: flex; flex-direction: column; }
 .patron-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 8px; }
