@@ -203,8 +203,9 @@ button.short { border-style: dashed; color: var(--muted); }
 label.row { flex-direction: row; align-items: center; gap: 8px; flex-wrap: nowrap; }
 label.row > input[type="checkbox"] { flex: none; }
 .address.addr-club { grid-column: 1 / -1; }
-.patrons { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 12px; }
-.patrons li { padding: 2px 0; }
+/* Каждый Завсегдатай — на своей подложке, как Ростки */
+.patrons { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.patrons li { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
 .patrons li.removed { opacity: 0.4; text-decoration: line-through; }
 .patrons li.turned b { color: var(--muted); }
 .targets .book { box-shadow: 0 0 0 2px #e6b35a; }
@@ -329,7 +330,7 @@ label.row > input[type="checkbox"] { flex: none; }
   .sprouts-panel .sprouts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 /* Завсегдатаи и Ростки: доступные для поручения обведены, как адреса; недоступные Завсегдатаи и полностью закрытые Ростки — приглушены */
-.patrons li.can { box-shadow: 0 0 0 2px #e6b35a; border-radius: 4px; cursor: pointer; padding: 2px 4px; }
+.patrons li.can { box-shadow: 0 0 0 2px #e6b35a; cursor: pointer; }
 .patrons li.off { opacity: 0.5; }
 .sprout.can { box-shadow: 0 0 0 2px #e6b35a; cursor: pointer; }
 /* Клуб и Ростки целиком не подсвечиваем — доступность видна у отдельных Завсегдатаев и Ростков. */
