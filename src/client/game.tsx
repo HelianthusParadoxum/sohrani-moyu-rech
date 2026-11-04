@@ -1546,7 +1546,7 @@ function Results({ view, seatIndex, close }: { view: PlayerView; seatIndex: (id:
     <Modal title="Конец Застоя" onClose={close} wide>
       <p><b>{r.note}</b></p>
       <div className="scores-wrap"><table className="scores">
-        <thead><tr><th>Игрок</th><th>По ходу</th>{full && <th>Связи</th>}<th>Пристрастие</th><th title="Улики"><KindChip k="ul" /></th><th title={`Талоны: 1 очко за каждые ${RULES.talonsPerPoint}`}>🎫/{RULES.talonsPerPoint}</th><th><KindChip k="chnl" /></th><th>Итого</th></tr></thead>
+        <thead><tr><th>Игрок</th><th>По ходу</th>{full && <th title="Связи в Клубе книголюбов">🤝</th>}<th>Пристрастие</th><th title="Улики"><KindChip k="ul" /></th><th title={`Талоны: 1 очко за каждые ${RULES.talonsPerPoint}`}>🎫/{RULES.talonsPerPoint}</th><th><KindChip k="chnl" /></th><th>Итого</th></tr></thead>
         <tbody>
           {r.scores.map((s) => {
             const p = view.players.find((x) => x.id === s.player)!;
