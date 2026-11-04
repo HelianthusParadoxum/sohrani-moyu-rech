@@ -1417,7 +1417,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         }
         return [...out, { type: 'pass' }];
       }
-      case 'discardExcess': return [{ type: 'discardExcess', cards: byValue(keepMap(), books).slice(0, pend.count) }];
+      case 'discardExcess': return [{ type: 'discardExcess', cards: byValue(keepMap(), p.warehouse.filter((s) => !s.memorized).map((s) => s.card)).slice(0, pend.count) }];
       case 'kontoraWarning':
         // Соперник идёт в Контору: перепрятать самое ценное из опального.
         return [{ type: 'kontoraHide', hidden: hideList(state, me, ctx, keepMap()) }];

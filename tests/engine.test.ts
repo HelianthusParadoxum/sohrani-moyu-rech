@@ -465,6 +465,27 @@ describe('Завсегдатаи: Ветеран, Лейтенант, Управ
     expect(p.capacity).toBe(RULES.maxCapacity);
   });
 
+  it('Управдом: заученный сборник за лишнюю книгу не отдать — он места не занимает (бот отдаёт книгу со склада)', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    connect(s, 'housekeeper', [me]);
+    const p = s.players.find((x) => x.id === me)!;
+    p.capacity += 1;
+    p.patronBonus.capacity = 1;
+    const poem = s.deck.find((c) => s.cards[c].icons.includes('poetry'))!;
+    s.deck = s.deck.filter((c) => c !== poem);
+    p.warehouse = p.warehouse.filter((w) => !w.memorized);
+    p.warehouse.push({ card: poem, hidden: false, memorized: true });
+    while (p.warehouse.filter((w) => !w.memorized).length < p.capacity) p.warehouse.push({ card: s.deck.pop()!, hidden: false });
+    removePatron(s, 'housekeeper');
+    expect(s.pending[0]).toMatchObject({ kind: 'discardExcess', player: me, count: 1 });
+    expect(() => applyAction(s, me, { type: 'discardExcess', cards: [poem] })).toThrow(RuleError);
+    s = botMove(s, me, seeded(1));
+    const after = s.players.find((x) => x.id === me)!;
+    expect(after.warehouse.some((w) => w.card === poem)).toBe(true);
+    expect(after.capacity - after.warehouse.filter((w) => !w.memorized).length).toBe(0);
+  });
+
   it('Управдом: после Профилактики игрок сам выбирает, какие книги отдать', () => {
     let s = started();
     const me = s.order[s.turn];

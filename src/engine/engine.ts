@@ -1697,6 +1697,8 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
     case 'discardExcess': {
       check(action.type === 'discardExcess', 'Выберите, какие книги отдать');
       check(action.cards.length === pend.count && new Set(action.cards).size === pend.count, `Нужно отдать книг: ${pend.count}`);
+      // Заученный сборник места на складе не занимает — его отдача склад не освобождает.
+      for (const c of action.cards) check(p.warehouse.some((s) => s.card === c && !s.memorized), 'Отдать можно только книги, лежащие на складе (не заученные)');
       for (const c of action.cards) {
         removeBook(p, c);
         discard(state, c);

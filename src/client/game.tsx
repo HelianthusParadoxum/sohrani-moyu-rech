@@ -1205,7 +1205,7 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
       return (
         <Modal title="Склад уменьшился" wide>
           <p>Связь с Управдомом потеряна: выберите книги, которые придётся отдать ({p.count}).</p>
-          <div className="shelf wrap">{me.warehouse.map((s) => s.card!).map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} onClick={() => setSel(toggle(sel, c))} />)}</div>
+          <div className="shelf wrap">{me.warehouse.filter((s) => !s.memorized).map((s) => s.card!).map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} onClick={() => setSel(toggle(sel, c))} />)}</div>
           <div className="modal-foot"><button className="primary" disabled={sel.length !== p.count} onClick={() => act({ type: 'discardExcess', cards: sel })}>Отдать ({sel.length}/{p.count})</button></div>
         </Modal>
       );
