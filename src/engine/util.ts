@@ -241,7 +241,13 @@ export function isExposed(state: CardsInfo, id: string): boolean {
 }
 
 // Опальная книга: ЧНЛ (и Разоблачение — ЧНЛ с монографией остаётся опальной), Улики и книги со значком опального жанра.
+// Легальная ЧНЛ: ненависть, которую государство печатало само, — Контора её не изымает (пока ей не вернули смыслы).
+export function isLegalPropaganda(state: CardsInfo, id: string): boolean {
+  return !!state.cards[id].legal && isPropaganda(state, id);
+}
+
 export function isBanned(state: CardsInfo & Pick<GameState, 'banned'>, id: string): boolean {
+  if (isLegalPropaganda(state, id)) return false;
   if (isPropaganda(state, id) || isExposed(state, id) || isEvidence(state, id)) return true;
   return genresOf(state, id).some((g) => state.banned.includes(g));
 }

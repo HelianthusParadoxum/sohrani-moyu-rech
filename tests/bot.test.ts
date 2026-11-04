@@ -69,8 +69,8 @@ describe('думающий бот', () => {
         expect(s.phase).toBe('end');
         expect(s.round).toBe(5);
         const cards = allCards(s);
-        expect(cards.length).toBe(133);
-        expect(new Set(cards).size).toBe(133);
+        expect(cards.length).toBe(142);
+        expect(new Set(cards).size).toBe(142);
       }
     }, 60_000);
   }

@@ -51,7 +51,7 @@ export function createGame(opts: NewGameOptions): GameState {
   if (solo) state.solo = true;
   if (opts.reserve) state.reserve = true;
   state.deck = shuffle(state, CARDS.filter((c) => !['load', 'loadReturnable', 'loadEvidence', 'loadPropaganda'].includes(c.kind)).map((c) => c.id));
-  state.loadDeck = shuffle(state, CARDS.filter((c) => ['load', 'loadReturnable', 'loadEvidence', 'loadPropaganda'].includes(c.kind)).map((c) => c.id));
+  state.loadDeck = shuffle(state, CARDS.filter((c) => ['load', 'loadReturnable', 'loadEvidence', 'loadPropaganda'].includes(c.kind) && (RULES.legalPropaganda || !c.legal)).map((c) => c.id));
   state.safehouseDeck = shuffle(state, [...SAFEHOUSES]);
   state.sprouts = shuffle(state, SPROUTS.map((s) => s.id)).slice(0, solo ? RULES.soloSprouts[mode] : n + RULES.extraSprouts[opts.reserve ? 'reserve' : mode]).map((id) => ({ id, progress: 0 }));
 
@@ -120,7 +120,8 @@ export function startHide(state: GameState, p: PlayerState) {
   const favored: Genre[] = (p.passion && PASSIONS[p.passion].genres) || [];
   const fits = (c: string) => (genresOf(state, c).some((g) => favored.includes(g)) ? 1 : 0);
   const books = shuffle(state, p.warehouse.filter((w) => !w.hidden && !w.memorized && !isLoad(state, w.card)))
-    .sort((a, b) => Number(isPropaganda(state, b.card)) - Number(isPropaganda(state, a.card))
+    // Легальная ЧНЛ не опальна — Контора её не изымает, прятать её первой незачем.
+    .sort((a, b) => Number(isPropaganda(state, b.card) && isBanned(state, b.card)) - Number(isPropaganda(state, a.card) && isBanned(state, a.card))
       || Number(isBanned(state, b.card)) - Number(isBanned(state, a.card))
       || iconCount(state, b.card) - iconCount(state, a.card) || fits(b.card) - fits(a.card));
   let room = cacheLimit(state, p) - p.warehouse.filter((w) => w.hidden).length;

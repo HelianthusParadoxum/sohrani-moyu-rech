@@ -3,12 +3,12 @@ import { activePlayers, applyAction, createGame, startHide } from '../src/engine
 import { botMove, playOut } from '../src/engine/bot';
 import { curatorSuspicion, curatorSuspicionDetail } from '../src/engine/bot-smart';
 import { gainedInfo, viewFor } from '../src/engine/view';
-import { RuleError, cacheLimit, bestFeedBooks, coversStep, iconCount, title, iconsOf, isBanned, isEvidence, isLoad, isPropaganda, discard, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
+import { RuleError, cacheLimit, isFromLoadDeck, bestFeedBooks, coversStep, iconCount, title, iconsOf, isBanned, isEvidence, isLoad, isPropaganda, discard, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
 import { finalScoring, passionPoints, scoreLine } from '../src/engine/scoring';
 import { GENRE_SHORT, PASSIONS, RULES, SPROUTS, STEP_REWARDS, limitFor, sproutBonusOptions, sproutSlotBonuses } from '../src/engine/content';
 import type { GameState, Genre, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
-import { onConnect, proseBonus, removePatron, takeFromSpetskhran } from '../src/engine/full';
+import { onConnect, proseBonus, removePatron, signalable, takeFromSpetskhran } from '../src/engine/full';
 
 // Действие и сразу «Закончить ход».
 function act(s: GameState, who: string, a: Parameters<typeof applyAction>[2]): GameState {
@@ -63,7 +63,7 @@ describe('подготовка', () => {
     expect(s.sprouts).toHaveLength(3); // Периферия: Ростков по числу игроков
     expect(createGame({ players: players(3), seed: 1, mode: 'full' }).sprouts).toHaveLength(3); // полный: по числу игроков (в «Заповеднике» +1)
     expect(s.razval.every(Boolean)).toBe(true);
-    expect(new Set(allCards(s)).size).toBe(133);
+    expect(new Set(allCards(s)).size).toBe(142);
   });
 
   it('скрывает чужие Пристрастия и колоды', () => {
@@ -93,8 +93,8 @@ describe('партия ботами', () => {
         expect(s.result).toBeDefined();
         expect(s.round).toBe(5);
         const cards = allCards(s);
-        expect(cards.length).toBe(133);
-        expect(new Set(cards).size).toBe(133);
+        expect(cards.length).toBe(142);
+        expect(new Set(cards).size).toBe(142);
       }
     });
   }
@@ -265,7 +265,7 @@ describe('полный режим', () => {
         expect(s.phase).toBe('end');
         const cards = allCards(s);
         expect(new Set(cards).size).toBe(cards.length);
-        expect(cards.length).toBe(133);
+        expect(cards.length).toBe(142);
       }
     });
   }
@@ -932,8 +932,8 @@ describe('Срезы Куратора', () => {
     const s = createGame({ players: players(3), seed: 4, mode: 'full' });
     const [cur, honest] = s.players;
     cur.passion = 'curator';
-    const lenin = Object.values(s.cards).find((c) => c.kind === 'loadPropaganda')!.id;
-    expect(s.loadDeck).toContain(lenin);
+    const lenin = Object.values(s.cards).find((c) => c.kind === 'loadPropaganda' && !c.legal)!.id;
+    expect(isFromLoadDeck(s, lenin)).toBe(true);
     expect(isPropaganda(s, lenin)).toBe(true);
     expect(isBanned(s, lenin)).toBe(true);
     expect(isLoad(s, lenin)).toBe(false); // не прикрывает Тайник
@@ -950,13 +950,45 @@ describe('Срезы Куратора', () => {
     expect(text.match(/Срез: Росток/g)).toHaveLength(1);
   });
 
+  it('Легальная ЧНЛ: в стопке Нагрузки, не опальна (Контора не изымает, Сигнала не даёт), но −5 и Срез Куратора', () => {
+    const s = createGame({ players: players(3), seed: 4, mode: 'full' });
+    const [cur, honest] = s.players;
+    cur.passion = 'curator';
+    const legal = Object.values(s.cards).find((c) => c.legal)!.id;
+    expect(s.cards[legal].title).toBe('Вторжение без оружия');
+    expect(isFromLoadDeck(s, legal)).toBe(true);
+    expect(isPropaganda(s, legal)).toBe(true);
+    expect(isBanned(s, legal)).toBe(false);
+    expect(isLoad(s, legal)).toBe(false);
+    honest.warehouse = [{ card: legal, hidden: false }];
+    expect(signalable(s, honest.id)).toBe(false);
+    expect(scoreLine(s, honest).propaganda).toBe(RULES.propagandaPoints);
+    s.restored[legal] = true; // Возвращение смыслов — Разоблачение
+    expect(scoreLine(s, honest).propaganda).toBe(RULES.exposePoints);
+    delete s.restored[legal];
+    honest.warehouse = [];
+    cur.warehouse = [{ card: legal, hidden: false }];
+    for (const sp of s.sprouts) sp.progress = 4;
+    finalScoring(s);
+    expect(s.log.map((l) => l.text).join('\n').match(/Срез: Росток/g)).toHaveLength(1);
+  });
+
+  it('Легальную ЧНЛ можно убрать из игры (RULES.legalPropaganda)', () => {
+    const was = RULES.legalPropaganda;
+    (RULES as { legalPropaganda: boolean }).legalPropaganda = false;
+    try {
+      const s = createGame({ players: players(3), seed: 4, mode: 'full' });
+      expect(s.loadDeck.some((c) => s.cards[c].legal)).toBe(false);
+    } finally { (RULES as { legalPropaganda: boolean }).legalPropaganda = was; }
+  });
+
   it('ПСС Ленина — не Нагрузка, а обычная ЧНЛ: в Главлите сдаётся как Непечатная, в Красном уголке её можно отдать', () => {
     let s = createGame({ players: players(2), seed: 4, mode: 'full' });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
     s = startOrders(s);
     const me = s.order[s.turn];
     const p = s.players.find((x) => x.id === me)!;
-    const lenin = Object.values(s.cards).find((c) => c.kind === 'loadPropaganda')!.id;
+    const lenin = Object.values(s.cards).find((c) => c.kind === 'loadPropaganda' && !c.legal)!.id;
     s.loadDeck = s.loadDeck.filter((c) => c !== lenin);
     const book = s.deck.find((c) => s.cards[c].kind === 'genre')!;
     const load = s.loadDeck.find((c) => s.cards[c].kind === 'load')!;
@@ -1114,7 +1146,7 @@ describe('Засада на Посиделках', () => {
     let { s, cur, a, b } = atGathering();
     s.curatorRevealed = cur;
     s.phase = 'orders';
-    for (const q of s.players) { q.available = 0; q.bonusGroupTurns = 0; q.subscriptions = []; }
+    for (const q of s.players) { q.available = 0; q.bonusGroupTurns = 0; q.subscriptions = []; q.capacity = 10; }
     s.players.find((x) => x.id === s.order[s.turn])!.available = 1;
     s = applyAction(s, s.order[s.turn], { type: 'place', place: { address: 'redCorner' } });
     s = applyAction(s, s.order[s.turn], { type: 'endTurn' });
@@ -1500,14 +1532,14 @@ describe('Стартовый Тайник', () => {
       expect(s.phase).toBe('setupCache');
       for (const p of s.players) {
         const can = p.warehouse.filter((w) => !isLoad(s, w.card));
-        const chnl = can.filter((w) => isPropaganda(s, w.card));
+        const chnl = can.filter((w) => isPropaganda(s, w.card) && isBanned(s, w.card)); // легальную ЧНЛ первой не прячут
         const banned = can.filter((w) => isBanned(s, w.card));
         const hidden = p.warehouse.filter((w) => w.hidden);
         expect(hidden.length).toBe(Math.min(can.length, cacheLimit(s, p)));
         // Опальные — в первую очередь.
         expect(hidden.filter((w) => isBanned(s, w.card)).length).toBe(Math.min(banned.length, cacheLimit(s, p)));
         for (const w of hidden) expect(isLoad(s, w.card)).toBe(false);
-        expect(hidden.filter((w) => isPropaganda(s, w.card)).length).toBe(Math.min(chnl.length, cacheLimit(s, p)));
+        expect(hidden.filter((w) => isPropaganda(s, w.card) && isBanned(s, w.card)).length).toBe(Math.min(chnl.length, cacheLimit(s, p)));
         if (hidden.length) checked++;
       }
     }
@@ -1757,7 +1789,7 @@ describe('ЧНЛ, розданная при раскладке', () => {
     let s = createGame({ players: players(3), seed: 15, mode: 'full', forceCurator: true });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
     const p = s.players[1];
-    const lenin = Object.keys(s.cards).find((c) => s.cards[c].kind === 'loadPropaganda')!;
+    const lenin = Object.keys(s.cards).find((c) => s.cards[c].kind === 'loadPropaganda' && !s.cards[c].legal)!;
     for (const zone of [s.deck, s.loadDeck, s.discard, s.loadDiscard]) { const i = zone.indexOf(lenin); if (i >= 0) zone.splice(i, 1); }
     for (const q of s.players) q.warehouse = q.warehouse.filter((w) => w.card !== lenin);
     p.warehouse.push({ card: lenin, hidden: false });

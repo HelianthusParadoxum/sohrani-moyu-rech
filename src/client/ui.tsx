@@ -126,7 +126,7 @@ export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
   const banned = isBanned(v, id);
   const restored = !!v.restored[id];
   const flex = c.wild ? null : flexGenres(v, id); // «Чукоккала» — значок «ЛЮБОЙ», без перечня всех жанров
-  const label = c.kind === 'loadReturnable' && restored ? null : c.kind === 'loadEvidence' && restored ? null : (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && restored ? 'Разоблачение' : KIND_LABEL[c.kind];
+  const label = c.kind === 'loadReturnable' && restored ? null : c.kind === 'loadEvidence' && restored ? null : (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && restored ? 'Разоблачение' : c.legal ? 'Легальная' : KIND_LABEL[c.kind];
   // Значки вида: ЧНЛ (и у ПСС Ленина), УЛ — у Улик (и Нагрузки-улики после Возвращения смыслов).
   const kindChip = (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && !restored ? 'chnl' as const
     : c.kind === 'evidence' || (c.kind === 'loadEvidence' && restored) ? 'ul' as const : null;
@@ -137,7 +137,9 @@ export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
       className={`book k-${c.kind === 'loadEvidence' && !restored ? 'load' : (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && restored ? 'exposed' : c.kind} ${banned ? 'is-banned' : ''} ${selected ? 'selected' : ''} ${hidden ? 'in-cache' : ''} ${small ? 'small' : ''} ${onClick ? 'clickable' : ''}`}
       onClick={onClick}
       disabled={!onClick}
-      title={`${t} — ${c.author}${c.kind === 'loadPropaganda' && !restored ? '. ЧНЛ из стопки Нагрузки: свойств Нагрузки у неё нет — обычная ЧНЛ' : ''}`}
+      title={`${t} — ${c.author}${c.kind === 'loadPropaganda' && !restored ? (c.legal
+        ? '. Легальная ЧНЛ из стопки Нагрузки: не опальна — Контора её не изымает и Сигнала на неё не подать; в конце −5★ и Срез Куратора. Обезвредить — только Возвращением смыслов'
+        : '. ЧНЛ из стопки Нагрузки: свойств Нагрузки у неё нет — обычная ЧНЛ') : ''}`}
     >
       <div className="book-icons">
         {(flex ? icons.slice(0, -1) : icons).map((g, i) => <GenreChip key={i} g={g} banned={v.banned.includes(g)} favored={favoredGenres(v).includes(g)} />)}

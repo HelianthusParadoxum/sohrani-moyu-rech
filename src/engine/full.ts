@@ -3,7 +3,7 @@ import { CLUB_SIZE, GENRE_NAMES, KONTORA_PATRONS, PATRONS, RULES } from './conte
 import type { AddressId, BlatnoyShop, ClubGift, GameState, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
-  addBook, addSecretBook, check, discard, drawLoad, earn, freeSlots, hasBook, hasPatron, iconsOf, genresOf, genreOn, isBanned, isGenreBook, isPropaganda, log, pay, player,
+  addBook, addSecretBook, check, discard, drawLoad, earn, freeSlots, hasBook, hasPatron, iconsOf, genresOf, genreOn, isBanned, isGenreBook, isLegalPropaganda, isPropaganda, log, pay, player,
   removeBook, saved, shuffle, talonsText, title, titles, logAfter, gain, pointsText,
   forgetSpetskhran, seeSpetskhran, toSpetskhranPublic, addOpenBook, addBoughtBook, roomToBuy, plural,
 } from './util';
@@ -185,7 +185,7 @@ export function kontoraTargets(state: TargetsInfo, exclude?: string | null): { p
 // (ЧНЛ честные органы тоже изымали).
 export function signalable(state: TargetsInfo, playerId: string): boolean {
   const o = state.players.find((x) => x.id === playerId);
-  return !!o && o.warehouse.some((s) => s.card && !s.hidden && !s.memorized && (isBanned(state, s.card) || isPropaganda(state, s.card)));
+  return !!o && o.warehouse.some((s) => s.card && !s.hidden && !s.memorized && (isBanned(state, s.card) || (isPropaganda(state, s.card) && !isLegalPropaganda(state, s.card))));
 }
 
 export function startKontora(state: GameState, p: PlayerState) {
