@@ -39,7 +39,7 @@ export const RULES = {
   agitpunktSize: 4, // Агитпункт: сколько книг Нагрузки лежит на витрине
   hireCost: 6,
   expandWarehouseCost: 1, // Увеличение склада: цена в Талонах
-  expandCacheCost: 1, // Закладка Тайника: цена в Талонах
+  expandCacheCost: 0, // Закладка Тайника: цена в Талонах (было 1; бесплатно — чтобы действие было в ходу)
   professorTalons: 1, // Профессор: за каждую закрытую ступень Ростка — Талонов
   professorPoints: 2, // ...и очков Гласности
   labtechDiscount: 'step4' as 'support' | 'main' | 'step4', // Лаборант: 'support' — можно не сдавать значок поддержки; 'main' — на 1 значок основного жанра меньше (не меньше 1); 'step4' — на ступени IV на 1 любой жанровый значок меньше
@@ -225,7 +225,7 @@ export const KONTORA_PATRONS: PatronId[] = ['psychiatrist'];
 
 export const GROUP_ACTIONS: Record<GroupActionId, { name: string; hint: string; fullOnly?: boolean }> = {
   expandWarehouse: { name: 'Увеличить Склад', hint: `−${RULES.expandWarehouseCost}т: +1 место на складе (до 10)` },
-  expandCache: { name: 'Заложить Тайник', hint: `−${RULES.expandCacheCost}т: 1 место склада становится потайным (до ${RULES.maxCache})` },
+  expandCache: { name: 'Заложить Тайник', hint: `${RULES.expandCacheCost ? `−${RULES.expandCacheCost}т: ` : ''}1 место склада становится потайным (до ${RULES.maxCache})` },
   copyText: { name: 'Тиражировать Текст', hint: 'Бесплатно взять открыто лежащую книгу с адреса, где уже стоит хотя бы один ваш Единомышленник (Развал, Толкучка, Распределитель, Книгообмен, Агитпункт)' },
   spetskhran: { name: 'Выудить из Спецхрана', hint: `−${RULES.spetskhranCost}т: посмотреть Спецхран (он в Главлите) и взять оттуда 1 любую книгу` },
   restore: { name: 'Написать Монографию', hint: `${RULES.restoreCost ? `${RULES.restoreCost}т: ` : ''}+1 значок жанровой книге или 3 значка возвращаемой Нагрузке` },
@@ -319,7 +319,7 @@ export const CLUB_ORDER: Genre[] = ['prose', 'irony', 'drama', 'poetry', 'testim
 
 export const PATRONS: Record<PatronId, PatronInfo> = Object.fromEntries([
   P('binder', 'Переплётчик', 'В одно место склада помещаются 2 книги с общим жанром', false),
-  P('carpenter', 'Столяр', `Заложить Тайник — бесплатно, и Тайник растёт на ${RULES.carpenterCache} (до ${RULES.maxCache})`),
+  P('carpenter', 'Столяр', `Заложить Тайник${RULES.expandCacheCost ? ' — бесплатно, и' : ':'} Тайник растёт на ${RULES.carpenterCache} (до ${RULES.maxCache})`),
   P('correspondent', 'Корреспондент', `Самиздат и Тамиздат: ещё +${RULES.correspondentTalons} Талон и +${RULES.correspondentPoints} очко Гласности за каждое издание`),
   P('postgrad', 'Архивист', 'Написать Монографию: +2 очка Гласности'),
   P('professor', 'Профессор', `За каждое питание ступени Ростка: +${RULES.professorTalons} Талон и +${RULES.professorPoints} очка Гласности`),
