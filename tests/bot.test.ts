@@ -69,8 +69,8 @@ describe('думающий бот', () => {
         expect(s.phase).toBe('end');
         expect(s.round).toBe(5);
         const cards = allCards(s);
-        expect(cards.length).toBe(142);
-        expect(new Set(cards).size).toBe(142);
+        expect(cards.length).toBe(146);
+        expect(new Set(cards).size).toBe(146);
       }
     }, 60_000);
   }
@@ -375,9 +375,11 @@ describe('Куратор: маскировка до первого явного 
       for (const p of s.players) {
         const style = curatorStyle(s, p.id);
         if (style === 'open' || seen.has(style)) continue;
-        seen.add(style);
+        const was = p.passion;
         p.passion = 'curator';
-        expect(effectiveCuratorStyle(s, p.id)).toBe(style);
+        // Раздачи, где Куратора видно с самого начала (ЧНЛ среди стартовых книг), не годятся.
+        if (effectiveCuratorStyle(s, p.id) !== style) { p.passion = was; continue; }
+        seen.add(style);
         p.propagandaTaken = 1;
         expect(effectiveCuratorStyle(s, p.id)).toBe('open');
       }

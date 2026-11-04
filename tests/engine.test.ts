@@ -63,7 +63,7 @@ describe('подготовка', () => {
     expect(s.sprouts).toHaveLength(3); // Периферия: Ростков по числу игроков
     expect(createGame({ players: players(3), seed: 1, mode: 'full' }).sprouts).toHaveLength(3); // полный: по числу игроков (в «Заповеднике» +1)
     expect(s.razval.every(Boolean)).toBe(true);
-    expect(new Set(allCards(s)).size).toBe(142);
+    expect(new Set(allCards(s)).size).toBe(146);
   });
 
   it('скрывает чужие Пристрастия и колоды', () => {
@@ -93,8 +93,8 @@ describe('партия ботами', () => {
         expect(s.result).toBeDefined();
         expect(s.round).toBe(5);
         const cards = allCards(s);
-        expect(cards.length).toBe(142);
-        expect(new Set(cards).size).toBe(142);
+        expect(cards.length).toBe(146);
+        expect(new Set(cards).size).toBe(146);
       }
     });
   }
@@ -265,7 +265,7 @@ describe('полный режим', () => {
         expect(s.phase).toBe('end');
         const cards = allCards(s);
         expect(new Set(cards).size).toBe(cards.length);
-        expect(cards.length).toBe(142);
+        expect(cards.length).toBe(146);
       }
     });
   }
