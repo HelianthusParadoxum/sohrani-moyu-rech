@@ -1596,6 +1596,9 @@ function EruditePanel({ view, me }: { view: PlayerView; me: VPlayer }) {
 }
 
 // Что ценит Пристрастие — коротко, значками (для плашки на телефоне).
+// Сердечко Пристрастия; у Куратора — коричневое.
+const passionIcon = (id: PassionId) => (id === 'curator' ? '🤎' : PASSION_ICON);
+
 function passionMarks(id: PassionId): ReactNode {
   const ps = PASSIONS[id];
   if (ps.genres) return ps.genres.map((g) => <GenreChip key={g} g={g} favored />);
@@ -1634,7 +1637,7 @@ function MobileBar({ view, me }: { view: PlayerView; me: VPlayer }) {
   return (
     <div className="mobile-bar" ref={bar}>
       <div className="mb-row"><span className="mb-round" title="Пятилетка">{ROUND_ICON}<b>{view.round}</b>/{RULES.rounds}</span><span className="mb-censor" title="Цензура: жанры в опале">{CENSOR_ICON}</span>{view.banned.length ? view.banned.map((g) => <GenreChip key={g} g={g} banned />) : <span className="muted small">нет</span>}
-        {me.passion && <span className="mb-passion" title={`Пристрастие: ${PASSIONS[me.passion].name} — ${PASSIONS[me.passion].hint}`}><span>{PASSION_ICON}</span>{passionMarks(me.passion)}</span>}
+        {me.passion && <span className="mb-passion" title={`Пристрастие: ${PASSIONS[me.passion].name} — ${PASSIONS[me.passion].hint}`}><span>{passionIcon(me.passion)}</span>{passionMarks(me.passion)}</span>}
       </div>
       <Stats p={me} view={view} />
       <div className="mb-row mb-books">
@@ -1676,7 +1679,7 @@ function MyPanel({ view, me, color, groupWhy, onGroup, onMemorize, onCache }: {
       <Stats p={me} view={view} />
       {me.passion && (
         <div className="passion-line" title={`Пристрастие: ${PASSIONS[me.passion].name} — ${PASSIONS[me.passion].hint}`}>
-          <span>{PASSION_ICON}</span>{passionMarks(me.passion)}
+          <span>{passionIcon(me.passion)}</span>{passionMarks(me.passion)}
         </div>
       )}
       {me.passion === 'erudite' && <EruditePanel view={view} me={me} />}
@@ -1721,7 +1724,7 @@ function OtherPlayer({ view, p, color, active, rev }: { view: PlayerView; p: VPl
     <div className={`player ${active ? 'active' : ''}`} style={{ borderColor: color, '--rev': rev } as React.CSSProperties}>
       <div className="addr-head"><b style={{ color }}><span className="dot" style={{ background: color }} /> {p.name}</b>
         {/* Зрителю видно всё — и Пристрастия. */}
-        {view.me === null && p.passion && <span className="passion-line" title={`Пристрастие: ${PASSIONS[p.passion].name} — ${PASSIONS[p.passion].hint}`}><span>{PASSION_ICON}</span>{passionMarks(p.passion)}</span>}
+        {view.me === null && p.passion && <span className="passion-line" title={`Пристрастие: ${PASSIONS[p.passion].name} — ${PASSIONS[p.passion].hint}`}><span>{passionIcon(p.passion)}</span>{passionMarks(p.passion)}</span>}
       </div>
       <Stats p={p} view={view} />
       <div className="shelf wrap">{p.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}{emptySlots(freeShelf(p))}</div>
