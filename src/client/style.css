@@ -206,6 +206,8 @@ label.row > input[type="checkbox"] { flex: none; }
 /* Каждый Завсегдатай — на своей подложке, как Ростки */
 .patrons { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
 .patrons li { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+.patron-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.patron-head .dot { margin-left: 4px; }
 .patrons li.removed { opacity: 0.4; text-decoration: line-through; }
 .patrons li.turned b { color: var(--muted); }
 .targets .book { box-shadow: 0 0 0 2px #e6b35a; }
@@ -262,7 +264,7 @@ label.row > input[type="checkbox"] { flex: none; }
 
 .chip.favored { box-shadow: 0 0 0 2px #3a8fd8; }
 .chip.banned.favored { box-shadow: 0 0 0 2px var(--red), 0 0 0 4px #3a8fd8; }
-.passion-line { font-size: 0.9rem; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.passion-line { font-size: 0.9rem; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
 .ghost { display: inline-flex; gap: 2px; opacity: 0.45; }
 .ghost .chip { outline: 1px dashed currentColor; outline-offset: 1px; }

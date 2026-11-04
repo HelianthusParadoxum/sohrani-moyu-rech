@@ -1601,8 +1601,8 @@ function passionMarks(id: PassionId): ReactNode {
   if (ps.genres) return ps.genres.map((g) => <GenreChip key={g} g={g} favored />);
   if (id === 'curator') return <KindChip k="chnl" />;
   if (id === 'historian') return <><KindChip k="ul" /><span className="chip mb-load">РАЗ</span></>;
-  if (id === 'erudite') return <span className="muted small">все жанры</span>;
-  if (id === 'monogamist') return <span className="muted small">лучший жанр</span>;
+  if (id === 'erudite') return <span className="muted small">все</span>;
+  if (id === 'monogamist') return <span className="muted small">лучший</span>;
   if (id === 'innovator') return <span className="muted small">двужанровые</span>;
   return <span className="muted small">{ps.name}</span>;
 }
@@ -1675,11 +1675,8 @@ function MyPanel({ view, me, color, groupWhy, onGroup, onMemorize, onCache }: {
       <div className="addr-head"><b style={{ color }}><span className="dot" style={{ background: color }} /> {me.name} (вы)</b></div>
       <Stats p={me} view={view} />
       {me.passion && (
-        <div className="passion-line" title={PASSIONS[me.passion].hint}>
-          <span title="Пристрастие">{PASSION_ICON}</span> <b>{PASSIONS[me.passion].name}</b>
-          {PASSIONS[me.passion].genres
-            ? <> — 2 очка за значок: {PASSIONS[me.passion].genres!.map((g) => <GenreChip key={g} g={g} favored />)}</>
-            : <span className="muted small"> — {withKindChips(PASSIONS[me.passion].hint)}</span>}
+        <div className="passion-line" title={`Пристрастие: ${PASSIONS[me.passion].name} — ${PASSIONS[me.passion].hint}`}>
+          <span>{PASSION_ICON}</span>{passionMarks(me.passion)}
         </div>
       )}
       {me.passion === 'erudite' && <EruditePanel view={view} me={me} />}
@@ -1724,7 +1721,7 @@ function OtherPlayer({ view, p, color, active, rev }: { view: PlayerView; p: VPl
     <div className={`player ${active ? 'active' : ''}`} style={{ borderColor: color, '--rev': rev } as React.CSSProperties}>
       <div className="addr-head"><b style={{ color }}><span className="dot" style={{ background: color }} /> {p.name}</b>
         {/* Зрителю видно всё — и Пристрастия. */}
-        {view.me === null && p.passion && <span className="small" title={PASSIONS[p.passion].hint}>{PASSION_ICON} {PASSIONS[p.passion].name}</span>}
+        {view.me === null && p.passion && <span className="passion-line" title={`Пристрастие: ${PASSIONS[p.passion].name} — ${PASSIONS[p.passion].hint}`}><span>{PASSION_ICON}</span>{passionMarks(p.passion)}</span>}
       </div>
       <Stats p={p} view={view} />
       <div className="shelf wrap">{p.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}{emptySlots(freeShelf(p))}</div>

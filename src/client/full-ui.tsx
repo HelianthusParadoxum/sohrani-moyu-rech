@@ -49,12 +49,16 @@ export function ClubContents({ view, seatIndex, me, onPatron, onBlocked }: { vie
         <li key={pt.id} className={`${pt.removed ? 'removed' : ''} ${pt.turned ? 'turned' : ''} ${can ? 'can' : ''} ${onPatron && !can ? 'off' : ''}`}
           title={iconize(PATRONS[pt.id].hint)} role={can ? 'button' : undefined}
           onClick={can ? (e) => { e.stopPropagation(); onPatron!(pt.id); } : onBlocked ? (e) => { e.stopPropagation(); onBlocked(pt.id); } : onPatron ? (e) => e.stopPropagation() : undefined}>
-          <GenreChip g={pt.genre} /> <b>{PATRONS[pt.id].name}</b>
-          {pt.connections.map((pid) => (
-            // Число на жетоне — Пятилетка, в которую завязана связь.
-            <span key={pid} className="dot num wide" style={{ background: PLAYER_COLORS[seatIndex(pid)] }}
-              title={pt.since?.[pid] ? `Связь с ${pt.since[pid]}-й Пятилетки` : undefined}>{pt.since?.[pid] ? `П${pt.since[pid]}` : ''}</span>
-          ))}
+          <div className="patron-head">
+            <span><b>{PATRONS[pt.id].name}</b>
+              {pt.connections.map((pid) => (
+                // Число на жетоне — Пятилетка, в которую завязана связь.
+                <span key={pid} className="dot num wide" style={{ background: PLAYER_COLORS[seatIndex(pid)] }}
+                  title={pt.since?.[pid] ? `Связь с ${pt.since[pid]}-й Пятилетки` : undefined}>{pt.since?.[pid] ? `П${pt.since[pid]}` : ''}</span>
+              ))}
+            </span>
+            <GenreChip g={pt.genre} />
+          </div>
           <div className="muted small">{withKindChips(iconize(PATRONS[pt.id].hint))}</div>
         </li>
         );
@@ -162,7 +166,7 @@ export function BefriendPicker({ view, me, onPick, close, title = 'Завяза�
       <ul className="patrons">
         {open.map((pt) => (
           <li key={pt.id} className="can" role="button" onClick={() => onPick(pt.id)} title={iconize(PATRONS[pt.id].hint)}>
-            <GenreChip g={pt.genre} /> <b>{PATRONS[pt.id].name}</b>
+            <div className="patron-head"><b>{PATRONS[pt.id].name}</b><GenreChip g={pt.genre} /></div>
             <div className="muted small">{withKindChips(iconize(PATRONS[pt.id].hint))}</div>
           </li>
         ))}
