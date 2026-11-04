@@ -73,10 +73,12 @@ export function holdWorker(state: GameState, p: PlayerState, reason: string): bo
   return true;
 }
 
+// Освобождённые из Конторы Единомышленники в этой Пятилетке уже не действуют — вернутся к следующей
+// (RULES.releaseNow — по-старому, сразу).
 export function releaseWorker(state: GameState, p: PlayerState, n: number) {
   const k = Math.min(n, p.held);
   p.held -= k;
-  p.available += k;
+  if (RULES.releaseNow) p.available += k;
   return k;
 }
 
@@ -220,7 +222,7 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
       const o = player(state, id);
       check(o.held > 0, `У ${o.name} нет удержанных Единомышленников`);
       releaseWorker(state, o, 1);
-      log(state, `Ходатайство: ${o.name} получает Единомышленника обратно.`);
+      log(state, `Ходатайство: ${o.name} получает Единомышленника обратно${RULES.releaseNow ? '' : ' (со следующей Пятилетки)'}.`);
     }
   }
   if (c.prophylaxis) {
@@ -279,7 +281,7 @@ export function rescue(state: GameState, p: PlayerState, returns: Record<string,
   }
   check(total > 0, 'Выберите, кого вызволить');
   check(total <= RULES.rescueMax, `За одно «Вызволить из бед» — не больше ${RULES.rescueMax} Единомышленников`);
-  log(state, `${p.name} вызволяет из Конторы Единомышленников: ${total}.`);
+  log(state, `${p.name} вызволяет из Конторы Единомышленников: ${total}${RULES.releaseNow ? '' : ' (вернутся к следующей Пятилетке)'}.`);
   return total;
 }
 

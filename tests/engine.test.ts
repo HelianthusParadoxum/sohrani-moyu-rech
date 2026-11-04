@@ -732,9 +732,13 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     // Не больше двух за одно Вызволение; с доносом и пунктами «Пришить дело» не смешивается.
     expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { rescue: { [other.id]: 3 } } })).toThrow(/не больше 2/);
     expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { rescue: { [other.id]: 1 }, handout: true } })).toThrow(/либо/);
+    const avail = other.available;
     s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { rescue: { [other.id]: 2 } } });
     expect(s.players.find((x) => x.id === me)!.pointsBy.rescue).toBe(2 * RULES.rescuePoints);
-    expect(s.players.find((x) => x.id === other.id)!.held).toBe(1);
+    const o2 = s.players.find((x) => x.id === other.id)!;
+    expect(o2.held).toBe(1);
+    // Вызволенные действуют только со следующей Пятилетки.
+    expect(o2.available).toBe(avail);
     expect(s.occupancy.kontora).toContain(me);
   });
 
