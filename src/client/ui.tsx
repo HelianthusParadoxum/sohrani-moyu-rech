@@ -67,7 +67,8 @@ export function iconize(text: string): string {
   return addressIcons(ICONS.reduce((t, [re, to]) => t.replace(re, to), text));
 }
 
-export const PLAYER_COLORS = ['#b03a2e', '#1f618d', '#1e8449', '#7d3c98', '#b9770e'];
+// Цвета игроков — из оттенков, которых нет у жанров (бирюзовый, малиновый, голубой, салатовый, сиреневый).
+export const PLAYER_COLORS = ['#12897b', '#d63c78', '#2b9fd9', '#6f9a14', '#a63fbf'];
 
 export { iconsOf, isLoad } from '../engine/util';
 
