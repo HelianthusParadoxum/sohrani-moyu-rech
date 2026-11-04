@@ -29,6 +29,8 @@ interface Ctx {
   suspect: Record<string, number>; // насколько каждый соперник похож на Куратора, 0..1 (только по открытой информации)
   style?: CuratorStyle; // характер Куратора-бота
   coop: number; // 0..1: насколько партия стала «все против Куратора» — тогда бот не вредит остальным и тянет Гласность
+  deadline?: number; // «Вдумчивые» на сервере: к этому моменту (Date.now) примерку цепочек надо закончить
+  timedOut?: boolean; // примерка не уложилась в срок — её результат отбрасываем
 }
 
 const SAMPLES = 2; // сколько раз перемешивать закрытые карты при примерке
@@ -849,7 +851,7 @@ function makulaturaDigValue(next: GameState, me: string, ctx: Ctx): number {
 // Лучшие по оценке ходы, от лучшего к худшему.
 // honest — оценить ход так, будто бот честный книжник (Куратору — для маскировки).
 // lookahead — умелость ботов: 0 — «Стандарт» (1–2 шага), 3 — «Вдумчивые» (цепочки из 3 своих ходов).
-export function rankActions(state: GameState, me: string, preset: BotPreset, rand: Rand, honest = false, lookahead = 0): { a: Action; v: number }[] {
+export function rankActions(state: GameState, me: string, preset: BotPreset, rand: Rand, honest = false, lookahead = 0, budgetMs?: number): { a: Action; v: number }[] {
   const ctx = makeCtx(state, me, preset, honest);
   let cands = candidates(state, me, ctx);
   if (!cands.length) return [];
@@ -928,10 +930,21 @@ export function rankActions(state: GameState, me: string, preset: BotPreset, ran
   rated.sort((x, y) => y.v - x.v);
   // «Вдумчивые» боты смотрят на несколько своих ходов вперёд (ходы соперников между своими не угадывают:
   // считают, что те ничего не меняют).
+  // Если задан срок (budgetMs), углубляемся постепенно: цепочки из 2 ходов, потом из 3… Не уложились в срок —
+  // берём последний полностью досчитанный уровень (иначе долгое раздумье на слабом сервере подвешивает всю игру).
   const depth = lookahead;
   if (depth > 1 && state.phase === 'orders' && !state.pending.length && state.turnDone !== me && rated.length > 1) {
     const top = rated.slice(0, BOT_BASE.lookaheadBeam);
-    for (const r of top) r.v = samples.reduce((s, x) => s + planValue(x, me, r.a, ctx, depth - 1), 0) / samples.length + (rand() - 0.5) * 2 * noise;
+    const jitter = top.map(() => (rand() - 0.5) * 2 * noise);
+    if (budgetMs !== undefined) ctx.deadline = Date.now() + budgetMs;
+    let done: number[] | null = null;
+    for (let d = budgetMs === undefined ? depth : 2; d <= depth; d++) {
+      const vals = top.map((r, i) => samples.reduce((s, x) => s + planValue(x, me, r.a, ctx, d - 1), 0) / samples.length + jitter[i]);
+      if (ctx.timedOut) break;
+      done = vals;
+    }
+    if (!done) return rated;
+    top.forEach((r, i) => { r.v = done![i]; });
     top.sort((x, y) => y.v - x.v);
     return [...top, ...rated.slice(BOT_BASE.lookaheadBeam)];
   }
@@ -963,6 +976,7 @@ function advance(state: GameState, me: string, a: Action, ctx: Ctx): GameState |
 // Ценность хода с продолжением: после него — ещё depth своих ходов (в пределах этой Пятилетки), на каждом шаге
 // разворачиваем только lookaheadBeam лучших по обычной оценке вариантов.
 function planValue(state: GameState, me: string, a: Action, ctx: Ctx, depth: number): number {
+  if (ctx.timedOut || (ctx.deadline !== undefined && Date.now() > ctx.deadline)) { ctx.timedOut = true; return 0; }
   const next = advance(state, me, a, ctx);
   if (!next) return -Infinity;
   const mine = next.phase === 'orders' && next.round === state.round && !next.pending.length && activePlayers(next).includes(me) && next.turnDone !== me;
@@ -989,8 +1003,8 @@ function lowestFeed(state: GameState, feeds: { sprout: string; books: string[]; 
   return first.sort((a, b) => progress(a) - progress(b))[0] ?? null;
 }
 
-export function smartMove(state: GameState, me: string, preset: BotPreset, rand: Rand, lookahead = 0): GameState | null {
-  for (const r of rankActions(state, me, preset, rand, false, lookahead)) {
+export function smartMove(state: GameState, me: string, preset: BotPreset, rand: Rand, lookahead = 0, budgetMs?: number): GameState | null {
+  for (const r of rankActions(state, me, preset, rand, false, lookahead, budgetMs)) {
     const next = tryApply(state, me, r.a);
     if (next) return next;
   }

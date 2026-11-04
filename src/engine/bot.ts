@@ -214,10 +214,11 @@ function weight(a: Action): number {
 // Ход бота с пресетом (id из BOT_PRESETS; не задан — пресет по умолчанию).
 // skill — умелость ботов: 'standard' (как раньше) или 'thoughtful' («Вдумчивые»: цепочки из нескольких своих ходов).
 export type BotSkill = 'standard' | 'thoughtful';
-export function botMove(state: GameState, me: string, rand: Rand = Math.random, presetId?: string | null, skill: BotSkill = 'standard'): GameState {
+// budgetMs — сколько времени «Вдумчивому» можно думать (на сервере); не задано — думает до конца (симуляции).
+export function botMove(state: GameState, me: string, rand: Rand = Math.random, presetId?: string | null, skill: BotSkill = 'standard', budgetMs?: number): GameState {
   const preset = presetById(presetId);
   if (!preset.random) {
-    const next = smartMove(state, me, preset, rand, skill === 'thoughtful' ? BOT_BASE.lookaheadDepth : 0);
+    const next = smartMove(state, me, preset, rand, skill === 'thoughtful' ? BOT_BASE.lookaheadDepth : 0, budgetMs);
     if (next) {
       const unmask = curatorUnmask(state, me)
         ?? (next.curatorRevealed === me && !state.curatorUnmask ? { round: state.round, act: player(state, me).actions?.length ?? 0, why: 'ambush' as const } : null);

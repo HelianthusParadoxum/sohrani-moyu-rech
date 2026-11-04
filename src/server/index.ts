@@ -2,12 +2,15 @@
 // Сервер — единственный источник истины: клиенты присылают действия, сервер проверяет их движком
 // и рассылает каждому игроку его собственный вид состояния.
 import { createServer } from 'node:http';
+import { Worker } from 'node:worker_threads';
 import { readFileSync, existsSync, mkdirSync, readdirSync, writeFileSync, statSync } from 'node:fs';
 import { join, extname, resolve } from 'node:path';
 import { createHash, randomBytes } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
 import { applyAction, createGame, activePlayers, migrate } from '../engine/engine';
-import { botMove } from '../engine/bot';
+import { botMove, type BotSkill } from '../engine/bot';
+import { BOT_BASE } from '../engine/bot-presets';
+import type { BotJob, BotReply } from './bot-worker';
 import { curatorSuspicionDetail, effectiveCuratorStyle } from '../engine/bot-smart';
 import { AUTO_PRESET, SOLO_PRESET, curatorStyleNote, presetById, selectablePresets } from '../engine/bot-presets';
 import { gainedInfo, viewFor } from '../engine/view';
@@ -207,7 +210,43 @@ function broadcast(room: Room) {
   }
 }
 
+// Ходы ботов считает отдельный поток (bot-worker.ts): «Вдумчивый» бот может думать секунды, и если делать это в основном
+// потоке, сервер всё это время молчит — хостинг считает его зависшим и перезапускает (партии в памяти теряются).
+let worker: Worker | null = null;
+let jobSeq = 0;
+const jobs = new Map<number, (r: BotReply) => void>();
+function botWorker(): Worker | null {
+  if (worker) return worker;
+  try {
+    const w = new Worker(new URL('./bot-worker.mjs', import.meta.url));
+    w.on('message', (r: BotReply) => { const done = jobs.get(r.id); jobs.delete(r.id); done?.(r); });
+    w.on('error', (e) => console.error('Ошибка потока ботов', e));
+    w.on('exit', (code) => {
+      if (worker === w) worker = null;
+      // Поток упал посреди раздумий — ответим ожидающим ошибкой, они пересчитают ход заново.
+      for (const [id, done] of jobs) { jobs.delete(id); done({ id, error: `поток ботов завершился (${code})` }); }
+    });
+    w.unref();
+    worker = w;
+  } catch (e) {
+    console.error('Не удалось запустить поток ботов', e);
+  }
+  return worker;
+}
+function thinkInWorker(job: Omit<BotJob, 'id'>): Promise<GameState> {
+  const w = botWorker();
+  // Без потока — по-старому, в основном потоке (но с ограничением времени на раздумья).
+  if (!w) return Promise.resolve(botMove(job.state, job.who, Math.random, job.preset, job.skill, job.budgetMs));
+  const id = ++jobSeq;
+  return new Promise((resolve, reject) => {
+    jobs.set(id, (r) => ('state' in r ? resolve(r.state) : reject(new Error(r.error))));
+    w.postMessage({ ...job, id } satisfies BotJob);
+  });
+}
+
 const botTimers = new Map<string, NodeJS.Timeout>();
+const botRetried = new WeakSet<GameState>();
+const botThinking = new Map<string, GameState>(); // комната → состояние, над которым сейчас думает бот
 function scheduleBots(room: Room) {
   if (!room.state || room.state.phase === 'end' || room.paused) return;
   const bots = new Set(room.seats.filter((s) => s.bot).map((s) => s.id));
@@ -216,18 +255,28 @@ function scheduleBots(room: Room) {
   clearTimeout(botTimers.get(room.code));
   botTimers.set(room.code, setTimeout(() => {
     botTimers.delete(room.code);
-    if (!room.state) return;
-    try {
-      const seat = room.seats.find((s) => s.id === who);
-      room.state = botMove(room.state, who, Math.random, seat && seatPreset(room, seat), room.botSkill ?? 'standard');
-    } catch (e) {
-      console.error('Ошибка бота', e);
-      return;
-    }
-    delete room.stepBack;
-    save(room);
-    broadcast(room);
-    scheduleBots(room);
+    const from = room.state;
+    if (!from || room.paused || botThinking.get(room.code) === from) return;
+    botThinking.set(room.code, from);
+    const seat = room.seats.find((s) => s.id === who);
+    const skill: BotSkill = room.botSkill ?? 'standard';
+    thinkInWorker({ state: from, who, preset: seat && seatPreset(room, seat), skill, budgetMs: BOT_BASE.lookaheadBudgetMs })
+      .then((next) => {
+        if (botThinking.get(room.code) === from) botThinking.delete(room.code);
+        // Пока бот думал, партия могла измениться (ход назад, перезапуск, пауза) — тогда его ход уже не к месту.
+        if (room.state !== from || room.paused) { scheduleBots(room); return; }
+        room.state = next;
+        delete room.stepBack;
+        save(room);
+        broadcast(room);
+        scheduleBots(room);
+      })
+      .catch((e) => {
+        if (botThinking.get(room.code) === from) botThinking.delete(room.code);
+        console.error('Ошибка бота', e);
+        // Упал сам поток (а не ход) — один раз пробуем заново, уже в свежем потоке.
+        if (String(e).includes('поток ботов завершился') && !botRetried.has(from)) { botRetried.add(from); scheduleBots(room); }
+      });
   }, room.botDelay ?? 700));
 }
 

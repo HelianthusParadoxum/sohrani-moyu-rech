@@ -19,6 +19,7 @@
   - `bot-presets.ts` — пресеты ботов (веса целей по Пятилеткам, характер, включая агрессивность в полном режиме) и базовые
     оценки `BOT_BASE`. Пресет бота выбирается в лобби.
 - `src/server/index.ts` — сервер Node: раздаёт `dist/`, комнаты по WebSocket (`/ws`), сохраняет партии в `data/games/`.
+  Ходы ботов считает отдельный поток (`bot-worker.ts`, запуск через `bot-worker.mjs`), с лимитом раздумий `BOT_BASE.lookaheadBudgetMs`.
 - `src/client/` — React-клиент (Vite).
 - `tests/` — vitest. `tools/simulate.ts` — симуляция ботами.
 

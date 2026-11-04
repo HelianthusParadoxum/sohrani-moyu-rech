@@ -449,4 +449,11 @@ describe('Умелость ботов', () => {
     for (let i = 0; i < 4000 && s.phase !== 'end'; i++) s = botMove(s, activePlayersOf(s)[0], rand, 'bookman', 'thoughtful');
     expect(s.phase).toBe('end');
   }, 120_000);
+
+  it('«Вдумчивые» с лимитом времени: даже без времени на раздумья ходят и доигрывают партию', () => {
+    let s = createGame({ players: players(3), seed: 5, mode: 'full' });
+    const rand = seeded(5);
+    for (let i = 0; i < 4000 && s.phase !== 'end'; i++) s = botMove(s, activePlayersOf(s)[0], rand, 'bookman', 'thoughtful', 0);
+    expect(s.phase).toBe('end');
+  }, 120_000);
 });
