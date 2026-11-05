@@ -90,7 +90,9 @@ export function title(state: CardsInfo, id: string): string {
   const name = c.kind === 'loadReturnable' && state.restored[id] && c.returned ? c.returned : c.title;
   // Монография написана — значок 💡 перед жанровыми значками.
   const mono = state.restored[id] ? GROUP_ICONS.restore : '';
-  return `${mono}${tag ? `[${tag}] ` : ''}«${name}»${back}`;
+  // Легальная ЧНЛ — два значка: ЧНЛ и Нагрузка.
+  const both = isPropaganda(state, id) && isLoad(state, id) ? '[Нагрузка] ' : '';
+  return `${mono}${tag ? `[${tag}] ` : ''}${both}«${name}»${back}`;
 }
 
 // Книги всегда списком, каждая с новой строки (стартовая раскладка).
@@ -206,6 +208,8 @@ export function isLoad(state: CardsInfo, id: string): boolean {
   const c = state.cards[id];
   // Возвращаемая Нагрузка и Нагрузка-улика перестают быть Нагрузкой, когда им вернули смыслы.
   if (c.kind === 'loadReturnable' || c.kind === 'loadEvidence') return !state.restored[id];
+  // Легальная ЧНЛ — одновременно и Нагрузка (прикрывает Тайник в паре с другой Нагрузкой), пока ей не вернули смыслы.
+  if (c.kind === 'loadPropaganda') return !!c.legal && !state.restored[id];
   return c.kind === 'load';
 }
 
@@ -215,9 +219,9 @@ export function isFromLoadDeck(state: CardsInfo, id: string): boolean {
 }
 
 // Книга Нагрузки по правилам (Главлит, Красный уголок): всё из стопки Нагрузки, кроме ПСС Ленина —
-// та лежит в стопке Нагрузки, но по свойствам обычная ЧНЛ (Непечатная).
+// та лежит в стопке Нагрузки, но по свойствам обычная ЧНЛ (Непечатная). Легальная ЧНЛ — Нагрузка (пока не разоблачена).
 export function countsAsLoad(state: CardsInfo, id: string): boolean {
-  return isFromLoadDeck(state, id) && state.cards[id].kind !== 'loadPropaganda';
+  return isFromLoadDeck(state, id) && (state.cards[id].kind !== 'loadPropaganda' || isLoad(state, id));
 }
 
 export function isEvidence(state: CardsInfo, id: string): boolean {

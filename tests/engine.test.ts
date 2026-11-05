@@ -984,7 +984,9 @@ describe('Срезы Куратора', () => {
     expect(isFromLoadDeck(s, legal)).toBe(true);
     expect(isPropaganda(s, legal)).toBe(true);
     expect(isBanned(s, legal)).toBe(false);
-    expect(isLoad(s, legal)).toBe(false);
+    expect(isLoad(s, legal)).toBe(true); // она же Нагрузка: в паре с другой Нагрузкой прикрывает Тайник
+    const load = Object.keys(s.cards).find((c) => s.cards[c].kind === 'load')!;
+    expect(cacheLimit(s, { cache: 0, warehouse: [{ card: legal }, { card: load }] })).toBe(1);
     honest.warehouse = [{ card: legal, hidden: false }];
     expect(signalable(s, honest.id)).toBe(false);
     expect(scoreLine(s, honest).propaganda).toBe(RULES.propagandaPoints);

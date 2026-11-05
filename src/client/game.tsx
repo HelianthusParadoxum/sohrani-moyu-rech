@@ -1615,7 +1615,7 @@ function passionMarks(id: PassionId): ReactNode {
 // Телефон: закреплённая сверху плашка — опала, свои показатели и книги склада (только значки; в Тайнике — пунктиром).
 function MobileBar({ view, me }: { view: PlayerView; me: VPlayer }) {
   const marks = (c: string) => {
-    if (isPropaganda(view, c)) return <KindChip k="chnl" />;
+    if (isPropaganda(view, c)) return isLoad(view, c) ? <><KindChip k="chnl" /><span className="chip mb-load" title="Нагрузка">Н</span></> : <KindChip k="chnl" />;
     if (isEvidence(view, c)) return <KindChip k="ul" />;
     if (isExposed(view, c)) return <span className="chip mb-load" title="Разоблачение">РАЗ</span>;
     if (view.cards[c].wild) return <span className={`chip wild ${view.banned.length ? 'banned' : ''}`} title="Любой жанр">ЛЮБОЙ</span>;
