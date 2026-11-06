@@ -85,6 +85,7 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .seats .online, .seats .offline { margin-left: auto; }
 /* Крестик «убрать» — у правого края строки (после «в сети» — сразу за ним). */
 .seats > li > .dropdown { margin-left: auto; width: 128px; } /* стратегия бота — у правого края */
+.seats > li > .dropdown:last-child { width: 176px; } /* без крестика справа (хост) — шире на крестик с промежутком: левый край вровень с остальными */
 .seats > li > .dropdown .dropdown-btn { width: 100%; }
 .seats .preset-name { margin-left: auto; } /* не хосту — название стратегии у правого края */
 .seats .dropdown ~ .remove { margin-left: 0; }
