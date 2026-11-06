@@ -487,6 +487,7 @@ label.row > .dropdown { display: inline-block; }
 .dropdown-list li { padding: 8px 12px; cursor: pointer; color: var(--ink); }
 /* Подсветка пункта — только под мышью: на телефоне после касания она «залипала» на пункте. */
 @media (hover: hover) { .dropdown-list li:hover { background: var(--paper-2); } }
+.dropdown-list li:active { background: var(--paper-2); } /* пока палец держат на пункте — подсвечен, отпустили — гаснет */
 .dropdown-list li { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-touch-callout: none; }
 .dropdown-list li.selected { font-weight: 700; }
 .host-tools .dropdown-btn { padding: 2px 20px 2px 4px; background-position: right 5px top calc(50% + 1px); }
