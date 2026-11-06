@@ -159,7 +159,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
         Комната {room.code}
       </h1>
       <div className="share">
-        <p className="muted">Отправьте ссылку игрокам:<br /><a href={link}>{link.replace(/^https?:\/\//, "")}</a></p>
+        <p>Отправьте ссылку игрокам:<br /><a href={link}>{link.replace(/^https?:\/\//, "")}</a></p>
         <CopyButton text={link} />
       </div>
       {host && (
