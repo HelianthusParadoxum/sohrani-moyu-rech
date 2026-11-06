@@ -51,7 +51,8 @@ function show(text: string, x: number, y: number) {
   const w = tip.offsetWidth;
   const h = tip.offsetHeight;
   tip.style.left = `${Math.max(8, Math.min(window.innerWidth - w - 8, x - w / 2))}px`;
-  tip.style.top = `${y - h - 16 > 8 ? y - h - 16 : y + 24}px`;
+  // Над пальцем — с запасом в 32: иначе палец закрывает подсказку. Не помещается сверху — под пальцем.
+  tip.style.top = `${y - h - 32 > 8 ? y - h - 32 : y + 40}px`;
   timer = setTimeout(hide, 6000);
 }
 
