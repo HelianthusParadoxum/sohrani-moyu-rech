@@ -244,7 +244,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
         ))}
         {/* Свободные места — сразу (до 5 за столом): строки одной высоты, панель снизу не сдвигается. */}
         {Array.from({ length: Math.max(0, 5 - room.seats.length) }, (_, i) => (
-          <li key={`empty${i}`} className="empty"><span className="dot empty" /> Пусто</li>
+          <li key={`empty${i}`} className="empty"><span className="dot empty" />Пусто</li>
         ))}
       </ul>
       {host && (
