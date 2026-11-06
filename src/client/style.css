@@ -74,7 +74,7 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 /* Лобби: «в сети» — у правого края строки игрока */
 .seats .online, .seats .offline { margin-left: auto; }
 /* Крестик «убрать» — у правого края строки (после «в сети» — сразу за ним). */
-.seats .remove { margin-left: auto; width: 32px; height: 32px; }
+.seats .remove { margin-left: auto; width: 39px; height: 39px; } /* как поле выбора стратегии бота */
 .seats .online ~ .remove, .seats .offline ~ .remove { margin-left: 0; }
 /* «Начать» — у правого края блока. */
 .lobby .lobby-actions > .primary { margin-left: auto; }
