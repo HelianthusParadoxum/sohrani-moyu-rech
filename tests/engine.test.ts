@@ -168,6 +168,17 @@ describe('правила редакции октября', () => {
     expect(viewFor(s, other).baraholkaKnown[0]).toBe(s.baraholka[0]);
   });
 
+  it('Барахолка: пойти можно и без Талонов — посмотреть, ничего не покупая', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    s.players.find((x) => x.id === me)!.talons = 0;
+    s = applyAction(s, me, { type: 'place', place: { address: 'baraholka', slots: [0, 1] } });
+    expect(() => applyAction(s, me, { type: 'baraholkaBuy', slot: 0 })).toThrow(RuleError);
+    s = applyAction(s, me, { type: 'baraholkaBuy' });
+    expect(s.pending).toHaveLength(0);
+    expect(viewFor(s, me).baraholkaKnown.filter(Boolean)).toHaveLength(2);
+  });
+
   it('Барахолка: все книги уже известны — выбирать не нужно, купить можно любую', () => {
     let s = started();
     const me = s.order[s.turn];

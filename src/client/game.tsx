@@ -360,8 +360,8 @@ function addressBlocker(view: PlayerView, me: VPlayer, id: AddressId): string | 
     }
     case 'baraholka':
       if (!view.baraholka.some(Boolean)) return 'На Барахолке не осталось книг.';
-      // Без места можно найти и сразу заучить сборник поэзии.
-      return (view.mode === 'full' && !me.warehouse.some((s) => s.memorized) ? null : room) ?? talons(RULES.baraholkaPrice);
+      // Без места можно найти и сразу заучить сборник поэзии. Талоны не нужны: посмотреть книги можно и без них.
+      return view.mode === 'full' && !me.warehouse.some((s) => s.memorized) ? null : room;
     case 'podpiska':
       return talons(1);
     case 'sprouts':
