@@ -454,11 +454,10 @@ label.row > .dropdown { display: inline-block; }
 .room-title .back { flex: none; width: 40px; height: 40px; padding: 0 2px 0 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--ink); }
 .room-title .back svg { display: block; }
 /* Лобби: ссылка на комнату и кнопка-иконка «скопировать» */
-.lobby .share { display: flex; align-items: center; gap: 12px; }
+.lobby .share { display: flex; align-items: center; justify-content: space-between; gap: 12px; } /* кнопка копирования — у правого края блока */
 .lobby .share p { margin: 8px 0; min-width: 0; }
 .icon-btn { flex: none; width: 36px; height: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--ink); }
 .icon-btn svg { display: block; }
-@media (max-width: 600px) { .lobby .share { justify-content: space-between; } }
 /* Телефон: свой планшет — первым, планшеты соперников — в обратном порядке, журнал — после;
    на поле — явочные адреса выше обычных (новые — первыми), обычные — в обратном порядке */
 @media (max-width: 600px) {
