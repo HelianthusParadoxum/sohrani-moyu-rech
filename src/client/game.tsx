@@ -1607,9 +1607,9 @@ function EruditePanel({ view, me }: { view: PlayerView; me: VPlayer }) {
   // С монографией — два значка, они закроют два разных жанра.
   const wild = cards.filter((c) => view.cards[c].wild).reduce((n, c) => n + (view.restored[c] ? 2 : 1), 0);
   return (
-    <div className="erudite" title="Эрудит: жанры, которые уже есть (на складе или в изданном), — погашены; ★ — книга любого жанра закроет ещё один жанр в конце партии">
+    <div className="erudite" title="Эрудит: жанры, которые уже есть (на складе или в изданном), — погашены; * — книга любого жанра закроет ещё один жанр в конце партии">
       {GENRES.map((g) => <span key={g} className={have.has(g) ? 'got' : ''}><GenreChip g={g} /></span>)}
-      {wild > 0 && <span className="erudite-wild" title={wild > 1 ? `Чукоккала: в конце засчитается за ${wild} разных незакрытых жанра` : 'Чукоккала: в конце засчитается за один из незакрытых жанров'}>★{wild > 1 ? `×${wild}` : ''}</span>}
+      {wild > 0 && <span className="erudite-wild" title={wild > 1 ? `Чукоккала: в конце засчитается за ${wild} разных незакрытых жанра` : 'Чукоккала: в конце засчитается за один из незакрытых жанров'}>{'*'.repeat(wild)}</span>}
     </div>
   );
 }
