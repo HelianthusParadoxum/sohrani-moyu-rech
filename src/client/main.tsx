@@ -142,12 +142,12 @@ function Signal({ rtt }: { rtt: number | null }) {
   const label = rtt === null ? 'Не в сети' : `${['', 'Плохая', 'Средняя', 'Хорошая'][level]} связь${rtt ? ` (${rtt} мс)` : ''}`;
   return (
     <span className="signal" title={label} data-tip={label} aria-label={label}>
-      <svg width="20" height="16" viewBox="0 0 20 16" aria-hidden="true">
+      <svg width="40" height="30" viewBox="1.5 1.5 17 13" aria-hidden="true">
         {[0, 1, 2].map((i) => (
           <rect key={i} x={2 + i * 6} y={10 - i * 4} width="4" height={4 + i * 4} rx="1"
             fill={i < level ? color : 'none'} stroke={i < level ? color : 'rgba(0,0,0,.3)'} strokeWidth="1" />
         ))}
-        {level === 0 && <path d="M1 15L19 1" stroke="#c0392b" strokeWidth="1.8" strokeLinecap="round" />}
+        {level === 0 && <path d="M2.5 13.5L17.5 2.5" stroke="#c0392b" strokeWidth="1.4" strokeLinecap="round" />}
       </svg>
     </span>
   );
