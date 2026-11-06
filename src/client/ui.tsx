@@ -236,7 +236,7 @@ export function PresetSelect({ seat, host, send, solo }: { seat: RoomInfo['seats
       {host ? (
         <Dropdown value={current.id} ariaLabel="Пресет бота" onChange={(preset) => send({ t: 'botPreset', seat: seat.id, preset })}
           options={options.map((p) => ({ value: p.id, label: p.name, title: p.description }))} />
-      ) : <span className="small preset-name" title={current.description}>{current.name}</span>}
+      ) : <span className="small preset-name" title={current.description} data-tip={current.description}>{current.name}</span>}
     </>
   );
 }
@@ -263,7 +263,7 @@ export function Dropdown<T extends string | number>({ value, options, onChange, 
       {open && (
         <ul className="dropdown-list" role="listbox">
           {options.map((o) => (
-            <li key={String(o.value)} role="option" aria-selected={o.value === value} className={o.value === value ? 'selected' : ''} title={o.title}
+            <li key={String(o.value)} role="option" aria-selected={o.value === value} className={o.value === value ? 'selected' : ''} title={o.title} data-tip={o.title}
               onClick={(e) => { e.preventDefault(); setOpen(false); if (o.value !== value) onChange(o.value); }}>{o.label}</li>
           ))}
         </ul>
