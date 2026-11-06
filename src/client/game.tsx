@@ -598,7 +598,7 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
     }
     case 'tolkuchka': {
       const sellable = mine.filter((c) => isGenreBook(view, c) && !['evidence', 'loadEvidence', 'propaganda', 'loadPropaganda'].includes(view.cards[c].kind));
-      const price = (c: string) => (genresOf(view, c).some((g) => view.banned.includes(g)) ? RULES.tolkuchkaSellBanned : RULES.tolkuchkaSellFree);
+      const price = (c: string) => (genresOf(view, c).some((g) => view.banned.includes(g)) || hasPatron(view, me.id, 'fartsovshchik') ? RULES.tolkuchkaSellBanned : RULES.tolkuchkaSellFree);
       const gain = sel2.reduce((s, c) => s + price(c), 0);
       const cost = buyCost(view, me, sel.map(() => RULES.tolkuchkaBuy));
       const ops = [...sel2.map((card) => ({ op: 'sell' as const, card })), ...sel.map((card) => ({ op: 'buy' as const, card }))];

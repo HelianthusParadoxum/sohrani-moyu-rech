@@ -168,6 +168,23 @@ describe('правила редакции октября', () => {
     expect(viewFor(s, other).baraholkaKnown[0]).toBe(s.baraholka[0]);
   });
 
+  it('Толкучка: продать и купить за одну сделку — выручка идёт на покупку (даже с 0–1 Талоном)', () => {
+    const s = started();
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    const card = s.tolkuchka[0];
+    const sell = s.deck.find((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.some((g) => s.banned.includes(g)))!;
+    s.deck = s.deck.filter((c) => c !== sell);
+    p.capacity = 10;
+    p.warehouse.push({ card: sell, hidden: false });
+    p.talons = 0;
+    // Покупка указана первой — всё равно сначала продажа.
+    const next = applyAction(s, me, { type: 'place', place: { address: 'tolkuchka', ops: [{ op: 'buy', card }, { op: 'sell', card: sell }] } });
+    const q = next.players.find((x) => x.id === me)!;
+    expect(q.talons).toBe(RULES.tolkuchkaSellBanned - RULES.tolkuchkaBuy);
+    expect(q.warehouse.some((w) => w.card === card)).toBe(true);
+  });
+
   it('Толкучка: покупка — 2 Талона за книгу независимо от значков', () => {
     const s = started();
     const me = s.order[s.turn];

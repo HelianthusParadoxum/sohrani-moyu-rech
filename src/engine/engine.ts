@@ -958,8 +958,11 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       const parts: string[] = [];
       let income = 0;
       const buy = purchases(state, p);
-      for (const op of a.ops) {
+      // Сначала продажи: вырученные Талоны (и освобождённое место) сразу идут на покупку в той же сделке.
+      const ops = [...a.ops.filter((op) => op.op !== 'buy'), ...a.ops.filter((op) => op.op === 'buy')];
+      for (const op of ops) {
         if (op.op === 'buy') {
+          if (income) { earn(state, p, income, 'tolkuchka'); income = 0; }
           check(state.tolkuchka.includes(op.card), 'Этой книги нет на Толкучке');
           const cost = buy(RULES.tolkuchkaBuy);
           state.tolkuchka = state.tolkuchka.filter((c) => c !== op.card);
