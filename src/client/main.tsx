@@ -54,8 +54,11 @@ function App() {
   };
 
   let body;
+  // Одна и та же надпись на всё время загрузки (шрифты, подключение, комната, перезагрузка после обновления игры) —
+  // чтобы надписи не сменяли друг друга.
+  const loading = <p className="loading muted">Загрузка…</p>;
   if (!fontsReady) {
-    body = null;
+    body = code ? loading : null;
   } else if (code && net.gone) {
     // Комнаты нет: игру обновили или сервер перезапускался (бесплатный хостинг засыпает после простоя и теряет партии).
     body = (
@@ -68,7 +71,7 @@ function App() {
   } else if (!code) {
     body = <Home name={name} setName={setName} onCreate={() => join({ t: 'create' })} net={net} />;
   } else if (!net.room) {
-    body = <p className="loading muted">{net.connected ? 'Загрузка комнаты…' : 'Подключение к серверу…'}</p>;
+    body = loading;
   } else if (net.room.started && net.view) {
     body = <Game view={net.view} room={net.room} you={net.you} isHost={net.isHost} send={net.send} canStepBack={net.canStepBack} />;
   } else {
