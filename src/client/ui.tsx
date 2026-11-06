@@ -208,8 +208,8 @@ export function SkillSelect({ room, send }: { room: RoomInfo; send: (m: ClientMe
   return (
     <label>Умелость ботов
       <Dropdown value={room.botSkill ?? 'standard'} onChange={(skill) => send({ t: 'botSkill', skill })} ariaLabel="Умелость ботов"
-        options={[{ value: 'standard', label: 'Стандарт' }, { value: 'thoughtful', label: 'Вдумчивые' }]} />
-      {room.botSkill === 'thoughtful' && <span className="muted small">думают на 3 своих хода вперёд — заметно сильнее</span>}
+        options={[{ value: 'standard', label: 'Стандарт', title: 'Оценивают каждый ход по отдельности — быстро.' },
+          { value: 'thoughtful', label: 'Вдумчивые', title: 'Думают на 3 своих хода вперёд — заметно сильнее, но дольше.' }]} />
     </label>
   );
 }
