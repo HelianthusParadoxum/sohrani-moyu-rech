@@ -190,26 +190,6 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
             <input type="checkbox" checked={room.hostBot} onChange={(e) => net.send({ t: 'hostBot', on: e.target.checked })} />
             За меня играет бот — я смотрю партию со стороны
           </label>
-          {room.mode === 'full' && !room.reserve && room.seats.length > 1 && (
-            <label className="row">
-              <input type="checkbox" checked={room.curator} onChange={(e) => net.send({ t: 'setCurator', on: e.target.checked })} />
-              Куратор в игре (агент госбезопасности среди Пристрастий)
-            </label>
-          )}
-          {room.mode === 'full' && !room.reserve && room.seats.length > 1 && room.curator && (
-            <div className="row">
-              <label className="row">
-                <input type="checkbox" checked={!!room.forceCurator} onChange={(e) => net.send({ t: 'setForceCurator', on: e.target.checked, style: room.curatorStyle ?? '' })} />
-                Для тестов: первый в списке — Куратор ({room.seats[0]?.name})
-              </label>
-              {room.forceCurator && (
-                <label>Стратегия Куратора-бота
-                  <Dropdown value={room.curatorStyle ?? ''} ariaLabel="Стратегия Куратора-бота" onChange={(style) => net.send({ t: 'setForceCurator', on: true, style: style as '' })}
-                    options={[{ value: '', label: 'Случайная' }, { value: 'open', label: 'Открытое забрало' }, { value: 'ambush', label: 'Хищник в засаде' }, { value: 'boa', label: 'Удав' }]} />
-                </label>
-              )}
-            </div>
-          )}
           <SkillSelect room={room} send={net.send} />
         </>
       )}
