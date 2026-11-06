@@ -103,8 +103,6 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
       <h1>Сохрани мою речь</h1>
       <p className="subtitle">Книжное подполье СССР</p>
       <label>Как вас называть<input value={name} onChange={(e) => setName(e.target.value)} maxLength={24} placeholder="Имя" /></label>
-      {/* На телефоне — на плашке внизу экрана, во всю ширину. */}
-      <div className="create-bar"><button className="primary" disabled={!name.trim()} onClick={onCreate}>Создать свою игру</button></div>
       <div className="or">Присоединитесь к игре по коду</div>
       {/* Одно поле поверх четырёх ячеек: так работают и вставка, и стирание. */}
       <label className="code-cells" aria-label="Код комнаты">
@@ -112,6 +110,8 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
         {[0, 1, 2, 3].map((i) => <span key={i} className={`cell ${i === Math.min(code.length, 3) ? 'cur' : ''}`}>{code[i] ?? ''}</span>)}
       </label>
       {answer && !answer.exists && <p className="muted code-miss">Комнаты с кодом {code} нет.</p>}
+      {/* На ПК — по центру под вводом кода; на телефоне — на плашке внизу экрана, во всю ширину. */}
+      <div className="create-bar"><button className="primary" disabled={!name.trim()} onClick={onCreate}>Создать свою игру</button></div>
     </div>
   );
 }
