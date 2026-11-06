@@ -597,8 +597,8 @@ label.row > .dropdown { display: inline-block; }
 .passion-line .erudite { margin: 0; }
 .erudite-wild { font-weight: 700; align-self: center; }
 
-/* Телефон: у всего содержимого — поля 24 слева и справа (экраны, плашки сверху и снизу, окна). */
-@media (max-width: 600px) {
+/* Планшет: у всего содержимого — поля 24 слева и справа (на телефоне остаются 16 и 8: 24 там слишком много). */
+@media (min-width: 601px) and (max-width: 1024px) {
   .home, .home.title-screen, .layout, .topbar, .status, .mobile-bar,
   .end-turn-sheet, .lobby .lobby-actions, .title-screen .create-bar { padding-left: 24px; padding-right: 24px; }
   .modal-bg { padding-left: 24px; padding-right: 24px; }
