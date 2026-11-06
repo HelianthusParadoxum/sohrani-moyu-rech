@@ -217,8 +217,8 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
       <ShareLink link={link} />
       {host && (
         <>
-          <label>Режим
-            <Dropdown value={room.reserve ? 'reserve' : room.mode} ariaLabel="Режим" onChange={(mode) => net.send({ t: 'setMode', mode: mode as 'beginner' })}
+          <label>Режим игры
+            <Dropdown value={room.reserve ? 'reserve' : room.mode} ariaLabel="Режим игры" onChange={(mode) => net.send({ t: 'setMode', mode: mode as 'beginner' })}
               options={[
                 { value: 'beginner', label: 'Периферия (для начинающих)', title: 'Для первой партии: без Клуба книголюбов, Конторы, Куратора и свойств жанров.' },
                 { value: 'full', label: 'Полные правила', title: 'Все правила: Клуб книголюбов, Контора, свойства жанров; среди игроков может оказаться Куратор.' },
