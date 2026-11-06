@@ -240,13 +240,16 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
         ))}
         {/* Свободные места — сразу (до 5 за столом): строки одной высоты, панель снизу не сдвигается. */}
         {Array.from({ length: Math.max(0, 5 - room.seats.length) }, (_, i) => (
-          <li key={`empty${i}`} className="empty"><span className="dot empty" />Пусто
-            {/* Плюс — добавить бота на это место (там же, где у ботов крестик). */}
-            {host && (
-              <button className="icon-btn remove add" title="Добавить бота" aria-label="Добавить бота" onClick={() => net.send({ t: 'addBot' })}>
-                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 2.5v11M2.5 8h11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
-              </button>
-            )}
+          <li key={`empty${i}`} className="empty">
+            {/* Хосту — плюс на месте кружка: добавить бота на это место (размером с галочку «За меня играет бот»). */}
+            {host
+              ? (
+                <button className="seat-add" title="Добавить бота" aria-label="Добавить бота" onClick={() => net.send({ t: 'addBot' })}>
+                  <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 2.5v11M2.5 8h11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+                </button>
+              )
+              : <span className="dot empty" />}
+            Пусто
           </li>
         ))}
       </ul>
