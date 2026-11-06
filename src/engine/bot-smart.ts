@@ -1418,7 +1418,12 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         }
         return [...out, { type: 'pass' }];
       }
-      case 'zavkhozLoad': return [{ type: 'zavkhozLoad', keep: true }, { type: 'zavkhozLoad', keep: false }];
+      case 'zavkhozLoad': {
+        // Оставить Нагрузку (места нет — отдав наименее ценную книгу Непечатных) или сменять её на Талон.
+        if (freeSlots(p) > 0) return [{ type: 'zavkhozLoad', keep: true }, { type: 'zavkhozLoad', keep: false }];
+        const drops = byValue(keepMap(), p.warehouse.map((s) => s.card).filter((c) => !countsAsLoad(state, c) && !(p.passion === 'curator' && isPropaganda(state, c))));
+        return [...drops.slice(0, 2).map((drop) => ({ type: 'zavkhozLoad' as const, keep: true, drop })), { type: 'zavkhozLoad', keep: false }];
+      }
       case 'doctorLoad': {
         const drops = byValue(keepMap(), p.warehouse.map((s) => s.card).filter((c) => !countsAsLoad(state, c) && !(p.passion === 'curator' && isPropaganda(state, c))));
         const pick = drops.length ? drops : p.warehouse.map((s) => s.card).filter((c) => !countsAsLoad(state, c));

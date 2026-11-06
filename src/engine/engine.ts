@@ -1017,7 +1017,9 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       // Обязательная Нагрузка: нет места — отдать книгу Непечатных; склад весь в Нагрузке — не брать.
       const loadOnly = p.warehouse.every((s) => countsAsLoad(state, s.card));
       const take = freeSlots(p) > 0 || !loadOnly;
-      if (freeSlots(p) > 0 || !take) {
+      // Завхоз сперва смотрит Нагрузку: отдавать книгу Непечатных — только если решит её оставить.
+      const zavkhoz = hasPatron(state, p.id, 'zavkhoz');
+      if (freeSlots(p) > 0 || !take || zavkhoz) {
         check(!a.drop, 'Отдавать книгу не нужно');
       } else {
         check(a.drop, 'Для Нагрузки нет места: выберите книгу Непечатных, которую отдать');
@@ -1034,7 +1036,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         gaveAway(state, p, a.drop);
       }
       // Склад переполнен (лишнее отдают позже) — и после отдачи места может не хватить: тогда Нагрузку не берёт.
-      const room = take && freeSlots(p) > 0;
+      const room = take && (freeSlots(p) > 0 || zavkhoz);
       if (!room) {
         logAfter(state, !take ? '↳ Склад полон Нагрузки — новую не берёт.' : `↳ Отдаёт ${title(state, a.drop!)}, но места для Нагрузки всё равно нет — не берёт.`);
         return;
@@ -1392,10 +1394,14 @@ function continueTake(state: GameState, p: PlayerState, cards: string[], then: C
     }
     case 'redCorner': {
       const load = cards[0];
+      // Завхоз: посмотрев Нагрузку, можно вместо неё взять Талон; книга пока не на складе.
+      if (load && hasPatron(state, p.id, 'zavkhoz')) {
+        state.pending.push({ kind: 'zavkhozLoad', player: p.id, card: load });
+        logAfter(state, '↳ Завхоз смотрит полученную Нагрузку.');
+        return;
+      }
       if (load) addBook(p, load);
       logAfter(state, load ? `↳ ${title(state, load)}${then.drop ? `; места нет — отдаёт ${then.dropTitle ?? title(state, then.drop)}` : ''}.` : '↳ Нагрузка кончилась.');
-      // Завхоз: посмотрев Нагрузку, можно вместо неё взять Талон.
-      if (load && hasPatron(state, p.id, 'zavkhoz')) state.pending.push({ kind: 'zavkhozLoad', player: p.id, card: load });
       return;
     }
   }
@@ -1728,14 +1734,31 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
     }
     case 'zavkhozLoad': {
       check(action.type === 'zavkhozLoad', 'Решите, оставить ли Нагрузку (Завхоз)');
-      if (!action.keep && hasBook(p, pend.card)) {
+      if (!action.keep) {
         const t = title(state, pend.card);
-        removeBook(p, pend.card);
         discard(state, pend.card);
         earn(state, p, RULES.zavkhozTalons, 'zavkhoz');
         log(state, `${p.name} (Завхоз) сбывает Нагрузку: +${talonsText(RULES.zavkhozTalons)}.`);
         log(state, `В сброс: ${t}.`, [p.id]);
+        break;
       }
+      // Оставить: места нет — отдать книгу Непечатных (только теперь).
+      if (freeSlots(p) > 0) {
+        check(!action.drop, 'Отдавать книгу не нужно');
+      } else {
+        check(action.drop, 'Для Нагрузки нет места: выберите книгу Непечатных, которую отдать');
+        check(hasBook(p, action.drop) && !countsAsLoad(state, action.drop), 'Отдать можно только книгу Непечатных со своего склада');
+        const dropTitle = title(state, action.drop);
+        if (isPropaganda(state, action.drop)) p.propagandaDumped = (p.propagandaDumped ?? 0) + 1;
+        removeBook(p, action.drop);
+        discard(state, action.drop);
+        gaveAway(state, p, action.drop);
+        check(freeSlots(p) > 0, 'Места для Нагрузки всё равно нет');
+        log(state, `${p.name} отдаёт ${dropTitle} — место для Нагрузки.`);
+      }
+      addBook(p, pend.card);
+      log(state, `${p.name} оставляет Нагрузку.`);
+      log(state, `Оставлена: ${title(state, pend.card)}.`, [p.id]);
       break;
     }
     case 'doctorLoad': {

@@ -601,7 +601,9 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
     case 'redCorner': {
       // Обязательная Нагрузка: нет места — отдать книгу Непечатных; склад весь в Нагрузке — не брать.
       const loadOnly = mine.every((c) => fromLoadDeck(view, c));
-      const mustDrop = free <= 0 && !loadOnly;
+      // Завхоз сперва смотрит Нагрузку: книгу Непечатных отдают потом, если её оставить.
+      const zavkhoz = hasPatron(view, me.id, 'zavkhoz');
+      const mustDrop = free <= 0 && !loadOnly && !zavkhoz;
       const droppable = mine.filter((c) => !fromLoadDeck(view, c));
       const drop = sel.find((c) => droppable.includes(c));
       body = (
@@ -609,6 +611,7 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
           <p>Вы встанете в очередь хода следующей Пятилетки и обязательно возьмёте 1 книгу Нагрузки вслепую.</p>
           {free > 0 && <p className="muted">Место на складе есть — Нагрузка ляжет на свободное место.</p>}
           {free <= 0 && loadOnly && <p className="muted">Склад весь в Нагрузке — новую не берёте.</p>}
+          {zavkhoz && !(free <= 0 && loadOnly) && <p className="muted">Завхоз: посмотрев Нагрузку, можно вместо неё взять {RULES.zavkhozTalons}🎫, а книгу отправить в сброс.{free <= 0 ? ' Если оставите её — тогда и отдадите книгу Непечатных.' : ''}</p>}
           {mustDrop && (
             <>
               <p className="warn-text">Для Нагрузки нет места: выберите книгу Непечатных, которую отдадите.</p>
@@ -1216,17 +1219,25 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
         </Modal>
       );
     }
-    case 'zavkhozLoad':
+    case 'zavkhozLoad': {
+      const room = me.capacity - me.warehouse.filter((s) => !s.memorized).length > 0;
+      const droppable = me.warehouse.map((s) => s.card!).filter((c) => c && !countsAsLoad(view, c));
+      const drop = sel.find((c) => droppable.includes(c));
       return (
-        <Modal title="Завхоз: Нагрузка из Красного уголка">
+        <Modal title="Завхоз: Нагрузка из Красного уголка" wide={!room}>
           <p>Вам досталась книга Нагрузки. Можно оставить её на складе или отправить в сброс и взять {RULES.zavkhozTalons}🎫.</p>
           <div className="shelf"><Book v={view} id={p.card} /></div>
+          {!room && <>
+            <p>Места на складе нет: чтобы оставить Нагрузку, выберите книгу Непечатных, которую отдадите.</p>
+            <div className="shelf wrap">{droppable.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} onClick={() => setSel(sel.includes(c) ? [] : [c])} />)}</div>
+          </>}
           <div className="modal-foot">
-            <button onClick={() => act({ type: 'zavkhozLoad', keep: true })}>Оставить книгу</button>
+            <button disabled={!room && !drop} onClick={() => act({ type: 'zavkhozLoad', keep: true, ...(room ? {} : { drop }) })}>{room ? 'Оставить книгу' : 'Отдать и оставить'}</button>
             <button className="primary" onClick={() => act({ type: 'zavkhozLoad', keep: false })}>В сброс, +{RULES.zavkhozTalons}🎫</button>
           </div>
         </Modal>
       );
+    }
     case 'doctorLoad': {
       const droppable = me.warehouse.map((s) => s.card!).filter((c) => c && !countsAsLoad(view, c));
       const drop = sel.find((c) => droppable.includes(c));

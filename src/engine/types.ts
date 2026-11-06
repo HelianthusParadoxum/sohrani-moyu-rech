@@ -157,7 +157,7 @@ export type Pending =
   | { kind: 'catalogPick'; player: string; deck: 'unprinted' | 'load' | 'discard'; top: string[]; bottom: string[]; then: CatalogThen } // Каталогизатор: верхний или нижний набор (стопки или сброса)
   | { kind: 'lieutenantPick'; player: string; cards: string[] } // Лейтенант: книги, изъятые облавой с адресов
   | { kind: 'discardExcess'; player: string; count: number }
-  | { kind: 'zavkhozLoad'; player: string; card: string } // Завхоз: Нагрузку из Красного уголка можно сменять на Талон
+  | { kind: 'zavkhozLoad'; player: string; card: string } // Завхоз: Нагрузку из Красного уголка (ещё не на складе) можно сменять на Талон
   | { kind: 'doctorLoad'; player: string } // Врач: не был в Красном уголке — Нагрузка всё равно приходит; места нет — отдать книгу Непечатных
   | { kind: 'glavlitSwap'; player: string; roundStart?: boolean }; // Главлитовец переносит опалу с жанра на жанр // склад уменьшился — игрок выбирает, что отдать
 
@@ -349,5 +349,5 @@ export type Action =
   | { type: 'lieutenantPick'; card: string | null }
   | { type: 'discardExcess'; cards: string[] }
   | { type: 'doctorLoad'; drop: string }
-  | { type: 'zavkhozLoad'; keep: boolean } // Завхоз: оставить Нагрузку или отправить её в сброс за Талон
+  | { type: 'zavkhozLoad'; keep: boolean; drop?: string } // drop — места нет: какую книгу Непечатных отдать; Завхоз: оставить Нагрузку или отправить её в сброс за Талон
   | { type: 'glavlitSwap'; from: Genre; to: Genre }; // Поэзия «Заучить» — в любой момент своего хода

@@ -517,6 +517,29 @@ describe('Завсегдатаи: Ветеран, Лейтенант, Управ
     }
   });
 
+  it('Завхоз: места нет — книгу Непечатных отдают, только если оставляют Нагрузку', () => {
+    for (const keep of [false, true]) {
+      let s = started();
+      const me = s.order[s.turn];
+      connect(s, 'zavkhoz', [me]);
+      const p0 = s.players.find((x) => x.id === me)!;
+      const unprinted = s.deck.filter((c) => !isLoad(s, c)).slice(0, p0.capacity - p0.warehouse.length);
+      s.deck = s.deck.filter((c) => !unprinted.includes(c));
+      for (const c of unprinted) p0.warehouse.push({ card: c, hidden: false });
+      const books = p0.warehouse.map((w) => w.card);
+      const drop = books.find((c) => !isLoad(s, c))!;
+      const top = s.loadDeck.at(-1)!;
+      // Отдавать книгу заранее не нужно.
+      s = applyAction(s, me, { type: 'place', place: { address: 'redCorner' } });
+      expect(s.players.find((x) => x.id === me)!.warehouse.map((w) => w.card)).toEqual(books);
+      expect(() => applyAction(s, me, { type: 'zavkhozLoad', keep: true })).toThrow(RuleError);
+      s = applyAction(s, me, keep ? { type: 'zavkhozLoad', keep, drop } : { type: 'zavkhozLoad', keep });
+      const cards = s.players.find((x) => x.id === me)!.warehouse.map((w) => w.card);
+      expect(cards.includes(drop)).toBe(!keep);
+      expect(cards.includes(top)).toBe(keep);
+    }
+  });
+
   it('Лейтенант забирает книги, изъятые с адресов', () => {
     let found = false;
     for (let seed = 1; seed <= 10 && !found; seed++) {
