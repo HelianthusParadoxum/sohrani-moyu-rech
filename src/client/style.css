@@ -94,7 +94,7 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .seats > li > .dot { flex: none; width: 24px; height: 24px; margin-right: 4px; }
 .seats .seat-add {
   flex: none; width: 24px; height: 24px; margin-right: 4px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
-  border: 1px solid var(--line); border-radius: 4px; background: #fff; color: var(--ink); cursor: pointer; -webkit-tap-highlight-color: transparent;
+  border: 1px solid var(--line); border-radius: 4px; background: var(--card); color: var(--ink); cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
 .seats .seat-add:active { transform: scale(.9); }
 .seats > li > .dot.bot { display: inline-flex; align-items: center; justify-content: center; font-size: 14px; line-height: 1; }
