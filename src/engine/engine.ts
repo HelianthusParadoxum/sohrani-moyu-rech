@@ -573,6 +573,19 @@ function endOrders(state: GameState) {
     }
     p.subscriptions = p.subscriptions.filter((s) => s.rounds > 0);
   }
+  // Врач: в Красный уголок можно не ходить, но книга Нагрузки всё равно приходит в конце поручений —
+  // по тем же правилам: нет места — отдать книгу Непечатных; склад весь в Нагрузке — не брать.
+  if (isFull(state)) {
+    for (const id of state.order) {
+      const p = player(state, id);
+      if (p.visitedRedCorner || !hasPatron(state, id, 'doctor')) continue;
+      if (freeSlots(p) > 0) doctorLoad(state, p);
+      else if (p.warehouse.every((s) => countsAsLoad(state, s.card))) {
+        log(state, `${p.name} (Врач): Нагрузка не приходит — склад весь в Нагрузке.`);
+        state.log[state.log.length - 1].who = p.id;
+      } else state.pending.push({ kind: 'doctorLoad', player: id });
+    }
+  }
   if (isFull(state)) {
     for (const id of state.order) {
       if (hasPatron(state, id, 'apprentice')) state.pending.push({ kind: 'extraGroup', player: id });
@@ -594,6 +607,15 @@ function endOrders(state: GameState) {
     log(state, `${cur.name} на Посиделки не допущен.`);
     state.log[state.log.length - 1].who = cur.id;
   }
+}
+
+// Врач: книга Нагрузки вслепую в конце поручений (у того, кто не был в Красном уголке).
+function doctorLoad(state: GameState, p: PlayerState) {
+  const c = drawLoad(state);
+  if (!c) return;
+  addBook(p, c);
+  log(state, `${p.name} (Врач) получает Нагрузку: ${title(state, c)}.`);
+  state.log[state.log.length - 1].who = p.id;
 }
 
 // Драматургия «Разыграть»: в конце фазы поручений +1 очко за каждую книгу драматургии в открытую на складе
@@ -1698,6 +1720,19 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         state.holdTurn = true; // новый раунд уже начался — ход не сдвигаем
       }
       return;
+    }
+    case 'doctorLoad': {
+      check(action.type === 'doctorLoad', 'Выберите книгу Непечатных, которую отдать ради Нагрузки');
+      check(hasBook(p, action.drop) && !countsAsLoad(state, action.drop), 'Отдать можно только книгу Непечатных со своего склада');
+      const dropTitle = title(state, action.drop);
+      if (isPropaganda(state, action.drop)) p.propagandaDumped = (p.propagandaDumped ?? 0) + 1;
+      removeBook(p, action.drop);
+      discard(state, action.drop);
+      gaveAway(state, p, action.drop);
+      log(state, `${p.name} (Врач) отдаёт ${dropTitle} — место для Нагрузки.`);
+      state.log[state.log.length - 1].who = p.id;
+      if (freeSlots(p) > 0) doctorLoad(state, p);
+      break;
     }
     case 'discardExcess': {
       check(action.type === 'discardExcess', 'Выберите, какие книги отдать');

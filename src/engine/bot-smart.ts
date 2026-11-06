@@ -357,8 +357,7 @@ function ownBookValue(state: GameState, p: PlayerState, card: string, ctx: Ctx):
 // Красный уголок впереди, а склад полон: за обязательную Нагрузку придётся отдать самую дешёвую книгу Непечатных.
 function redCornerSqueeze(state: GameState, p: PlayerState, ctx: Ctx): number {
   if (state.phase === 'end' || state.phase === 'passion' || freeSlots(p) > 0) return 0;
-  // С Врачом в Красный уголок ходить не обязательно — ничего отдавать не придётся.
-  if (hasPatron(state, p.id, 'doctor')) return 0;
+  // С Врачом в Красный уголок можно не ходить, но Нагрузка всё равно придёт — отдавать придётся так же.
   const weight = !p.visitedRedCorner ? BOT_BASE.redCornerSqueeze : RULES.rounds > ctx.round ? BOT_BASE.redCornerSqueezeNext : 0;
   const unprinted = p.warehouse.map((s) => s.card).filter((c) => !countsAsLoad(state, c));
   if (!weight || !unprinted.length) return 0;
@@ -699,7 +698,7 @@ function determinize(state: GameState, rand: Rand, me: string): GameState {
 // Отложенные решения, которые бот при примерке додумывает сам (они следуют сразу за ходом).
 const FOLLOW_UP = new Set([
   'sproutBonus', 'posrednichestvoKeep', 'spisanieKeep', 'makulatura', 'posrednichestvoGroup', 'baraholkaLook', 'naslednikiPick', 'extraGroup', 'discardExcess',
-  'kontoraDecide', 'kontoraHandout', 'glavlitSwap', 'lieutenantPick', 'freeConnection', 'blatnoyBuy', 'catalogPick',
+  'doctorLoad', 'kontoraDecide', 'kontoraHandout', 'glavlitSwap', 'lieutenantPick', 'freeConnection', 'blatnoyBuy', 'catalogPick',
 ]);
 
 function tryApply(state: GameState, me: string, a: Action): GameState | null {
@@ -1416,6 +1415,11 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
           else for (const g of groupCandidates(state, me, { ...ctx, w: { ...ctx.w, network: 1 } }, true)) if (g.action === b) out.push({ type: 'sproutBonus', bonus: b, group: g });
         }
         return [...out, { type: 'pass' }];
+      }
+      case 'doctorLoad': {
+        const drops = byValue(keepMap(), p.warehouse.map((s) => s.card).filter((c) => !countsAsLoad(state, c) && !(p.passion === 'curator' && isPropaganda(state, c))));
+        const pick = drops.length ? drops : p.warehouse.map((s) => s.card).filter((c) => !countsAsLoad(state, c));
+        return pick.slice(0, 2).map((drop) => ({ type: 'doctorLoad' as const, drop }));
       }
       case 'discardExcess': return [{ type: 'discardExcess', cards: byValue(keepMap(), p.warehouse.filter((s) => !s.memorized).map((s) => s.card)).slice(0, pend.count) }];
       case 'kontoraWarning':

@@ -651,6 +651,32 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     expect(s.discard).toContain(b1);
   });
 
+  it('Врач: в Красный уголок можно не ходить, но Нагрузка всё равно приходит в конце поручений (нет места — отдать Непечатную)', () => {
+    let s = started();
+    const [a, b] = s.order;
+    connect(s, 'doctor', [b]);
+    const pb = s.players.find((x) => x.id === b)!;
+    // У b склад полон: 1 жанровая книга и Нагрузка.
+    const book = s.deck.find((c) => s.cards[c].kind === 'genre')!;
+    s.deck = s.deck.filter((c) => c !== book);
+    const loads = s.loadDeck.filter((c) => s.cards[c].kind === 'load').slice(0, pb.capacity - 1);
+    s.loadDeck = s.loadDeck.filter((c) => !loads.includes(c));
+    pb.warehouse = [{ card: book, hidden: false }, ...loads.map((card) => ({ card, hidden: false }))];
+    pb.cache = 0;
+    for (const q of s.players) { q.available = 0; q.bonusGroupTurns = 0; q.subscriptions = []; q.visitedRedCorner = q.id === a; }
+    s.turn = s.order.indexOf(a);
+    s.players.find((x) => x.id === a)!.available = 1;
+    s = applyAction(s, a, { type: 'place', place: { address: 'zavoz' } });
+    s = applyAction(s, a, { type: 'endTurn' });
+    expect(s.pending[0]).toMatchObject({ kind: 'doctorLoad', player: b });
+    expect(() => applyAction(s, b, { type: 'doctorLoad', drop: loads[0] })).toThrow(RuleError); // Нагрузку не отдают
+    s = applyAction(s, b, { type: 'doctorLoad', drop: book });
+    const q = s.players.find((x) => x.id === b)!;
+    expect(q.warehouse.some((w) => w.card === book)).toBe(false);
+    expect(q.warehouse).toHaveLength(q.capacity);
+    expect(q.warehouse.every((w) => s.cards[w.card].kind.startsWith('load'))).toBe(true);
+  });
+
   it('Главред: за каждый значок сданной в Главлит книги — +1 Талон и +2 очка', () => {
     let s = started();
     const me = s.order[s.turn];

@@ -157,6 +157,7 @@ export type Pending =
   | { kind: 'catalogPick'; player: string; deck: 'unprinted' | 'load' | 'discard'; top: string[]; bottom: string[]; then: CatalogThen } // Каталогизатор: верхний или нижний набор (стопки или сброса)
   | { kind: 'lieutenantPick'; player: string; cards: string[] } // Лейтенант: книги, изъятые облавой с адресов
   | { kind: 'discardExcess'; player: string; count: number }
+  | { kind: 'doctorLoad'; player: string } // Врач: не был в Красном уголке — Нагрузка всё равно приходит; места нет — отдать книгу Непечатных
   | { kind: 'glavlitSwap'; player: string; roundStart?: boolean }; // Главлитовец переносит опалу с жанра на жанр // склад уменьшился — игрок выбирает, что отдать
 
 // setupCache — перед первым действием партии все раскладывают стартовые книги по Тайникам (чужие стартовые книги до этого не видны).
@@ -346,4 +347,5 @@ export type Action =
   | { type: 'memorize'; card: string | null }
   | { type: 'lieutenantPick'; card: string | null }
   | { type: 'discardExcess'; cards: string[] }
+  | { type: 'doctorLoad'; drop: string }
   | { type: 'glavlitSwap'; from: Genre; to: Genre }; // Поэзия «Заучить» — в любой момент своего хода

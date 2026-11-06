@@ -7,7 +7,7 @@ import {
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PassionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
-import { title as bookTitle, bestFeedBooks, canMemorizeOnBuy, coversStep, roomToBuy, freeSproutSlots, genresOf, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, roman } from '../engine/util';
+import { title as bookTitle, bestFeedBooks, canMemorizeOnBuy, countsAsLoad, coversStep, roomToBuy, freeSproutSlots, genresOf, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, roman } from '../engine/util';
 import { blatnoyOptions, kontoraTargets } from '../engine/full';
 import {
   BefriendPicker, ClubContents, fittingBooks, patronOpen, patronWhy, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
@@ -1199,6 +1199,17 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
           <p>Возьмите себе одну из книг, изъятых облавой с адресов.{free <= 0 && ' На Складе нет места.'}</p>
           <div className="shelf wrap">{p.cards.map((c) => <Book key={c} v={view} id={c} onClick={free > 0 ? () => act({ type: 'lieutenantPick', card: c }) : undefined} />)}</div>
           <div className="modal-foot"><button onClick={() => act({ type: 'lieutenantPick', card: null })}>Ничего не брать</button></div>
+        </Modal>
+      );
+    }
+    case 'doctorLoad': {
+      const droppable = me.warehouse.map((s) => s.card!).filter((c) => c && !countsAsLoad(view, c));
+      const drop = sel.find((c) => droppable.includes(c));
+      return (
+        <Modal title="Врач: Нагрузка всё равно приходит" wide>
+          <p>В Красный уголок вы не ходили, но книга Нагрузки приходит в конце поручений. Места на складе нет — выберите книгу Непечатных, которую отдадите.</p>
+          <div className="shelf wrap">{droppable.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} onClick={() => setSel(sel.includes(c) ? [] : [c])} />)}</div>
+          <div className="modal-foot"><button className="primary" disabled={!drop} onClick={() => drop && act({ type: 'doctorLoad', drop })}>Отдать и взять Нагрузку</button></div>
         </Modal>
       );
     }
