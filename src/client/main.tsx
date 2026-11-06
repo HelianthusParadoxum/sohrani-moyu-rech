@@ -208,12 +208,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
   const link = `${location.origin}/${encodeURIComponent(room.code)}`;
   return (
     <div className="home lobby">
-      <h1 className="room-title">
-        <button className="back" aria-label="Назад, в начальное меню" title="В начальное меню" onClick={() => navigate(null)}>
-          <svg width="12" height="18" viewBox="0 0 12 18" aria-hidden="true"><path d="M9 2L3 9l6 7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </button>
-        Комната {room.code}
-      </h1>
+      <h1 className="room-title">Комната {room.code}</h1>
       <ShareLink link={link} />
       {host && (
         <>
@@ -245,7 +240,14 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
         ))}
         {/* Свободные места — сразу (до 5 за столом): строки одной высоты, панель снизу не сдвигается. */}
         {Array.from({ length: Math.max(0, 5 - room.seats.length) }, (_, i) => (
-          <li key={`empty${i}`} className="empty"><span className="dot empty" />Пусто</li>
+          <li key={`empty${i}`} className="empty"><span className="dot empty" />Пусто
+            {/* Плюс — добавить бота на это место (там же, где у ботов крестик). */}
+            {host && (
+              <button className="icon-btn remove add" title="Добавить бота" aria-label="Добавить бота" onClick={() => net.send({ t: 'addBot' })}>
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 2.5v11M2.5 8h11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+              </button>
+            )}
+          </li>
         ))}
       </ul>
       {host && (
@@ -260,17 +262,15 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
           <button className="primary" disabled={!name.trim() || room.seats.length >= 5} onClick={onJoin}>Сесть за стол</button>
         </div>
       )}
-      {host && (
-        <>
-          {/* На телефоне — плашка внизу экрана, как «Закончить ход» в игре. */}
-          <div className="row lobby-actions">
-            <button disabled={room.seats.length >= 5} onClick={() => net.send({ t: 'addBot' })}>Добавить бота</button>
-            <button className="primary" disabled={room.seats.length < 1} onClick={() => net.send({ t: 'start' })}>
-              Начать
-            </button>
-          </div>
-        </>
-      )}
+      {/* На телефоне — плашка внизу экрана, как «Закончить ход» в игре. «Назад» — в начальное меню. */}
+      <div className="row lobby-actions">
+        <button onClick={() => navigate(null)}>Назад</button>
+        {host && (
+          <button className="primary" disabled={room.seats.length < 1} onClick={() => net.send({ t: 'start' })}>
+            Начать
+          </button>
+        )}
+      </div>
       {seated && !host && <p className="muted">Ждём, пока хост начнёт партию…</p>}
     </div>
   );
