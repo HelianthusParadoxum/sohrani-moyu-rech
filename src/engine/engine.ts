@@ -375,6 +375,8 @@ function startRound(state: GameState, newSafehouse?: AddressId, prevCensorship?:
     const kept = ossified ? state.banned.slice(0, -1) : state.banned.slice(1);
     const released = ossified ? state.banned[state.banned.length - 1] : state.banned[0];
     const fresh = shuffle(state, GENRES.filter((g) => !kept.includes(g) && (ossified || g !== released))).slice(0, Math.max(0, state.censorship - kept.length));
+    // Вернувшийся в ту же Пятилетку жанр (Окостенение) встаёт перед новыми: только что попавшие в опалу — в конце строки.
+    fresh.sort((a, b) => Number(!before.includes(a)) - Number(!before.includes(b)));
     state.banned = [...kept, ...fresh].slice(-state.censorship);
   } else if (!state.banned.length) {
     state.banned = shuffle(state, [...GENRES]).slice(0, state.censorship);

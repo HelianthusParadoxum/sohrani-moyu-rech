@@ -1961,6 +1961,27 @@ describe('Окостенение цензуры', () => {
       RULES.censorshipShift = was;
     }
   });
+
+  it('только что попавшие в опалу жанры — в конце строки (вернувшийся жанр — перед ними)', () => {
+    let checked = 0;
+    for (let seed = 1; seed <= 12; seed++) {
+      let s = createGame({ players: players(3), seed });
+      const rand = seeded(seed);
+      let prev = [...s.banned];
+      let round = s.round;
+      for (let i = 0; i < 4000 && s.phase !== 'end'; i++) {
+        s = playOut(s, rand, 1);
+        if (s.round !== round) {
+          round = s.round;
+          const fresh = s.banned.filter((g) => !prev.includes(g));
+          expect(s.banned.slice(s.banned.length - fresh.length)).toEqual(fresh);
+          if (fresh.length) checked++;
+          prev = [...s.banned];
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
+  }, 60_000);
 });
 
 describe('Журнал: стартовая сводка', () => {
