@@ -58,6 +58,9 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 /* Титульный экран: подзаголовок — вплотную к заголовку (как подпись «Как вас называть» к полю имени). */
 .title-screen h1 { line-height: 1.1; margin-bottom: 4px; }
 .title-screen .subtitle { line-height: 1.2; margin: 0 0 16px; }
+/* Автор игры — внизу титульного экрана (на телефоне — над плашкой «Создать свою игру»). */
+.title-screen .credit { position: fixed; left: 0; right: 0; bottom: 16px; margin: 0; text-align: center; }
+@media (max-width: 600px) { .title-screen .credit { bottom: calc(64px + 12px + env(safe-area-inset-bottom)); } }
 /* ПК: «Создать свою игру» — по центру под вводом кода. */
 @media (min-width: 601px) {
   .title-screen .create-bar { display: flex; justify-content: center; margin-top: 24px; }

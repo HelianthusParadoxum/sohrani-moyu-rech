@@ -35,6 +35,18 @@ function App() {
   const net = useServer(code);
   const [name, setName] = useState(savedName);
   const [seenOutdated, setSeenOutdated] = useState<string | null>(null);
+  // Шрифты ещё грузятся — экран не показываем: иначе заголовки «прыгают», когда шрифт подменяется на глазах.
+  // Шрифты сами начинают грузиться, только когда текст уже на экране, — поэтому просим их заранее (с кириллицей).
+  const [fontsReady, setFontsReady] = useState(() => typeof document === 'undefined' || !document.fonts);
+  useEffect(() => {
+    if (fontsReady) return;
+    const done = () => setFontsReady(true);
+    const t = setTimeout(done, 2500); // шрифты не грузятся (нет сети до Google Fonts) — не ждём дольше
+    const sample = 'Сохрани мою речь Комната 0123';
+    Promise.all(['700 1em "PT Serif"', '400 1em "PT Serif"', '400 1em "PT Sans"', '700 1em "PT Sans"', '400 1em "PT Mono"']
+      .map((f) => document.fonts.load(f, sample))).then(done, done);
+    return () => clearTimeout(t);
+  }, [fontsReady]);
 
   const join = (msg: { t: 'create' } | { t: 'join'; code: string }) => {
     storeName(name);
@@ -42,7 +54,9 @@ function App() {
   };
 
   let body;
-  if (code && net.gone) {
+  if (!fontsReady) {
+    body = null;
+  } else if (code && net.gone) {
     // Комнаты нет: игру обновили или сервер перезапускался (бесплатный хостинг засыпает после простоя и теряет партии).
     body = (
       <Apology onOk={() => navigate(null)}>
@@ -109,6 +123,7 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
         {[0, 1, 2, 3].map((i) => <span key={i} className={`cell ${i === Math.min(code.length, 3) ? 'cur' : ''}`}>{code[i] ?? ''}</span>)}
       </label>
       {answer && !answer.exists && <p className="muted code-miss">Комнаты с кодом {code} нет.</p>}
+      <p className="credit muted small">Игра Дмитрия Трубицина</p>
       {/* На ПК — по центру под вводом кода; на телефоне — на плашке внизу экрана, во всю ширину. */}
       <div className="create-bar"><button className="primary" disabled={!name.trim()} onClick={onCreate}>Создать свою игру</button></div>
     </div>
