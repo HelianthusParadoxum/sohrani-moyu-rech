@@ -1216,6 +1216,17 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
         </Modal>
       );
     }
+    case 'zavkhozLoad':
+      return (
+        <Modal title="Завхоз: Нагрузка из Красного уголка">
+          <p>Вам досталась книга Нагрузки. Можно оставить её на складе или отправить в сброс и взять {RULES.zavkhozTalons}🎫.</p>
+          <div className="shelf"><Book v={view} id={p.card} /></div>
+          <div className="modal-foot">
+            <button onClick={() => act({ type: 'zavkhozLoad', keep: true })}>Оставить книгу</button>
+            <button className="primary" onClick={() => act({ type: 'zavkhozLoad', keep: false })}>В сброс, +{RULES.zavkhozTalons}🎫</button>
+          </div>
+        </Modal>
+      );
     case 'doctorLoad': {
       const droppable = me.warehouse.map((s) => s.card!).filter((c) => c && !countsAsLoad(view, c));
       const drop = sel.find((c) => droppable.includes(c));

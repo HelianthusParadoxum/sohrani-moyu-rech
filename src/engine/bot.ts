@@ -52,6 +52,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
         return [{ type: 'glavlitSwap', from: pick(state.banned, rand)!, to: pick(free, rand)! }];
       }
       case 'lieutenantPick': return [{ type: 'lieutenantPick', card: pend.cards[0] }, { type: 'lieutenantPick', card: null }];
+      case 'zavkhozLoad': return [{ type: 'zavkhozLoad', keep: true }, { type: 'zavkhozLoad', keep: false }];
       case 'doctorLoad': return [{ type: 'doctorLoad', drop: p.warehouse.map((s) => s.card).find((c) => !countsAsLoad(state, c))! }];
       case 'discardExcess': return [{ type: 'discardExcess', cards: p.warehouse.filter((s) => !s.memorized).map((s) => s.card).slice(-pend.count) }];
       case 'kontoraHandout': {

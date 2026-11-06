@@ -494,6 +494,29 @@ describe('Завсегдатаи: Ветеран, Лейтенант, Управ
     expect(s.baraholka[1]).toBeNull();
   });
 
+  it('Завхоз: Нагрузку из Красного уголка можно сменять на Талон (книга — в сброс)', () => {
+    for (const keep of [false, true]) {
+      let s = started();
+      const me = s.order[s.turn];
+      connect(s, 'zavkhoz', [me]);
+      const p0 = s.players.find((x) => x.id === me)!;
+      p0.capacity = 10;
+      const talons = p0.talons;
+      const top = s.loadDeck.at(-1)!;
+      s = applyAction(s, me, { type: 'place', place: { address: 'redCorner' } });
+      expect(s.pending[0]).toMatchObject({ kind: 'zavkhozLoad', player: me, card: top });
+      // Соперник не видит, какая книга пришла.
+      const other = s.players.find((x) => x.id !== me)!.id;
+      expect(viewFor(s, other).pending[0]).not.toHaveProperty('card');
+      s = applyAction(s, me, { type: 'zavkhozLoad', keep });
+      const p = s.players.find((x) => x.id === me)!;
+      expect(s.pending).toHaveLength(0);
+      expect(p.warehouse.some((w) => w.card === top)).toBe(keep);
+      expect(s.loadDiscard.includes(top)).toBe(!keep);
+      expect(p.talons).toBe(talons + (keep ? 0 : RULES.zavkhozTalons));
+    }
+  });
+
   it('Лейтенант забирает книги, изъятые с адресов', () => {
     let found = false;
     for (let seed = 1; seed <= 10 && !found; seed++) {

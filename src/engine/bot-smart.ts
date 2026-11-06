@@ -700,7 +700,7 @@ function determinize(state: GameState, rand: Rand, me: string): GameState {
 // Отложенные решения, которые бот при примерке додумывает сам (они следуют сразу за ходом).
 const FOLLOW_UP = new Set([
   'sproutBonus', 'posrednichestvoKeep', 'spisanieKeep', 'makulatura', 'posrednichestvoGroup', 'baraholkaLook', 'naslednikiPick', 'extraGroup', 'discardExcess',
-  'doctorLoad', 'kontoraDecide', 'kontoraHandout', 'glavlitSwap', 'lieutenantPick', 'freeConnection', 'blatnoyBuy', 'catalogPick',
+  'doctorLoad', 'zavkhozLoad', 'kontoraDecide', 'kontoraHandout', 'glavlitSwap', 'lieutenantPick', 'freeConnection', 'blatnoyBuy', 'catalogPick',
 ]);
 
 function tryApply(state: GameState, me: string, a: Action): GameState | null {
@@ -1418,6 +1418,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         }
         return [...out, { type: 'pass' }];
       }
+      case 'zavkhozLoad': return [{ type: 'zavkhozLoad', keep: true }, { type: 'zavkhozLoad', keep: false }];
       case 'doctorLoad': {
         const drops = byValue(keepMap(), p.warehouse.map((s) => s.card).filter((c) => !countsAsLoad(state, c) && !(p.passion === 'curator' && isPropaganda(state, c))));
         const pick = drops.length ? drops : p.warehouse.map((s) => s.card).filter((c) => !countsAsLoad(state, c));

@@ -1210,7 +1210,6 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       const load = recycle.filter((c) => countsAsLoad(state, c));
       const komsorg = hasPatron(state, p.id, 'komsorg');
       check((unprinted.length <= 1 && load.length <= 1) || komsorg, 'Сдать можно до 1 Непечатной и до 1 книги Нагрузки');
-      const extra = hasPatron(state, p.id, 'zavkhoz') ? 1 : 0;
       const editor = hasPatron(state, p.id, 'editor');
       let income = 0;
       let pts = 0;
@@ -1225,7 +1224,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         gaveAway(state, p, c);
       }
       log(state, `${p.name} сдаёт в Главлит: ${recycledTitles}.`);
-      earn(state, p, 0, { glavlit: income, zavkhoz: extra * recycle.length, editor: pts * RULES.editorTalons });
+      earn(state, p, 0, { glavlit: income, editor: pts * RULES.editorTalons });
       // Комсорг: за каждую сданную книгу — очко Гласности.
       if (komsorg) {
         gain(p, RULES.komsorgPoints * recycle.length, 'komsorg');
@@ -1395,6 +1394,8 @@ function continueTake(state: GameState, p: PlayerState, cards: string[], then: C
       const load = cards[0];
       if (load) addBook(p, load);
       logAfter(state, load ? `↳ ${title(state, load)}${then.drop ? `; места нет — отдаёт ${then.dropTitle ?? title(state, then.drop)}` : ''}.` : '↳ Нагрузка кончилась.');
+      // Завхоз: посмотрев Нагрузку, можно вместо неё взять Талон.
+      if (load && hasPatron(state, p.id, 'zavkhoz')) state.pending.push({ kind: 'zavkhozLoad', player: p.id, card: load });
       return;
     }
   }
@@ -1724,6 +1725,18 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         state.holdTurn = true; // новый раунд уже начался — ход не сдвигаем
       }
       return;
+    }
+    case 'zavkhozLoad': {
+      check(action.type === 'zavkhozLoad', 'Решите, оставить ли Нагрузку (Завхоз)');
+      if (!action.keep && hasBook(p, pend.card)) {
+        const t = title(state, pend.card);
+        removeBook(p, pend.card);
+        discard(state, pend.card);
+        earn(state, p, RULES.zavkhozTalons, 'zavkhoz');
+        log(state, `${p.name} (Завхоз) сбывает Нагрузку: +${talonsText(RULES.zavkhozTalons)}.`);
+        log(state, `В сброс: ${t}.`, [p.id]);
+      }
+      break;
     }
     case 'doctorLoad': {
       check(action.type === 'doctorLoad', 'Выберите книгу Непечатных, которую отдать ради Нагрузки');
