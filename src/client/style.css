@@ -616,3 +616,7 @@ label.row > .dropdown { display: inline-block; }
 /* Подписи над полями («Как вас называть», «Присоединитесь к игре по коду», «Режим игры», «Умелость ботов»):
    строка 19 — по высоте букв, так что от букв до поля ровно 4 (промежуток), у всех одинаково. */
 .home label:not(.row):not(.code-cells), .title-screen .or { line-height: 19px; }
+
+/* Комната: «Отправьте ссылку игрокам» — вплотную под заголовком, как подзаголовок титульного экрана. */
+.home > .room-title { margin-bottom: 4px; }
+.lobby .share p { margin-top: 0; line-height: 20px; }
