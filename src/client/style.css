@@ -504,6 +504,8 @@ label.row > .dropdown { display: inline-block; }
   .end-turn-sheet, .lobby .lobby-actions, .title-screen .create-bar { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
   .title-screen .create-bar { display: flex; }
 }
+/* Лобби: «Добавить бота» и «Начать» — высотой 56 (и на ПК, и на телефоне). */
+.lobby .lobby-actions button { height: 56px; }
 @media (max-width: 600px) {
   .lobby .lobby-actions { flex-wrap: nowrap; }
   .lobby .lobby-actions button { white-space: nowrap; padding: 0 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
