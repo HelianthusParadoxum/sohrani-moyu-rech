@@ -197,21 +197,7 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
           </>
         )}
       </div>
-      {view.phase === 'passion' && me ? (
-        <>
-          <p className="center muted">Адреса откроются, когда все выберут Пристрастия. Завсегдатаи и Ростки Гласности — уже на столе.</p>
-          {/* Перед выбором Пристрастия видно, какие в партии Завсегдатаи и Ростки. */}
-          <main className="layout">
-            <section className="board">
-              <div className="addresses">
-                {full && card('club')}
-                <Sprouts view={view} me={me} beside={full && !view.reserve} seatIndex={seatIndex}
-                  head={<AddressHead id="sprouts" view={view} seatIndex={seatIndex} me={me} enabled={false} onOpen={() => {}} rightHint={SPROUTS_TIP} />} />
-              </div>
-            </section>
-          </main>
-        </>
-      ) : (
+      {/* Поле одинаково с самого начала: и при выборе Пристрастий адреса стоят там же, где будут в игре. */}
       <main className="layout">
         <section className="board">
           <div className="addresses">
@@ -237,7 +223,6 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
           <Log view={view} seatIndex={seatIndex} />
         </aside>
       </main>
-      )}
 
       {panel?.kind === 'address' && panel.id === 'club' && RULES.clubFreeGift && me && canGift && (
         <ClubGiftModal view={view} me={me} act={act} close={() => setPanel(null)} patron={panel.patron} />
