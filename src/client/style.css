@@ -594,3 +594,12 @@ label.row > .dropdown { display: inline-block; }
 .erudite .got { opacity: .25; filter: grayscale(.6); }
 .passion-line .erudite { margin: 0; }
 .erudite-wild { font-weight: 700; align-self: center; }
+
+/* Телефон: у всего содержимого — поля 24 слева и справа (экраны, плашки сверху и снизу, окна). */
+@media (max-width: 600px) {
+  .home, .home.title-screen, .layout, .topbar, .status, .mobile-bar,
+  .end-turn-sheet, .lobby .lobby-actions, .title-screen .create-bar { padding-left: 24px; padding-right: 24px; }
+  .modal-bg { padding-left: 24px; padding-right: 24px; }
+}
+/* Телефон: кнопки хоста в верхней плашке переносятся, а не вылезают за край экрана. */
+@media (max-width: 600px) { .host-tools { flex-wrap: wrap; } }
