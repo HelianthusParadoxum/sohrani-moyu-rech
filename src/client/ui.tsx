@@ -235,16 +235,15 @@ export function PresetSelect({ seat, host, send, solo }: { seat: RoomInfo['seats
     <>
       {host ? (
         <Dropdown value={current.id} ariaLabel="Пресет бота" onChange={(preset) => send({ t: 'botPreset', seat: seat.id, preset })}
-          options={options.map((p) => ({ value: p.id, label: p.name }))} />
-      ) : <span className="small preset-name">{current.name}</span>}
-      <span className="preset-desc muted small">{current.description}</span>
+          options={options.map((p) => ({ value: p.id, label: p.name, title: p.description }))} />
+      ) : <span className="small preset-name" title={current.description}>{current.name}</span>}
     </>
   );
 }
 
 // Выпадающий список: раскрывается прямо под полем (а не системным окном, как <select> на телефоне).
 export function Dropdown<T extends string | number>({ value, options, onChange, ariaLabel }: {
-  value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; ariaLabel?: string;
+  value: T; options: { value: T; label: string; title?: string }[]; onChange: (v: T) => void; ariaLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLSpanElement>(null);
@@ -264,7 +263,7 @@ export function Dropdown<T extends string | number>({ value, options, onChange, 
       {open && (
         <ul className="dropdown-list" role="listbox">
           {options.map((o) => (
-            <li key={String(o.value)} role="option" aria-selected={o.value === value} className={o.value === value ? 'selected' : ''}
+            <li key={String(o.value)} role="option" aria-selected={o.value === value} className={o.value === value ? 'selected' : ''} title={o.title}
               onClick={(e) => { e.preventDefault(); setOpen(false); if (o.value !== value) onChange(o.value); }}>{o.label}</li>
           ))}
         </ul>
