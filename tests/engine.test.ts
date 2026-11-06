@@ -639,13 +639,17 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     expect(s.discard).toContain(b1);
   });
 
-  it('Главред: за каждую сданную в Главлит книгу — очко за значок', () => {
+  it('Главред: за каждый значок сданной в Главлит книги — +1 Талон и +2 очка', () => {
     let s = started();
     const me = s.order[s.turn];
     connect(s, 'editor', [me]);
     const card = give(s, me, (icons) => icons.length === 2 && icons.some((g) => s.banned.includes(g as never)) && !icons.includes('irony') && !icons.includes('prose'));
+    const before = s.players.find((x) => x.id === me)!.talons;
     s = applyAction(s, me, { type: 'place', place: { address: 'glavlit', recycle: [card] } });
-    expect(s.players.find((x) => x.id === me)!.pointsBy.editor).toBe(2);
+    const p = s.players.find((x) => x.id === me)!;
+    expect(p.pointsBy.editor).toBe(2 * RULES.editorPoints);
+    expect(p.talonsBy?.editor).toBe(2 * RULES.editorTalons);
+    expect(p.talons - before).toBe(RULES.glavlitUnprinted + 2 * RULES.editorTalons);
   });
 
   it('Ветеран: на Развале несколько книг за одно действие, в сумме на 1 Талон дешевле', () => {

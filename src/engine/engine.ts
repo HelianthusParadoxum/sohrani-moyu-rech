@@ -1193,21 +1193,21 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       for (const c of recycle) {
         check(hasBook(p, c), 'Сдать можно только книги со своего склада');
         income += countsAsLoad(state, c) ? RULES.glavlitLoad : RULES.glavlitUnprinted;
-        if (editor) pts += iconCount(state, c);
+        if (editor) pts += iconCount(state, c); // значков у сданных книг
         removeBook(p, c);
         discard(state, c);
         gaveAway(state, p, c);
       }
       log(state, `${p.name} сдаёт в Главлит: ${recycledTitles}.`);
-      earn(state, p, 0, { glavlit: income, zavkhoz: extra * recycle.length });
+      earn(state, p, 0, { glavlit: income, zavkhoz: extra * recycle.length, editor: pts * RULES.editorTalons });
       // Комсорг: за каждую сданную книгу — очко Гласности.
       if (komsorg) {
         gain(p, RULES.komsorgPoints * recycle.length, 'komsorg');
         logAfter(state, `↳ Комсорг: +${pointsText(RULES.komsorgPoints * recycle.length)}.`);
       }
       if (pts) {
-        gain(p, pts, 'editor');
-        logAfter(state, `↳ Главред: +${pointsText(pts)}.`);
+        gain(p, pts * RULES.editorPoints, 'editor');
+        logAfter(state, `↳ Главред: +${talonsText(pts * RULES.editorTalons)} и +${pointsText(pts * RULES.editorPoints)}.`);
       }
       return;
     }
