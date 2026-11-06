@@ -248,7 +248,15 @@ label.row { flex-direction: row; align-items: center; gap: 8px; flex-wrap: nowra
 label.row > input[type="checkbox"] { flex: none; }
 /* Галочка в лобби — крупная, а вся строка — удобная цель для пальца (не ниже 44). */
 label.row.check { min-height: 48px; gap: 12px; cursor: pointer; }
-label.row.check > input[type="checkbox"] { width: 24px; height: 24px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+label.row.check > input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none; flex: none; width: 24px; height: 24px; margin: 0; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 4px; background: #fff center / 16px 16px no-repeat; /* обводка — как у выпадающих списков */
+}
+label.row.check > input[type="checkbox"]:checked {
+  background-color: var(--accent); border-color: var(--accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+label.row.check > input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .address.addr-club { grid-column: 1 / -1; }
 /* Каждый Завсегдатай — на своей подложке, как Ростки */
 .patrons { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
