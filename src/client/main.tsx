@@ -161,7 +161,6 @@ function ShareLink({ link }: { link: string }) {
     <div className="share">
       <p>Отправьте ссылку игрокам:<br />
         <a href={link} onClick={(e) => { e.preventDefault(); copy(); }} title={done ? 'Скопировано' : 'Нажмите, чтобы скопировать'}>{link.replace(/^https?:\/\//, '')}</a>
-        {done && <span className="copied small"> скопировано</span>}
       </p>
       <CopyButton done={done} copy={copy} />
     </div>
