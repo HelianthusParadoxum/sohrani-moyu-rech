@@ -518,3 +518,4 @@ label.row > .dropdown { display: inline-block; }
 /* Эрудит: все жанры; уже собранные — погашены */
 .erudite { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 8px; }
 .erudite .got { opacity: .25; filter: grayscale(.6); }
+.erudite-wild { font-weight: 700; align-self: center; }

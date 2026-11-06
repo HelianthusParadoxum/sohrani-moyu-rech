@@ -1080,7 +1080,23 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
   const p = view.pending[0];
   const [sel, setSel] = useState<string[]>([]);
   const [groupFor, setGroupFor] = useState<SproutBonusId | 'posred' | null>(null);
+  // Бонус Ростка уже выбран в окне питания (место Ростка = один бонус) — не спрашиваем второй раз: сразу выполняем,
+  // а если бонусу нужны подробности (с кем знакомиться, что тиражировать…) — сразу открываем их окно.
+  const autoBonus = useRef<string | null>(null);
+  const bonusKey = !('secret' in p) && p.kind === 'sproutBonus' && p.options.length === 1 ? `${view.log.length}:${p.sprout}:${p.options[0]}` : null;
+  useEffect(() => {
+    if (!bonusKey || autoBonus.current === bonusKey || 'secret' in p || p.kind !== 'sproutBonus') return;
+    autoBonus.current = bonusKey;
+    const o = p.options[0];
+    const send = (a: Action) => { setHold(bonusKey); setTimeout(() => setHold(null), 3000); act(a); };
+    if (o === 'sideJob' || o === 'underCounter') send({ type: 'sproutBonus', bonus: o });
+    else if (o === 'acquaintance' || o === 'copyText' || o === 'restore' || groupBlocker(view, me, o as GroupActionId)) setGroupFor(o);
+    else send({ type: 'sproutBonus', bonus: o, group: { action: o } as GroupAction });
+  }, [bonusKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Пока бонус уходит на сервер — окно не показываем (иначе оно мелькнёт); не дошёл за 3 с — окно вернётся.
+  const [hold, setHold] = useState<string | null>(null);
   if ('secret' in p) return null;
+  if (bonusKey && (autoBonus.current !== bonusKey || hold === bonusKey)) return null;
   switch (p.kind) {
     case 'kontoraWarning':
       return <KontoraWarningPrompt view={view} me={me} from={p.from} act={act} />;
@@ -1585,10 +1601,14 @@ function freeShelf(p: VPlayer): number {
 
 // Эрудит: все жанры; погашены те, что уже есть — на складе или в изданном.
 function EruditePanel({ view, me }: { view: PlayerView; me: VPlayer }) {
-  const have = new Set([...me.warehouse.map((s) => s.card!).filter(Boolean), ...me.published].flatMap((c) => genresOf(view, c)));
+  const cards = [...me.warehouse.map((s) => s.card!).filter(Boolean), ...me.published];
+  // «Чукоккала» (любой жанр) засчитывается за один жанр — в конце подсчёта за любой ещё не закрытый: звёздочка в конце строки.
+  const have = new Set(cards.filter((c) => !view.cards[c].wild).flatMap((c) => genresOf(view, c)));
+  const wild = cards.filter((c) => view.cards[c].wild).length;
   return (
-    <div className="erudite" title="Эрудит: жанры, которые уже есть (на складе или в изданном), — погашены">
+    <div className="erudite" title="Эрудит: жанры, которые уже есть (на складе или в изданном), — погашены; ★ — книга любого жанра закроет ещё один жанр в конце партии">
       {GENRES.map((g) => <span key={g} className={have.has(g) ? 'got' : ''}><GenreChip g={g} /></span>)}
+      {wild > 0 && <span className="erudite-wild" title="Чукоккала: в конце засчитается за один из незакрытых жанров">★{wild > 1 ? `×${wild}` : ''}</span>}
     </div>
   );
 }
