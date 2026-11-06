@@ -57,7 +57,10 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .subtitle { margin-top: 0; font-family: 'PT Mono', monospace; color: var(--red); }
 /* Титульный экран: подзаголовок — вплотную к заголовку (как подпись «Как вас называть» к полю имени). */
 .title-screen h1 { line-height: 1.1; margin-bottom: 4px; }
-.title-screen .subtitle { line-height: 1.2; margin: 0 0 16px; }
+.title-screen .subtitle { line-height: 1.2; margin: 0 0 32px; }
+/* Титульный экран: блоки (имя, код, кнопка) — с просторными промежутками. */
+.title-screen > label { margin: 0; }
+.title-screen .or { margin-top: 32px; }
 /* Автор игры — внизу титульного экрана (на телефоне — над плашкой «Создать свою игру»). */
 .title-screen .credit { position: fixed; left: 0; right: 0; bottom: 16px; margin: 0; text-align: center; }
 @media (max-width: 600px) { .title-screen .credit { bottom: calc(80px + 12px + env(safe-area-inset-bottom)); } }
@@ -424,7 +427,7 @@ select {
   background: #fff; border: 1px solid var(--line); border-radius: 6px;
 }
 .code-cells:focus-within .cell.cur { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(31,78,121,.25); }
-.code-miss { text-align: center; margin: 4px 0 0; }
+.code-miss { text-align: center; margin: 12px 0 0; min-height: 24px; line-height: 24px; }
 /* Выпадающий список (свой, раскрывается под полем) */
 .dropdown { position: relative; display: inline-block; max-width: 100%; }
 label > .dropdown, .lobby label > .dropdown { display: block; }

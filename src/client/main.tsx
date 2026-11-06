@@ -122,7 +122,8 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
         <input value={code} onChange={(e) => setCode(codeChars(e.target.value))} inputMode="numeric" pattern="[0-9]*" autoComplete="off" spellCheck={false} />
         {[0, 1, 2, 3].map((i) => <span key={i} className={`cell ${i === Math.min(code.length, 3) ? 'cur' : ''}`}>{code[i] ?? ''}</span>)}
       </label>
-      {answer && !answer.exists && <p className="muted code-miss">Комнаты с кодом {code} нет.</p>}
+      {/* Строка под сообщение есть всегда — появляясь, оно ничего не сдвигает. */}
+      <p className="muted code-miss" aria-live="polite">{answer && !answer.exists ? `Комнаты с кодом ${code} нет.` : ''}</p>
       <p className="credit muted small">Игра Дмитрия Трубицина</p>
       {/* На ПК — по центру под вводом кода; на телефоне — на плашке внизу экрана, во всю ширину. */}
       <div className="create-bar"><button className="primary" disabled={!name.trim()} onClick={onCreate}>Создать свою игру</button></div>
