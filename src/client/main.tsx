@@ -134,6 +134,25 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
   );
 }
 
+// Качество связи игрока: три палочки — хорошая (все три, зелёные), средняя (две, жёлтые), плохая (одна, красная);
+// не в сети — перечёркнутый значок. Задержка до сервера: до 250 мс — хорошо, до 800 — средне, дольше — плохо.
+function Signal({ rtt }: { rtt: number | null }) {
+  const level = rtt === null ? 0 : rtt <= 250 ? 3 : rtt <= 800 ? 2 : 1;
+  const color = ['', '#c0392b', '#d4a017', '#1e8449'][level];
+  const label = rtt === null ? 'Не в сети' : `${['', 'Плохая', 'Средняя', 'Хорошая'][level]} связь${rtt ? ` (${rtt} мс)` : ''}`;
+  return (
+    <span className="signal" title={label} data-tip={label} aria-label={label}>
+      <svg width="20" height="16" viewBox="0 0 20 16" aria-hidden="true">
+        {[0, 1, 2].map((i) => (
+          <rect key={i} x={2 + i * 6} y={10 - i * 4} width="4" height={4 + i * 4} rx="1"
+            fill={i < level ? color : 'none'} stroke={i < level ? color : 'rgba(0,0,0,.3)'} strokeWidth="1" />
+        ))}
+        {level === 0 && <path d="M1 15L19 1" stroke="#c0392b" strokeWidth="1.8" strokeLinecap="round" />}
+      </svg>
+    </span>
+  );
+}
+
 // Скопировать текст в буфер; done — на секунду после успешного копирования.
 function useCopy(text: string): [boolean, () => void] {
   const [done, setDone] = useState(false);
@@ -218,7 +237,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
           <li key={s.id}>
             <span className="dot" style={{ background: PLAYER_COLORS[i] }} />
             {s.bot && '🤖 '}{s.name}{s.id === room.host && ' (хост)'}
-            {!s.bot && <span className={s.online ? 'online' : 'offline'}>{s.online ? ' в сети' : ' не в сети'}</span>}
+            {!s.bot && <Signal rtt={s.online ? (net.rtt[s.id] === undefined ? 0 : net.rtt[s.id]) : null} />}
             {s.bot && <PresetSelect seat={s} host={host} send={net.send} solo={room.seats.length === 1} />}
             {host && s.id !== room.host && (
               <button className="icon-btn remove" title="Убрать из-за стола" aria-label="Убрать" onClick={() => net.send({ t: 'removeSeat', seat: s.id })}>

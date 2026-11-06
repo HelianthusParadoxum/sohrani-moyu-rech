@@ -527,7 +527,51 @@ const server = createServer((req, res) => {
 });
 
 const wss = new WebSocketServer({ server, path: '/ws' });
+// Качество связи: раз в несколько секунд — ping каждому соединению, по pong — задержка (мс).
+// Нет ответа дольше 3 опросов — связь считаем плохой (задержка = сколько ждём ответа).
+const NET_EVERY = 4000;
+const netInfo = new Map<WebSocket, { sent: number; rtt: number | null; pong: number }>();
+function rttOf(ws: WebSocket): number | null {
+  const n = netInfo.get(ws);
+  if (!n) return null;
+  const waiting = n.sent > n.pong ? Date.now() - n.sent : 0;
+  return Math.max(n.rtt ?? 0, waiting) || n.rtt;
+}
+setInterval(() => {
+  const now = Date.now();
+  for (const ws of wss.clients) {
+    if (ws.readyState !== WebSocket.OPEN) continue;
+    const n = netInfo.get(ws) ?? { sent: 0, rtt: null, pong: now };
+    if (n.sent <= n.pong) n.sent = now; // ответ на прошлый ping уже пришёл — новый замер
+    netInfo.set(ws, n);
+    try { ws.ping(); } catch { /* соединение закрывается */ }
+  }
+  // Сводка по комнатам: у каждого игрока — лучшая связь из его соединений.
+  const byRoom = new Map<string, Record<string, number | null>>();
+  for (const room of rooms.values()) {
+    if (![...sockets.values()].some((c) => c.room === room.code)) continue;
+    const rtt: Record<string, number | null> = {};
+    for (const s of room.seats) if (!s.bot) rtt[s.id] = null;
+    for (const [ws, c] of sockets) {
+      if (c.room !== room.code || !c.seat || !(c.seat in rtt)) continue;
+      const r = rttOf(ws);
+      const cur = rtt[c.seat];
+      rtt[c.seat] = cur === null ? (r ?? 9999) : Math.min(cur, r ?? 9999);
+    }
+    byRoom.set(room.code, rtt);
+  }
+  for (const [ws, c] of sockets) {
+    const rtt = byRoom.get(c.room);
+    if (rtt && ws.readyState === WebSocket.OPEN) send(ws, { t: 'net', rtt });
+  }
+}, NET_EVERY);
+
 wss.on('connection', (ws) => {
+  ws.on('pong', () => {
+    const n = netInfo.get(ws);
+    if (n) { n.rtt = Date.now() - n.sent; n.pong = Date.now(); }
+  });
+  ws.on('close', () => netInfo.delete(ws));
   ws.on('message', (data) => {
     try {
       handle(ws, JSON.parse(String(data)) as ClientMessage);

@@ -47,4 +47,6 @@ export type ServerMessage =
   | { t: 'room'; room: RoomInfo; you: string | null; isHost: boolean; view: PlayerView | null; canStepBack?: boolean; build?: string; version?: string } // version — версия игры на сервере
   | { t: 'error'; message: string }
   | { t: 'gone'; code: string; version?: string } // комнаты нет: игру обновили (другая version) или сервер перезапускался
-  | { t: 'probe'; code: string; exists: boolean };
+  | { t: 'probe'; code: string; exists: boolean }
+  // Качество связи игроков комнаты: задержка до сервера в мс (null — не в сети). Раз в несколько секунд.
+  | { t: 'net'; rtt: Record<string, number | null> };

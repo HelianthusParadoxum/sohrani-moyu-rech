@@ -13,6 +13,7 @@ export interface NetState {
   gone: false | 'update' | 'restart'; // комнаты больше нет на сервере: игру обновили или сервер перезапускался
   canStepBack: boolean; // можно нажать «Назад» в своём ходу
   probe: { code: string; exists: boolean } | null; // ответ на вопрос «есть ли комната с таким кодом»
+  rtt: Record<string, number | null>; // задержка связи игроков комнаты, мс (null — не в сети)
 }
 
 // Переход на страницу комнаты (code) или на главную (null) без перезагрузки страницы.
@@ -35,7 +36,7 @@ function writeToken(code: string, token: string) {
 }
 
 export function useServer(code: string | null) {
-  const [state, setState] = useState<NetState>({ connected: false, room: null, you: null, isHost: false, view: null, error: null, gone: false, canStepBack: false, probe: null });
+  const [state, setState] = useState<NetState>({ connected: false, room: null, you: null, isHost: false, view: null, error: null, gone: false, canStepBack: false, probe: null, rtt: {} });
   const ws = useRef<WebSocket | null>(null);
   const queue = useRef<ClientMessage[]>([]);
   // Комната, к которой привязано соединение. Соединение одно на всю страницу: при создании комнаты сервер сразу
@@ -75,6 +76,8 @@ export function useServer(code: string | null) {
           }
           if (msg.version) { try { localStorage.setItem(versionKey(msg.room.code), msg.version); } catch { /* ignore */ } }
           setState((s) => ({ ...s, room: msg.room, you: msg.you, isHost: msg.isHost, view: msg.view, error: null, canStepBack: !!msg.canStepBack }));
+        } else if (msg.t === 'net') {
+          setState((s) => ({ ...s, rtt: msg.rtt }));
         } else if (msg.t === 'probe') {
           setState((s) => ({ ...s, probe: { code: msg.code, exists: msg.exists } }));
         } else if (msg.t === 'gone') {
