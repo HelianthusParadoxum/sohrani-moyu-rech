@@ -98,6 +98,7 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
   border: 1px solid var(--line); border-radius: 4px; background: var(--card); color: var(--ink); cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
 .seats .seat-add:active { transform: scale(.9); }
+.seats .seat-add:focus:not(:focus-visible) { outline: none; } /* рамка фокуса — только при управлении с клавиатуры */
 .seats > li > .dot.bot { display: inline-flex; align-items: center; justify-content: center; font-size: 14px; line-height: 1; }
 .online { color: #1e8449; font-size: 0.85em; }
 /* Лобби: «в сети» — у правого края строки игрока */
