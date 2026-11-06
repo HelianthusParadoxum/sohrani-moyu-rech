@@ -15,7 +15,7 @@ export interface PlayerView extends Omit<GameState, 'rng' | 'seed' | 'deck' | 'd
   baraholka: boolean[]; // есть ли книга в ячейке
   baraholkaKnown: (string | null)[]; // книги Барахолки, которые этот игрок уже посмотрел (с Наводчиком в свой ход — все)
   // Наводчик: в свой ход видны верх стопок и сбросы целиком.
-  spotter?: { deckTop: string | null; loadTop: string | null; discard: string[]; loadDiscard: string[] };
+  spotter?: { deckTop: string | null; loadTop: string | null };
   players: (Omit<PlayerState, 'warehouse' | 'passion' | 'passionOptions'> & {
     warehouse: { card: string | null; hidden: boolean; memorized?: boolean }[];
     passion: PlayerState['passion'];
@@ -49,7 +49,7 @@ export function viewFor(state: GameState, me: string | null, omniscient = false)
     loadDiscardCount: loadDiscard.length,
     baraholka: baraholka.map((c) => !closedTable && c !== null),
     baraholkaKnown: baraholka.map((c, i) => (me !== null && !closedTable && (spot || baraholkaSeen?.[me]?.includes(i)) ? c : null)),
-    ...(spot ? { spotter: { deckTop: deck.at(-1) ?? null, loadTop: loadDeck.at(-1) ?? null, discard: [...discard], loadDiscard: [...loadDiscard] } } : {}),
+    ...(spot ? { spotter: { deckTop: deck.at(-1) ?? null, loadTop: loadDeck.at(-1) ?? null } } : {}),
     players: players.map((p) => {
       const own = p.id === me || ended;
       // До раскладки Тайников в начале партии чужие стартовые книги не видны совсем.

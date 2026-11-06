@@ -2512,7 +2512,7 @@ describe('Наводчик', () => {
     s.discard = [s.deck.pop()!];
     const mine = viewFor(s, me);
     expect(mine.baraholkaKnown).toEqual(s.baraholka);
-    expect(mine.spotter).toEqual({ deckTop: s.deck.at(-1), loadTop: s.loadDeck.at(-1), discard: s.discard, loadDiscard: s.loadDiscard });
+    expect(mine.spotter).toEqual({ deckTop: s.deck.at(-1), loadTop: s.loadDeck.at(-1) }); // сбросов Наводчик не видит
     expect(mine.spetskhranKnown).toEqual(s.spetskhran);
     expect(s.spetskhran.length).toBeGreaterThan(0);
     const theirs = viewFor(s, other);

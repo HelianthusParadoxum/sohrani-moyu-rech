@@ -1283,7 +1283,7 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
   }
 }
 
-// Наводчик: в свой ход — верхние книги стопок и сбросы целиком (книги Барахолки открыты на её карточке).
+// Наводчик: в свой ход — верхние книги стопок и Спецхран (книги Барахолки открыты на её карточке).
 function SpotterButton({ view }: { view: PlayerView }) {
   const [open, setOpen] = useState(false);
   const sp = view.spotter!;
@@ -1292,7 +1292,7 @@ function SpotterButton({ view }: { view: PlayerView }) {
     : <p className="muted">Пусто</p>);
   return (
     <>
-      {' · '}<button className="small" onClick={() => setOpen(true)} title="Наводчик: верх стопок и сбросы">👁 Наводчик</button>
+      {' · '}<button className="small" onClick={() => setOpen(true)} title="Наводчик: верх стопок и Спецхран">👁 Наводчик</button>
       {open && (
         <Modal title="Наводчик" wide onClose={() => setOpen(false)}>
           <h4>Верх стопки Непечатных</h4>
@@ -1301,10 +1301,6 @@ function SpotterButton({ view }: { view: PlayerView }) {
           {shelf(sp.loadTop ? [sp.loadTop] : [])}
           <h4>Спецхран ({view.spetskhranKnown.length})</h4>
           {shelf(view.spetskhranKnown)}
-          <h4>Сброс Непечатных ({sp.discard.length})</h4>
-          {shelf([...sp.discard].reverse())}
-          <h4>Сброс Нагрузки ({sp.loadDiscard.length})</h4>
-          {shelf([...sp.loadDiscard].reverse())}
         </Modal>
       )}
     </>
