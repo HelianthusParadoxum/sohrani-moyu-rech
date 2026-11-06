@@ -280,20 +280,26 @@ function scheduleBots(room: Room) {
   }, room.botDelay ?? 700));
 }
 
-// Боты называются по пресету; номер — только если у нескольких ботов один пресет.
+// Имена ботов. В лобби — просто «Бот 1», «Бот 2»… (по порядку за столом), какая бы стратегия ни была выбрана.
+// С началом партии бот с явно выбранной стратегией называется по ней (номер — если таких ботов несколько),
+// а бот с тайной стратегией остаётся «Бот N» — имя не выдаёт, что ему выпало.
 // Место хоста, отданное боту, сохраняет имя хоста.
-function renameBots(room: Room) {
+function renameBots(room: Room, inGame = !!room.state) {
   const bots = room.seats.filter((s) => s.bot && s.id !== room.host);
+  const num = new Map(bots.map((s, i) => [s.id, i + 1]));
+  const lobbyName = (s: Seat) => `Бот ${num.get(s.id)}`;
+  const baseOf = (s: Seat) => (seatChoice(room, s) === AUTO_PRESET ? null : presetById(seatChoice(room, s)).name);
   const count = new Map<string, number>();
-  // «Наугад» — просто «Бот»: имя не выдаёт выпавшую стратегию.
-  const baseOf = (s: Seat) => (seatChoice(room, s) === AUTO_PRESET ? 'Бот' : presetById(seatChoice(room, s)).name);
-  for (const s of bots) count.set(baseOf(s), (count.get(baseOf(s)) ?? 0) + 1);
+  for (const s of bots) { const b = baseOf(s); if (b) count.set(b, (count.get(b) ?? 0) + 1); }
   const seen = new Map<string, number>();
   for (const s of bots) {
-    const base = baseOf(s);
-    const k = (seen.get(base) ?? 0) + 1;
-    seen.set(base, k);
-    s.name = count.get(base)! > 1 ? `${base} ${k}` : base;
+    const base = inGame ? baseOf(s) : null;
+    if (!base) s.name = lobbyName(s);
+    else {
+      const k = (seen.get(base) ?? 0) + 1;
+      seen.set(base, k);
+      s.name = count.get(base)! > 1 ? `${base} ${k}` : base;
+    }
     const p = room.state?.players.find((x) => x.id === s.id);
     if (p) p.name = s.name;
   }
@@ -397,6 +403,7 @@ function handle(ws: WebSocket, msg: ClientMessage) {
       for (const s of room.seats) delete s.autoPreset;
       // Стратегию «Наугад» выбираем сразу, чтобы зритель видел её с начала партии.
       for (const s of room.seats) if (s.bot) seatPreset(room, s);
+      renameBots(room, true); // имена по стратегиям — уже для партии
       room.state = createGame({
         players: room.seats.map((s) => ({ id: s.id, name: s.name })), mode: room.mode, curator: !room.noCurator, reserve: room.reserve,
         forceCurator: room.forceCurator, curatorStyle: room.curatorStyle || undefined,
