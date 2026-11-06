@@ -215,7 +215,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
         {room.seats.map((s, i) => (
           <li key={s.id}>
             <span className="dot" style={{ background: PLAYER_COLORS[i] }} />
-            {s.name}{s.id === room.host && ' (хост)'}{s.bot && ' 🤖'}
+            {s.bot && '🤖 '}{s.name}{s.id === room.host && ' (хост)'}
             {!s.bot && <span className={s.online ? 'online' : 'offline'}>{s.online ? ' в сети' : ' не в сети'}</span>}
             {s.bot && <PresetSelect seat={s} host={host} send={net.send} solo={room.seats.length === 1} />}
             {host && s.id !== room.host && (

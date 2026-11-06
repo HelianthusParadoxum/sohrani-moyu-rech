@@ -236,7 +236,7 @@ export function PresetSelect({ seat, host, send, solo }: { seat: RoomInfo['seats
       {host ? (
         <Dropdown value={current.id} ariaLabel="Пресет бота" onChange={(preset) => send({ t: 'botPreset', seat: seat.id, preset })}
           options={options.map((p) => ({ value: p.id, label: p.name }))} />
-      ) : <span className="small">{current.name}</span>}
+      ) : <span className="small preset-name">{current.name}</span>}
       <span className="preset-desc muted small">{current.description}</span>
     </>
   );
