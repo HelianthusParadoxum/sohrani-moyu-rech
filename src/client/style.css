@@ -60,7 +60,7 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .home h1 { font-size: 2.2rem; margin-bottom: 0; }
 .subtitle { margin-top: 0; font-family: 'PT Mono', monospace; color: var(--red); }
 /* Титульный экран: подзаголовок — вплотную к заголовку (как подпись «Как вас называть» к полю имени). */
-.title-screen h1 { line-height: 1.1; margin-bottom: 4px; }
+.title-screen h1 { line-height: 40px; margin-bottom: 4px; } /* как заголовок комнаты (строка — по кнопке «назад») */
 .title-screen .subtitle { line-height: 1.2; margin: 0 0 72px; }
 /* Титульный экран: блоки (имя, код, кнопка) — с просторными промежутками. */
 .title-screen > label { margin: 0; }
@@ -501,7 +501,7 @@ label.row > .dropdown { display: inline-block; }
   body.has-mb .modal-bg { padding-top: calc(var(--mb-h, 0px) + 12px); }
 }
 /* Лобби: стрелка «назад» в начальное меню перед заголовком комнаты */
-.room-title { display: flex; align-items: center; gap: 12px; }
+.room-title { display: flex; align-items: center; gap: 12px; line-height: 40px; } /* как заголовок титульного экрана — заголовки на одной высоте */
 .room-title .back { flex: none; width: 40px; height: 40px; padding: 0 2px 0 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--ink); }
 .room-title .back svg { display: block; }
 /* ПК: «назад» — за левой границей блока, на том же расстоянии, что было до названия комнаты. */
