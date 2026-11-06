@@ -620,4 +620,7 @@ label.row > .dropdown { display: inline-block; }
 
 /* Комната: «Отправьте ссылку игрокам» — вплотную под заголовком, как подзаголовок титульного экрана. */
 .home > .room-title { margin-bottom: 4px; }
-.lobby .share p { margin-top: 0; line-height: 20px; }
+.lobby .share { margin-bottom: 8px; position: relative; top: -1px; }
+/* Без собственных полей у текста — кнопка копирования встаёт ровно по центру блока «Отправьте ссылку» + ссылка.
+   Сдвиг на 1 вверх: у этого шрифта буквы сидят на 1 ниже, чем у подзаголовка титульного экрана. */
+.lobby .share p { margin: 0; line-height: 20px; }
