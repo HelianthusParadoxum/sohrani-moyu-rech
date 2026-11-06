@@ -224,11 +224,11 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
                 { value: 'full', label: 'Полные правила', title: 'Все правила: Клуб книголюбов, Контора, свойства жанров; среди игроков может оказаться Куратор.' },
                 { value: 'reserve', label: 'Заповедник (без Конторы и Куратора)', title: 'Полные правила без прямого конфликта: нет Конторы и Куратора.' }]} />
           </label>
-          <label className="row">
+          <SkillSelect room={room} send={net.send} />
+          <label className="row check">
             <input type="checkbox" checked={room.hostBot} onChange={(e) => net.send({ t: 'hostBot', on: e.target.checked })} />
             За меня играет бот — я смотрю партию со стороны
           </label>
-          <SkillSelect room={room} send={net.send} />
         </>
       )}
       {/* Кто за столом — после всех настроек. */}

@@ -238,6 +238,9 @@ button.short { border-style: dashed; color: var(--muted); }
 
 label.row { flex-direction: row; align-items: center; gap: 8px; flex-wrap: nowrap; }
 label.row > input[type="checkbox"] { flex: none; }
+/* Галочка в лобби — крупная, а вся строка — удобная цель для пальца (не ниже 44). */
+label.row.check { min-height: 48px; gap: 12px; cursor: pointer; }
+label.row.check > input[type="checkbox"] { width: 24px; height: 24px; margin: 0; accent-color: var(--accent); cursor: pointer; }
 .address.addr-club { grid-column: 1 / -1; }
 /* Каждый Завсегдатай — на своей подложке, как Ростки */
 .patrons { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
