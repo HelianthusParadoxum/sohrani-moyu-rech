@@ -227,7 +227,7 @@ export function SpeedSelect({ room, send }: { room: RoomInfo; send: (m: ClientMe
 // Пресет бота: хост выбирает, остальные видят название. Под строкой — описание (подсказки при наведении на телефоне не видны).
 export function PresetSelect({ seat, host, send, solo }: { seat: RoomInfo['seats'][number]; host: boolean; send: (m: ClientMessage) => void; solo: boolean }) {
   // «Наугад» — первым и по умолчанию; «Случайного» нет (он для внутренних тестов), «Одиночка» — только в одиночной игре.
-  const auto = { id: AUTO_PRESET, name: 'Случайная стратегия', description: 'Стратегия выпадет случайно и останется скрытой до конца партии.' };
+  const auto = { id: AUTO_PRESET, name: 'Тайная стратегия', description: 'Стратегия выпадет случайно и останется скрытой до конца партии.' };
   const options = [auto, ...selectablePresets(solo)];
   // По умолчанию — «Наугад», а в одиночной игре — «Одиночка».
   const current = options.find((p) => p.id === (seat.preset ?? (solo ? SOLO_PRESET : AUTO_PRESET))) ?? auto;

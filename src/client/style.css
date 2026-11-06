@@ -84,7 +84,9 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .seats select { width: auto; margin: 0; }
 .seats li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; align-content: center; padding: 8px 0; border-bottom: 1px dashed var(--line); }
 /* Строки игроков одной высоты — как строка бота (поле стратегии 40 + поля 16). */
-.seats > li { height: 56px; }
+.seats > li { height: 56px; flex-wrap: nowrap; }
+/* Длинное имя не переносит строку, а сокращается многоточием. */
+.seats .seat-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .seats > li:first-child { border-top: 1px dashed var(--line); } /* пунктир и над первым игроком */
 .seats li.empty { color: var(--muted); }
 .seats .dot.empty { background: transparent; border: 1.5px dashed rgba(0,0,0,.35); }
@@ -95,8 +97,8 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 /* Лобби: «в сети» — у правого края строки игрока */
 .seats .signal { margin-left: auto; display: inline-flex; } /* качество связи — у правого края */
 /* Крестик «убрать» — у правого края строки (после «в сети» — сразу за ним). */
-.seats > li > .dropdown { margin-left: auto; width: 164px; } /* стратегия бота — у правого края */
-.seats > li > .dropdown:last-child { width: 212px; } /* без крестика справа (хост) — шире на крестик с промежутком: левый край вровень с остальными */
+.seats > li > .dropdown { margin-left: auto; width: 172px; flex-shrink: 0; } /* стратегия бота — у правого края */
+.seats > li > .dropdown:last-child { width: 220px; } /* без крестика справа (хост) — шире на крестик с промежутком: левый край вровень с остальными */
 .seats > li > .dropdown .dropdown-btn { width: 100%; }
 .seats .preset-name { margin-left: auto; } /* не хосту — название стратегии у правого края */
 .seats .dropdown ~ .remove { margin-left: 0; }

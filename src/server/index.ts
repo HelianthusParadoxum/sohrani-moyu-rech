@@ -58,7 +58,7 @@ function noteAutoPresets(room: Room) {
   const autos = room.seats.filter((x) => x.bot && x.autoPreset && seatChoice(room, x) === AUTO_PRESET);
   if (!autos.length) return;
   // Заголовок и по строке на бота — с кружком игрока.
-  const head = 'Случайные стратегии ботов:';
+  const head = 'Тайные стратегии ботов:';
   if (s.log.some((l) => l.text === head)) return;
   const win = s.log.findIndex((l) => l.winners);
   s.log.splice(win >= 0 ? win : s.log.length, 0, { round: s.round, text: head },
@@ -86,7 +86,7 @@ function noteForSpectator(room: Room) {
   // Боты «Наугад»: какая стратегия им выпала (соперники узнают это только в конце партии).
   const autos = room.seats.filter((x) => x.bot && x.autoPreset && seatChoice(room, x) === AUTO_PRESET);
   for (const x of autos) {
-    const text = `Для зрителя. ${x.name} (случайная стратегия) играет по стратегии «${presetById(x.autoPreset).name}».`;
+    const text = `Для зрителя. ${x.name} (тайная стратегия) играет по стратегии «${presetById(x.autoPreset).name}».`;
     if (!s.log.some((l) => l.text === text)) s.log.push({ round: s.round, text, only: [], em: true });
   }
   if (s.mode !== 'full') return;
