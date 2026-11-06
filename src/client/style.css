@@ -525,7 +525,7 @@ label.row > .dropdown { display: inline-block; }
 @media (max-width: 600px) {
   /* Свободное место делится 1 : 2 — блок стоит на трети высоты экрана, а не посередине. */
   .home.title-screen { min-height: 100svh; margin: 0 auto; padding: 16px 16px 104px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-start; }
-  .home.title-screen::before { content: ''; flex: 1; }
+  /* Блок — у верхнего края, с тем же отступом, что на экране комнаты. */
   .home.title-screen::after { content: ''; flex: 2; }
   .title-screen .create-bar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
