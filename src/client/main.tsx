@@ -218,7 +218,11 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
             {s.name}{s.id === room.host && ' (хост)'}{s.bot && ' 🤖'}
             {!s.bot && <span className={s.online ? 'online' : 'offline'}>{s.online ? ' в сети' : ' не в сети'}</span>}
             {s.bot && <PresetSelect seat={s} host={host} send={net.send} solo={room.seats.length === 1} />}
-            {host && s.id !== room.host && <button className="small" onClick={() => net.send({ t: 'removeSeat', seat: s.id })}>убрать</button>}
+            {host && s.id !== room.host && (
+              <button className="icon-btn remove" title="Убрать из-за стола" aria-label="Убрать" onClick={() => net.send({ t: 'removeSeat', seat: s.id })}>
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+              </button>
+            )}
           </li>
         ))}
       </ul>
@@ -234,7 +238,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
           <div className="row lobby-actions">
             <button disabled={room.seats.length >= 5} onClick={() => net.send({ t: 'addBot' })}>Добавить бота</button>
             <button className="primary" disabled={room.seats.length < 1} onClick={() => net.send({ t: 'start' })}>
-              {room.seats.length === 1 ? 'Начать одиночную партию' : 'Начать партию'}
+              Начать
             </button>
           </div>
         </>
