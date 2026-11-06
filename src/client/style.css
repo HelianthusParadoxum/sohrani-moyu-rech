@@ -490,14 +490,14 @@ label.row > .dropdown { display: inline-block; }
   margin: 0; padding: 4px 0; list-style: none; background: #fff; border: 1px solid var(--line); border-radius: 4px;
   box-shadow: 0 6px 18px rgba(0,0,0,.18);
 }
-.dropdown-list li { padding: 8px 12px; cursor: pointer; color: var(--ink); }
+.dropdown-list li { padding: 8px 16px; cursor: pointer; color: var(--ink); } /* текст пунктов — с тем же отступом, что в кнопке списка */
 /* Подсветка пункта — только под мышью: на телефоне после касания она «залипала» на пункте. */
 @media (hover: hover) { .dropdown-list li:hover { background: var(--paper-2); } }
 .dropdown-list li:active { background: var(--paper-2); } /* пока палец держат на пункте — подсвечен, отпустили — гаснет */
 .dropdown-list li { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-touch-callout: none; }
 .dropdown-list li.selected { font-weight: 700; }
 .host-tools .dropdown-btn { padding: 2px 20px 2px 4px; background-position: right 5px top calc(50% + 1px); }
-.seats .dropdown-list li { border: 0; display: block; padding: 8px 12px; margin: 0; }
+.seats .dropdown-list li { border: 0; display: block; padding: 8px 16px; margin: 0; }
 /* Телефон: закреплённая сверху плашка — опала, показатели, книги склада */
 .mobile-bar { display: none; }
 @media (max-width: 600px) {
