@@ -57,10 +57,10 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .subtitle { margin-top: 0; font-family: 'PT Mono', monospace; color: var(--red); }
 /* Титульный экран: подзаголовок — вплотную к заголовку (как подпись «Как вас называть» к полю имени). */
 .title-screen h1 { line-height: 1.1; margin-bottom: 4px; }
-.title-screen .subtitle { line-height: 1.2; margin: 0 0 32px; }
+.title-screen .subtitle { line-height: 1.2; margin: 0 0 72px; }
 /* Титульный экран: блоки (имя, код, кнопка) — с просторными промежутками. */
 .title-screen > label { margin: 0; }
-.title-screen .or { margin-top: 32px; }
+.title-screen .or { margin-top: 72px; } /* блоки титульного экрана — через 72, как от ячеек кода до «Создать свою игру» */
 .title-screen > .code-cells { margin-top: 4px; } /* как поле имени под «Как вас называть» */
 /* Автор игры — внизу титульного экрана (на телефоне — над плашкой «Создать свою игру»). */
 .title-screen .credit { position: fixed; left: 0; right: 0; bottom: 16px; margin: 0; text-align: center; }
