@@ -256,9 +256,11 @@ function feedPotential(state: GameState, p: PlayerState, ctx: Ctx): number {
     // Часть нужного уже есть: значки основного жанра и значок поддержки.
     // Фантастика в полном режиме — джокер: закрывает недостающие значки (сначала поддержку, потом основной жанр).
     const icons = books.flatMap((b) => iconsOf(state, b));
-    const scifiWild = state.mode === 'full' && genreOn('scifi') && info.main !== 'scifi' && step.support !== 'scifi';
+    const scifiWild = state.mode === 'full' && genreOn('scifi');
+    // Фантастика — сама основной жанр или поддержка: джокером идут лишь её значки сверх нужного по своему жанру.
+    const ownSci = info.main === 'scifi' ? step.main : step.support === 'scifi' ? 1 : 0;
     // «Чукоккала» — значок любого жанра.
-    let sci = scifiWild ? Math.min(RULES.scifiWildMax, icons.filter((g) => g === 'scifi').length) * tune(ctx, 'feedScifi') : 0;
+    let sci = scifiWild ? Math.min(RULES.scifiWildMax, Math.max(0, icons.filter((g) => g === 'scifi').length - ownSci)) * tune(ctx, 'feedScifi') : 0;
     let wild = books.filter((b) => isWild(state, b)).reduce((s, b) => s + iconCount(state, b), 0);
     let sup = step.support && icons.includes(step.support) ? 1 : 0;
     if (step.support && !sup && sci > 0) { const k = Math.min(1, sci); sup = k; sci -= k; }

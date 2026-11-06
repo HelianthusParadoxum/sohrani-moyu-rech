@@ -168,13 +168,19 @@ export function coversStep(state: CardsInfo, books: string[], main: Genre, need:
   if (opts.labtech && RULES.labtechDiscount === 'step4' && need > 1) reqs.push({ need: need - 1, support }, { need });
   const options = books.map((b) => iconVariants(state, b));
   const ok = (icons: Genre[], r: { need: number; support?: Genre }) => {
-    let m = icons.filter((g) => g === main).length;
-    let s = r.support ? icons.filter((g) => g === r.support).length : 0;
-    // Фантастика заменяет не больше RULES.scifiWildMax значков ступени.
-    let wild = opts.wildScifi && genreOn('scifi') && main !== 'scifi' && r.support !== 'scifi' ? Math.min(RULES.scifiWildMax, icons.filter((g) => g === 'scifi').length) : 0;
-    if (r.support && s === 0 && wild > 0) { wild--; s = 1; }
-    if (RULES.scifiWild === 'any') m += wild; // 'support' — основной жанр Фантастикой не заменить
-    return m >= r.need && (!r.support || s >= 1);
+    const count = (g: Genre) => icons.filter((x) => x === g).length;
+    // Фантастика заменяет не больше RULES.scifiWildMax значков ступени. Если Фантастика — сама основной жанр
+    // или поддержка, джокером идут её «лишние» значки (книга ФА ФА в КЛФ: один — основной, второй — за поддержку).
+    const maxWild = opts.wildScifi && genreOn('scifi') ? Math.min(RULES.scifiWildMax, count('scifi')) : 0;
+    for (let w = 0; w <= maxWild; w++) {
+      let m = count(main) - (main === 'scifi' ? w : 0);
+      let s = r.support ? count(r.support) - (r.support === 'scifi' ? w : 0) : 0;
+      let wild = w;
+      if (r.support && s < 1 && wild > 0) { wild--; s = 1; }
+      if (RULES.scifiWild === 'any') m += wild; // 'support' — основной жанр Фантастикой не заменить
+      if (m >= r.need && (!r.support || s >= 1)) return true;
+    }
+    return false;
   };
   const go = (i: number, icons: Genre[]): boolean => {
     if (i === options.length) return reqs.some((r) => ok(icons, r));

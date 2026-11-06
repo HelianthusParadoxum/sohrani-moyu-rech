@@ -168,6 +168,20 @@ describe('правила редакции октября', () => {
     expect(viewFor(s, other).baraholkaKnown[0]).toBe(s.baraholka[0]);
   });
 
+  it('Барахолка: все книги уже известны — выбирать не нужно, купить можно любую', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    s.baraholkaSeen = { [me]: [0, 1, 2, 3] };
+    s = applyAction(s, me, { type: 'place', place: { address: 'baraholka', slots: [] } });
+    const pend = s.pending[0];
+    expect(pend.kind === 'baraholkaLook' && pend.seen.map((x) => x.slot)).toEqual([0, 1, 2, 3]);
+    // Известны не все — выбор по-прежнему нужен.
+    let t = started();
+    const me2 = t.order[t.turn];
+    t.baraholkaSeen = { [me2]: [0, 1, 2] };
+    expect(() => applyAction(t, me2, { type: 'place', place: { address: 'baraholka', slots: [] } })).toThrow(RuleError);
+  });
+
   it('Толкучка: продать и купить за одну сделку — выручка идёт на покупку (даже с 0–1 Талоном)', () => {
     const s = started();
     const me = s.order[s.turn];
@@ -392,6 +406,16 @@ describe('полный режим', () => {
     const sf = Object.values(s.cards).find((c) => c.kind === 'genre' && c.icons.length === 1 && c.icons[0] === 'scifi')!;
     expect(coversStep(s, [sf.id], 'prose', 1, undefined, { wildScifi: true })).toBe(true);
     expect(coversStep(s, [sf.id], 'prose', 1)).toBe(false);
+  });
+
+  it('ФА ФА закрывает ступень, где Фантастика — основной жанр или поддержка (лишний значок — джокер)', () => {
+    const cards = { cards: { ff: { kind: 'genre', icons: ['scifi', 'scifi'] }, f: { kind: 'genre', icons: ['scifi'] } }, restored: {} } as never;
+    const w = { wildScifi: true };
+    expect(coversStep(cards, ['ff'], 'scifi', 1, 'irony', w)).toBe(true); // КЛФ II: ФА + ИР
+    expect(coversStep(cards, ['ff'], 'foreign', 1, 'scifi', w)).toBe(true); // Переводчики II: ИН + ФА
+    expect(coversStep(cards, ['f'], 'scifi', 1, 'irony', w)).toBe(false); // один значок за два не идёт
+    expect(coversStep(cards, ['ff'], 'scifi', 2, 'album', w)).toBe(false); // КЛФ IV: ФА×2 + АЛ — нужно 3 значка
+    expect(coversStep(cards, ['ff'], 'scifi', 1, 'irony')).toBe(false); // в Периферии джокера нет
   });
 });
 

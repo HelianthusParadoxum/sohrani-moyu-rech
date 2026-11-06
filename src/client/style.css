@@ -286,7 +286,7 @@ label.row.check > input[type="checkbox"]:focus-visible { outline: 2px solid var(
 .addr-club .patrons li { display: flex; flex-direction: column; }
 .patron-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 8px; }
 .patron-links .dot.num.wide { margin-left: 0; min-width: 24px; }
-.patrons li.removed { opacity: 0.4; text-decoration: line-through; }
+.patrons li.removed { background: #e4e2de; border-color: #cfccc6; opacity: 0.6; text-decoration: line-through; }
 .patrons li.turned b { color: var(--muted); }
 .targets .book { box-shadow: 0 0 0 2px #e6b35a; }
 

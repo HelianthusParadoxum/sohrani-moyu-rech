@@ -327,7 +327,7 @@ function sproutWhy(view: PlayerView, me: VPlayer, sp: PlayerView['sprouts'][numb
   }
   if (sproutOpen(view, me, sp)) return null;
   const need = `${Array.from({ length: next.main }, () => `[${GENRE_SHORT[info.main]}]`).join(' ')}${next.support ? ` и значок поддержки [${GENRE_SHORT[next.support]}]` : ''}`;
-  return `Для ступени ${roman(sp.progress + 1)} Ростка «${info.name}» нужно: ${need}. Таких книг у вас на складе не хватает${view.mode === 'full' && info.main !== 'scifi' && next.support !== 'scifi' ? ` ([${GENRE_SHORT.scifi}]\u00a0Фантастика может заменить недостающий значок)` : ''}.`;
+  return `Для ступени ${roman(sp.progress + 1)} Ростка «${info.name}» нужно: ${need}. Таких книг у вас на складе не хватает${view.mode === 'full' ? ` ([${GENRE_SHORT.scifi}]\u00a0Фантастика может заменить недостающий значок)` : ''}.`;
 }
 
 // Можно ли издать книгу через Самиздат / Тамиздат.
@@ -644,6 +644,20 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
       const need = Math.min(RULES.baraholkaLook, view.baraholka.filter(Boolean).length);
       // Выбор по кругу: новая книга вытесняет самую раннюю из выбранных.
       const pick = (i: string) => setSel(sel.includes(i) ? sel.filter((x) => x !== i) : [...sel, i].slice(-need));
+      // Все книги уже известны (смотрели раньше или Наводчик) — шаг выбора пропускаем: купить можно любую.
+      const knowsAll = view.baraholka.every((has, i) => !has || !!view.baraholkaKnown?.[i]);
+      if (knowsAll) {
+        body = (
+          <>
+            <p>Вы уже знаете все книги на Барахолке — выбирать, какие посмотреть, не нужно. Купить можно любую за {RULES.baraholkaPrice}т.</p>
+            <div className="shelf grid2">
+              {view.baraholka.map((has, i) => has && <Book key={i} v={view} id={view.baraholkaKnown![i]} note="вы видели" />)}
+            </div>
+            {confirmBtn('Порыться на Барахолке', { address: 'baraholka', slots: [] })}
+          </>
+        );
+        break;
+      }
       body = (
         <>
           <p>Выберите {need === 1 ? 'закрытую книгу' : `${need} закрытые книги`}. Вы тайно посмотрите их и сможете купить одну за {RULES.baraholkaPrice}т.
