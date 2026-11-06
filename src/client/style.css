@@ -441,7 +441,6 @@ label.row.check > input[type="checkbox"]:focus-visible { outline: 2px solid var(
 @media (max-width: 600px) {
   /* Под плашкой с кнопками — ровно её высота, без лишнего запаса: когда всё помещается, прокрутки нет. */
   .home.lobby { margin-bottom: 0; padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
-  .lobby .seats { margin-bottom: 0; }
   .lobby .lobby-actions {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; margin: 0;
     display: flex; justify-content: space-between; gap: 16px;
@@ -624,3 +623,6 @@ label.row > .dropdown { display: inline-block; }
 /* Без собственных полей у текста — кнопка копирования встаёт ровно по центру блока «Отправьте ссылку» + ссылка.
    Сдвиг на 1 вверх: у этого шрифта буквы сидят на 1 ниже, чем у подзаголовка титульного экрана. */
 .lobby .share p { margin: 0; line-height: 20px; }
+
+/* От пунктира под списком игроков до галочки «За меня играет бот» — 16, как от плюсов до пунктиров в строках. */
+.lobby .seats { margin-bottom: 16px; }
