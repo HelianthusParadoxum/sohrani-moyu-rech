@@ -1698,10 +1698,9 @@ function MyPanel({ view, me, color, groupWhy, onGroup, onMemorize, onCache }: {
       <Stats p={me} view={view} />
       {me.passion && (
         <div className="passion-line" title={`Пристрастие: ${PASSIONS[me.passion].name} — ${PASSIONS[me.passion].hint}`}>
-          <span>{passionIcon(me.passion)}</span>{passionMarks(me.passion)}
+          <span>{passionIcon(me.passion)}</span>{me.passion === 'erudite' ? <EruditePanel view={view} me={me} /> : passionMarks(me.passion)}
         </div>
       )}
-      {me.passion === 'erudite' && <EruditePanel view={view} me={me} />}
       <div className="shelf wrap">{me.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}{emptySlots(freeShelf(me))}</div>
       {onCache && (
         <div className="group-actions">
