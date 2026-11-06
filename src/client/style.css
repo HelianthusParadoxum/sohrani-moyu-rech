@@ -49,6 +49,8 @@ input, select { font: inherit; padding: 8px 8px; border: 1px solid var(--line); 
 label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .muted { color: var(--muted); }
 .center { text-align: center; margin-top: 20vh; }
+/* Надписи загрузки — всегда в одном месте экрана (по центру), какой бы экран ни был до и после. */
+.loading { position: fixed; inset: 0; margin: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 16px; }
 .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 /* ---------- Главная и лобби ---------- */
