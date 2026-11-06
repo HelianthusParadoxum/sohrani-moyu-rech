@@ -225,10 +225,6 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
                 { value: 'reserve', label: 'Заповедник (без Конторы и Куратора)', title: 'Полные правила без прямого конфликта: нет Конторы и Куратора.' }]} />
           </label>
           <SkillSelect room={room} send={net.send} />
-          <label className="row check">
-            <input type="checkbox" checked={room.hostBot} onChange={(e) => net.send({ t: 'hostBot', on: e.target.checked })} />
-            За меня играет бот — я смотрю партию со стороны
-          </label>
         </>
       )}
       {/* Кто за столом — после всех настроек. */}
@@ -251,6 +247,12 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
           <li key={`empty${i}`} className="empty"><span className="dot empty" /> Пусто</li>
         ))}
       </ul>
+      {host && (
+        <label className="row check">
+          <input type="checkbox" checked={room.hostBot} onChange={(e) => net.send({ t: 'hostBot', on: e.target.checked })} />
+          За меня играет бот — я смотрю партию со стороны
+        </label>
+      )}
       {!seated && !room.started && (
         <div className="row">
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ваше имя" maxLength={24} />
