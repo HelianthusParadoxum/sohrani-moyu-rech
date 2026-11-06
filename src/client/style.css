@@ -60,7 +60,7 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .title-screen .subtitle { line-height: 1.2; margin: 0 0 16px; }
 /* Автор игры — внизу титульного экрана (на телефоне — над плашкой «Создать свою игру»). */
 .title-screen .credit { position: fixed; left: 0; right: 0; bottom: 16px; margin: 0; text-align: center; }
-@media (max-width: 600px) { .title-screen .credit { bottom: calc(64px + 12px + env(safe-area-inset-bottom)); } }
+@media (max-width: 600px) { .title-screen .credit { bottom: calc(80px + 12px + env(safe-area-inset-bottom)); } }
 /* ПК: «Создать свою игру» — по центру под вводом кода. */
 @media (min-width: 601px) {
   .title-screen .create-bar { display: flex; justify-content: center; margin-top: 24px; }
@@ -331,7 +331,7 @@ label.row > input[type="checkbox"] { flex: none; }
 }
 .end-turn-sheet.show { transform: translateY(0); visibility: visible; }
 .end-turn-sheet button { padding: 12px 24px; font-size: 1rem; }
-.layout { padding-bottom: 72px; }
+.layout { padding-bottom: 88px; }
 /* На широком экране — компактная плашка в правом нижнем углу. */
 @media (min-width: 1001px) {
   .end-turn-sheet { left: auto; right: 20px; bottom: 20px; border: 1px solid rgba(0,0,0,.15); border-radius: 8px; transform: translateY(150%); }
@@ -387,7 +387,7 @@ label.row > input[type="checkbox"] { flex: none; }
 
 /* Лобби на телефоне: «Добавить бота» и «Начать партию» — на плашке внизу экрана */
 @media (max-width: 600px) {
-  .lobby { padding-bottom: 96px; }
+  .lobby { padding-bottom: 104px; }
   .lobby .lobby-actions {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; margin: 0;
     display: flex; justify-content: space-between; gap: 12px;
@@ -482,7 +482,7 @@ label.row > .dropdown { display: inline-block; }
 /* Титульный экран: на телефоне — по центру экрана; «Создать комнату» — на плашке внизу во всю ширину */
 @media (max-width: 600px) {
   /* Свободное место делится 1 : 2 — блок стоит на трети высоты экрана, а не посередине. */
-  .home.title-screen { min-height: 100svh; margin: 0 auto; padding: 16px 16px 96px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-start; }
+  .home.title-screen { min-height: 100svh; margin: 0 auto; padding: 16px 16px 104px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-start; }
   .home.title-screen::before { content: ''; flex: 1; }
   .home.title-screen::after { content: ''; flex: 2; }
   .title-screen .create-bar {
@@ -496,16 +496,14 @@ label.row > .dropdown { display: inline-block; }
 .code-cells { gap: 12px; }
 .code-cells .cell { width: 66px; height: 80px; font-size: 2.6rem; }
 /* Нижние плашки (Закончить ход, лобби, титульный экран) — одной высоты, кнопки в них — тоже */
-.end-turn-sheet, .lobby .lobby-actions, .title-screen .create-bar { min-height: 64px; box-sizing: border-box; align-items: center; }
+.end-turn-sheet, .lobby .lobby-actions, .title-screen .create-bar { min-height: 80px; box-sizing: border-box; align-items: center; }
 .end-turn-sheet button, .lobby .lobby-actions button, .title-screen .create-bar button {
-  height: 44px; padding: 0 20px; font-size: 1rem; line-height: 1; box-sizing: border-box;
+  height: 56px; padding: 0 20px; font-size: 1rem; line-height: 1; box-sizing: border-box;
 }
 @media (max-width: 600px) {
   .end-turn-sheet, .lobby .lobby-actions, .title-screen .create-bar { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
   .title-screen .create-bar { display: flex; }
 }
-/* Лобби: «Добавить бота» и «Начать» — высотой 56 (и на ПК, и на телефоне). */
-.lobby .lobby-actions button { height: 56px; }
 @media (max-width: 600px) {
   .lobby .lobby-actions { flex-wrap: nowrap; }
   .lobby .lobby-actions button { white-space: nowrap; padding: 0 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
