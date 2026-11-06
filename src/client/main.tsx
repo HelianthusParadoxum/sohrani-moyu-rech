@@ -2,8 +2,7 @@ import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { NAVIGATE, navigate, useServer } from './net';
 import { Game } from './game';
-import { RULES } from '../engine/content';
-import { Dropdown, KindChip, Modal, PLAYER_COLORS, PresetSelect, SkillSelect } from './ui';
+import { Dropdown, Modal, PLAYER_COLORS, PresetSelect, SkillSelect } from './ui';
 import './style.css';
 import './tips';
 
@@ -223,13 +222,6 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
               {room.seats.length === 1 ? 'Начать одиночную партию' : 'Начать партию'}
             </button>
           </div>
-          {room.seats.length === 1 && (
-            <p className="muted small">
-              Один игрок — режим «Несистемный»: {room.mode === 'full' ? 3 : 2} Ростка, Куратора нет, Цензура растёт на 1 каждую Пятилетку
-              {room.mode === 'full' ? (room.reserve ? ', со 2-й Пятилетки лишний жетон жанра бьёт по Клубу (Профилактика)' : ', со 2-й Пятилетки лишний жетон жанра бьёт по Клубу (Профилактика или Контора)') : ''}.
-              В конце вскрываются {RULES.soloEndCards[room.mode]} Непечатных: каждая <KindChip k="chnl" /> срезает ступень у самого развитого Ростка. Победа — если все Ростки устояли на III ступени.
-            </p>
-          )}
         </>
       )}
       {seated && !host && <p className="muted">Ждём, пока хост начнёт партию…</p>}
