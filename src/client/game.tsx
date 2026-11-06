@@ -350,11 +350,13 @@ function addressBlocker(view: PlayerView, me: VPlayer, id: AddressId): string | 
     case 'gostorg':
       return free < 2 ? 'Нужно 2 свободных места на складе.' : null;
     case 'tolkuchka': {
-      const canBuy = view.tolkuchka.length > 0 && !roomFor(view.tolkuchka) && me.talons >= priceFor(view, me, RULES.tolkuchkaBuy);
+      // Цена — со всеми скидками Завсегдатаев (Скупщик, Ветеран): книга может выйти и даром.
+      const canBuy = view.tolkuchka.length > 0 && !roomFor(view.tolkuchka) && me.talons >= buyCost(view, me, [RULES.tolkuchkaBuy]);
       return canBuy || sellable.length ? null : 'Нечего продать и не на что (или некуда) купить.';
     }
     case 'razval': {
-      const prices = view.razval.flatMap((c, i) => (c ? [priceFor(view, me, RULES.razvalPrices[i])] : []));
+      // Цена — со всеми скидками Завсегдатаев (Скупщик, Ветеран): книга за 1 Талон с Ветераном — даром.
+      const prices = view.razval.flatMap((c, i) => (c ? [buyCost(view, me, [RULES.razvalPrices[i]])] : []));
       if (!prices.length) return 'Развал пуст.';
       return roomFor(view.razval) ?? (me.talons >= Math.min(...prices) ? null : `Не хватает Талонов: самая дешёвая книга — ${Math.min(...prices)}т.`);
     }
@@ -382,7 +384,7 @@ function addressBlocker(view: PlayerView, me: VPlayer, id: AddressId): string | 
       return view.players.some((o) => o.id !== me.id && o.warehouse.some((s) => s.card && !s.hidden)) ? null : 'Ни у кого нет книг на виду.';
     case 'raspredelitel':
       if (!view.raspredelitel.length) return 'Распределитель пуст.';
-      return roomFor(view.raspredelitel) ?? talons(RULES.raspredelitelPrice);
+      return roomFor(view.raspredelitel) ?? (me.talons >= buyCost(view, me, [RULES.raspredelitelPrice]) ? null : `Нужно ${buyCost(view, me, [RULES.raspredelitelPrice])}т, у вас ${me.talons}.`);
     case 'agitpunkt':
       if (!(view.agitpunkt ?? []).length) return 'Витрина пуста.';
       return room;
@@ -1178,7 +1180,7 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
       const veteran = hasPatron(view, me.id, 'veteran');
       const more = veteran ? view.baraholka.map((has, i) => (has && !p.seen.some((x) => x.slot === i) ? i : -1)).filter((i) => i >= 0) : [];
       const bought = p.bought ?? 0;
-      const cost = veteran && bought === 1 ? 0 : RULES.baraholkaPrice;
+      const cost = bought === 0 ? buyCost(view, me, [RULES.baraholkaPrice]) : RULES.baraholkaPrice;
       return (
         <Modal title="Барахолка">
           <p>Вы тайно смотрите {p.seen.length === 1 ? 'книгу' : 'книги'}{veteran ? '' : ' и можете купить одну из них'}:</p>
@@ -1190,7 +1192,7 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
               </div>
             ))}
           </div>
-          {veteran && <p className="muted small">Ветеран: можно смотреть и покупать сколько угодно книг; в сумме на 1 Талон дешевле (вторая книга бесплатно). Куплено: {bought}.</p>}
+          {veteran && <p className="muted small">Ветеран: можно смотреть и покупать сколько угодно книг; в сумме на 1 Талон дешевле (первая книга — даром). Куплено: {bought}.</p>}
           <div className="modal-foot">
             <span className="muted">у вас {me.talons}🎫</span>
             <button onClick={() => act({ type: 'baraholkaBuy' })}>{bought ? 'Закончить' : 'Ничего не брать'}</button>

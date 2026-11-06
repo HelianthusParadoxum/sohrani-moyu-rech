@@ -1534,9 +1534,9 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         const i = pend.seen.findIndex((x) => x.slot === action.slot);
         check(i >= 0, 'Купить можно только одну из просмотренных книг');
         const { slot, card } = pend.seen[i];
-        // Ветеран платит за все книги действия в сумме на 1 Талон меньше (минимум 1): вторая книга — бесплатно.
-        const cost = veteran && bought === 1 ? 0 : bought === 0 ? price(state, p, RULES.baraholkaPrice) : RULES.baraholkaPrice;
-        if (veteran && bought === 1) saved(p, 'veteran', RULES.baraholkaPrice);
+        // Ветеран: всё действие на 1 Талон дешевле (как на Развале) — первая книга за 1 Талон выходит даром.
+        let cost = bought === 0 ? price(state, p, RULES.baraholkaPrice) : RULES.baraholkaPrice;
+        if (veteran && bought === 0 && cost > 0) { cost--; saved(p, 'veteran', 1); }
         pay(p, cost);
         state.baraholka[slot] = null;
         for (const id of Object.keys(state.baraholkaSeen ?? {})) state.baraholkaSeen![id] = state.baraholkaSeen![id].filter((x) => x !== slot);

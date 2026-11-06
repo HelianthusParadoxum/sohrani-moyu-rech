@@ -551,6 +551,22 @@ describe('Завсегдатаи: Ветеран, Лейтенант, Управ
     }
   });
 
+  it('Ветеран: на Барахолке одна книга за 1 Талон — даром (и без Талонов)', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    connect(s, 'veteran', [me]);
+    s.players.find((x) => x.id === me)!.talons = 0;
+    const card = s.baraholka[0]!;
+    s = applyAction(s, me, { type: 'place', place: { address: 'baraholka', slots: [0, 1] } });
+    s = applyAction(s, me, { type: 'baraholkaBuy', slot: 0 });
+    // Вторая книга — уже по полной цене: Талонов нет.
+    expect(() => applyAction(s, me, { type: 'baraholkaBuy', slot: 1 })).toThrow(RuleError);
+    s = applyAction(s, me, { type: 'baraholkaBuy' });
+    const p = s.players.find((x) => x.id === me)!;
+    expect(p.talons).toBe(0);
+    expect(p.warehouse.some((w) => w.card === card)).toBe(true);
+  });
+
   it('Лейтенант забирает книги, изъятые с адресов', () => {
     let found = false;
     for (let seed = 1; seed <= 10 && !found; seed++) {
