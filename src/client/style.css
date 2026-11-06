@@ -61,6 +61,7 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 /* Титульный экран: блоки (имя, код, кнопка) — с просторными промежутками. */
 .title-screen > label { margin: 0; }
 .title-screen .or { margin-top: 32px; }
+.title-screen > .code-cells { margin-top: 4px; } /* как поле имени под «Как вас называть» */
 /* Автор игры — внизу титульного экрана (на телефоне — над плашкой «Создать свою игру»). */
 .title-screen .credit { position: fixed; left: 0; right: 0; bottom: 16px; margin: 0; text-align: center; }
 @media (max-width: 600px) { .title-screen .credit { bottom: calc(80px + 12px + env(safe-area-inset-bottom)); } }
