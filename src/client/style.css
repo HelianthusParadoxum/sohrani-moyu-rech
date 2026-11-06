@@ -486,6 +486,7 @@ label.row > .dropdown { display: inline-block; }
 /* Лобби: ссылка на комнату и кнопка-иконка «скопировать» */
 .lobby .share { display: flex; align-items: center; justify-content: space-between; gap: 12px; } /* кнопка копирования — у правого края блока */
 .lobby .share p { margin: 8px 0; min-width: 0; }
+.lobby .share .copied { color: #1e8449; }
 .icon-btn { flex: none; width: 40px; height: 40px; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--ink); }
 .icon-btn svg { display: block; }
 /* Телефон: свой планшет — первым, планшеты соперников — в обратном порядке, журнал — после;

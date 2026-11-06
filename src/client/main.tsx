@@ -134,8 +134,8 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
   );
 }
 
-// Кнопка-иконка «скопировать ссылку»; после нажатия на секунду — галочка.
-function CopyButton({ text }: { text: string }) {
+// Скопировать текст в буфер; done — на секунду после успешного копирования.
+function useCopy(text: string): [boolean, () => void] {
   const [done, setDone] = useState(false);
   const copy = () => {
     const ok = () => { setDone(true); setTimeout(() => setDone(false), 1200); };
@@ -150,6 +150,26 @@ function CopyButton({ text }: { text: string }) {
     if (navigator.clipboard) navigator.clipboard.writeText(text).then(ok, fallback);
     else fallback();
   };
+  return [done, copy];
+}
+
+// Ссылка на комнату: и по нажатию на саму ссылку, и по кнопке-иконке — копируется (а не открывается).
+// После копирования на секунду — галочка на кнопке.
+function ShareLink({ link }: { link: string }) {
+  const [done, copy] = useCopy(link);
+  return (
+    <div className="share">
+      <p>Отправьте ссылку игрокам:<br />
+        <a href={link} onClick={(e) => { e.preventDefault(); copy(); }} title={done ? 'Скопировано' : 'Нажмите, чтобы скопировать'}>{link.replace(/^https?:\/\//, '')}</a>
+        {done && <span className="copied small"> скопировано</span>}
+      </p>
+      <CopyButton done={done} copy={copy} />
+    </div>
+  );
+}
+
+// Кнопка-иконка «скопировать ссылку»; после нажатия на секунду — галочка.
+function CopyButton({ done, copy }: { done: boolean; copy: () => void }) {
   return (
     <button className="icon-btn" onClick={copy} aria-label="Скопировать ссылку" title={done ? 'Скопировано' : 'Скопировать ссылку'}>
       {done ? (
@@ -176,10 +196,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
         </button>
         Комната {room.code}
       </h1>
-      <div className="share">
-        <p>Отправьте ссылку игрокам:<br /><a href={link}>{link.replace(/^https?:\/\//, "")}</a></p>
-        <CopyButton text={link} />
-      </div>
+      <ShareLink link={link} />
       {host && (
         <>
           <label>Режим
