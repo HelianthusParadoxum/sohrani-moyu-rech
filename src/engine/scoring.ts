@@ -48,7 +48,12 @@ export function passionPoints(state: GameState, p: PlayerState): number {
     }
     case 'erudite': {
       // Очки за значки и (если включено) за каждый засчитанный жанр, не больше eruditeMaxGenres жанров.
-      const best = eruditeBest(variants);
+      // «Чукоккала» с монографией — два значка любого жанра: у Эрудита они закрывают два разных жанра
+      // (как две отдельные книги по одному значку), а не два значка одного.
+      const ids = collection(state, p);
+      const erudite = ids.flatMap((id, i) => (state.cards[id].wild && state.restored[id]
+        ? [GENRES.map((g) => [g]), GENRES.map((g) => [g])] : [variants[i]]));
+      const best = eruditeBest(erudite);
       let top = 0;
       best.forEach((icons, mask) => {
         const genres = popcount(mask);

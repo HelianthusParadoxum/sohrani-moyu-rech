@@ -254,7 +254,7 @@ describe('значок возвращения у двужанровой книг
     expect(passionPoints(s, p)).toBe(2 * RULES.passionErudite + 1 * RULES.eruditePerGenre);
   });
 
-  it('Эрудит: Чукоккала засчитывается только за один жанр (и после монографии — тоже один)', () => {
+  it('Эрудит: Чукоккала засчитывается за один жанр, с монографией — за два разных', () => {
     const s = createGame({ players: players(2), seed: 4, mode: 'full' });
     const p = s.players[0];
     p.passion = 'erudite';
@@ -262,8 +262,8 @@ describe('значок возвращения у двужанровой книг
     p.warehouse = [{ card: chuk, hidden: false }];
     p.published = [];
     expect(passionPoints(s, p)).toBe(RULES.passionErudite + RULES.eruditePerGenre);
-    s.restored[chuk] = true;
-    expect(passionPoints(s, p)).toBe(2 * RULES.passionErudite + RULES.eruditePerGenre);
+    s.restored[chuk] = true; // с монографией — два разных жанра
+    expect(passionPoints(s, p)).toBe(2 * RULES.passionErudite + 2 * RULES.eruditePerGenre);
   });
 
   it('закрывает ступень Ростка значком любого из двух жанров', () => {
