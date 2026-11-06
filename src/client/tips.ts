@@ -24,6 +24,7 @@ let timer: ReturnType<typeof setTimeout> | undefined;
 let tip: HTMLDivElement | null = null;
 let start: { x: number; y: number } | null = null;
 let swallowClick = false;
+let inList = false; // подсказка у пункта выпадающего списка — прячется, как только палец отпустили
 
 function hide() {
   clearTimeout(timer);
@@ -59,6 +60,7 @@ document.addEventListener('touchstart', (e) => {
   swallowClick = false;
   const el = (e.target as Element | null)?.closest<HTMLElement>('[data-tip]');
   if (!el?.dataset.tip) return;
+  inList = !!el.closest('.dropdown-list');
   const t = e.touches[0];
   start = { x: t.clientX, y: t.clientY };
   const text = el.dataset.tip;
@@ -70,7 +72,7 @@ document.addEventListener('touchmove', (e) => {
   if (start && Math.hypot(t.clientX - start.x, t.clientY - start.y) > 10 && !tip) clearTimeout(timer);
 }, { passive: true });
 
-document.addEventListener('touchend', () => { if (!tip) clearTimeout(timer); start = null; }, { passive: true });
+document.addEventListener('touchend', () => { if (!tip || inList) hide(); start = null; }, { passive: true });
 
 // Клик, завершающий долгое нажатие, — не действие.
 document.addEventListener('click', (e) => {
