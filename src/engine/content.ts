@@ -31,7 +31,7 @@ export const RULES = {
   startCapacity: 5,
   startCache: 0, // мест в Тайнике в начале партии (было 1; места дают ещё Нагрузка на складе и Закладка Тайника)
   maxCapacity: 10,
-  maxCache: 6,
+  maxCache: 5,
   startCensorship: 3,
   censorshipTokens: [3, 4, 5, 6, 7],
   displaySize: 4,
