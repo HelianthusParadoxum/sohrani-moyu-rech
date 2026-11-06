@@ -181,8 +181,10 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
         <>
           <label>Режим
             <Dropdown value={room.reserve ? 'reserve' : room.mode} ariaLabel="Режим" onChange={(mode) => net.send({ t: 'setMode', mode: mode as 'beginner' })}
-              options={[{ value: 'beginner', label: 'Периферия (для начинающих)' }, { value: 'full', label: 'Полные правила' },
-                { value: 'reserve', label: 'Заповедник (без Конторы и Куратора)' }]} />
+              options={[
+                { value: 'beginner', label: 'Периферия (для начинающих)', title: 'Для первой партии: без Клуба книголюбов, Конторы, Куратора и свойств жанров.' },
+                { value: 'full', label: 'Полные правила', title: 'Все правила: Клуб книголюбов, Контора, свойства жанров; среди игроков может оказаться Куратор.' },
+                { value: 'reserve', label: 'Заповедник (без Конторы и Куратора)', title: 'Полные правила без прямого конфликта: нет Конторы и Куратора.' }]} />
           </label>
           <label className="row">
             <input type="checkbox" checked={room.hostBot} onChange={(e) => net.send({ t: 'hostBot', on: e.target.checked })} />
