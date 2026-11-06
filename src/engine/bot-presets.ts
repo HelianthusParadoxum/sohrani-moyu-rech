@@ -43,7 +43,7 @@ export const BOT_PRESETS: BotPreset[] = [
   {
     id: 'bookman',
     name: 'Книжник',
-    description: 'Сбалансированный: растит сеть в начале, питает Ростки, к концу собирает книги под Пристрастие.',
+    description: 'Сеть, затем Ростки, к концу — Пристрастие.',
     goals: {
       network: [7, 6, 5, 4, 3],
       sprouts: [6, 6, 7, 8, 9],
@@ -59,7 +59,7 @@ export const BOT_PRESETS: BotPreset[] = [
   {
     id: 'networker',
     name: 'Сетевик',
-    description: 'Сначала расширяет сеть до предела, потом пользуется лишними руками.',
+    description: 'Сначала расширяет сеть, потом пользуется ею.',
     goals: {
       network: [10, 9, 7, 5, 4],
       sprouts: [5, 5, 6, 8, 9],
@@ -75,7 +75,7 @@ export const BOT_PRESETS: BotPreset[] = [
   {
     id: 'gardener',
     name: 'Садовник',
-    description: 'Главное — Ростки Гласности: копит под них книги и закрывает ступени.',
+    description: 'Копит книги под Ростки и закрывает ступени.',
     goals: {
       network: [6, 5, 4, 3, 3],
       sprouts: [9, 9, 10, 10, 10],
@@ -91,7 +91,7 @@ export const BOT_PRESETS: BotPreset[] = [
   {
     id: 'collector',
     name: 'Коллекционер',
-    description: 'Собирает книги под Пристрастие, бережёт их от облав, Ростки — по остаточному принципу.',
+    description: 'Собирает книги под Пристрастие и прячет их.',
     goals: {
       network: [6, 5, 4, 2, 2],
       sprouts: [4, 4, 5, 6, 7],
@@ -107,7 +107,7 @@ export const BOT_PRESETS: BotPreset[] = [
   {
     id: 'publisher',
     name: 'Издатель',
-    description: 'Издаёт всё, что можно, ради Талонов и очков Тамиздата.',
+    description: 'Издаёт всё подряд ради Талонов и очков.',
     goals: {
       network: [7, 6, 5, 4, 3],
       sprouts: [5, 5, 6, 7, 8],
@@ -123,7 +123,7 @@ export const BOT_PRESETS: BotPreset[] = [
   {
     id: 'soloist',
     name: 'Одиночка',
-    description: 'Для одиночной игры («Несистемный»): прежде всего безопасность Гласности — все Ростки до III, один до IV; ищет книги на Барахолке и Развозе, издаёт только лишнее.',
+    description: 'Для одиночной игры: бережёт Гласность.',
     goals: {
       network: [7, 6, 5, 4, 3],
       sprouts: [8, 8, 8, 8, 8],
@@ -140,7 +140,7 @@ export const BOT_PRESETS: BotPreset[] = [
   {
     id: 'random',
     name: 'Случайный',
-    description: 'Прежний бот: ходит почти наугад. Нужен для сравнения.',
+    description: 'Ходит почти наугад. Для сравнения.',
     random: true,
     goals: {
       network: [5, 5, 5, 5, 5], sprouts: [5, 5, 5, 5, 5], sproutBooks: [5, 5, 5, 5, 5], publish: [5, 5, 5, 5, 5],
