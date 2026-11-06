@@ -337,6 +337,7 @@ label.row > input[type="checkbox"] { flex: none; }
 /* Завсегдатаи и Ростки: доступные для поручения обведены, как адреса; недоступные Завсегдатаи и полностью закрытые Ростки — приглушены */
 .patrons li.can { box-shadow: 0 0 0 2px #e6b35a; cursor: pointer; }
 .patrons li.off { opacity: 0.5; }
+.patrons li.mine.off { opacity: 1; }
 .sprout.can { box-shadow: 0 0 0 2px #e6b35a; cursor: pointer; }
 /* Клуб и Ростки целиком не подсвечиваем — доступность видна у отдельных Завсегдатаев и Ростков. */
 .address.addr-club.can, .sprouts-panel.address.can { box-shadow: none; }

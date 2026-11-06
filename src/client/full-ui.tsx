@@ -45,8 +45,12 @@ export function ClubContents({ view, seatIndex, me, onPatron, onBlocked }: { vie
     <ul className="patrons">
       {byClubOrder(view.patrons).map((pt) => {
         const can = !!onPatron && !!me && patronOpen(view, me, pt);
+        // Своя связь — подложка в бледный цвет игрока.
+        const mine = !!me && !pt.removed && pt.connections.includes(me.id);
+        const tint = mine ? PLAYER_COLORS[seatIndex(me!.id)] : null;
         return (
-        <li key={pt.id} className={`${pt.removed ? 'removed' : ''} ${pt.turned ? 'turned' : ''} ${can ? 'can' : ''} ${onPatron && !can ? 'off' : ''}`}
+        <li key={pt.id} className={`${pt.removed ? 'removed' : ''} ${pt.turned ? 'turned' : ''} ${can ? 'can' : ''} ${onPatron && !can ? 'off' : ''} ${mine ? 'mine' : ''}`}
+          style={tint ? { background: `color-mix(in srgb, ${tint} 16%, var(--card))`, borderColor: tint } : undefined}
           title={iconize(PATRONS[pt.id].hint)} role={can ? 'button' : undefined}
           onClick={can ? (e) => { e.stopPropagation(); onPatron!(pt.id); } : onBlocked ? (e) => { e.stopPropagation(); onBlocked(pt.id); } : onPatron ? (e) => e.stopPropagation() : undefined}>
           <div className="patron-head"><b>{PATRONS[pt.id].name}</b><GenreChip g={pt.genre} /></div>
