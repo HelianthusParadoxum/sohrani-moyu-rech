@@ -1387,7 +1387,13 @@ function withGenreChips(raw: string, icons = true): ReactNode {
     if (run.length && chipNext && /^[ +]?$/.test(node)) { run.push(node); return; }
     flush();
     const glue = chipNext ? /💡$/.exec(node)?.[0] ?? '' : '';
-    if (node.length > glue.length) out.push(node.slice(0, node.length - glue.length));
+    // Стрелка «→» в PT Sans сидит низко — поднимаем её к середине цифр («Талоны 3 → 5»).
+    if (node.length > glue.length) {
+      node.slice(0, node.length - glue.length).split(/(→)/).forEach((s) => {
+        if (s === '→') out.push(<span key={`arr${out.length}`} className="log-arrow">→</span>);
+        else if (s) out.push(s);
+      });
+    }
     if (glue) run.push(glue);
   });
   flush();
