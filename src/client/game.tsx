@@ -1387,10 +1387,10 @@ function withGenreChips(raw: string, icons = true): ReactNode {
     if (run.length && chipNext && /^[ +]?$/.test(node)) { run.push(node); return; }
     flush();
     const glue = chipNext ? /💡$/.exec(node)?.[0] ?? '' : '';
-    // Стрелка «→» в PT Sans сидит низко — поднимаем её к середине цифр («Талоны 3 → 5»).
+    // Стрелки «↱», «↳» и «→» — одним набором значков (в шрифте они разного размера и толщины).
     if (node.length > glue.length) {
-      node.slice(0, node.length - glue.length).split(/(→)/).forEach((s) => {
-        if (s === '→') out.push(<span key={`arr${out.length}`} className="log-arrow">→</span>);
+      node.slice(0, node.length - glue.length).split(/(→|↳|↱)/).forEach((s) => {
+        if (s === '→' || s === '↳' || s === '↱') out.push(<LogArrow key={`arr${out.length}`} kind={s} />);
         else if (s) out.push(s);
       });
     }
@@ -1398,6 +1398,19 @@ function withGenreChips(raw: string, icons = true): ReactNode {
   });
   flush();
   return out;
+}
+
+const ARROW_PATHS: Record<string, string> = {
+  '→': 'M2 8.5H13M9.5 5L13 8.5L9.5 12',
+  '↳': 'M3 2V8.5H13M9.5 5L13 8.5L9.5 12', // вниз, затем вправо
+  '↱': 'M3 15V8.5H13M9.5 5L13 8.5L9.5 12', // вверх, затем вправо
+};
+function LogArrow({ kind }: { kind: string }) {
+  return (
+    <svg className="log-arrow" viewBox="0 0 16 16" aria-label={kind}>
+      <path d={ARROW_PATHS[kind]} />
+    </svg>
+  );
 }
 
 function PassionPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
