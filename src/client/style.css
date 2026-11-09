@@ -83,6 +83,8 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
    Карандаш — по центру квадрата 40×40 у правого края поля (как стрелка выпадающего списка). */
 .title-screen .name-field { position: relative; display: block; }
 .title-screen .name-field input { width: 100%; height: 40px; box-sizing: border-box; padding: 0 40px 0 16px; }
+/* В фокусе — как открытый выпадающий список: только рамка поля цветом акцента, без обводки браузера. */
+.title-screen .name-field input:focus { outline: none; border-color: var(--accent); }
 .title-screen .name-field .edit-icon { position: absolute; right: 11px; top: 11px; color: var(--muted); pointer-events: none; } /* (40 − 18) / 2 = 11 */
 /* Автор игры — внизу титульного экрана (на телефоне — над плашкой «Создать свою игру»). */
 .title-screen .credit { position: fixed; left: 0; right: 0; bottom: 16px; margin: 0; text-align: center; }
