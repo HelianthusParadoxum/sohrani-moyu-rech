@@ -116,10 +116,13 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .lobby .lobby-actions { display: flex; flex-wrap: nowrap; gap: 16px; }
 .lobby .lobby-actions > button { flex: 1 1 0; min-width: 0; }
 /* Пунктирные линии лобби: от линии до ближайшего содержимого — 16, как в списке игроков. */
-.lobby-settings { border-top: 1px dashed var(--line); margin-top: 16px; padding-top: 12px; } /* до подписи «Режим игры» — 12: над буквами строки свой зазор, на глаз как 16 */
+.lobby-settings { border-top: 1px dashed var(--line); margin-top: 16px; padding-top: 16px; }
 .lobby-settings > label:first-child { margin-top: 0; }
 .lobby-settings > label:last-child { margin-bottom: 0; }
-.lobby-settings > label + label { margin-top: 12px; } /* между «Режимом игры» и «Умелостью ботов» */
+.lobby-settings > label + label { margin-top: 16px; } /* между «Режимом игры» и «Умелостью ботов» */
+/* Подписи полей обрезаны по буквам (Vertical trim): сверху — по высоте заглавных, снизу — по базовой линии.
+   Отступы считаются от самих букв. Firefox свойство пока не знает — там на 2–4 px просторнее. */
+.lobby label > .cap { display: block; text-box: trim-both cap alphabetic; }
 .lobby-settings + .seats { margin-top: 16px; }
 /* Блок ссылки поднят на 1px (top: -1px) — линия под ним на 1 ближе, чтобы на глаз осталось 16. */
 .lobby .share + .lobby-settings, .lobby .share + .seats { margin-top: 15px; }

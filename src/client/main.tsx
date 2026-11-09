@@ -213,7 +213,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
       {host && (
         // Настройки хоста — под пунктиром, как список игроков.
         <div className="lobby-settings">
-          <label>Режим игры
+          <label><span className="cap">Режим игры</span>
             <Dropdown value={room.reserve ? 'reserve' : room.mode} ariaLabel="Режим игры" onChange={(mode) => net.send({ t: 'setMode', mode: mode as 'beginner' })}
               options={[
                 { value: 'beginner', label: 'Периферия (для начинающих)', title: 'Для первой партии: без Клуба книголюбов, Конторы, Куратора и свойств жанров.' },
