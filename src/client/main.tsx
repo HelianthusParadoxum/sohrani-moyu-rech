@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useRef, useState } from 'react';
+import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { NAVIGATE, navigate, useServer } from './net';
 import { Game } from './game';
@@ -103,22 +103,19 @@ function Apology({ children, onOk }: { children: React.ReactNode; onOk: () => vo
   );
 }
 
-// Имя игрока — не длиннее NAME_MAX символов (сервер обрезает так же). Попытка ввести больше — подсказка на 3 секунды.
+// Имя игрока — не длиннее NAME_MAX символов (сервер обрезает так же). Попытка ввести больше — подсказка;
+// она держится, пока имя не изменят (сотрут или заменят хоть один символ).
 const NAME_MAX = 24;
 const nameLimitText = `Максимальная длина имени — ${NAME_MAX} символа`;
 function useNameInput(name: string, setName: (s: string) => void) {
   const [over, setOver] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => () => clearTimeout(timer.current), []);
   const onChange = (v: string) => {
     if (v.length > NAME_MAX) {
       setName(v.slice(0, NAME_MAX));
       setOver(true);
-      clearTimeout(timer.current);
-      timer.current = setTimeout(() => setOver(false), 3000);
       return;
     }
-    if (v.length < NAME_MAX) setOver(false);
+    if (v !== name) setOver(false);
     setName(v);
   };
   return { over, onChange };
