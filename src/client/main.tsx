@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useState } from 'react';
+import { StrictMode, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { NAVIGATE, navigate, useServer } from './net';
 import { Game } from './game';
@@ -103,6 +103,27 @@ function Apology({ children, onOk }: { children: React.ReactNode; onOk: () => vo
   );
 }
 
+// Имя игрока — не длиннее NAME_MAX символов (сервер обрезает так же). Попытка ввести больше — подсказка на 3 секунды.
+const NAME_MAX = 24;
+const nameLimitText = `Максимальная длина имени — ${NAME_MAX} символа`;
+function useNameInput(name: string, setName: (s: string) => void) {
+  const [over, setOver] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const onChange = (v: string) => {
+    if (v.length > NAME_MAX) {
+      setName(v.slice(0, NAME_MAX));
+      setOver(true);
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setOver(false), 3000);
+      return;
+    }
+    if (v.length < NAME_MAX) setOver(false);
+    setName(v);
+  };
+  return { over, onChange };
+}
+
 // Код комнаты — 4 цифры.
 function codeChars(raw: string): string {
   return raw.replace(/\D/g, '').slice(0, 4);
@@ -114,6 +135,7 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
   useEffect(() => { if (code.length === 4) net.send({ t: 'probe', code }); }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
   const answer = net.probe?.code === code ? net.probe : null;
   useEffect(() => { if (answer?.exists) navigate(code); }, [answer, code]);
+  const nameInput = useNameInput(name, setName);
   return (
     <div className="home title-screen">
       <h1>Сохрани мою речь</h1>
@@ -121,7 +143,9 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
       <label><span className="cap">Как вас называть</span>
         {/* Карандаш справа в поле (фоном поля, как стрелка выпадающего списка) — имя можно поменять. */}
         <span className="name-field">
-          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={24} placeholder="Имя" />
+          <input value={name} onChange={(e) => nameInput.onChange(e.target.value)} placeholder="Имя" />
+          {/* Под полем, поверх промежутка до следующего блока: появляясь, ничего не сдвигает. */}
+          {nameInput.over && <span className="name-limit" aria-live="polite">{nameLimitText}</span>}
         </span>
       </label>
       <div className="or">Присоединитесь к игре по коду</div>
@@ -211,6 +235,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
   const seated = !!net.you || net.isHost;
   const host = net.isHost;
   const link = `${location.origin}/${encodeURIComponent(room.code)}`;
+  const joinName = useNameInput(name, setName);
   return (
     <div className="home lobby">
       <h1 className="room-title">Комната {room.code}</h1>
@@ -269,10 +294,11 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
       )}
       {!seated && !room.started && (
         <div className="row">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ваше имя" maxLength={24} />
+          <input value={name} onChange={(e) => joinName.onChange(e.target.value)} placeholder="Ваше имя" />
           <button className="primary" disabled={!name.trim() || room.seats.length >= 5} onClick={onJoin}>Сесть за стол</button>
         </div>
       )}
+      {!seated && !room.started && joinName.over && <p className="name-limit-line" aria-live="polite">{nameLimitText}</p>}
       {/* На телефоне — плашка внизу экрана, как «Закончить ход» в игре. «Назад» — в начальное меню. */}
       <div className="row lobby-actions">
         <button onClick={() => navigate(null)}>Назад</button>
