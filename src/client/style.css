@@ -39,6 +39,8 @@ button {
 }
 /* Подсветка наведения — только с мышью: на телефоне после касания она «залипает» на кнопке. */
 @media (hover: hover) { button:hover:not(:disabled) { border-color: var(--ink); } }
+/* Быстрые нажатия подряд — это нажатия, а не «двойное касание для масштаба» (иначе второе теряется). */
+button, a, label, input, select, .dropdown-btn { touch-action: manipulation; }
 button:disabled { opacity: 0.45; cursor: default; }
 /* Недоступно, но нажатие объясняет почему. */
 button.off { opacity: 0.45; cursor: help; }
@@ -103,6 +105,9 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
   flex: none; width: 24px; height: 24px; margin-right: 4px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid var(--line); border-radius: 4px; background: var(--card); color: var(--ink); cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
+.seats .seat-add { position: relative; }
+/* Зона нажатия — 40×40 (видимый квадрат 24): палец у края не промахивается, даже когда кнопка сжимается при нажатии. */
+.seats .seat-add::after { content: ''; position: absolute; inset: -8px; }
 .seats .seat-add:active { transform: scale(.9); }
 .seats .seat-add:focus:not(:focus-visible) { outline: none; } /* рамка фокуса — только при управлении с клавиатуры */
 .seats > li > .dot.bot { display: inline-flex; align-items: center; justify-content: center; font-size: 14px; line-height: 1; }
