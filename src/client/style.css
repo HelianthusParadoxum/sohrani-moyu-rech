@@ -91,6 +91,10 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .title-screen .name-limit { position: absolute; left: 0; top: calc(100% + 8px); text-box: trim-both cap alphabetic; } /* цвет и размер — как у «Комната с номером … не найдена» */
 .name-limit-line { margin: 8px 0 0; }
 .title-screen .name-field input:focus { outline: none; border-color: var(--accent); background-image: none; } /* пока вводят имя — без карандаша */
+/* Крестик «стереть имя» — в том же квадрате 40×40 у правого края, только пока поле в фокусе. */
+.title-screen .name-clear { display: none; position: absolute; right: 0; top: 0; width: 40px; height: 40px; padding: 0; border: 0; background: none; color: var(--muted); align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; }
+.title-screen .name-field:focus-within .name-clear { display: flex; }
+.title-screen .name-clear:active svg { transform: scale(.9); }
 /* Автор игры — внизу титульного экрана (на телефоне — над плашкой «Создать свою игру»). */
 .title-screen .credit { position: fixed; left: 0; right: 0; bottom: 16px; margin: 0; text-align: center; }
 @media (max-width: 600px) { .title-screen .credit { bottom: calc(80px + 12px + env(safe-area-inset-bottom)); } }

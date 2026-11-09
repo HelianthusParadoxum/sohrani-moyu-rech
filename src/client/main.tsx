@@ -145,6 +145,11 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
         {/* Карандаш справа в поле (фоном поля, как стрелка выпадающего списка) — имя можно поменять. */}
         <span className="name-field">
           <input value={name} onChange={(e) => nameInput.onChange(e.target.value)} placeholder="Введите ваше имя" />
+          {/* Пока поле в фокусе — вместо карандаша крестик: стереть имя целиком. Нажатие не уводит фокус из поля. */}
+          <button type="button" className="name-clear" aria-label="Стереть имя" title="Стереть имя"
+            onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()} onClick={() => nameInput.onChange('')}>
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+          </button>
           {/* Под полем, поверх промежутка до следующего блока: появляясь, ничего не сдвигает. */}
           {nameInput.over && <span className="name-limit" aria-live="polite">{nameLimitText}</span>}
         </span>
