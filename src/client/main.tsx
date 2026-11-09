@@ -118,7 +118,7 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
     <div className="home title-screen">
       <h1>Сохрани мою речь</h1>
       <p className="subtitle">Книжное подполье СССР</p>
-      <label>Как вас называть<input value={name} onChange={(e) => setName(e.target.value)} maxLength={24} placeholder="Имя" /></label>
+      <label><span className="cap">Как вас называть</span><input value={name} onChange={(e) => setName(e.target.value)} maxLength={24} placeholder="Имя" /></label>
       <div className="or">Присоединитесь к игре по коду</div>
       {/* Одно поле поверх четырёх ячеек: так работают и вставка, и стирание. */}
       <label className="code-cells" aria-label="Код комнаты">

@@ -64,13 +64,18 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
   .home > h1:first-child { margin-top: 0; }
 }
 .subtitle { margin-top: 0; font-family: 'PT Mono', monospace; color: var(--red); }
-/* Титульный экран: подзаголовок — вплотную к заголовку (как подпись «Как вас называть» к полю имени). */
-.title-screen h1 { line-height: 40px; margin-bottom: 4px; } /* как заголовок комнаты (строка — по кнопке «назад») */
-.title-screen .subtitle { line-height: 1.2; margin: 0 0 72px; }
+/* Тексты начального экрана и заголовок комнаты обрезаны по буквам (Vertical trim: от верха заглавных до базовой линии),
+   поэтому все отступы ниже — от самих букв. Firefox свойство пока не знает — там на 3–4 px просторнее. */
+.home > h1, .title-screen .subtitle, .title-screen .or, .home label > .cap { text-box: trim-both cap alphabetic; }
+.home label > .cap { display: block; }
+.home label:has(> .cap) { gap: 8px; } /* от базовой линии подписи до поля — 8: хвостики букв (р, у, д) не касаются поля */
+/* Титульный экран: подзаголовок — в 16 под заголовком. */
+.title-screen h1 { margin-bottom: 16px; }
+.title-screen .subtitle { margin: 0 0 72px; }
 /* Титульный экран: блоки (имя, код, кнопка) — с просторными промежутками. */
 .title-screen > label { margin: 0; }
 .title-screen .or { margin-top: 72px; } /* блоки титульного экрана — через 72, как от ячеек кода до «Создать свою игру» */
-.title-screen > .code-cells { margin-top: 4px; }
+.title-screen > .code-cells { margin-top: 8px; } /* от базовой линии подписи до ячеек — 8, как от подписи до поля */
 .title-screen > label > input { padding-left: 16px; padding-right: 16px; } /* как текст в выпадающих списках */ /* как поле имени под «Как вас называть» */
 /* Автор игры — внизу титульного экрана (на телефоне — над плашкой «Создать свою игру»). */
 .title-screen .credit { position: fixed; left: 0; right: 0; bottom: 16px; margin: 0; text-align: center; }
@@ -120,9 +125,7 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .lobby-settings > label:first-child { margin-top: 0; }
 .lobby-settings > label:last-child { margin-bottom: 0; }
 .lobby-settings > label + label { margin-top: 16px; } /* между «Режимом игры» и «Умелостью ботов» */
-/* Подписи полей обрезаны по буквам (Vertical trim): сверху — по высоте заглавных, снизу — по базовой линии.
-   Отступы считаются от самих букв. Firefox свойство пока не знает — там на 2–4 px просторнее. */
-.lobby label > .cap { display: block; text-box: trim-both cap alphabetic; }
+/* Подписи полей обрезаны по буквам (см. «Vertical trim» выше) — отступы от самих букв. */
 .lobby-settings + .seats { margin-top: 16px; }
 /* Блок ссылки поднят на 1px (top: -1px) — линия под ним на 1 ближе, чтобы на глаз осталось 16. */
 .lobby .share + .lobby-settings, .lobby .share + .seats { margin-top: 15px; }
@@ -533,15 +536,6 @@ label.row > .dropdown { display: inline-block; }
   body.has-mb { padding-top: var(--mb-h, 0px); }
   body.has-mb .modal-bg { padding-top: calc(var(--mb-h, 0px) + 12px); }
 }
-/* Лобби: стрелка «назад» в начальное меню перед заголовком комнаты */
-.room-title { display: flex; align-items: center; gap: 12px; line-height: 40px; } /* как заголовок титульного экрана — заголовки на одной высоте */
-.room-title .back { flex: none; width: 40px; height: 40px; padding: 0 2px 0 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--ink); }
-.room-title .back svg { display: block; }
-/* ПК: «назад» — за левой границей блока, на том же расстоянии, что было до названия комнаты. */
-@media (min-width: 601px) {
-  .room-title { position: relative; }
-  .room-title .back { position: absolute; right: calc(100% + 12px); top: 50%; transform: translateY(-50%); }
-}
 /* Лобби: ссылка на комнату и кнопка-иконка «скопировать» */
 .lobby .share { display: flex; align-items: center; justify-content: space-between; gap: 12px; } /* кнопка копирования — у правого края блока */
 .lobby .share p { margin: 8px 0; min-width: 0; }
@@ -631,7 +625,7 @@ label.row > .dropdown { display: inline-block; }
 .home label:not(.row):not(.code-cells), .title-screen .or { line-height: 19px; }
 
 /* Комната: «Отправьте ссылку игрокам» — вплотную под заголовком, как подзаголовок титульного экрана. */
-.home > .room-title { margin-bottom: 4px; }
+.home > .room-title { margin-bottom: 12px; } /* от базовой линии заголовка до букв «Отправьте ссылку» — 16, как на начальном экране */
 .lobby .share { margin-bottom: 8px; position: relative; top: -1px; }
 /* Без собственных полей у текста — кнопка копирования встаёт ровно по центру блока «Отправьте ссылку» + ссылка.
    Сдвиг на 1 вверх: у этого шрифта буквы сидят на 1 ниже, чем у подзаголовка титульного экрана. */
