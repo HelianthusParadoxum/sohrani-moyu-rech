@@ -211,7 +211,8 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
       <h1 className="room-title">Комната {room.code}</h1>
       <ShareLink link={link} />
       {host && (
-        <>
+        // Настройки хоста — под пунктиром, как список игроков.
+        <div className="lobby-settings">
           <label>Режим игры
             <Dropdown value={room.reserve ? 'reserve' : room.mode} ariaLabel="Режим игры" onChange={(mode) => net.send({ t: 'setMode', mode: mode as 'beginner' })}
               options={[
@@ -220,7 +221,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
                 { value: 'reserve', label: 'Заповедник (без Конторы и Куратора)', title: 'Полные правила без прямого конфликта: нет Конторы и Куратора.' }]} />
           </label>
           <SkillSelect room={room} send={net.send} />
-        </>
+        </div>
       )}
       {/* Кто за столом — после всех настроек. */}
       <ul className="seats">

@@ -115,6 +115,13 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 /* «Добавить бота» и «Начать» — поровну на всю ширину блока, между ними 24. */
 .lobby .lobby-actions { display: flex; flex-wrap: nowrap; gap: 16px; }
 .lobby .lobby-actions > button { flex: 1 1 0; min-width: 0; }
+/* Пунктирные линии лобби: от линии до ближайшего содержимого — 16, как в списке игроков. */
+.lobby-settings { border-top: 1px dashed var(--line); margin-top: 16px; padding-top: 16px; }
+.lobby-settings > label:first-child { margin-top: 0; }
+.lobby-settings > label:last-child { margin-bottom: 0; }
+.lobby-settings + .seats { margin-top: 16px; }
+/* Блок ссылки поднят на 1px (top: -1px) — линия под ним на 1 ближе, чтобы на глаз осталось 16. */
+.lobby .share + .lobby-settings, .lobby .share + .seats { margin-top: 15px; }
 .offline { color: var(--muted); font-size: 0.85em; }
 .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(0,0,0,.3); }
 
