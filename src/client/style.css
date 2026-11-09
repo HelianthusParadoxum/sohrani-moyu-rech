@@ -94,6 +94,9 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 /* Автор игры — внизу титульного экрана (на телефоне — над плашкой «Создать свою игру»). */
 .title-screen .credit { position: fixed; left: 0; right: 0; bottom: 16px; margin: 0; text-align: center; }
 @media (max-width: 600px) { .title-screen .credit { bottom: calc(80px + 12px + env(safe-area-inset-bottom)); } }
+/* Всплывашка начального экрана — над строкой «Игра Дмитрия Трубицина», не поверх неё. */
+.title-screen .toast { bottom: 48px; }
+@media (max-width: 600px) { .title-screen .toast { bottom: calc(80px + 40px + env(safe-area-inset-bottom)); } }
 /* ПК: «Создать свою игру» — по центру под вводом кода. */
 @media (min-width: 601px) {
   .title-screen .create-bar { display: flex; justify-content: center; margin-top: 24px; }

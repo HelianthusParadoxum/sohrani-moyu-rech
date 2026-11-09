@@ -133,6 +133,10 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
   const answer = net.probe?.code === code ? net.probe : null;
   useEffect(() => { if (answer?.exists) navigate(code); }, [answer, code]);
   const nameInput = useNameInput(name, setName);
+  // Без имени кнопка выглядит недоступной, но нажатие объясняет, чего не хватает (всплывашка на 4 секунды).
+  const [needName, setNeedName] = useState(false);
+  useEffect(() => { if (!needName) return; const t = setTimeout(() => setNeedName(false), 4000); return () => clearTimeout(t); }, [needName]);
+  useEffect(() => { if (name.trim()) setNeedName(false); }, [name]);
   return (
     <div className="home title-screen">
       <h1>Сохрани мою речь</h1>
@@ -155,7 +159,10 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
       <p className="code-miss" aria-live="polite">{answer && !answer.exists ? `Комната с номером ${code} не найдена` : ''}</p>
       <p className="credit muted small">Игра Дмитрия Трубицина</p>
       {/* На ПК — по центру под вводом кода; на телефоне — на плашке внизу экрана, во всю ширину. */}
-      <div className="create-bar"><button className="primary" disabled={!name.trim()} onClick={onCreate}>Начать свою игру</button></div>
+      <div className="create-bar">
+        <button className={`primary ${name.trim() ? '' : 'off'}`} aria-disabled={!name.trim()} onClick={() => (name.trim() ? onCreate() : setNeedName(true))}>Начать свою игру</button>
+      </div>
+      {needName && <div className="toast" role="alert" onClick={() => setNeedName(false)}>Чтобы начать игру, вам нужно имя из хотя бы одного символа</div>}
     </div>
   );
 }
