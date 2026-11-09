@@ -257,7 +257,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
       {host && (
         <label className="row check">
           <input type="checkbox" checked={room.hostBot} onChange={(e) => net.send({ t: 'hostBot', on: e.target.checked })} />
-          За меня играет бот — я смотрю партию со стороны
+          За меня бот
         </label>
       )}
       {!seated && !room.started && (
