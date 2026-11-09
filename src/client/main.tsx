@@ -98,7 +98,7 @@ function Apology({ children, onOk }: { children: React.ReactNode; onOk: () => vo
   return (
     <Modal title="Извините!">
       <p>{children}</p>
-      <div className="modal-foot"><button className="primary" autoFocus onClick={onOk}>ОК</button></div>
+      <div className="modal-foot full"><button className="primary" autoFocus onClick={onOk}>ОК</button></div>
     </Modal>
   );
 }

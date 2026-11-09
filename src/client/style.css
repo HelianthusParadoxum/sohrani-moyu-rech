@@ -271,6 +271,10 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .modal-head-buttons { display: flex; gap: 8px; align-items: center; }
 .close { border: none; background: none; font-size: 1.6rem; line-height: 1; padding: 0 4px; }
 .modal-foot { display: flex; justify-content: flex-end; gap: 12px; align-items: center; margin-top: 12px; }
+/* Кнопка во всю ширину низа окна: 16 от краёв окна (у окна поля по 20 — заходим на 4), высотой 56, как кнопки нижних плашек. */
+.modal-foot.full { margin-left: -4px; margin-right: -4px; }
+.modal-foot.full > button { flex: 1; height: 56px; }
+.modal-foot.full > button:focus { outline: none; } /* фокус ставится сам (Enter нажимает кнопку) — рамка не нужна */
 .genres { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; align-items: center; }
 .passions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .passion { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 12px; }
