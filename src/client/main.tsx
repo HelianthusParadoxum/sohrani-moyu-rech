@@ -143,7 +143,7 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
       <label><span className="cap">Как вас называть</span>
         {/* Карандаш справа в поле (фоном поля, как стрелка выпадающего списка) — имя можно поменять. */}
         <span className="name-field">
-          <input value={name} onChange={(e) => nameInput.onChange(e.target.value)} placeholder="Ваше имя" />
+          <input value={name} onChange={(e) => nameInput.onChange(e.target.value)} placeholder="Введите ваше имя" />
           {/* Под полем, поверх промежутка до следующего блока: появляясь, ничего не сдвигает. */}
           {nameInput.over && <span className="name-limit" aria-live="polite">{nameLimitText}</span>}
         </span>
@@ -294,7 +294,7 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
       )}
       {!seated && !room.started && (
         <div className="row">
-          <input value={name} onChange={(e) => joinName.onChange(e.target.value)} placeholder="Ваше имя" />
+          <input value={name} onChange={(e) => joinName.onChange(e.target.value)} placeholder="Введите ваше имя" />
           <button className="primary" disabled={!name.trim() || room.seats.length >= 5} onClick={onJoin}>Сесть за стол</button>
         </div>
       )}
