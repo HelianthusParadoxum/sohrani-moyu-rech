@@ -495,7 +495,9 @@ select {
   background: #fff; border: 1px solid var(--line); border-radius: 6px;
 }
 .code-cells:focus-within .cell.cur { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(31,78,121,.25); }
-.code-miss { text-align: center; margin: 12px 0 0; min-height: 24px; line-height: 24px; }
+/* «Комнаты с кодом … нет» — в 8 от ячеек (от букв: обрезано по высоте заглавных); место под строку есть всегда.
+   Высота 28 — чтобы кнопка «Начать свою игру» на ПК осталась в 72 от ячеек. */
+.code-miss { text-align: center; margin: 8px 0 0; min-height: 28px; line-height: 24px; text-box: trim-both cap alphabetic; }
 /* Выпадающий список (свой, раскрывается под полем) */
 .dropdown { position: relative; display: inline-block; max-width: 100%; }
 label > .dropdown, .lobby label > .dropdown { display: block; }
