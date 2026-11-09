@@ -119,12 +119,9 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
       <h1>Сохрани мою речь</h1>
       <p className="subtitle">Книжное подполье СССР</p>
       <label><span className="cap">Как вас называть</span>
-        {/* Карандаш справа в поле — имя можно поменять. Нажатие по нему ставит курсор в поле (это часть подписи). */}
+        {/* Карандаш справа в поле (фоном поля, как стрелка выпадающего списка) — имя можно поменять. */}
         <span className="name-field">
           <input value={name} onChange={(e) => setName(e.target.value)} maxLength={24} placeholder="Имя" />
-          <svg className="edit-icon" viewBox="0 0 18 18" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 3l3 3-8.5 8.5H3.5v-3z" /><path d="M10.5 4.5l3 3" />
-          </svg>
         </span>
       </label>
       <div className="or">Присоединитесь к игре по коду</div>
