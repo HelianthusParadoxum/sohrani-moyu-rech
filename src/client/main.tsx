@@ -143,7 +143,7 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
       <label><span className="cap">Как вас называть</span>
         {/* Карандаш справа в поле (фоном поля, как стрелка выпадающего списка) — имя можно поменять. */}
         <span className="name-field">
-          <input value={name} onChange={(e) => nameInput.onChange(e.target.value)} placeholder="Имя" />
+          <input value={name} onChange={(e) => nameInput.onChange(e.target.value)} placeholder="Ваше имя" />
           {/* Под полем, поверх промежутка до следующего блока: появляясь, ничего не сдвигает. */}
           {nameInput.over && <span className="name-limit" aria-live="polite">{nameLimitText}</span>}
         </span>
