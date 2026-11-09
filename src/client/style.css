@@ -68,14 +68,14 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
    поэтому все отступы ниже — от самих букв. Firefox свойство пока не знает — там на 3–4 px просторнее. */
 .home > h1, .title-screen .subtitle, .title-screen .or, .home label > .cap { text-box: trim-both cap alphabetic; }
 .home label > .cap { display: block; }
-.home label:has(> .cap) { gap: 8px; } /* от базовой линии подписи до поля — 8: хвостики букв (р, у, д) не касаются поля */
+.home label:has(> .cap) { gap: 12px; } /* от базовой линии подписи до поля — 12: хвостики букв (р, у, д) не касаются поля */
 /* Титульный экран: подзаголовок — в 16 под заголовком. */
 .title-screen h1 { margin-bottom: 16px; }
 .title-screen .subtitle { margin: 0 0 72px; }
 /* Титульный экран: блоки (имя, код, кнопка) — с просторными промежутками. */
 .title-screen > label { margin: 0; }
 .title-screen .or { margin-top: 72px; } /* блоки титульного экрана — через 72, как от ячеек кода до «Создать свою игру» */
-.title-screen > .code-cells { margin-top: 8px; } /* от базовой линии подписи до ячеек — 8, как от подписи до поля */
+.title-screen > .code-cells { margin-top: 12px; } /* от базовой линии подписи до ячеек — 12, как от подписи до поля */
 .title-screen > label > input { padding-left: 16px; padding-right: 16px; } /* как текст в выпадающих списках */ /* как поле имени под «Как вас называть» */
 /* Автор игры — внизу титульного экрана (на телефоне — над плашкой «Создать свою игру»). */
 .title-screen .credit { position: fixed; left: 0; right: 0; bottom: 16px; margin: 0; text-align: center; }
