@@ -241,7 +241,8 @@ function Lobby({ net, name, setName, onJoin }: { net: ReturnType<typeof useServe
         ))}
         {/* Свободные места — сразу (до 5 за столом): строки одной высоты, панель снизу не сдвигается. */}
         {Array.from({ length: Math.max(0, 5 - room.seats.length) }, (_, i) => (
-          <li key={`empty${i}`} className="empty">
+          // Ключ — номер места за столом: после добавления бота плюсик рисуется заново и не уносит с собой нажатие.
+          <li key={`empty${room.seats.length + i}`} className="empty">
             {/* Хосту — плюс на месте кружка: добавить бота на это место (размером с галочку «За меня играет бот»). */}
             {host
               ? (

@@ -37,7 +37,8 @@ button {
   padding: 8px 12px;
   cursor: pointer;
 }
-button:hover:not(:disabled) { border-color: var(--ink); }
+/* Подсветка наведения — только с мышью: на телефоне после касания она «залипает» на кнопке. */
+@media (hover: hover) { button:hover:not(:disabled) { border-color: var(--ink); } }
 button:disabled { opacity: 0.45; cursor: default; }
 /* Недоступно, но нажатие объясняет почему. */
 button.off { opacity: 0.45; cursor: help; }
@@ -172,7 +173,7 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 }
 .book.small { width: 98px; min-height: 60px; font-size: 0.72rem; }
 .book:disabled { opacity: 1; cursor: default; }
-.book.clickable:hover { border-color: var(--ink); }
+@media (hover: hover) { .book.clickable:hover { border-color: var(--ink); } }
 .book.selected { outline: 3px solid var(--accent); }
 .book.back {
   background: repeating-linear-gradient(45deg, #6b4f3a, #6b4f3a 6px, #5a412f 6px, #5a412f 12px);
@@ -337,7 +338,7 @@ label.row.check > input[type="checkbox"]:focus-visible { outline: 2px solid var(
 .sprouts-panel .bonus-slots { display: flex; flex-direction: column; gap: 2px; }
 .sprouts-panel .bonus-slot { border-radius: 4px; padding: 2px 2px; }
 .sprouts-panel .bonus-slot.can { cursor: pointer; }
-.sprouts-panel .bonus-slot.can:hover { background: rgba(230,179,90,.35); }
+@media (hover: hover) { .sprouts-panel .bonus-slot.can:hover { background: rgba(230,179,90,.35); } }
 .sprouts-panel .chip { min-width: 18px; font-size: 0.62rem; }
 .host-tools label.row { margin: 0; color: var(--paper); }
 .host-tools select { padding: 2px 4px; }
