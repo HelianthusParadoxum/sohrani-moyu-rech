@@ -243,7 +243,8 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .passion-tag { font-size: 0.8rem; background: var(--paper-2); padding: 2px 8px; border-radius: 3px; }
 .group-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .published { border-top: 1px dashed var(--line); padding-top: 4px; }
-.log { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; max-height: 420px; overflow-y: auto; font-size: 0.82rem; }
+/* Журнал — постоянной высоты (не растёт и не сжимается вместе с соседями), лишнее прокручивается. */
+.log { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; height: 420px; flex: none; overflow-y: auto; font-size: 0.82rem; }
 .log h3 { margin-top: 0; }
 .log div { padding: 2px 0; border-bottom: 1px dotted var(--line); }
 .log .secret { color: var(--accent); }
