@@ -118,7 +118,15 @@ function Home({ name, setName, onCreate, net }: { name: string; setName: (s: str
     <div className="home title-screen">
       <h1>Сохрани мою речь</h1>
       <p className="subtitle">Книжное подполье СССР</p>
-      <label><span className="cap">Как вас называть</span><input value={name} onChange={(e) => setName(e.target.value)} maxLength={24} placeholder="Имя" /></label>
+      <label><span className="cap">Как вас называть</span>
+        {/* Карандаш справа в поле — имя можно поменять. Нажатие по нему ставит курсор в поле (это часть подписи). */}
+        <span className="name-field">
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={24} placeholder="Имя" />
+          <svg className="edit-icon" viewBox="0 0 18 18" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3l3 3-8.5 8.5H3.5v-3z" /><path d="M10.5 4.5l3 3" />
+          </svg>
+        </span>
+      </label>
       <div className="or">Присоединитесь к игре по коду</div>
       {/* Одно поле поверх четырёх ячеек: так работают и вставка, и стирание. */}
       <label className="code-cells" aria-label="Код комнаты">

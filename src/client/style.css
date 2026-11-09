@@ -79,7 +79,10 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .title-screen > label { margin: 0; }
 .title-screen .or { margin-top: 72px; } /* блоки титульного экрана — через 72, как от ячеек кода до «Создать свою игру» */
 .title-screen > .code-cells { margin-top: 8px; } /* от базовой линии подписи до ячеек — 8, как от подписи до поля */
-.title-screen > label > input { padding-left: 16px; padding-right: 16px; } /* как текст в выпадающих списках */ /* как поле имени под «Как вас называть» */
+/* Поле имени: текст — с отступом 16, как в выпадающих списках; справа — карандаш (16 от края, как стрелка списка). */
+.title-screen .name-field { position: relative; display: block; }
+.title-screen .name-field input { width: 100%; box-sizing: border-box; padding-left: 16px; padding-right: 48px; }
+.title-screen .name-field .edit-icon { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
 /* Автор игры — внизу титульного экрана (на телефоне — над плашкой «Создать свою игру»). */
 .title-screen .credit { position: fixed; left: 0; right: 0; bottom: 16px; margin: 0; text-align: center; }
 @media (max-width: 600px) { .title-screen .credit { bottom: calc(80px + 12px + env(safe-area-inset-bottom)); } }
