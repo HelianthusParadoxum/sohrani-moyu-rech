@@ -282,7 +282,7 @@ function finishAction(state: GameState, p: PlayerState, pointsBefore: number, lo
     const bonus = proseBonus(state, p);
     if (bonus) {
       gain(p, bonus, 'prose');
-      logAfter(state, `↳ Проза вдохновляет: +${pointsText(bonus)}.`);
+      logAfter(state, `↳ [ПР] вдохновляет: +${pointsText(bonus)}.`);
     }
   }
   // Талоны изменились — в конце действия: сколько было и сколько стало. Если строки самого действия ещё нет
@@ -632,7 +632,7 @@ function dramaBonus(state: GameState) {
       .filter((c) => iconsOf(state, c).includes('drama'));
     if (!cards.length) continue;
     gain(p, cards.length, 'drama');
-    log(state, `${p.name} разыгрывает драматургию: ${titles(state, cards)} — +${pointsText(cards.length)}.`);
+    log(state, `${p.name} разыгрывает [ДР]: ${titles(state, cards)} — +${pointsText(cards.length)}.`);
     state.log[state.log.length - 1].who = p.id;
   }
 }
@@ -1156,7 +1156,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         }
         // Фантастика «Заронить зерно»: без неё (её значков вместо других жанров) ступень не закрылась бы.
         if (isFull(state) && !coversStep(state, f.books, info.main, step.main, step.support, { labtech: lab })) {
-          logAfter(state, '↳ Фантастика заронила зерно: значок засчитан за другой жанр.');
+          logAfter(state, '↳ [ФА] заронила зерно: значок засчитан за другой жанр.');
         }
         const bonus = slots[slot];
         const options = bonus && (bonus !== 'acquaintance' || befriendTargets(state, p.id).length > 0) ? [bonus] : [];
@@ -1191,13 +1191,13 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         add(icons * RULES.tamizdatPoints, 'tamizdat');
         if (isFull(state) && genreOn('testimony') && genres.includes('testimony')) { // «Придать огласке»
           gain(p, RULES.testimonyPoints, 'testimony');
-          genreBonus = `↳ Свидетельства преданы огласке: +${pointsText(RULES.testimonyPoints)}.`;
+          genreBonus = `↳ [СВ] преданы огласке: +${pointsText(RULES.testimonyPoints)}.`;
         }
       } else {
         add(icons * RULES.samizdatPoints, 'samizdat');
         if (isFull(state) && genreOn('foreign') && genres.includes('foreign')) { // «Перевести»
           gain(p, RULES.foreignPoints, 'foreign');
-          genreBonus = `↳ Иностранная переведена: +${pointsText(RULES.foreignPoints)}.`;
+          genreBonus = `↳ [ИН] переведена: +${pointsText(RULES.foreignPoints)}.`;
         }
       }
       if (corr) gain(p, RULES.correspondentPoints, 'correspondent');
@@ -1378,14 +1378,13 @@ function continueTake(state: GameState, p: PlayerState, cards: string[], then: C
       // Как при выуживании из Спецхрана: сперва что сделано, потом по строке на каждую книгу —
       // открытая ложится на склад при всех, спрятанную в Тайник соперники не видят («Получена: …» — только себе).
       log(state, `${p.name} берёт в Госкниготорге даром ${plural(got.length, 'книгу', 'книги', 'книг')}.`);
-      for (const c of got) {
-        addSecretBook(state, p, c, null);
-        if (p.warehouse.find((x) => x.card === c)?.hidden) {
-          log(state, '↳ Взакрытую в Тайник: 1 непечатный текст.');
-          log(state, `Получена: ${title(state, c)}.`, [p.id]);
-        } else {
-          log(state, `↳ ${title(state, c)}.`);
-        }
+      for (const c of got) addSecretBook(state, p, c, null);
+      // Открытые — по строке на книгу; спрятанные — одной строкой с общим числом (какие — только себе).
+      const hiddenGot = got.filter((c) => p.warehouse.find((x) => x.card === c)?.hidden);
+      for (const c of got) if (!hiddenGot.includes(c)) log(state, `↳ ${title(state, c)}.`);
+      if (hiddenGot.length) {
+        log(state, `↳ Взакрытую в Тайник: ${plural(hiddenGot.length, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}.`);
+        log(state, `${hiddenGot.length > 1 ? 'Получены' : 'Получена'}: ${titles(state, hiddenGot)}.`, [p.id]);
       }
       return;
     }
@@ -1515,6 +1514,18 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
 
 // ---------- Отложенные решения ----------
 
+// После строки «берёт / оставляет себе…»: книги на виду — с названиями при всех; спрятанные в Тайник — одной строкой
+// «берёт N 📃 взакрытую и кладёт в 🔒», а какие — только себе.
+function logTaken(state: GameState, p: PlayerState, cards: string[]) {
+  const hidden = cards.filter((c) => p.warehouse.find((w) => w.card === c)?.hidden);
+  const open = cards.filter((c) => !hidden.includes(c));
+  if (open.length) log(state, `↳ ${open.length > 1 ? 'Оставлены' : 'Оставлена'} на виду: ${titles(state, open)}.`);
+  if (hidden.length) {
+    log(state, `↳ ${p.name} берёт ${hidden.length === 1 ? 'непечатный текст' : plural(hidden.length, 'непечатный текст', 'непечатных текста', 'непечатных текстов')} взакрытую и кладёт в Тайник.`);
+    logRecap(state, `${hidden.length > 1 ? 'Получены' : 'Получена'}: ${titles(state, hidden)}.`, [p.id]);
+  }
+}
+
 // После строки «оставляет себе…» — сколько из этих книг легло в Тайник (их видел только он — «взакрытую»).
 function logCached(state: GameState, p: PlayerState, cards: string[]) {
   const n = cards.filter((c) => p.warehouse.find((w) => w.card === c)?.hidden).length;
@@ -1596,27 +1607,26 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       state.deck = shuffle(state, [...state.deck, ...state.discard]);
       state.discard = [];
       log(state, `${p.name} берёт у Наследников ${plural(action.cards.length, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}; сброс замешан в стопку.`);
-      logCached(state, p, action.cards);
-      logRecap(state, `${action.cards.length > 1 ? 'Получены' : 'Получена'}: ${titles(state, action.cards)}.`, [p.id]);
+      logTaken(state, p, action.cards);
       offerBlatnoy(state, p, 'nasledniki');
       break;
     }
     case 'posrednichestvoKeep': {
       check(action.type === 'posrednichestvoKeep', 'Выберите, что оставить');
+      // Оставить можно от 0 до положенного числа книг (автор: можно не брать ни одной).
       const need = Math.min(RULES.posrednichestvoKeep, pend.cards.length);
-      check(action.keep.length === need && new Set(action.keep).size === need, `Оставьте книг: ${need}`);
+      check(action.keep.length <= need && new Set(action.keep).size === action.keep.length, `Оставить можно не больше ${need}`);
       check(action.keep.length <= freeSlots(p), 'На складе не хватит места');
       for (const c of action.keep) check(pend.cards.includes(c), 'Эта книга не из вытянутых');
       for (const c of pend.cards) {
         if (action.keep.includes(c)) addSecretBook(state, p, c, null);
         else discard(state, c);
       }
-      log(state, `${p.name} оставляет себе ${plural(action.keep.length, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}.`);
-      logCached(state, p, action.keep);
-      logRecap(state, `${action.keep.length > 1 ? 'Оставлены' : 'Оставлена'}: ${titles(state, action.keep)}.`, [p.id]);
+      log(state, action.keep.length ? `${p.name} оставляет себе ${plural(action.keep.length, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}.` : `${p.name} ничего не оставляет себе.`);
+      logTaken(state, p, action.keep);
       state.pending.shift();
       state.pending.unshift({ kind: 'posrednichestvoGroup', player: p.id });
-      offerBlatnoy(state, p, 'posrednichestvo');
+      if (action.keep.length) offerBlatnoy(state, p, 'posrednichestvo');
       return;
     }
     case 'makulatura': {
@@ -1645,13 +1655,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       // По порядку: что оставил и что спрятал в Тайник (её видел только он — «взакрытую»), затем тайно — какую.
       addSecretBook(state, p, action.card, null);
       log(state, `${p.name} оставляет себе одну книгу из Макулатуры (вытянуто: ${pend.cards.length}).`);
-      if (p.warehouse.find((w) => w.card === action.card)?.hidden) {
-        log(state, `↳ ${p.name} берёт ${isFromLoadDeck(state, action.card) ? 'книгу Нагрузки' : 'непечатный текст'} взакрытую и кладёт в Тайник.`);
-        logRecap(state, `Оставлена: ${title(state, action.card)}.`, [p.id]);
-      } else {
-        // В открытую — книгу видят все: называем её при всех.
-        log(state, `↳ Оставлена на виду: ${title(state, action.card)}.`);
-      }
+      logTaken(state, p, [action.card]);
       break;
     }
     case 'spisanieKeep': {
@@ -1664,8 +1668,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         else discard(state, c);
       }
       log(state, `${p.name} оставляет себе из Библиотечного списания ${plural(action.keep.length, 'непечатный текст', 'непечатных текста', 'непечатных текстов')}.`);
-      logCached(state, p, action.keep);
-      if (action.keep.length) logRecap(state, `${action.keep.length > 1 ? 'Оставлены' : 'Оставлена'}: ${titles(state, action.keep)}.`, [p.id]);
+      logTaken(state, p, action.keep);
       if (action.keep.length) offerBlatnoy(state, p, 'spisanie');
       break;
     }

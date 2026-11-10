@@ -1410,7 +1410,8 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       }
       case 'posrednichestvoKeep': {
         const need = Math.min(RULES.posrednichestvoKeep, pend.cards.length);
-        return subsets(pend.cards, need).filter((x) => x.length === need).map((keep) => ({ type: 'posrednichestvoKeep', keep }));
+        // Можно и ничего не оставлять (например, склад полон, а книги не нужны).
+        return [...subsets(pend.cards, need).filter((x) => x.length === need), []].map((keep) => ({ type: 'posrednichestvoKeep', keep }));
       }
       case 'makulatura': {
         // Платить можно и книгой: самой ненужной (Куратор ЧНЛ не отдаёт). Склад полон — оставить вытянутое

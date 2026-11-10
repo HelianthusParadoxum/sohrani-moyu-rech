@@ -176,6 +176,22 @@ describe('Посредничество авторам и Библиотечно�
     expect(byId(s, p.id).talons).toBe(talons - RULES.expandCacheCost);
   });
 
+  it('Посредничество: можно не оставлять ни одной книги', () => {
+    let s = started();
+    const p = me(s);
+    p.talons = 10;
+    s.safehouses = ['posrednichestvo'];
+    s = applyAction(s, p.id, { type: 'place', place: { address: 'posrednichestvo' } });
+    const pend = s.pending[0];
+    if (pend.kind !== 'posrednichestvoKeep') throw new Error('нет решения');
+    const before = byId(s, p.id).warehouse.length;
+    s = applyAction(s, p.id, { type: 'posrednichestvoKeep', keep: [] });
+    expect(byId(s, p.id).warehouse).toHaveLength(before);
+    for (const c of pend.cards) expect(s.discard).toContain(c);
+    expect(s.pending[0].kind).toBe('posrednichestvoGroup'); // действие Группы — как обычно
+    expect(s.log.some((l) => l.text.endsWith('ничего не оставляет себе.'))).toBe(true);
+  });
+
   it(`Списание: ${RULES.spisanieDraw} книги за ${RULES.spisaniePrice}т, оставить сколько угодно, остальные — в сброс`, () => {
     let s = started();
     const p = me(s);

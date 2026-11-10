@@ -1301,7 +1301,7 @@ describe('Журнал: кружок действия', () => {
     const fresh = s.log.slice(start).map((l) => l.text);
     const main = fresh.findIndex((t) => t.includes('издаёт'));
     expect(fresh[main]).toContain(`+${RULES.samizdatPoints} очка`);
-    expect(fresh[main + 1]).toBe(`↳ Иностранная переведена: +${RULES.foreignPoints} очка.`);
+    expect(fresh[main + 1]).toBe(`↳ [ИН] переведена: +${RULES.foreignPoints} очка.`);
     expect(s.players.find((x) => x.id === me)!.pointsBy.foreign).toBe(RULES.foreignPoints);
   });
 });
@@ -2882,6 +2882,6 @@ describe('Журнал: свойства Альбома и Фантастики'
     s = applyAction(s, me, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: [sf] }] } });
     const texts = s.log.map((l) => l.text);
     const feed = texts.findIndex((t) => t.includes('питает ступень'));
-    expect(texts[feed + 1]).toBe('↳ Фантастика заронила зерно: значок засчитан за другой жанр.');
+    expect(texts[feed + 1]).toBe('↳ [ФА] заронила зерно: значок засчитан за другой жанр.');
   });
 });
