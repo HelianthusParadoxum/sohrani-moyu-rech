@@ -11,7 +11,7 @@ import { applyAction, createGame, activePlayers, migrate } from '../engine/engin
 import { botMove, type BotSkill } from '../engine/bot';
 import { BOT_BASE } from '../engine/bot-presets';
 import type { BotJob, BotReply } from './bot-worker';
-import { curatorSuspicionDetail, effectiveCuratorStyle } from '../engine/bot-smart';
+import { curatorMaybe, curatorSuspicionDetail, effectiveCuratorStyle } from '../engine/bot-smart';
 import { AUTO_PRESET, SOLO_PRESET, curatorStyleNote, presetById, selectablePresets } from '../engine/bot-presets';
 import { gainedInfo, viewFor } from '../engine/view';
 import { RuleError } from '../engine/util';
@@ -103,6 +103,10 @@ function noteForSpectator(room: Room) {
   s.log.push({ round: s.round, text: head, only: [], em: true });
   for (const p of s.players) {
     if (!bots.has(p.id) || p.passion === 'curator') continue;
+    if (!curatorMaybe(s, p.id)) {
+      s.log.push({ round: s.round, text: `${p.name} точно знает, что за столом нет Куратора (сам сбросил его карту).`, only: [], who: p.id });
+      continue;
+    }
     const sus = curatorSuspicionDetail(s, p.id);
     const lines = s.players.filter((o) => o.id !== p.id).map((o) => {
       const d = sus[o.id];

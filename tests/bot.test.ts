@@ -495,6 +495,9 @@ describe('Бот, отказавшийся от Куратора', () => {
     s.curatorPossible = true;
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions.find((x) => x !== 'curator')! });
     expect(curatorMaybe(s, a.id)).toBe(false);
+    // В журнале — тайно для него (и зрителя): карта Куратора сброшена.
+    const note = s.log.find((l) => l.text.includes('сбрасывает карту Куратора'));
+    expect(note?.only).toEqual([a.id]);
     expect(curatorMaybe(s, b.id)).toBe(true);
     // Улики против соперника есть (не показал на Посиделках из Тайника), но отказавшийся от Куратора их не учитывает.
     s.players.find((x) => x.id === c.id)!.cacheUnshown = 3;
