@@ -345,6 +345,9 @@ describe('полный режим', () => {
     while (s.pending[0] && s.pending[0].kind !== 'startConnection') s = botMove(s, s.pending[0].player, seeded(1));
     expect(s.patrons.find((x) => x.id === patron)!.connections).toContain(last);
     expect(s.patrons.find((x) => x.id === patron)!.turned).toBe(true);
+    const line = s.log.find((l) => l.club?.player === last)!;
+    expect(line.club!.round).toBe(0);
+    expect(line.text).not.toContain('стартовая');
     const next = s.pending[0].player;
     expect(() => applyAction(s, next, { type: 'befriend', patron })).toThrow(RuleError);
     while (s.pending[0]) { if (s.pending[0].kind === 'startConnection') expect(() => applyAction(s, s.pending[0].player, { type: 'pass' })).toThrow(RuleError); s = botMove(s, s.pending[0].player, seeded(2)); }

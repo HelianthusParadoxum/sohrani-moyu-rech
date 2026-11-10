@@ -126,8 +126,10 @@ function linkPatron(state: GameState, p: PlayerState, patron: GameState['patrons
   patron.connections.push(p.id);
   patron.since = { ...patron.since, [p.id]: state.round };
   patron.turned = true;
-  log(state, `${p.name} заводит связь в Клубе: ${PATRONS[patron.id].name} (${how}).`);
-  state.log[state.log.length - 1].club = { player: p.id, round: state.round };
+  // Стартовая связь — «нулевое действие»: в журнале кружок П0 и без пояснения в скобках.
+  const start = how === 'стартовая связь';
+  log(state, `${p.name} заводит связь в Клубе: ${PATRONS[patron.id].name}${start ? '' : ` (${how})`}.`);
+  state.log[state.log.length - 1].club = { player: p.id, round: start ? 0 : state.round };
   if (note) logAfter(state, note);
   onConnect(state, p, patron.id);
   // Маклер: каждая следующая связь — Талоны (связь с ним самим — нет).
