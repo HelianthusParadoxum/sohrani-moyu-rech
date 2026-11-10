@@ -410,7 +410,7 @@ label.row.check > input[type="checkbox"]:focus-visible { outline: 2px solid var(
 .dot.num { width: 16px; height: 16px; color: #fff; font: 700 0.62rem/15px 'Jost', sans-serif; text-align: center; }
 .dot.num.slot-free { background: transparent; border: 1.5px dashed rgba(0,0,0,.35); }
 .dot.num.inline { margin-left: 4px; vertical-align: middle; } /* middle, а не сдвиг от базовой линии: у кружка с цифрой базовая линия — цифра, у пустого — низ, и заполненный «сползал» */
-.gact { font-size: 0.72rem; padding: 2px 8px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); }
+.gact { font-size: 0.72rem; padding: 2px 4px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); }
 .gact.used { color: var(--ink); background: var(--paper-2); border-color: var(--ink); }
 .group-actions.readonly { margin-top: 2px; }
 .nowrap { white-space: nowrap; }
