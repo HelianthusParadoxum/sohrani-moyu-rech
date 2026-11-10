@@ -189,7 +189,7 @@ export function KontoraPanel({ view, place }: { view: PlayerView; place: (p: Pla
     <>
       <p>В Конторе — одно на выбор: <b>Пришить дело</b> или <b>Вызволить из бед</b>.</p>
       <h3>Вызволить из бед</h3>
-      <p>Вернуть из Конторы до {RULES.rescueMax} удерживаемых 👤 (своих или чужих): +{RULES.rescuePoints} очка за каждого. Донос не нужен.</p>
+      <p>Вернуть из Конторы до {RULES.rescueMax} удерживаемых 👤 (своих или чужих): +{RULES.rescuePoints} очка за каждого и +{RULES.rescueTalons} Талона. Донос не нужен.</p>
       {!held && <p className="warn-text">Сейчас Контора никого не удерживает.</p>}
       <h3>Пришить дело</h3>
       <h4>Цена похода — донос: указать на открыто лежащую на Складе соперника опальную книгу (опального жанра, ЧНЛ или Улику). В конце похода — обязательно: Сигнал (Контора удерживает 👤 того, на кого донос) и Изъятие этой книги в Спецхран</h4>
@@ -339,7 +339,7 @@ export function RescuePanel({ view, onDone }: { view: PlayerView; onDone: (retur
   const total = Object.values(returns).reduce((s, n) => s + n, 0);
   return (
     <>
-      <p>Верните до {RULES.rescueMax} удерживаемых Конторой 👤 — себе и другим игрокам: +{RULES.rescuePoints} очка за каждого.</p>
+      <p>Верните до {RULES.rescueMax} удерживаемых Конторой 👤 — себе и другим игрокам: +{RULES.rescuePoints} очка за каждого и +{RULES.rescueTalons} Талона.</p>
       {held.map((p) => {
         const room = RULES.rescueMax - total + (returns[p.id] ?? 0);
         return (

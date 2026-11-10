@@ -212,7 +212,8 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
     check(!c.denounce && !c.petition?.length && !c.handout && !c.prophylaxis, 'В Конторе — либо «Пришить дело», либо «Вызволить из бед»');
     const n = rescue(state, p, c.rescue);
     gain(p, n * RULES.rescuePoints, 'rescue');
-    logAfter(state, `↳ За помощь товарищам: +${pointsText(n * RULES.rescuePoints)}.`);
+    earn(state, p, RULES.rescueTalons, 'rescue');
+    logAfter(state, `↳ За помощь товарищам: +${pointsText(n * RULES.rescuePoints)}${RULES.rescueTalons ? `, +${talonsText(RULES.rescueTalons)}` : ''}.`);
     return;
   }
   // Пункты по выбору (Ходатайство, Выдача на руки, Профилактика) — от 0 до 3: можно ограничиться доносом.

@@ -962,6 +962,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     const avail = other.available;
     s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { rescue: { [other.id]: 2 } } });
     expect(s.players.find((x) => x.id === me)!.pointsBy.rescue).toBe(2 * RULES.rescuePoints);
+    expect(s.players.find((x) => x.id === me)!.talonsBy?.rescue).toBe(RULES.rescueTalons);
     const o2 = s.players.find((x) => x.id === other.id)!;
     expect(o2.held).toBe(1);
     // Вызволенные действуют только со следующей Пятилетки.
