@@ -40,7 +40,7 @@ export const RULES = {
   hireCost: 6,
   expandWarehouseCost: 1, // Увеличение склада: цена в Талонах
   expandCacheCost: 0, // Закладка Тайника: цена в Талонах (было 1; бесплатно — чтобы действие было в ходу)
-  professorTalons: 1, // Профессор: за каждую закрытую ступень Ростка — Талонов
+  professorTalons: 1, // Профессор: за каждую ступень Ростка, которую питает другой игрок, — Талонов
   professorPoints: 2, // ...и очков Гласности
   labtechDiscount: 'step4' as 'support' | 'main' | 'step4', // Лаборант: 'support' — можно не сдавать значок поддержки; 'main' — на 1 значок основного жанра меньше (не меньше 1); 'step4' — на ступени IV на 1 любой жанровый значок меньше
   scifiWild: 'any' as 'any' | 'support', // Фантастика «Заронить зерно» в Ростках: 'any' — заменяет любой значок, 'support' — только значок поддержки
@@ -326,7 +326,7 @@ export const PATRONS: Record<PatronId, PatronInfo> = Object.fromEntries([
   P('carpenter', 'Столяр', `Заложить Тайник${RULES.expandCacheCost ? ' — бесплатно, и' : ':'} Тайник растёт на ${RULES.carpenterCache} (до ${RULES.maxCache})`),
   P('correspondent', 'Корреспондент', `Самиздат и Тамиздат: ещё +${RULES.correspondentTalons} Талон и +${RULES.correspondentPoints} очко Гласности за каждое издание`),
   P('postgrad', 'Архивист', 'Написать Монографию: +2 очка Гласности'),
-  P('professor', 'Профессор', `За каждое питание ступени Ростка: +${RULES.professorTalons} Талон и +${RULES.professorPoints} очка Гласности`),
+  P('professor', 'Профессор', `Каждый раз, когда другой игрок питает Росток Гласности: +${RULES.professorTalons} Талон и +${RULES.professorPoints} очка Гласности (за каждую ступень)`),
   P('housekeeper', 'Управдом', `+${RULES.housekeeperSlots} место на складе (до ${RULES.maxCapacity})`),
   P('spotter', 'Наводчик', 'В свой ход видите закрытые книги Барахолки, Спецхран и верхние книги стопок'),
   P('veteran', 'Ветеран', 'На адресах — сколько угодно книг за одно действие, в сумме на 1 Талон дешевле'),

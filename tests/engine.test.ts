@@ -585,6 +585,13 @@ describe('Завсегдатаи: Ветеран, Лейтенант, Управ
     }
   });
 
+  it('Профессор в одиночной игре не выходит в Клуб', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const s = createGame({ players: players(1), seed, mode: 'full' });
+      expect(s.patrons.some((x) => x.id === 'professor')).toBe(false);
+    }
+  });
+
   it('Лейтенант забирает книги, изъятые с адресов', () => {
     let found = false;
     for (let seed = 1; seed <= 10 && !found; seed++) {
@@ -849,20 +856,22 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     const pub = texts.findIndex((x) => x.includes('издаёт'));
     expect(texts[pub]).not.toContain('Талон');
     expect(texts.slice(pub + 1)).toContain('↳ Корреспондент: +1 Талон и +1 очко.');
-    // Профессор: за ступень Ростка ещё +1 Талон и +2 очка.
+    // Профессор: когда другой игрок питает ступень Ростка — +1 Талон и +2 очка; за своё питание — ничего.
     let s4 = started();
     const me4 = s4.order[s4.turn];
-    connect(s4, 'professor', [me4]);
+    const other4 = s4.players.find((x) => x.id !== me4)!.id;
+    connect(s4, 'professor', [me4, other4]);
     const sp = s4.sprouts[0];
     const main = SPROUTS.find((x) => x.id === sp.id)!.main;
     const card4 = give(s4, me4, (icons) => icons.length === 1 && icons[0] === main);
-    const p4 = s4.players.find((x) => x.id === me4)!;
-    const t4 = p4.talons;
+    const t4 = s4.players.find((x) => x.id === other4)!.talons;
     s4 = applyAction(s4, me4, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: [card4] }] } });
-    const after4 = s4.players.find((x) => x.id === me4)!;
-    expect(after4.pointsBy.professor).toBe(RULES.professorPoints);
-    expect(after4.talonsBy?.professor).toBe(RULES.professorTalons);
-    expect(after4.talons).toBeGreaterThanOrEqual(t4 + RULES.professorTalons);
+    const feeder4 = s4.players.find((x) => x.id === me4)!;
+    const prof4 = s4.players.find((x) => x.id === other4)!;
+    expect(feeder4.pointsBy.professor ?? 0).toBe(0);
+    expect(prof4.pointsBy.professor).toBe(RULES.professorPoints);
+    expect(prof4.talonsBy?.professor).toBe(RULES.professorTalons);
+    expect(prof4.talons).toBe(t4 + RULES.professorTalons);
     // С Цеховиком за одно издание — ещё ровно +1, хоть доход и из двух частей.
     let s3 = started();
     const me3 = s3.order[s3.turn];

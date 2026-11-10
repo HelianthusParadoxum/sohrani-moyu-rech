@@ -13,7 +13,8 @@ export const isFull = (state: GameState) => state.mode === 'full';
 // ---------- Подготовка ----------
 
 export function setupClub(state: GameState) {
-  const pool = shuffle(state, Object.values(PATRONS).filter((p) => p.implemented && !(state.reserve && KONTORA_PATRONS.includes(p.id))).map((p) => p.id));
+  // В одиночной игре Профессора нет: другой игрок, который питал бы Ростки, не появится.
+  const pool = shuffle(state, Object.values(PATRONS).filter((p) => p.implemented && !(state.reserve && KONTORA_PATRONS.includes(p.id)) && !(state.solo && p.id === 'professor')).map((p) => p.id));
   const genres = shuffle(state, [...GENRES]);
   state.patrons = pool.slice(0, CLUB_SIZE).map((id, i) => ({ id, genre: genres[i], connections: [], turned: false, removed: false }));
 }

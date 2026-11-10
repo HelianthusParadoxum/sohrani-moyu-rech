@@ -1147,15 +1147,20 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         const reward = STEP_REWARDS[sp.progress];
         sp.progress++;
         (p.fedSteps ??= []).push(sp.progress);
-        const prof = hasPatron(state, p.id, 'professor');
-        earn(state, p, 0, { sprouts: reward.talons, professor: prof ? RULES.professorTalons : 0 });
+        earn(state, p, reward.talons, 'sprouts');
         gain(p, reward.points, 'sprouts');
-        if (prof) gain(p, RULES.professorPoints, 'professor');
         let text = `${p.name} питает ступень ${roman(sp.progress)} Ростка «${info.name}» (${fedTitles}${lab ? '; скидка Лаборанта' : ''})`;
         text += `, +${[reward.talons ? talonsText(reward.talons) : '', reward.points ? pointsText(reward.points) : ''].filter(Boolean).join(' и +')}`;
         // Кто вкладывался в Росток — запоминаем: по этому боты судят, кто не Куратор (на поле не показывается).
         if (!p.sproutsFed.includes(sp.id)) p.sproutsFed.push(sp.id);
         log(state, text + '.');
+        // Профессор: каждый, кто с ним связан (кроме кормящего), получает Талон и очки за эту ступень.
+        for (const o of state.players) {
+          if (o.id === p.id || !hasPatron(state, o.id, 'professor')) continue;
+          earn(state, o, RULES.professorTalons, 'professor');
+          gain(o, RULES.professorPoints, 'professor');
+          logAfter(state, `↳ Профессор: ${o.name} +${talonsText(RULES.professorTalons)} и +${pointsText(RULES.professorPoints)}.`);
+        }
         // Фантастика «Заронить зерно»: без неё (её значков вместо других жанров) ступень не закрылась бы.
         if (isFull(state) && !coversStep(state, f.books, info.main, step.main, step.support, { labtech: lab })) {
           logAfter(state, '↳ Фантастика заронила зерно: значок засчитан за другой жанр.');
