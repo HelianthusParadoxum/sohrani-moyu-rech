@@ -851,7 +851,7 @@ function makulaturaDigValue(next: GameState, me: string, ctx: Ctx): number {
 
 // Лучшие по оценке ходы, от лучшего к худшему.
 // honest — оценить ход так, будто бот честный книжник (Куратору — для маскировки).
-// lookahead — умелость ботов: 0 — «Стандарт» (1–2 шага), 3 — «Вдумчивые» (цепочки из 3 своих ходов).
+// lookahead — умелость ботов: 0 — «Упрощённые» (1–2 шага), 3 — «Вдумчивые» (цепочки из 3 своих ходов).
 export function rankActions(state: GameState, me: string, preset: BotPreset, rand: Rand, honest = false, lookahead = 0, budgetMs?: number): { a: Action; v: number }[] {
   const ctx = makeCtx(state, me, preset, honest);
   let cands = candidates(state, me, ctx);

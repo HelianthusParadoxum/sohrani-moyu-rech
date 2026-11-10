@@ -160,7 +160,7 @@ function roomInfo(room: Room): RoomInfo {
     canUndo: room.history.length > 0,
     hostBot: hostSeat(room)?.bot ?? false,
     botDelay: room.botDelay ?? 700,
-    botSkill: room.botSkill ?? 'standard',
+    botSkill: room.botSkill ?? 'thoughtful',
     paused: !!room.paused,
     curator: !room.noCurator,
     forceCurator: !!room.forceCurator,
@@ -259,7 +259,7 @@ function scheduleBots(room: Room) {
     if (!from || room.paused || botThinking.get(room.code) === from) return;
     botThinking.set(room.code, from);
     const seat = room.seats.find((s) => s.id === who);
-    const skill: BotSkill = room.botSkill ?? 'standard';
+    const skill: BotSkill = room.botSkill ?? 'thoughtful';
     thinkInWorker({ state: from, who, preset: seat && seatPreset(room, seat), skill, budgetMs: BOT_BASE.lookaheadBudgetMs })
       .then((next) => {
         if (botThinking.get(room.code) === from) botThinking.delete(room.code);
@@ -323,7 +323,8 @@ function handle(ws: WebSocket, msg: ClientMessage) {
     case 'create': {
       const code = newCode();
       const seat: Seat = { id: newId(), name: msg.name.trim().slice(0, 24) || 'Игрок', token: newId() + newId(), bot: false };
-      const room: Room = { code, host: seat.id, seats: [seat], mode: 'beginner', state: null, history: [], updated: Date.now() };
+      // По умолчанию — полные правила и «Вдумчивые» боты (решение автора).
+      const room: Room = { code, host: seat.id, seats: [seat], mode: 'full', botSkill: 'thoughtful', state: null, history: [], updated: Date.now() };
       rooms.set(code, room);
       sockets.set(ws, { room: code, seat: seat.id, host: true });
       send(ws, { t: 'joined', code, token: seat.token });

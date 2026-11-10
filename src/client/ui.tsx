@@ -203,12 +203,12 @@ export function toggle<T>(list: T[], x: T): T[] {
   return list.includes(x) ? list.filter((y) => y !== x) : [...list, x];
 }
 
-// Умелость ботов (лобби): «Стандарт» — как раньше, «Вдумчивые» — все боты смотрят на 3 своих хода вперёд.
+// Умелость ботов (лобби): «Упрощённые» — как раньше, «Вдумчивые» — все боты смотрят на 3 своих хода вперёд.
 export function SkillSelect({ room, send }: { room: RoomInfo; send: (m: ClientMessage) => void }) {
   return (
     <label><span className="cap">Умелость ботов</span>
-      <Dropdown value={room.botSkill ?? 'standard'} onChange={(skill) => send({ t: 'botSkill', skill })} ariaLabel="Умелость ботов"
-        options={[{ value: 'standard', label: 'Стандарт', title: 'Оценивают каждый ход по отдельности — быстро.' },
+      <Dropdown value={room.botSkill ?? 'thoughtful'} onChange={(skill) => send({ t: 'botSkill', skill })} ariaLabel="Умелость ботов"
+        options={[{ value: 'standard', label: 'Упрощённые', title: 'Оценивают каждый ход по отдельности — быстро.' },
           { value: 'thoughtful', label: 'Вдумчивые', title: 'Думают на 3 своих хода вперёд — заметно сильнее, но дольше.' }]} />
     </label>
   );

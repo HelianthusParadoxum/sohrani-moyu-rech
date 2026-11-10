@@ -12,7 +12,7 @@ export interface RoomInfo {
   canUndo: boolean;
   hostBot: boolean; // за хоста играет бот, хост смотрит со стороны
   botDelay: number; // пауза между ходами ботов, мс
-  botSkill: 'standard' | 'thoughtful'; // умелость ботов: «Стандарт» или «Вдумчивые»
+  botSkill: 'standard' | 'thoughtful'; // умелость ботов: «Упрощённые» или «Вдумчивые»
   paused?: boolean; // ходы ботов остановлены (кнопка «Пауза» у хоста)
   curator: boolean; // Куратор в колоде Пристрастий (полный режим)
   forceCurator?: boolean; // для тестов: первый игрок — Куратор
