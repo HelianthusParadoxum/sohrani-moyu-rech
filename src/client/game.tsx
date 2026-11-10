@@ -1400,6 +1400,9 @@ function withGenreChips(raw: string, icons = true): ReactNode {
   return out;
 }
 
+// Подсказка кнопки «Заучить» (на ПК — при наведении, на телефоне — при удержании пальца).
+const MEMORIZE_TIP = 'Заучить сборник поэзии: он лежит сверх Склада и Тайника — виден всем, облава его не трогает. Не тратит действие.';
+
 const ARROW_PATHS: Record<string, string> = {
   '→': 'M2 8.5H13M9.5 5L13 8.5L9.5 12',
   '↳': 'M3 2V8.5H13M9.5 5L13 8.5L9.5 12', // вниз, затем вправо
@@ -1762,8 +1765,7 @@ function MyPanel({ view, me, color, groupWhy, onGroup, onMemorize, onCache }: {
       )}
       {onMemorize && (poetry.length > 0 || memorized) && (
         <div className="group-actions">
-          <span className="muted small">«Заучить» (сборник поэзии сверх Склада и Тайника, не тратит действие):</span>
-          {poetry.map((c) => <button key={c} className="small" onClick={() => onMemorize(c)}>Заучить «{view.cards[c].title}»</button>)}
+          {poetry.map((c) => <button key={c} className="small" onClick={() => onMemorize(c)} title={MEMORIZE_TIP} data-tip={MEMORIZE_TIP}>Заучить «{view.cards[c].title}»</button>)}
           {memorized && <button className="small" onClick={() => onMemorize(null)}>Вернуть «{view.cards[memorized].title}» на Склад</button>}
         </div>
       )}
