@@ -7,8 +7,10 @@ import { appendFileSync, readFileSync } from 'node:fs';
 import { createGame } from '../src/engine/engine';
 import { playOut, type BotSkill } from '../src/engine/bot';
 import { selectablePresets } from '../src/engine/bot-presets';
+import { spreadLine, spreadOf } from './spread';
 
-type Row = { n: number; curWin: boolean; glasnost: boolean };
+// spread — «разброс победных очков»: итог первого минус итог последнего (в старых файлах его нет).
+type Row = { n: number; curWin: boolean; glasnost: boolean; spread?: number };
 
 function seeded(seed: number) {
   let t = seed;
@@ -28,6 +30,8 @@ function report(rows: Row[]) {
     const se = Math.sqrt((w / R.length) * (1 - w / R.length) / R.length);
     console.log(`${n} игроков: партий ${R.length}, побед Куратора ${w} — ${Math.round((100 * w) / R.length)}% ± ${Math.round(200 * se)} п. п.`
       + ` (цель ${target[n] ?? '—'}), Гласность ${Math.round((100 * R.filter((r) => r.glasnost).length) / R.length)}%`);
+    const sp = R.flatMap((r) => (r.spread === undefined ? [] : [r.spread]));
+    if (sp.length) console.log(`  ${spreadLine(sp)}`);
   }
 }
 
@@ -48,7 +52,7 @@ if (process.argv[2] === 'merge') {
     const s = playOut(createGame({ players, seed: 7000 + g, mode: 'full', forceCurator: true }), rand, 12000, pick, skill);
     if (s.phase !== 'end' || !s.result) continue;
     const cur = s.players.find((p) => p.passion === 'curator')!;
-    const row = { n, curWin: s.result.winners.includes(cur.id), glasnost: s.result.glasnost };
+    const row = { n, curWin: s.result.winners.includes(cur.id), glasnost: s.result.glasnost, spread: spreadOf(s.result) };
     rows.push(row);
     if (out) appendFileSync(out, JSON.stringify(row) + '\n');
   }

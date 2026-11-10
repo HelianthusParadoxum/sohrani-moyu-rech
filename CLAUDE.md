@@ -28,7 +28,8 @@
 - `npm test` — тесты; `npm run typecheck` — проверка типов.
 - `npm run dev` — сервер (8787) и Vite (5173) с прокси на `/ws`.
 - `npm run build && npm start` — продакшен-сборка и запуск.
-- `npm run curator -- 40 4 thoughtful` — баланс Куратора (главный замер, см. «Цель по балансу»).
+- `npm run curator -- 40 4 thoughtful` — баланс Куратора (главный замер, см. «Цель по балансу»); там же и в `simulate` —
+  «разброс победных очков» (первый − последний, `tools/spread.ts`): цели нет, но рост разброса от правки к правке — плохой знак.
 - `npm run simulate -- 200 3` — 200 партий ботами на 3 игроков (режим — 3-й аргумент: `beginner`, `full` или `reserve`).
 - `npm run simulate -- 100 4 beginner networker,gardener,collector,bookman` — турнир пресетов (места сдвигаются по кругу).
 - `npm run addresses -- 60 4 bookman,networker,collector,gardener full` — посещаемость адресов за Пятилетку на столе и заполненность мест (пресеты по местам, режим `beginner` или `full`).

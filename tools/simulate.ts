@@ -6,6 +6,7 @@ import { playOut } from '../src/engine/bot';
 import { BOT_PRESETS, CURATOR_STYLES, DEFAULT_PRESET, curatorStyle, presetById, type CuratorStyle } from '../src/engine/bot-presets';
 import { PASSIONS } from '../src/engine/content';
 import type { Mode } from '../src/engine/types';
+import { spreadLine, spreadOf } from './spread';
 
 const games = Number(process.argv[2] ?? 100);
 const n = Number(process.argv[3] ?? 3);
@@ -32,6 +33,7 @@ const passionWins: Record<string, number> = {};
 const curatorStyles: Record<string, { plays: number; wins: number }> = {};
 const passionPlays: Record<string, number> = {};
 const stat: Record<string, { plays: number; wins: number; total: number[]; workers: number[]; sources: Record<string, number> }> = {};
+const spreads: number[] = [];
 const started = Date.now();
 
 for (let i = 0; i < games; i++) {
@@ -40,6 +42,7 @@ for (let i = 0; i < games; i++) {
   const s = playOut(createGame({ players, seed: i + 1, mode: mode === 'reserve' ? 'full' : mode, reserve: mode === 'reserve' }), seeded(i + 1), 5000, presets);
   const r = s.result!;
   if (r.glasnost) glasnost++;
+  spreads.push(spreadOf(r));
   s.sprouts.forEach((sp) => progress.push(sp.progress));
   for (const p of s.players) {
     const id = presets[p.id];
@@ -71,6 +74,7 @@ console.log(`Партий: ${games}, игроков: ${n}, режим: ${mode}, 
 console.log(`Время: ${((Date.now() - started) / 1000).toFixed(1)} с`);
 console.log(`Гласность наступила: ${((glasnost / games) * 100).toFixed(0)}%`);
 console.log(`Средняя ступень Ростка к концу: ${avg(progress)}`);
+console.log(spreadLine(spreads));
 console.log('По пресетам (побед / мест, средний итог, Единомышленников к концу):');
 for (const [id, st] of Object.entries(stat)) {
   console.log(`  ${presetById(id).name.padEnd(14)} ${st.wins} / ${st.plays}, итог ${avg(st.total)}, сеть ${avg(st.workers)}`);
