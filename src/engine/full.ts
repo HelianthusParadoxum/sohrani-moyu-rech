@@ -177,9 +177,10 @@ type TargetsInfo = Pick<GameState, 'cards' | 'restored' | 'banned'> & {
 };
 
 // exclude — кто идёт в Контору: на свою книгу доносить нельзя.
+// Донос — на любую открыто лежащую опальную книгу соперника: опального жанра, ЧНЛ (кроме легальной) или Улику.
 export function kontoraTargets(state: TargetsInfo, exclude?: string | null): { player: string; card: string }[] {
   return state.players.filter((o) => o.id !== exclude).flatMap((o) => o.warehouse
-    .filter((s) => s.card && !s.hidden && !s.memorized && isGenreBook(state, s.card) && isBanned(state, s.card))
+    .filter((s) => s.card && !s.hidden && !s.memorized && isBanned(state, s.card))
     .map((s) => ({ player: o.id, card: s.card! })));
 }
 
@@ -213,7 +214,7 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
   const target = player(state, c.denounce.player);
   const slot = target.warehouse.find((x) => x.card === c.denounce!.card);
   check(slot && !slot.hidden && !slot.memorized, 'Донос — только на открыто лежащую на складе книгу');
-  check(isGenreBook(state, slot.card) && isBanned(state, slot.card), 'Донос — только на книгу опального жанра');
+  check(isBanned(state, slot.card), 'Донос — только на опальную книгу (опального жанра, ЧНЛ или Улику)');
   log(state, `Донос в Контору: у ${target.name} открыто лежит ${title(state, slot.card)}.`);
   p.denounces = (p.denounces ?? 0) + 1;
   if (c.petition?.length) {

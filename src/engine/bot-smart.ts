@@ -483,7 +483,7 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   // Открыто лежащая опальная книга посреди Пятилетки — готовый донос и для честных: Контора её изымет и удержит
   // Единомышленника. Чем сильнее его подозревают (а раскрывшегося — наверняка), тем охотнее на него донесут.
   if (state.phase === 'orders' && !state.reserve) {
-    const open = p.warehouse.filter((s) => !s.hidden && !s.memorized && isGenreBook(state, s.card) && isBanned(state, s.card)).length;
+    const open = p.warehouse.filter((s) => !s.hidden && !s.memorized && isBanned(state, s.card)).length;
     if (open && others.some((o) => o.available > 0)) {
       const risk = Math.min(1, BOT_BASE.exposeRisk + BOT_BASE.exposeRiskSuspect * exposed);
       const book = (BOT_BASE.curatorBook + BOT_BASE.curatorBannedBook) * (BOT_BASE.curatorBookByRound[r] ?? 1);
@@ -643,7 +643,7 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
 // Раскрывшийся Куратор, у которого ещё есть ход в Контору, донесёт наверняка.
 function exposurePenalty(state: GameState, p: PlayerState, ctx: Ctx, left: number): number {
   if (state.phase !== 'orders' || state.reserve) return 0;
-  const exposed = p.warehouse.filter((s) => !s.hidden && !s.memorized && isGenreBook(state, s.card) && isBanned(state, s.card));
+  const exposed = p.warehouse.filter((s) => !s.hidden && !s.memorized && isBanned(state, s.card));
   if (!exposed.length || !state.players.some((o) => o.id !== p.id && o.available > 0)) return 0;
   const sus = Math.max(0, ...Object.values(ctx.suspect));
   const cur = state.curatorRevealed && state.curatorRevealed !== p.id ? player(state, state.curatorRevealed) : null;
@@ -1303,8 +1303,10 @@ function hideList(state: GameState, me: string, ctx: Ctx, keep: Map<string, numb
   const p = player(state, me);
   const loads = p.warehouse.filter((s) => isLoad(state, s.card)).length + (opts.extraLoad ?? 0);
   const limit = p.cache + Math.floor(loads / 2);
+  // Честный прячет ЧНЛ только посреди поручений — от доноса в Контору (удержат Единомышленника). На Укрытии оставляет
+  // её открытой: облава её изымет, и в конце не будет −5.
   const banned = p.warehouse.filter((s) => s.card !== opts.exclude && !s.memorized && isBanned(state, s.card)
-    && (ctx.curator || !isPropaganda(state, s.card))).map((s) => s.card);
+    && (ctx.curator || !isPropaganda(state, s.card) || state.phase === 'orders')).map((s) => s.card);
   const list = byValue(keep, banned).reverse().slice(0, limit);
   // Свободные места Тайника — впрок: в новой Пятилетке опала сменится, и открытая жанровая книга может стать доносом
   // в Контору раньше, чем дойдёт ход её перепрятать. Прячем самые ценные из них.
@@ -1334,7 +1336,7 @@ function memorizeAction(state: GameState, me: string): Action | null {
 function rehideAction(state: GameState, me: string, ctx: Ctx): Action | null {
   if (state.phase !== 'orders' || state.pending.length) return null;
   const p = player(state, me);
-  const open = p.warehouse.some((s) => !s.hidden && !s.memorized && isBanned(state, s.card) && (ctx.curator || !isPropaganda(state, s.card)));
+  const open = p.warehouse.some((s) => !s.hidden && !s.memorized && isBanned(state, s.card));
   if (!open) return null;
   // Впрок (неопальное) посреди Пятилетки не перекладываем — только прячем опальное, иначе можно перекладывать без конца.
   const want = hideList(state, me, ctx, keepValues(state, me, ctx), { noSpare: true });
@@ -1343,7 +1345,7 @@ function rehideAction(state: GameState, me: string, ctx: Ctx): Action | null {
   const now = p.warehouse.filter((s) => s.hidden).map((s) => s.card);
   if (target.length === now.length && target.every((c) => now.includes(c))) return null;
   // Перекладываем, только если это прячет больше опальных книг, чем сейчас (защита от бесконечной перекладки).
-  const bannedIn = (list: string[]) => list.filter((c) => isBanned(state, c) && (ctx.curator || !isPropaganda(state, c))).length;
+  const bannedIn = (list: string[]) => list.filter((c) => isBanned(state, c)).length;
   if (bannedIn(target) <= bannedIn(now)) return null;
   return { type: 'hiding', hidden: target };
 }

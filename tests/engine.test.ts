@@ -8,7 +8,7 @@ import { finalScoring, passionPoints, scoreLine } from '../src/engine/scoring';
 import { GENRE_SHORT, PASSIONS, RULES, SPROUTS, STEP_REWARDS, limitFor, sproutBonusOptions, sproutSlotBonuses } from '../src/engine/content';
 import type { GameState, Genre, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
-import { onConnect, proseBonus, removePatron, signalable, takeFromSpetskhran } from '../src/engine/full';
+import { kontoraTargets, onConnect, proseBonus, removePatron, signalable, takeFromSpetskhran } from '../src/engine/full';
 
 // Действие и сразу «Закончить ход».
 function act(s: GameState, who: string, a: Parameters<typeof applyAction>[2]): GameState {
@@ -2027,6 +2027,34 @@ describe('Контора: донос', () => {
     expect(s.patrons[0].removed).toBe(true);
     expect(s.players.find((x) => x.id === a)!.held).toBe(0);
     expect(s.log.some((l) => l.text.includes('Психиатр напоследок'))).toBe(true);
+  });
+});
+
+describe('Контора: донос на ЧНЛ', () => {
+  function setup(kind: (s: GameState, c: string) => boolean) {
+    let s = createGame({ players: players(3), seed: 15, mode: 'full', curator: false });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const [a] = s.order.filter((x) => x !== me);
+    const book = [...s.deck, ...s.loadDeck].find((c) => kind(s, c))!;
+    s.deck = s.deck.filter((c) => c !== book); s.loadDeck = s.loadDeck.filter((c) => c !== book);
+    const target = s.players.find((x) => x.id === a)!;
+    target.warehouse = target.warehouse.filter((w) => !isBanned(s, w.card)); // других поводов для доноса нет
+    for (const o of s.players) if (o.id !== a && o.id !== me) o.warehouse = o.warehouse.filter((w) => !isBanned(s, w.card));
+    target.warehouse.push({ card: book, hidden: false });
+    return { s, me, a, book };
+  }
+  it('ЧНЛ всегда опальна: открыто лежащая у соперника — повод для доноса', () => {
+    const { s: s0, me, a, book } = setup((s, c) => isPropaganda(s, c) && !s.cards[c].legal);
+    expect(kontoraTargets(s0, me)).toEqual([{ player: a, card: book }]);
+    let s = applyAction(s0, me, { type: 'place', place: { address: 'kontora' } });
+    s = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { handout: true, denounce: { player: a, card: book } } });
+    expect(s.log.some((l) => l.text.startsWith('Донос в Контору'))).toBe(true);
+  });
+  it('легальная ЧНЛ («Вторжение без оружия») не опальна — донести на неё нельзя', () => {
+    const { s, me } = setup((s, c) => !!s.cards[c].legal);
+    expect(kontoraTargets(s, me)).toEqual([]);
   });
 });
 

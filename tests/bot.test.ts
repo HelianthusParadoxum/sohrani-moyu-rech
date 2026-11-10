@@ -3,7 +3,7 @@ import { activePlayers as activePlayersOf, applyAction, createGame } from '../sr
 import { botMove, playOut } from '../src/engine/bot';
 import { curatorSuspicion, effectiveCuratorStyle, rankActions } from '../src/engine/bot-smart';
 import { BOT_BASE, BOT_GOALS, BOT_PRESETS, CURATOR_STYLES, curatorStyle, curatorStyleNote, presetById, selectablePresets } from '../src/engine/bot-presets';
-import { isBanned, isEvidence, isGenreBook } from '../src/engine/util';
+import { isBanned, isEvidence, isGenreBook, isPropaganda } from '../src/engine/util';
 import { RULES } from '../src/engine/content';
 import type { GameState } from '../src/engine/types';
 
@@ -458,4 +458,28 @@ describe('Умелость ботов', () => {
     for (let i = 0; i < 4000 && s.phase !== 'end'; i++) s = botMove(s, activePlayersOf(s)[0], rand, 'bookman', 'thoughtful', 0);
     expect(s.phase).toBe('end');
   }, 120_000);
+});
+
+describe('Честный бот и ЧНЛ', () => {
+  it('во время поручений прячет открытую ЧНЛ в Тайник (донос в Контору), на Укрытии перед облавой оставляет открытой', () => {
+    let s = createGame({ players: players(3), seed: 11, mode: 'full', curator: false });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions.find((x) => x !== 'curator')! });
+    for (const p of s.players) if (s.phase === 'setupCache') s = applyAction(s, p.id, { type: 'hiding', hidden: [] });
+    expect(s.phase).toBe('orders');
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    const chnl = [...s.deck, ...s.loadDeck].find((c) => isPropaganda(s, c) && !s.cards[c].legal)!;
+    s.deck = s.deck.filter((c) => c !== chnl); s.loadDeck = s.loadDeck.filter((c) => c !== chnl);
+    p.warehouse = p.warehouse.filter((w) => !isBanned(s, w.card)).map((w) => ({ ...w, hidden: false }));
+    p.warehouse.push({ card: chnl, hidden: false });
+    p.cache = 2; p.capacity = 6;
+    const orders = rankActions(s, me, presetById('bookman'), seeded(1), true);
+    expect(orders[0].a).toMatchObject({ type: 'hiding' });
+    expect(orders[0].a.type === 'hiding' && orders[0].a.hidden).toContain(chnl);
+    // Укрытие перед облавой: ЧНЛ — открыто, облава её заберёт (иначе в конце −5).
+    const t: GameState = JSON.parse(JSON.stringify(s));
+    t.phase = 'hiding'; t.pending = []; t.ready = [];
+    const hiding = rankActions(t, me, presetById('bookman'), seeded(1), true);
+    expect(hiding[0].a.type === 'hiding' && hiding[0].a.hidden).not.toContain(chnl);
+  });
 });
