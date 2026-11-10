@@ -1179,26 +1179,27 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
       const veteran = hasPatron(view, me.id, 'veteran');
       const bought = p.bought ?? 0;
       const cost = bought === 0 ? buyCost(view, me, [RULES.baraholkaPrice]) : RULES.baraholkaPrice;
+      // Выбор — нажатием на книгу (одна; повторное нажатие снимает выбор). Внизу одна кнопка: «Купить» — если книга выбрана,
+      // иначе «Ничего не брать» (Ветерану после покупок — «Закончить»).
+      const chosen = p.seen.find((x) => sel[0] === String(x.slot));
+      const why = !chosen ? null : !roomToBuy(view, me, [chosen.card]) ? 'Нет места на складе' : me.talons < cost ? `Не хватает Талонов: нужно ${cost}, у вас ${me.talons}` : null;
       return (
         <Modal title="Барахолка">
-          <p>Вы тайно смотрите {p.seen.length === 1 ? 'книгу' : 'книги'}{veteran ? '' : ' и можете купить одну из них'}:</p>
+          <p>Вы тайно смотрите {p.seen.length === 1 ? 'книгу' : 'книги'} и можете купить {veteran ? 'сколько угодно' : 'одну из них'}{p.seen.length > 1 ? ' — нажмите на книгу' : ''}:</p>
           {/* Книги — по местам, как лежат на Барахолке (2 × 2), с пустыми местами: купленные выбывают на глазах. */}
           <div className="shelf grid2">
             {view.baraholka.map((_, i) => {
               const x = p.seen.find((y) => y.slot === i);
-              if (!x) return <div key={i} className="col"><div className="book empty" title="Пустое место" /></div>;
-              return (
-                <div key={i} className="col">
-                  <Book v={view} id={x.card} />
-                  <button className="primary small" disabled={me.talons < cost || !roomToBuy(view, me, [x.card])} title={roomToBuy(view, me, [x.card]) ? undefined : 'Нет места на складе'} onClick={() => act({ type: 'baraholkaBuy', slot: x.slot })}>Купить{costTag(cost) || ' (даром)'}</button>
-                </div>
-              );
+              if (!x) return <div key={i} className="book empty" title="Пустое место" />;
+              return <Book key={i} v={view} id={x.card} selected={chosen === x} onClick={() => setSel(chosen === x ? [] : [String(x.slot)])} />;
             })}
           </div>
-          {veteran && <p className="muted small">Ветеран: можно купить сколько угодно книг; в сумме на 1 Талон дешевле (первая книга — даром). Куплено: {bought}.</p>}
+          {veteran && <p className="muted small">Ветеран: в сумме на 1 Талон дешевле (первая книга — даром). Куплено: {bought}.</p>}
           <div className="modal-foot">
-            <span className="muted">у вас {me.talons}🎫</span>
-            <button onClick={() => act({ type: 'baraholkaBuy' })}>{bought ? 'Закончить' : 'Ничего не брать'}</button>
+            <span className="muted">{why ? `${why} · ` : ''}у вас {me.talons}🎫</span>
+            {chosen
+              ? <button className={`primary ${why ? 'off' : ''}`} aria-disabled={!!why} onClick={() => { if (why) return; setSel([]); act({ type: 'baraholkaBuy', slot: chosen.slot }); }}>Купить{costTag(cost) || ' (даром)'}</button>
+              : <button onClick={() => act({ type: 'baraholkaBuy' })}>{bought ? 'Закончить' : 'Ничего не брать'}</button>}
           </div>
         </Modal>
       );
