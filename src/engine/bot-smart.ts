@@ -59,7 +59,7 @@ function makeCtx(state: GameState, me: string, preset: BotPreset, honest = false
   const need = state.sprouts.reduce((s, sp) => s + Math.max(0, RULES.glasnostStep - sp.progress), 0);
   const roundsLeft = RULES.rounds - r + 1;
   // В полном режиме на 3+ игроков среди соперников, возможно, Куратор: кормит Ростки на одного меньше.
-  const feeders = state.players.length - (state.mode === 'full' && state.players.length >= 3 ? 1 : 0);
+  const feeders = state.players.length - (state.mode === 'full' && state.players.length >= 3 && curatorMaybe(state, me) ? 1 : 0);
   const urgency = Math.min(2.5, Math.max(0.6, need / Math.max(1, roundsLeft * feeders * 0.5)));
   const curator = !honest && player(state, me).passion === 'curator';
   const suspect = curator ? {} : curatorSuspicion(state, me);
@@ -157,6 +157,14 @@ export function curatorSuspicion(state: GameState, me: string): Record<string, n
 }
 
 // Подозрение с расшифровкой: из чего оно сложилось (для журнала зрителя). Слагаемые — в процентных пунктах.
+// Может ли за столом быть Куратор — с точки зрения игрока me. Карта Куратора одна: кому она пришла и кто выбрал другое
+// Пристрастие, тот знает, что Куратора в партии нет (карта ушла в коробку). Подозревать некого, Засады не будет.
+export function curatorMaybe(state: GameState, me: string): boolean {
+  if (state.mode !== 'full' || state.reserve || !state.curatorPossible) return false;
+  const p = state.players.find((x) => x.id === me);
+  return !(p && p.passion && p.passion !== 'curator' && p.passionOptions.includes('curator'));
+}
+
 // Насколько весят улики против того, кто кормил Ростки: скидка растёт с числом накормленных Ростков.
 function fedTrust(o: PlayerState): number {
   return Math.max(BOT_BASE.suspectFedDiscount, 1 - BOT_BASE.suspectFedStep * o.sproutsFed.length);
@@ -164,7 +172,7 @@ function fedTrust(o: PlayerState): number {
 
 export function curatorSuspicionDetail(state: GameState, me: string): Record<string, { value: number; parts: string[] }> {
   const out: Record<string, { value: number; parts: string[] }> = {};
-  if (state.mode !== 'full' || !state.curatorPossible) return out;
+  if (!curatorMaybe(state, me)) return out;
   // Куратор раскрылся (Засада): гадать больше не о чем.
   if (state.curatorRevealed) {
     for (const o of state.players) if (o.id !== me) out[o.id] = o.id === state.curatorRevealed ? { value: 1, parts: ['раскрылся (Засада)'] } : { value: 0, parts: [] };
@@ -591,8 +599,9 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
     // Запасные ступени IV у остальных Ростков — страховка от ЧНЛ при вскрытии (так играет живой игрок: доводит всё до IV).
     v += BOT_BASE.soloGoal * BOT_BASE.soloSpareIV * prog.slice(1).filter((x) => x >= 4).length;
   }
-  if (ctx.full || state.solo) {
+  if ((ctx.full && curatorMaybe(state, me)) || state.solo) {
     // «Громоотвод»: запасные ступени сверх 3-й на случай срезов Куратора (в одиночной игре — ЧНЛ из 30 вскрытых карт).
+    // Если Куратора в партии точно нет (сам отказался от его карты), срезов не будет — страховка не нужна.
     const spare = spareWeight * state.sprouts.reduce((s, sp) => s + Math.max(0, sp.progress - RULES.glasnostStep), 0);
     // Подозревая Куратора (или видя угрозу Гласности), бот страхуется сильнее: срезы бьют по самым развитым Росткам.
     const cap = BOT_BASE.insuranceSteps + Math.round(BOT_BASE.coopInsuranceSteps * ctx.coop);
@@ -604,7 +613,7 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
     if (cacheLimit(state, p) > bannedHere) v += BOT_BASE.cacheSpare[ctx.round - 1] ?? 0;
     // Показал опальное на Посиделках — под угрозой Засады (если Куратор ещё не раскрылся).
     const shownHere = (state.shownAtGathering?.[me] ?? []).filter((c) => p.warehouse.some((s) => s.card === c));
-    if ((state.phase === 'gathering' || state.phase === 'ambush') && shownHere.length && state.curatorPossible && !state.curatorRevealed) {
+    if ((state.phase === 'gathering' || state.phase === 'ambush') && shownHere.length && curatorMaybe(state, me) && !state.curatorRevealed) {
       const sus = Math.max(0, ...Object.values(ctx.suspect));
       const risk = Math.min(1, BOT_BASE.ambushRisk + BOT_BASE.ambushRiskSuspect * sus);
       // Книга, которой всё равно не хватит места в Тайнике, уйдёт при облаве и так — показ её ничем не рискует.
@@ -1469,7 +1478,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       // А если кого-то за столом уже всерьёз подозревает — опального не показывает вовсе: Посиделки небезопасны.
       const isRisky = (c: string) => books.includes(c) && (isGenreBook(state, c) || isEvidence(state, c)) && isBanned(state, c);
       const hidden = new Set(p.warehouse.filter((s) => s.hidden).map((s) => s.card));
-      const unsafe = !ctx.curator && state.curatorPossible && !state.curatorRevealed && full && !state.reserve
+      const unsafe = !ctx.curator && curatorMaybe(state, me) && !state.curatorRevealed && full
         && Math.max(0, ...Object.values(ctx.suspect)) >= BOT_BASE.gatheringUnsafe;
       // Опальное, которому не хватит места в Тайнике, облава изымет и так — его показать ничем не хуже (и в Засаду, и без).
       const doomed = new Set(atRisk(state, p, (c) => ownBookValue(state, p, c, ctx)));

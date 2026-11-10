@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { activePlayers as activePlayersOf, applyAction, createGame } from '../src/engine/engine';
 import { botMove, playOut } from '../src/engine/bot';
-import { curatorSuspicion, effectiveCuratorStyle, rankActions } from '../src/engine/bot-smart';
+import { curatorMaybe, curatorSuspicion, effectiveCuratorStyle, rankActions } from '../src/engine/bot-smart';
 import { BOT_BASE, BOT_GOALS, BOT_PRESETS, CURATOR_STYLES, curatorStyle, curatorStyleNote, presetById, selectablePresets } from '../src/engine/bot-presets';
 import { isBanned, isEvidence, isGenreBook, isPropaganda } from '../src/engine/util';
 import { RULES } from '../src/engine/content';
@@ -481,5 +481,24 @@ describe('Честный бот и ЧНЛ', () => {
     t.phase = 'hiding'; t.pending = []; t.ready = [];
     const hiding = rankActions(t, me, presetById('bookman'), seeded(1), true);
     expect(hiding[0].a.type === 'hiding' && hiding[0].a.hidden).not.toContain(chnl);
+  });
+});
+
+describe('Бот, отказавшийся от Куратора', () => {
+  it('знает, что Куратора в партии нет: никого не подозревает и не страшится Засады; остальные — по-прежнему настороже', () => {
+    let s = createGame({ players: players(3), seed: 5, mode: 'full', curator: true });
+    // Карта Куратора — у первого игрока; он выбирает другое Пристрастие.
+    const [a, b, c] = s.players;
+    const other = a.passionOptions.find((x) => x !== 'curator') ?? 'erudite';
+    for (const p of s.players) if (p !== a) p.passionOptions = p.passionOptions.map((x) => (x === 'curator' ? 'erudite' : x));
+    a.passionOptions = ['curator', other];
+    s.curatorPossible = true;
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions.find((x) => x !== 'curator')! });
+    expect(curatorMaybe(s, a.id)).toBe(false);
+    expect(curatorMaybe(s, b.id)).toBe(true);
+    // Улики против соперника есть (не показал на Посиделках из Тайника), но отказавшийся от Куратора их не учитывает.
+    s.players.find((x) => x.id === c.id)!.cacheUnshown = 3;
+    expect(curatorSuspicion(s, a.id)).toEqual({});
+    expect(Object.keys(curatorSuspicion(s, b.id)).length).toBeGreaterThan(0);
   });
 });
