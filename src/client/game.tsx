@@ -7,7 +7,7 @@ import {
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PassionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
-import { title as bookTitle, bestFeedBooks, canMemorizeOnBuy, countsAsLoad, coversStep, roomToBuy, freeSproutSlots, genresOf, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, plural, roman } from '../engine/util';
+import { title as bookTitle, bestFeedBooks, canMemorizeOnBuy, countsAsLoad, coversStep, roomToBuy, freeSproutSlots, genresOf, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, plural, roman, genreOn } from '../engine/util';
 import { blatnoyOptions, kontoraTargets } from '../engine/full';
 import {
   BefriendPicker, ClubContents, fittingBooks, patronOpen, patronWhy, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
@@ -313,6 +313,36 @@ function costTag(talons: number, points = 0): string {
   return parts.length ? ` (${parts.join(', ')})` : '';
 }
 
+// Доход действия с надбавками, как их начислит движок: Ирония «Пустить в народ» (+1 Талон за каждую отданную
+// ироническую книгу), Цеховик (+1 Талон, если действие принесло Талоны), Проза «Вдохновиться» (если принесло очки —
+// +1 очко за прозу на складе и в изданном после действия). gave — отданные книги, published — изданные этим действием.
+function withBonuses(view: PlayerView, me: VPlayer, talons: number, points: number, gave: string[] = [], published: string[] = []): { talons: number; points: number } {
+  const full = view.mode === 'full';
+  let t = talons + (full && genreOn('irony') ? gave.filter((c) => iconsOf(view, c).includes('irony')).length : 0);
+  if (t > 0 && hasPatron(view, me.id, 'tsekhovik')) t += RULES.tsekhovikBonus;
+  let pts = points;
+  if (pts > 0 && full && genreOn('prose')) {
+    const after = [...me.warehouse.map((s) => s.card!).filter((c) => c && !gave.includes(c)), ...me.published, ...published];
+    pts += Math.min(after.filter((c) => iconsOf(view, c).includes('prose')).length, RULES.proseBonusMax);
+  }
+  return { talons: t, points: pts };
+}
+const gainTag = (g: { talons: number; points: number }) => costTag(-g.talons, g.points);
+
+// Издание: Тамиздат — Талоны и очки за значок, Самиздат — очки; Свидетельства в Тамиздате и Иностранная в Самиздате —
+// бонус жанра; Корреспондент — Талон и очко за издание; плюс общие надбавки.
+function publishGain(view: PlayerView, me: VPlayer, where: 'samizdat' | 'tamizdat', card: string, icons: number) {
+  const full = view.mode === 'full';
+  const genres = iconsOf(view, card);
+  const corr = hasPatron(view, me.id, 'correspondent');
+  const talons = (where === 'tamizdat' ? icons * RULES.tamizdatTalons : 0) + (corr ? RULES.correspondentTalons : 0);
+  const points = (where === 'tamizdat' ? icons * RULES.tamizdatPoints : icons * RULES.samizdatPoints)
+    + (full && where === 'tamizdat' && genreOn('testimony') && genres.includes('testimony') ? RULES.testimonyPoints : 0)
+    + (full && where === 'samizdat' && genreOn('foreign') && genres.includes('foreign') ? RULES.foreignPoints : 0)
+    + (corr ? RULES.correspondentPoints : 0);
+  return withBonuses(view, me, talons, points, [card], [card]);
+}
+
 // Цена с учётом Скупщика (на 1 Талон дешевле, минимум 1).
 function priceFor(view: PlayerView, me: VPlayer, cost: number): number {
   return cost > 0 && hasPatron(view, me.id, 'buyer') ? Math.max(1, cost - 1) : cost;
@@ -606,8 +636,9 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
     }
     case 'tolkuchka': {
       const sellable = mine.filter((c) => isGenreBook(view, c) && !['evidence', 'loadEvidence', 'propaganda', 'loadPropaganda'].includes(view.cards[c].kind));
-      const price = (c: string) => (genresOf(view, c).some((g) => view.banned.includes(g)) || hasPatron(view, me.id, 'fartsovshchik') ? RULES.tolkuchkaSellBanned : RULES.tolkuchkaSellFree);
-      const gain = sel2.reduce((s, c) => s + price(c), 0);
+      const fart = hasPatron(view, me.id, 'fartsovshchik') ? RULES.fartsovshchikTalons : 0;
+      const price = (c: string) => (genresOf(view, c).some((g) => view.banned.includes(g)) ? RULES.tolkuchkaSellBanned : RULES.tolkuchkaSellFree) + fart;
+      const gain = withBonuses(view, me, sel2.reduce((s, c) => s + price(c), 0), 0, sel2).talons;
       const cost = buyCost(view, me, sel.map(() => RULES.tolkuchkaBuy));
       const ops = [...sel2.map((card) => ({ op: 'sell' as const, card })), ...sel.map((card) => ({ op: 'buy' as const, card }))];
       body = (
@@ -664,7 +695,7 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
       );
       break;
     case 'zavoz':
-      body = <><p>Получите {RULES.zavozIncome} Талона. Всё, что лежит на Развале, уйдёт в сброс, и Развал заполнится новыми книгами.</p>{confirmBtn(`Подработать${costTag(-RULES.zavozIncome)}`, { address: 'zavoz' })}</>;
+      body = <><p>Получите {RULES.zavozIncome} Талона. Всё, что лежит на Развале, уйдёт в сброс, и Развал заполнится новыми книгами.</p>{confirmBtn(`Подработать${gainTag(withBonuses(view, me, RULES.zavozIncome, 0))}`, { address: 'zavoz' })}</>;
       break;
     case 'baraholka': {
       // Тайно смотрят все книги Барахолки — выбирать, какие, не нужно. Открытые — те, что игрок уже видел.
@@ -705,7 +736,7 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
         <>
           <p>Издайте одну книгу: она навсегда спасена, место на складе освобождается, а в подсчёте по Пристрастию книга участвует. {id === 'tamizdat' ? `+${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка за значок.` : `+${RULES.samizdatPoints} очка за значок.`}</p>
           {pickList(mine.filter(ok), sel, setSel, { max: 1 })}
-          {confirmBtn(`Издать${sel.length ? costTag(-n * (id === 'tamizdat' ? RULES.tamizdatTalons : 0), n * (id === 'tamizdat' ? RULES.tamizdatPoints : RULES.samizdatPoints)) : ''}`, sel.length ? { address: id, card: sel[0] } : null)}
+          {confirmBtn(`Издать${sel.length ? gainTag(publishGain(view, me, id, sel[0], n)) : ''}`, sel.length ? { address: id, card: sel[0] } : null)}
         </>
       );
       break;
@@ -715,14 +746,16 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
       const editor = hasPatron(view, me.id, 'editor');
       const unprinted = sel.filter((c) => !fromLoadDeck(view, c)).length;
       const load = sel.filter((c) => fromLoadDeck(view, c)).length;
-      const pts = (komsorg ? sel.length * RULES.komsorgPoints : 0) + (editor ? sel.reduce((s, c) => s + iconCount(view, c), 0) : 0);
+      const editorIcons = editor ? sel.reduce((s, c) => s + iconCount(view, c), 0) : 0;
+      const pts = (komsorg ? sel.length * RULES.komsorgPoints : 0) + editorIcons * RULES.editorPoints;
+      const glavlitGain = withBonuses(view, me, unprinted * RULES.glavlitUnprinted + load * RULES.glavlitLoad + editorIcons * RULES.editorTalons, pts, sel);
       body = (
         <>
           <p>Сдайте до 1 Непечатной книги (+{RULES.glavlitUnprinted}т) и до 1 книги Нагрузки (+{RULES.glavlitLoad}т). {withKindChips('ЧНЛ можно сбыть только здесь.')}</p>
           {komsorg && <p className="muted small">Комсорг: можно сдать любое число книг, за каждую — +{RULES.komsorgPoints} очко Гласности.</p>}
-          {editor && <p className="muted small">Главред: +1 очко Гласности за каждый значок сданных книг.</p>}
+          {editor && <p className="muted small">Главред: за каждый значок сданных книг — +{RULES.editorTalons} Талон и +{RULES.editorPoints} очка Гласности.</p>}
           {pickList(mine, sel, setSel)}
-          {confirmBtn(`Сдать в Главлит${costTag(-(unprinted * RULES.glavlitUnprinted + load * RULES.glavlitLoad), pts)}`,
+          {confirmBtn(`Сдать в Главлит${gainTag(glavlitGain)}`,
             sel.length && ((unprinted <= 1 && load <= 1) || komsorg) ? { address: 'glavlit', recycle: sel } : null,
             !komsorg && (unprinted > 1 || load > 1) ? 'Слишком много книг' : !sel.length ? 'Выберите книги' : undefined)}
         </>
@@ -883,6 +916,12 @@ function Sprouts({ view, me, beside, seatIndex, head, onOpen, why, turnWhy }: { 
 function SproutFeeder({ view, me, place, initial, initialSlot, setTitle }: { view: PlayerView; me: VPlayer; place: (p: PlaceAction) => void; initial?: string; initialSlot?: number; setTitle: (t: string | null) => void }) {
   const [feeds, setFeeds] = useState<{ sprout: string; books: string[]; slot?: number; labtech?: boolean }[]>([]);
   const progressOf = (id: string, fs = feeds) => view.sprouts.find((s) => s.id === id)!.progress + fs.filter((f) => f.sprout === id).length;
+  // Награда за ступени (уже добавленные и текущую) с надбавками — для подписи на кнопке.
+  const feedTag = (list: { sprout: string; books: string[] }[]) => {
+    let talons = 0, points = 0;
+    list.forEach((f, i) => { const r = STEP_REWARDS[progressOf(f.sprout, list.slice(0, i) as typeof feeds)]; if (r) { talons += r.talons; points += r.points; } });
+    return gainTag(withBonuses(view, me, talons, points, list.flatMap((f) => f.books)));
+  };
   const wildScifi = view.mode === 'full';
   // Сразу отмечаем лучшие книги для ступени: меньше всего значков суммарно.
   const suggest = (id: string, fs = feeds): string[] => {
@@ -967,7 +1006,7 @@ function SproutFeeder({ view, me, place, initial, initialSlot, setTitle }: { vie
           <div className="modal-foot">
             <button className={feeds.length + 1 >= RULES.sproutFeedsPerAction ? 'primary' : ''} disabled={!ok} onClick={next}>
               {fixed !== undefined
-                ? `${feeds.length + 1 >= RULES.sproutFeedsPerAction ? 'Питать ступень' : 'Добавить ступень'}${discount ? ' (скидка Лаборанта)' : ''}${fixedNote}`
+                ? `${feeds.length + 1 >= RULES.sproutFeedsPerAction ? `Питать ступень${feedTag([...feeds, { sprout, books }])}` : 'Добавить ступень'}${discount ? ' (скидка Лаборанта)' : ''}${fixedNote}`
                 : `Дальше: бонус Ростка${discount ? ' (скидка Лаборанта)' : ''}`}
             </button>
           </div>
@@ -978,7 +1017,7 @@ function SproutFeeder({ view, me, place, initial, initialSlot, setTitle }: { vie
       )}
       {RULES.sproutFeedsPerAction > 1 && (
         <div className="modal-foot">
-          <button className="primary" disabled={!feeds.length} onClick={() => place({ address: 'sprouts', feeds: feeds.map(({ labtech: _, ...f }) => f) })}>Питать ступени ({feeds.length})</button>
+          <button className="primary" disabled={!feeds.length} onClick={() => place({ address: 'sprouts', feeds: feeds.map(({ labtech: _, ...f }) => f) })}>Питать ступени ({feeds.length}){feeds.length ? feedTag(feeds) : ''}</button>
         </div>
       )}
     </>
