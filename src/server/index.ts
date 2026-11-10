@@ -57,12 +57,12 @@ function noteAutoPresets(room: Room) {
   if (!s || s.phase !== 'end') return;
   const autos = room.seats.filter((x) => x.bot && x.autoPreset && seatChoice(room, x) === AUTO_PRESET);
   if (!autos.length) return;
-  // Заголовок и по строке на бота — с кружком игрока.
+  // Одним блоком: заголовок и по строке на бота.
   const head = 'Тайные стратегии ботов:';
-  if (s.log.some((l) => l.text === head)) return;
+  if (s.log.some((l) => l.text.startsWith(head))) return;
   const win = s.log.findIndex((l) => l.winners);
-  s.log.splice(win >= 0 ? win : s.log.length, 0, { round: s.round, text: head },
-    ...autos.map((x) => ({ round: s.round, text: `${x.name} — ${presetById(x.autoPreset).name}`, who: x.id })));
+  const text = [head, ...autos.map((x) => `${x.name} — ${presetById(x.autoPreset).name}`)].join('\n');
+  s.log.splice(win >= 0 ? win : s.log.length, 0, { round: s.round, text });
 }
 
 // Партия окончена, Куратор — бот: в конце журнала пишем, какой стратегии он держался (один раз).

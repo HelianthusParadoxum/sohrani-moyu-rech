@@ -821,7 +821,10 @@ function changeRound(state: GameState) {
     state.result = finalScoring(state);
     // Итог — и самой последней строкой победитель (с кружком игрока в клиенте).
     const r = state.result!;
-    log(state, `Конец Застоя. ${r.summary}`);
+    // Заголовок — жирно заглавными, итог Гласности — отдельной строкой.
+    log(state, 'КОНЕЦ ЗАСТОЯ');
+    state.log[state.log.length - 1].strong = true;
+    log(state, r.summary);
     if (r.winners.length) {
       log(state, `Победа: ${r.winners.map((id) => player(state, id).name).join(', ')}${r.winTail ?? '.'}`);
       state.log[state.log.length - 1].winners = [...r.winners];
@@ -1576,7 +1579,8 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       }
       // Ветеран покупает сколько угодно книг: решение закрывается, только когда он заканчивает.
       if (veteran && (action.slot !== undefined || action.next !== undefined)) return;
-      if (action.slot === undefined) log(state, `${p.name} ${bought ? 'больше ничего не берёт' : 'ничего не берёт'} на Барахолке.`);
+      // «Больше ничего не берёт» после покупок — лишнее; «ничего не берёт» — если не купил ни одной.
+      if (action.slot === undefined && !bought) log(state, `${p.name} ничего не берёт на Барахолке.`);
       if ((pend.bought ?? 0) > 0) offerBlatnoy(state, p, 'baraholka');
       break;
     }

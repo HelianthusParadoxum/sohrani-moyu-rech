@@ -7,7 +7,7 @@ import {
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PassionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
-import { title as bookTitle, bestFeedBooks, canMemorizeOnBuy, countsAsLoad, coversStep, roomToBuy, freeSproutSlots, genresOf, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, roman } from '../engine/util';
+import { title as bookTitle, bestFeedBooks, canMemorizeOnBuy, countsAsLoad, coversStep, roomToBuy, freeSproutSlots, genresOf, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, plural, roman } from '../engine/util';
 import { blatnoyOptions, kontoraTargets } from '../engine/full';
 import {
   BefriendPicker, ClubContents, fittingBooks, patronOpen, patronWhy, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
@@ -425,6 +425,9 @@ function addressFull(id: AddressId, view: PlayerView, me: VPlayer | null) {
   return !freeClub && (here.length >= limitFor(id, view.players.length) || (id === 'redCorner' && !!me && here.includes(me.id)));
 }
 
+// Адреса, с которых Единомышленник действует ещё раз (действие Группы, когда свои кончатся): у мест — значок повтора.
+const REPEAT_ADDRESSES: AddressId[] = ['knigoobmen', 'kvartirnik', 'agitpunkt'];
+
 function AddressCard(props: AddressProps) {
   const { id, view, seatIndex, me, enabled } = props;
   const info = ADDRESSES[id];
@@ -466,6 +469,8 @@ function AddressHead({ id, view, seatIndex, me, enabled, onOpen, inlineHint, rig
         {inlineHint && <span className="hint inline">{iconize(info.short)}{freeClub && ' (1 раз за поручение, 👤 не нужен)'}</span>}
         <span className="workers">
           {rightHint && <span className="hint inline right" title={iconize(rightHint)} data-tip={iconize(rightHint)}>{iconize(info.short)}</span>}
+          {/* Отсюда Единомышленник подействует ещё раз — когда свои кончатся, ещё 1 действие Группы. */}
+          {REPEAT_ADDRESSES.includes(id) && <span className="repeat-mark" title="Когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы" data-tip="Когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы">🔄</span>}
           {!rightHint && !noDots && here.map((pid, i) => {
             // Номер на жетоне — каким по счёту в Пятилетке было это действие игрока.
             const k = here.slice(0, i).filter((x) => x === pid).length;
@@ -847,16 +852,18 @@ function Sprouts({ view, me, beside, seatIndex, head, onOpen, why, turnWhy }: { 
                 const can = open && k < 0;
                 return (
                   <div key={i} className={`bonus-slot ${can ? 'can' : ''}`} role={can ? 'button' : undefined}
+                    title={SPROUT_BONUS_NAMES[b]} data-tip={SPROUT_BONUS_NAMES[b]}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (can) { onOpen!(sp.id, i); return; }
                       const w = turnWhy ?? (me ? sproutWhy(view, me, sp, i) : null) ?? why;
                       if (w) explain(w);
                     }}>
-                    {/* Как действия Группы на планшете игрока: значок и название, справа цена и кружок места. */}
-                    <span className="muted bonus">
-                      {GROUP_ICONS[b as GroupActionId] ?? BONUS_ICONS[b as SproutBonusId]}{ICON_JOIN}{SPROUT_BONUS_NAMES[b]}
-                      {groupPrice(view, me, b) && <span className="gprice"> {groupPrice(view, me, b)}</span>}
+                    {/* Кнопка во всю ширину Ростка: слева значок бонуса и цена (название — в подсказке), справа — кружок места. */}
+                    <span className="muted bonus">{GROUP_ICONS[b as GroupActionId] ?? BONUS_ICONS[b as SproutBonusId]}</span>
+                    {/* Цена — рядом с кружком места, у правого края. */}
+                    <span className="bonus-right">
+                      {groupPrice(view, me, b) && <span className="gprice muted">{groupPrice(view, me, b)}</span>}
                       {pid
                         ? <span className="dot num inline" style={{ background: PLAYER_COLORS[seatIndex(pid)] }} title={n ? `${n}-е действие игрока` : undefined}>{n ?? ''}</span>
                         : <span className="dot num inline slot-free" />}
@@ -1543,15 +1550,34 @@ function HidingPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (
   const [fill, setFill] = useState(false);
   const full = view.mode === 'full';
   const partorg = hasPatron(view, me.id, 'partorg');
+  // Парторг: сколько пустых мест склада заполнит Нагрузка (сколько её осталось в стопке).
+  const freeShelfNow = me.capacity - me.warehouse.filter((s) => !s.memorized).length;
+  const fillN = partorg ? Math.max(0, Math.min(freeShelfNow, view.loadDeckCount)) : 0;
+  // Отдельный шаг до Укрытия — чтобы возможность Парторга было видно (раньше — малозаметная галочка).
+  const [step, setStep] = useState<'partorg' | 'hide'>(fillN > 0 ? 'partorg' : 'hide');
   const poetry = cards.filter((c) => iconsOf(view, c).includes('poetry'));
-  const cover = loadCover(view, me.warehouse);
+  const loadsNow = me.warehouse.filter((s) => s.card && isLoad(view, s.card)).length;
+  const cover = Math.floor((loadsNow + (fill ? fillN : 0)) / 2); // каждые 2 Нагрузки — +1 место в Тайнике
   const limit = me.cache + cover;
+  if (step === 'partorg') {
+    const extra = Math.floor((loadsNow + fillN) / 2) - loadCover(view, me.warehouse);
+    return (
+      <Modal title="Парторг: заполнить склад Нагрузкой?">
+        <p>Перед облавой Парторг бесплатно заполнит пустые места вашего склада книгами Нагрузки: {plural(fillN, 'книга', 'книги', 'книг')}.</p>
+        <p className="muted">Каждые 2 Нагрузки дают +1 место в Тайнике{extra > 0 ? ` — у вас прибавится ${plural(extra, 'место', 'места', 'мест')}` : ''}. Но склад будет занят: новые книги некуда будет класть, пока не избавитесь от Нагрузки.</p>
+        <div className="modal-foot">
+          <button onClick={() => { setFill(false); setStep('hide'); }}>Не надо</button>
+          <button className="primary" onClick={() => { setFill(true); setStep('hide'); }}>Заполнить</button>
+        </div>
+      </Modal>
+    );
+  }
   const hiddenNow = sel.filter((c) => c !== memo);
   const exposed = cards.filter((c) => !sel.includes(c) && c !== memo && isBanned(view, c));
   return (
     <Modal title="Укрытие" wide>
       <BannedLine view={view} />
-      <p>Отметьте книги, которые прячете в Тайник. Мест в Тайнике: {me.cache}, ещё {cover} — за Нагрузку на складе (каждые 2 Нагрузки дают +1 место). Сейчас спрятано {sel.length} из {limit}.</p>
+      <p>Отметьте книги, которые прячете в Тайник. Мест в Тайнике: {me.cache}, ещё {cover} — за Нагрузку на складе (каждые 2 Нагрузки дают +1 место){fill ? `, с учётом Нагрузки от Парторга (${fillN})` : ''}. Сейчас спрятано {sel.length} из {limit}.</p>
       <p className="muted small">Самое ценное опальное уже отмечено — выбор можно поменять.</p>
       <div className="shelf wrap">
         {cards.map((c) => <Book key={c} v={view} id={c} selected={sel.includes(c)} hidden={sel.includes(c)}
@@ -1565,9 +1591,9 @@ function HidingPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (
           </div>
         </>
       )}
-      {partorg && <label className="row"><input type="checkbox" checked={fill} onChange={(e) => setFill(e.target.checked)} /> Парторг: заполнить пустые места склада Нагрузкой (бесплатно, до укрытия)</label>}
+      {fillN > 0 && <p className="muted small">Парторг: {fill ? `склад заполнится Нагрузкой (${fillN})` : 'склад Нагрузкой не заполняем'} — <button className="small" onClick={() => setStep('partorg')}>передумать</button></p>}
       {exposed.length > 0 && <p className="warn-text">При облаве будут изъяты: {exposed.map((c) => `«${view.cards[c].title}»`).join(', ')}</p>}
-      <div className="modal-foot"><button className="primary" disabled={hiddenNow.length > limit && !fill}
+      <div className="modal-foot"><button className="primary" disabled={hiddenNow.length > limit}
         onClick={() => act({ type: 'hiding', hidden: hiddenNow, ...(full ? { memorize: memo } : {}), ...(fill ? { fillLoad: true } : {}) })}>Готово к облаве</button></div>
     </Modal>
   );
@@ -1843,6 +1869,10 @@ function Log({ view, seatIndex }: { view: PlayerView; seatIndex: (id: string) =>
   return (
     <div className="log" ref={box} onScroll={(e) => { last.current = { top: e.currentTarget.scrollTop, height: e.currentTarget.scrollHeight }; }}>
       <div className="addr-head"><h3>Журнал</h3><button className="small" onClick={download}>Скачать .txt</button></div>
+      {/* Пока ход игрока — крайней (самой свежей) строкой «ВАШ ХОД» его цветом; в журнал не записывается. */}
+      {view.me && view.phase !== 'end' && view.active.includes(view.me) && (
+        <div className="your-turn" style={{ color: PLAYER_COLORS[seatIndex(view.me)] }}>ВАШ ХОД</div>
+      )}
       {entries.map((l, i) => (
         <div key={entries.length - i} className={`${l.only ? 'secret' : ''} ${l.act ? 'act' : ''}`} style={{ whiteSpace: 'pre-line', ...(l.strong ? { fontWeight: 700 } : {}), ...(l.em ? { fontStyle: 'italic' } : {}) }}>
           {l.act && <span className="dot num" style={{ background: PLAYER_COLORS[seatIndex(l.act.player)] }} title={`${l.act.n}-е действие игрока в Пятилетке`}>{l.act.n}</span>}
