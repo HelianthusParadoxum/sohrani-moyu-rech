@@ -397,8 +397,8 @@ label.row.check > input[type="checkbox"]:focus-visible { outline: 2px solid var(
 
 .score-detail td { font-size: 0.8rem; color: var(--muted); padding-top: 0; }
 .score-detail .src { margin-right: 12px; white-space: nowrap; }
-.pub-row { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
-.pub-book { display: inline-flex; gap: 2px; padding: 2px 2px; border: 1px solid var(--line); border-radius: 3px; background: #fff; }
+.pub-row { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; min-height: 24px; } /* = высоте книжки: строка не растёт, когда книги появляются */
+.pub-book { display: inline-flex; align-items: center; box-sizing: border-box; height: 24px; gap: 2px; padding: 0 2px; border: 1px solid var(--line); border-radius: 3px; background: #fff; }
 
 .scores-wrap { overflow-x: auto; }
 .scores { font-size: 0.88rem; }
