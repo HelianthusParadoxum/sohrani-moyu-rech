@@ -1797,8 +1797,9 @@ function OtherPlayer({ view, p, color, active, rev, ord }: { view: PlayerView; p
       <Published view={view} p={p} />
       <div className="group-actions readonly" title="Действия Инициативной группы в эту Пятилетку">
         {(Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => groupInGame(view, g)).map((g) => (
-          <span key={g} className={`gact ${p.groupUsed.includes(g) ? 'used' : ''}`} title={GROUP_ACTIONS[g].hint}>
-            {GROUP_ICONS[g]}{ICON_JOIN}{GROUP_ACTIONS[g].name}{groupPrice(view, p, g) && <span className="gprice"> {groupPrice(view, p, g)}</span>}<GroupSlot p={p} g={g} color={color} />
+          // У соперника — только значок действия, цена и кружок; название — в подсказке.
+          <span key={g} className={`gact ${p.groupUsed.includes(g) ? 'used' : ''}`} title={`${GROUP_ACTIONS[g].name}: ${GROUP_ACTIONS[g].hint}`} data-tip={`${GROUP_ACTIONS[g].name}: ${GROUP_ACTIONS[g].hint}`}>
+            {GROUP_ICONS[g]}{groupPrice(view, p, g) && <span className="gprice"> {groupPrice(view, p, g)}</span>}<GroupSlot p={p} g={g} color={color} />
           </span>
         ))}
       </div>
