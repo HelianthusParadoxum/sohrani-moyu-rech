@@ -1433,7 +1433,7 @@ describe('Засада на Посиделках', () => {
     expect(s.phase).toBe('hiding');
   });
 
-  it('Драматургия «Разыграть»: в конце поручений +RULES.dramaPoints за каждую открытую на складе и изданную', () => {
+  it('Драматургия «Разыграть»: в конце поручений +RULES.dramaPoints, если есть открытая на складе или изданная (от числа не растёт)', () => {
     let { s, a } = atGathering();
     s.phase = 'orders';
     const dramas = s.deck.filter((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.includes('drama')).slice(0, 3);
@@ -1451,7 +1451,7 @@ describe('Засада на Посиделках', () => {
     s = applyAction(s, s.order[s.turn], { type: 'place', place: { address: 'redCorner' } });
     s = applyAction(s, s.order[s.turn], { type: 'endTurn' });
     expect(s.phase).toBe('gathering');
-    expect(s.players.find((x) => x.id === a)!.points).toBe(pts + 2 * RULES.dramaPoints);
+    expect(s.players.find((x) => x.id === a)!.points).toBe(pts + RULES.dramaPoints);
   });
 
   it('если опальное никто не показал, Засады нет — сразу Укрытие', () => {

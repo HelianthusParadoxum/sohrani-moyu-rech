@@ -557,14 +557,16 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   // Книги по Подписке приходят в конце поручений — только на свободные места склада.
   let subRoom = state.phase === 'orders' ? freeSlots(p) : Infinity;
   for (const sub of p.subscriptions) v += subscriptionValue(state, p, sub, ctx, subRoom-- > 0);
-  // Драматургия «Разыграть»: в конце каждой оставшейся фазы поручений — очки за книги драматургии, открытые на складе
-  // и изданные. Изданная приносит их до конца партии; со склада — наверняка в эту Пятилетку, дальше — как повезёт.
+  // Драматургия «Разыграть»: в конце каждой оставшейся фазы поручений — очки, если есть хоть одна книга драматургии,
+  // открытая на складе или изданная (вторая и следующие ничего не добавляют). Изданная приносит их до конца партии;
+  // со склада — наверняка в эту Пятилетку, дальше — как повезёт.
   if (ctx.full && genreOn('drama') && tune(ctx, 'dramaValue')) {
     const isDrama = (c: string) => iconsOf(state, c).includes('drama');
     const now = state.phase === 'orders' ? 1 : 0;
     const open = p.warehouse.filter((s) => !s.hidden && !s.memorized && isDrama(s.card)).length;
     const pub = p.published.filter(isDrama).length;
-    v += tune(ctx, 'dramaValue') * RULES.dramaPoints * (pub * (now + left) + open * (now + tune(ctx, 'dramaKeep') * left));
+    const share = pub ? now + left : open ? now + tune(ctx, 'dramaKeep') * left : 0;
+    v += tune(ctx, 'dramaValue') * RULES.dramaPoints * share;
   }
   // Книги.
   for (const c of cards) v += iconCount(state, c) * BOT_BASE.bookLatent * w.publish;

@@ -630,7 +630,7 @@ function doctorLoad(state: GameState, p: PlayerState) {
   state.log[state.log.length - 1].who = p.id;
 }
 
-// Драматургия «Разыграть»: в конце фазы поручений +RULES.dramaPoints очка за каждую книгу драматургии в открытую на складе
+// Драматургия «Разыграть»: в конце фазы поручений +RULES.dramaPoints очка, если есть хоть одна (от числа книг не растёт) книгу драматургии в открытую на складе
 // (не в Тайнике) и в изданном.
 function dramaBonus(state: GameState) {
   for (const id of state.order) {
@@ -638,7 +638,7 @@ function dramaBonus(state: GameState) {
     const cards = [...p.warehouse.filter((s) => !s.hidden).map((s) => s.card), ...p.published]
       .filter((c) => iconsOf(state, c).includes('drama'));
     if (!cards.length) continue;
-    const pts = cards.length * RULES.dramaPoints;
+    const pts = RULES.dramaPoints;
     gain(p, pts, 'drama');
     log(state, `${p.name} разыгрывает [ДР]: ${titles(state, cards)} — +${pointsText(pts)}.`);
     state.log[state.log.length - 1].who = p.id;
