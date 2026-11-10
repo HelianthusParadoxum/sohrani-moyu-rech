@@ -563,17 +563,17 @@ function AddressContents({ id, view, seatIndex, me, onPatron, onBlocked, onPick 
       );
     }
     case 'tolkuchka':
-      return <div className="shelf wrap">{view.tolkuchka.map((c) => <Book key={c} v={view} id={c} small price={RULES.tolkuchkaBuy} onClick={pickBy(c)} />)}{emptySlots(RULES.displaySize - view.tolkuchka.length)}</div>;
+      return <div className="shelf wrap">{view.tolkuchka.map((c) => <Book key={c} v={view} id={c} mini price={RULES.tolkuchkaBuy} onClick={pickBy(c)} />)}{emptySlots(RULES.displaySize - view.tolkuchka.length, true)}</div>;
     case 'razval':
-      return <div className="shelf wrap">{view.razval.map((c, i) => c ? <Book key={i} v={view} id={c} small price={RULES.razvalPrices[i]} onClick={pickBy(String(i))} /> : <div key={i} className="book empty small" />)}</div>;
+      return <div className="shelf wrap">{view.razval.map((c, i) => c ? <Book key={i} v={view} id={c} mini price={RULES.razvalPrices[i]} onClick={pickBy(String(i))} /> : <div key={i} className="book empty mini" />)}</div>;
     case 'baraholka':
-      return <div className="shelf wrap">{view.baraholka.map((has, i) => has ? <Book key={i} v={view} id={view.baraholkaKnown?.[i] ?? null} small note={view.baraholkaKnown?.[i] ? 'вы видели' : undefined} onClick={pickBy(String(i))} /> : <div key={i} className="book empty small" />)}</div>;
+      return <div className="shelf wrap">{view.baraholka.map((has, i) => has ? <Book key={i} v={view} id={view.baraholkaKnown?.[i] ?? null} mini note={view.baraholkaKnown?.[i] ? 'вы видели' : undefined} onClick={pickBy(String(i))} /> : <div key={i} className="book empty mini" />)}</div>;
     case 'knigoobmen':
-      return <div className="shelf wrap">{view.knigoobmen.map((c) => <Book key={c} v={view} id={c} small onClick={pickBy(c)} />)}{emptySlots(RULES.displaySize - view.knigoobmen.length)}</div>;
+      return <div className="shelf wrap">{view.knigoobmen.map((c) => <Book key={c} v={view} id={c} mini onClick={pickBy(c)} />)}{emptySlots(RULES.displaySize - view.knigoobmen.length, true)}</div>;
     case 'agitpunkt':
-      return <div className="shelf wrap">{(view.agitpunkt ?? []).map((c) => <Book key={c} v={view} id={c} small note="даром" onClick={pickBy(c)} />)}{emptySlots(RULES.agitpunktSize - (view.agitpunkt ?? []).length)}</div>;
+      return <div className="shelf wrap">{(view.agitpunkt ?? []).map((c) => <Book key={c} v={view} id={c} mini note="даром" onClick={pickBy(c)} />)}{emptySlots(RULES.agitpunktSize - (view.agitpunkt ?? []).length, true)}</div>;
     case 'raspredelitel':
-      return <div className="shelf wrap">{view.raspredelitel.map((c) => <Book key={c} v={view} id={c} small price={RULES.raspredelitelPrice} onClick={pickBy(c)} />)}{emptySlots(RULES.raspredelitelSize - view.raspredelitel.length)}</div>;
+      return <div className="shelf wrap">{view.raspredelitel.map((c) => <Book key={c} v={view} id={c} mini price={RULES.raspredelitelPrice} onClick={pickBy(c)} />)}{emptySlots(RULES.raspredelitelSize - view.raspredelitel.length, true)}</div>;
     default:
       return null;
   }

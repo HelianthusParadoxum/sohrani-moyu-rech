@@ -353,6 +353,8 @@ label.row.check > input[type="checkbox"]:focus-visible { outline: 2px solid var(
 .sprouts-panel.beside { grid-column: 1 / -2; } /* Контора — справа от Ростков */
 .sprouts-panel .sprouts { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
 .sprouts-panel .sprout { padding: 8px 8px; gap: 4px; font-size: 0.85rem; }
+.sprouts-panel .sprout { display: flex; flex-direction: column; }
+.sprouts-panel .sprout .steps { margin-top: auto; } /* название — сверху, ступени и места — по низу карточки: ряды Ростков ровные снизу */
 .sprouts-panel .steps { padding-left: 24px; }
 .sprouts-panel .steps li { padding: 0; }
 
@@ -361,6 +363,7 @@ label.row.check > input[type="checkbox"]:focus-visible { outline: 2px solid var(
 .address { padding: 8px 8px; gap: 4px; }
 .address .hint { font-size: 0.72rem; line-height: 1.25; }
 .address .book.small { width: 78px; min-height: 44px; font-size: 0.64rem; padding: 4px 4px; }
+.address .book.mini { width: 80px; } /* по две в ряд в колонке адреса и на телефоне (2 × 80 + 4 ≤ 165) */
 .address .book.small .stamp { display: none; }
 .address .book.small.is-banned { border-width: 2px; }
 .address .go { padding: 2px 8px; background: #e6b35a; border-color: #c9952f; font-weight: 700; }
