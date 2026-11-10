@@ -1644,8 +1644,11 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       log(state, `${p.name} оставляет себе одну книгу из Макулатуры (вытянуто: ${pend.cards.length}).`);
       if (p.warehouse.find((w) => w.card === action.card)?.hidden) {
         log(state, `↳ ${p.name} берёт ${isFromLoadDeck(state, action.card) ? 'книгу Нагрузки' : 'непечатный текст'} взакрытую и кладёт в Тайник.`);
+        logRecap(state, `Оставлена: ${title(state, action.card)}.`, [p.id]);
+      } else {
+        // В открытую — книгу видят все: называем её при всех.
+        log(state, `↳ Оставлена на виду: ${title(state, action.card)}.`);
       }
-      logRecap(state, `Оставлена: ${title(state, action.card)}.`, [p.id]);
       break;
     }
     case 'spisanieKeep': {

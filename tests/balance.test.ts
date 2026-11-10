@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction, createGame } from '../src/engine/engine';
 import { RULES } from '../src/engine/content';
-import { RuleError, iconsOf, title } from '../src/engine/util';
+import { RuleError, iconsOf, isLoad, title } from '../src/engine/util';
 import { gainedInfo, viewFor } from '../src/engine/view';
 import { passionPoints } from '../src/engine/scoring';
 import type { Action, GameState } from '../src/engine/types';
@@ -261,5 +261,18 @@ describe('Макулатура', () => {
     // Оставленная книга легла в Тайник — при всех: «↳ … берёт непечатный текст взакрытую и кладёт в Тайник».
     expect(byId(s, p.id).warehouse.find((w) => w.card === top)!.hidden).toBe(true);
     expect(s.log.map((l) => l.text)).toContain(`↳ ${p.name} берёт непечатный текст взакрытую и кладёт в Тайник.`);
+  });
+  it('оставленная в открытую книга названа в журнале при всех', () => {
+    let s = started();
+    const p = me(s);
+    p.talons = 5; p.capacity = 10; p.cache = 0;
+    p.warehouse = p.warehouse.filter((w) => !isLoad(s, w.card)); // без Нагрузки Тайника нет
+    s = applyAction(s, p.id, { type: 'place', place: { address: 'makulatura' } });
+    const top = s.deck[s.deck.length - 1];
+    s = applyAction(s, p.id, { type: 'makulaturaDraw', deck: 'unprinted' });
+    s = applyAction(s, p.id, { type: 'makulaturaKeep', card: top });
+    expect(byId(s, p.id).warehouse.find((w) => w.card === top)!.hidden).toBe(false);
+    const other = s.players.find((x) => x.id !== p.id)!.id;
+    expect(viewFor(s, other).log.map((l) => l.text)).toContain(`↳ Оставлена на виду: ${title(s, top)}.`);
   });
 });
