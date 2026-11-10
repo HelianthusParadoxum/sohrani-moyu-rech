@@ -535,7 +535,7 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   const evidenceWeight = state.solo && !soloTargetMet(state) ? BOT_BASE.soloEvidenceEarly : 1;
   v += RULES.evidencePoints * evidenceWeight * [...cards, ...p.tamizdat].filter((c) => isEvidence(state, c)).length;
   const connections = state.patrons.filter((x) => !x.removed && x.connections.includes(me)).length;
-  const link = BOT_BASE.connection + BOT_BASE.patronEffect * w.club * (left + 1);
+  const link = BOT_BASE.connection * RULES.connectionPoints + BOT_BASE.patronEffect * w.club * (left + 1);
   v += connections * link;
   v += albumReserve(state, me, cards, link, left, tune(ctx, 'albumOption'));
   // Ресурсы.

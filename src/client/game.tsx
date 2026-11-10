@@ -1661,7 +1661,7 @@ function resultText(view: PlayerView): string {
   const lines = r.scores.map((s) => {
     const p = view.players.find((x) => x.id === s.player)!;
     const by = sources.map((k) => `${POINT_SOURCES[k]} ${s.duringBy?.[k] ?? 0}`).join(', ');
-    const parts = [`по ходу ${s.during}${by ? ` (${by})` : ''}`, ...(full ? [`связи ${s.connections ?? 0}`] : []),
+    const parts = [`по ходу ${s.during}${by ? ` (${by})` : ''}`, ...(full && RULES.connectionPoints ? [`связи ${(s.connections ?? 0) * RULES.connectionPoints}`] : []),
       `Пристрастие ${s.passion}`, `Улики ${s.evidence}`, `Талоны ${s.talonPoints ?? 0}`, `ЧНЛ ${s.propaganda}`];
     return `• ${p.name}${r.winners.includes(s.player) ? ' (победа)' : ''}, ${p.passion ? passionLabel(p.passion) : '—'}: итого ${s.total} — ${parts.join('; ')}.`;
   });
@@ -1677,7 +1677,7 @@ function Results({ view, seatIndex, close }: { view: PlayerView; seatIndex: (id:
     <Modal title="Конец Застоя" onClose={close} wide>
       <p><b>{r.note}</b></p>
       <div className="scores-wrap"><table className="scores">
-        <thead><tr><th>Игрок</th><th>По ходу</th>{full && <th title="Связи в Клубе книголюбов">🤝</th>}<th>Пристрастие</th><th title="Улики"><KindChip k="ul" /></th><th title={`Талоны: 1 очко за каждые ${RULES.talonsPerPoint}`}>🎫/{RULES.talonsPerPoint}</th><th><KindChip k="chnl" /></th><th>Итого</th></tr></thead>
+        <thead><tr><th>Игрок</th><th>По ходу</th>{full && RULES.connectionPoints > 0 && <th title="Связи в Клубе книголюбов">🤝</th>}<th>Пристрастие</th><th title="Улики"><KindChip k="ul" /></th><th title={`Талоны: 1 очко за каждые ${RULES.talonsPerPoint}`}>🎫/{RULES.talonsPerPoint}</th><th><KindChip k="chnl" /></th><th>Итого</th></tr></thead>
         <tbody>
           {r.scores.map((s) => {
             const p = view.players.find((x) => x.id === s.player)!;
@@ -1686,13 +1686,13 @@ function Results({ view, seatIndex, close }: { view: PlayerView; seatIndex: (id:
               <Fragment key={s.player}>
                 <tr className={r.winners.includes(s.player) ? 'winner' : ''}>
                   <td><span className="dot" style={{ background: PLAYER_COLORS[seatIndex(s.player)] }} /> {name(s.player)}</td>
-                  <td>{s.during}</td>{full && <td>{s.connections ?? 0}</td>}<td>{p.passion
+                  <td>{s.during}</td>{full && RULES.connectionPoints > 0 && <td>{(s.connections ?? 0) * RULES.connectionPoints}</td>}<td>{p.passion
                     ? <span className="score-passion" title={passionLabel(p.passion)}>{s.passion} — {PASSIONS[p.passion].name} {passionMarks(p.passion)}</span>
                     : <>{s.passion} — —</>}</td><td>{s.evidence}</td><td>{s.talonPoints ?? 0}</td><td>{s.propaganda}</td><td><b>{s.total}</b></td>
                 </tr>
                 {by.length > 0 && (
                   <tr className="score-detail">
-                    <td colSpan={full ? 8 : 7}>
+                    <td colSpan={full && RULES.connectionPoints > 0 ? 8 : 7}>
                       По ходу игры: {by.map(([k, n]) => <span key={k} className="src">{POINT_SOURCES[k]} <b>{n}</b></span>)}
                     </td>
                   </tr>

@@ -348,6 +348,17 @@ describe('полный режим', () => {
     return s;
   }
 
+  it('связи с Завсегдатаями очков в финале не дают (RULES.connectionPoints = 0)', () => {
+    const s = fullGame();
+    const me = s.players[0];
+    const before = scoreLine(s, me);
+    s.patrons[0].connections.push(me.id);
+    const after = scoreLine(s, me);
+    expect(after.connections).toBe(before.connections + 1);
+    expect(after.total).toBe(before.total + RULES.connectionPoints);
+    expect(RULES.connectionPoints).toBe(0);
+  });
+
   it('стартовые связи: в обратном порядке хода, занятого Завсегдатая не взять, потом ходит первый', () => {
     let s = createGame({ players: players(3), seed: 9, mode: 'full' });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });

@@ -113,7 +113,7 @@ export function scoreLine(state: GameState, p: PlayerState): ScoreLine {
   const talonPoints = Math.floor(p.talons / RULES.talonsPerPoint);
   return {
     player: p.id, during: p.points, duringBy: { ...p.pointsBy }, passion, propaganda, evidence, connections, talonPoints,
-    total: p.points + passion + propaganda + evidence + connections + talonPoints, icons,
+    total: p.points + passion + propaganda + evidence + connections * RULES.connectionPoints + talonPoints, icons,
   };
 }
 
