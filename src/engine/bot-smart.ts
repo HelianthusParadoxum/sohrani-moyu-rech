@@ -1336,9 +1336,11 @@ function hideList(state: GameState, me: string, ctx: Ctx, keep: Map<string, numb
 }
 
 // Пересобрать Тайник в свой ход: опальные книги — по ценности, остальное место — тому, что уже лежит в Тайнике.
-// Заученного сборника нет, а на складе лежит сборник поэзии — заучить его: освобождается место, облава его не тронет.
-// Открытый сборник (опальный — первым) заучиваем всегда: соперники его и так видели. Спрятанный — только когда
-// складу не хватает места (заученный лежит на виду).
+// Сборник поэзии на складе: прятать выгоднее, чем заучивать (заученный лежит на виду, спрятанный — тайна, а облава
+// не трогает ни тот, ни другой). Поэтому открытый сборник — в Тайник, если там есть место; заучиваем, только когда
+// места в Тайнике нет (тогда хотя бы освободится место на складе и облава его не заберёт). Спрятанный сборник заучиваем,
+// только если это что-то даёт: склад полон (нужно место) или в занятый Тайник просится другая опальная книга —
+// тогда сборник вынимаем и объявляем заученным, а на его место в Тайнике кладём опальную.
 function memorizeAction(state: GameState, me: string): Action | null {
   if (state.mode !== 'full' || !genreOn('poetry') || state.phase !== 'orders' || state.pending.length) return null;
   if (!activePlayers(state).includes(me)) return null;
@@ -1346,8 +1348,17 @@ function memorizeAction(state: GameState, me: string): Action | null {
   if (p.warehouse.some((s) => s.memorized)) return null;
   const poems = p.warehouse.filter((s) => iconsOf(state, s.card).includes('poetry'))
     .sort((a, b) => Number(isBanned(state, b.card)) - Number(isBanned(state, a.card)) || iconCount(state, b.card) - iconCount(state, a.card));
-  const pick = poems.find((s) => !s.hidden) ?? (freeSlots(p) <= 0 ? poems[0] : undefined);
-  return pick ? { type: 'memorize', card: pick.card } : null;
+  const hidden = p.warehouse.filter((s) => s.hidden).map((s) => s.card);
+  const pick = poems.find((s) => !s.hidden);
+  if (!pick) {
+    const hiddenPoem = poems.find((s) => s.hidden);
+    if (!hiddenPoem) return null;
+    const cacheFull = hidden.length >= cacheLimit(state, p);
+    const bannedWaiting = p.warehouse.some((s) => !s.hidden && !s.memorized && isBanned(state, s.card) && !iconsOf(state, s.card).includes('poetry'));
+    return freeSlots(p) <= 0 || (cacheFull && bannedWaiting) ? { type: 'memorize', card: hiddenPoem.card } : null;
+  }
+  if (hidden.length < cacheLimit(state, p)) return { type: 'hiding', hidden: [...hidden, pick.card] };
+  return { type: 'memorize', card: pick.card };
 }
 
 function rehideAction(state: GameState, me: string, ctx: Ctx): Action | null {
@@ -1517,7 +1528,9 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       if (ctx.full && genreOn('poetry')) {
         // «Заучить» сборник поэзии: он лежит сверх склада и облава его не трогает.
         const poetry = byValue(keep, books.filter((b) => iconsOf(state, b).includes('poetry') && isBanned(state, b))).reverse().slice(0, 2);
-        for (const m of poetry) out.push({ type: 'hiding', hidden: hideList(state, me, ctx, keep, { exclude: m }), memorize: m });
+        // Заучивать — только сборник, которому не хватит места в Тайнике: спрятать выгоднее (заученный лежит на виду).
+        const hiddenBase = hideList(state, me, ctx, keep);
+        for (const m of poetry) if (!hiddenBase.includes(m)) out.push({ type: 'hiding', hidden: hideList(state, me, ctx, keep, { exclude: m }), memorize: m });
         // Парторг: заполнить пустые места Нагрузкой — она прикрывает Тайник.
         if (hasPatron(state, me, 'partorg') && freeSlots(p) > 0) out.push({ type: 'hiding', hidden: hideList(state, me, ctx, keep, { extraLoad: freeSlots(p) }), fillLoad: true });
       }

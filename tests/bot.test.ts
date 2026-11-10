@@ -3,7 +3,7 @@ import { activePlayers as activePlayersOf, applyAction, createGame } from '../sr
 import { botMove, playOut } from '../src/engine/bot';
 import { curatorMaybe, curatorSuspicion, effectiveCuratorStyle, rankActions } from '../src/engine/bot-smart';
 import { BOT_BASE, BOT_GOALS, BOT_PRESETS, CURATOR_STYLES, curatorStyle, curatorStyleNote, presetById, selectablePresets } from '../src/engine/bot-presets';
-import { isBanned, isEvidence, isGenreBook, isPropaganda } from '../src/engine/util';
+import { iconsOf, isBanned, isEvidence, isGenreBook, isPropaganda } from '../src/engine/util';
 import { RULES } from '../src/engine/content';
 import type { GameState } from '../src/engine/types';
 
@@ -537,5 +537,49 @@ describe('Честный бот аккуратнее с опальным', () =>
     const r = rankActions(s, me, presetById('bookman'), seeded(1), true);
     expect(r[0].a).toMatchObject({ type: 'hiding' });
     expect(r[0].a.type === 'hiding' && r[0].a.hidden).toEqual([book]);
+  });
+});
+
+describe('Бот и поэзия: прятать выгоднее, чем заучивать', () => {
+  function setup() {
+    let s = createGame({ players: players(3), seed: 11, mode: 'full', curator: false });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    for (const p of s.players) if (s.phase === 'setupCache') s = applyAction(s, p.id, { type: 'hiding', hidden: [] });
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    const take = (f: (c: string) => boolean) => { const c = s.deck.find(f)!; s.deck = s.deck.filter((x) => x !== c); return c; };
+    const poem = take((c) => iconsOf(s, c).includes('poetry') && !isBanned(s, c));
+    // Две обычные Нагрузки дают одно место в Тайнике.
+    const loads = s.loadDeck.filter((c) => s.cards[c].kind === 'load').slice(0, 2);
+    s.loadDeck = s.loadDeck.filter((c) => !loads.includes(c));
+    p.warehouse = loads.map((card) => ({ card, hidden: false }));
+    p.cache = 0;
+    p.capacity = 6;
+    return { s, me, p, poem, take };
+  }
+  const first = (s: GameState, me: string) => rankActions(s, me, presetById('bookman'), seeded(1), true)[0].a;
+  it('открытый сборник при свободном месте в Тайнике — прячет, а не заучивает', () => {
+    const { s, me, p, poem } = setup();
+    p.warehouse.push({ card: poem, hidden: false });
+    expect(first(s, me)).toEqual({ type: 'hiding', hidden: [poem] });
+  });
+  it('спрятанный сборник не заучивает просто так', () => {
+    const { s, me, p, poem } = setup();
+    p.warehouse.push({ card: poem, hidden: true });
+    expect(first(s, me).type).not.toBe('memorize');
+  });
+  it('спрятанный сборник заучивает, когда занятый Тайник нужен опальной книге', () => {
+    let { s, me, p, poem, take } = setup();
+    const banned = take((c) => isGenreBook(s, c) && isBanned(s, c) && !isPropaganda(s, c) && !iconsOf(s, c).includes('poetry'));
+    p.warehouse.push({ card: poem, hidden: true }, { card: banned, hidden: false });
+    // Свободные действия подряд (перекладка, заучивание), пока бот не перейдёт к поручению.
+    for (let i = 0; i < 4; i++) {
+      const a = first(s, me);
+      if (a.type !== 'hiding' && a.type !== 'memorize') break;
+      s = applyAction(s, me, a);
+    }
+    p = s.players.find((x) => x.id === me)!;
+    expect(p.warehouse.find((w) => w.card === poem)!.memorized).toBe(true);
+    expect(p.warehouse.find((w) => w.card === banned)!.hidden).toBe(true);
   });
 });
