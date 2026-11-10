@@ -569,6 +569,22 @@ describe('Завсегдатаи: Ветеран, Лейтенант, Управ
     expect(p.warehouse.some((w) => w.card === card)).toBe(true);
   });
 
+  it('Фарцовщик: +1 Талон сверх цены за каждую проданную на Толкучке книгу', () => {
+    for (const banned of [false, true]) {
+      let s = started();
+      const me = s.order[s.turn];
+      connect(s, 'fartsovshchik', [me]);
+      const p0 = s.players.find((x) => x.id === me)!;
+      const sell = s.deck.find((c) => s.cards[c].kind === 'genre' && s.cards[c].icons.some((g) => s.banned.includes(g)) === banned)!;
+      s.deck = s.deck.filter((c) => c !== sell);
+      p0.warehouse.push({ card: sell, hidden: false });
+      const talons = p0.talons;
+      s = applyAction(s, me, { type: 'place', place: { address: 'tolkuchka', ops: [{ op: 'sell', card: sell }] } });
+      const price = banned ? RULES.tolkuchkaSellBanned : RULES.tolkuchkaSellFree;
+      expect(s.players.find((x) => x.id === me)!.talons).toBe(talons + price + RULES.fartsovshchikTalons);
+    }
+  });
+
   it('Лейтенант забирает книги, изъятые с адресов', () => {
     let found = false;
     for (let seed = 1; seed <= 10 && !found; seed++) {

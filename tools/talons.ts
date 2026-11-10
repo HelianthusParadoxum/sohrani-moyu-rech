@@ -26,7 +26,7 @@ const NAMES: Record<string, string> = {
   irony: 'Ирония пущена в народ', sideJob: 'Приработок (бонус Ростка)', sprouts: 'Ростки (ступени I)', other: 'прочее (решения, ответы)',
 };
 // Завсегдатаи, которые дают или экономят Талоны (ключи в p.talonsBy / p.talonsSaved).
-const PATRON_SOURCES: PatronId[] = ['typist', 'broker', 'tsekhovik', 'professor', 'nesun', 'geologist', 'correspondent', 'zavkhoz', 'buyer', 'veteran', 'zavmag'];
+const PATRON_SOURCES: PatronId[] = ['typist', 'broker', 'tsekhovik', 'professor', 'nesun', 'geologist', 'correspondent', 'zavkhoz', 'buyer', 'veteran', 'zavmag', 'fartsovshchik'];
 const nameOf = (k: string) => NAMES[k] ?? ((PATRON_SOURCES as string[]).includes(k) ? `Завсегдатай ${PATRONS[k as PatronId].name}` : k.startsWith('group:') ? `Группа: ${GROUP_ACTIONS[k.slice(6) as GroupActionId]?.name ?? k}` : ADDRESSES[k as AddressId]?.name ?? k);
 
 const income: Record<string, number> = {};

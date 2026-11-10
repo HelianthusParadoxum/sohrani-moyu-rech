@@ -981,12 +981,14 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       const sold: string[] = [];
       const parts: string[] = [];
       let income = 0;
+      let bonus = 0; // Фарцовщик: +1 Талон за каждую проданную книгу
+      const fartsovshchik = hasPatron(state, p.id, 'fartsovshchik');
       const buy = purchases(state, p);
       // Сначала продажи: вырученные Талоны (и освобождённое место) сразу идут на покупку в той же сделке.
       const ops = [...a.ops.filter((op) => op.op !== 'buy'), ...a.ops.filter((op) => op.op === 'buy')];
       for (const op of ops) {
         if (op.op === 'buy') {
-          if (income) { earn(state, p, income, 'tolkuchka'); income = 0; }
+          if (income || bonus) { earn(state, p, 0, { tolkuchka: income, fartsovshchik: bonus }); income = 0; bonus = 0; }
           check(state.tolkuchka.includes(op.card), 'Этой книги нет на Толкучке');
           const cost = buy(RULES.tolkuchkaBuy);
           state.tolkuchka = state.tolkuchka.filter((c) => c !== op.card);
@@ -997,10 +999,11 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
           check(!isEvidence(state, op.card), 'Улики нельзя продать — у них ноль подпольного спроса');
           check(!isPropaganda(state, op.card), 'ЧНЛ можно сбыть только в Красном уголке');
           check(isGenreBook(state, op.card), 'Книгу без жанра не продать');
-          const demand = genresOf(state, op.card).some((g) => state.banned.includes(g)) || hasPatron(state, p.id, 'fartsovshchik');
+          const demand = genresOf(state, op.card).some((g) => state.banned.includes(g));
           const gain = demand ? RULES.tolkuchkaSellBanned : RULES.tolkuchkaSellFree;
           removeBook(p, op.card);
           income += gain;
+          if (fartsovshchik) bonus += RULES.fartsovshchikTalons;
           gaveAway(state, p, op.card);
           sold.push(op.card);
           parts.push(`продал(а) ${title(state, op.card)} за ${talonsText(gain)}`);
@@ -1009,7 +1012,8 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       // Проданное на Толкучке уходит в сброс, а не на прилавок.
       for (const c of sold) discard(state, c);
       log(state, `${p.name} на Толкучке: ${parts.join('; ')}.`);
-      earn(state, p, income, 'tolkuchka');
+      if (fartsovshchik && sold.length) logAfter(state, `↳ Фарцовщик: +${talonsText(sold.length * RULES.fartsovshchikTalons)}.`);
+      earn(state, p, 0, { tolkuchka: income, fartsovshchik: bonus });
       return;
     }
     case 'redCorner': {
