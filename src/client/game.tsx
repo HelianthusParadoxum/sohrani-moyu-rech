@@ -1758,15 +1758,12 @@ function MyPanel({ view, me, color, groupWhy, onGroup, onMemorize, onCache }: {
         </div>
       )}
       <div className="shelf wrap">{me.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}{emptySlots(freeShelf(me))}</div>
-      {onCache && (
+      {/* Свободные действия со складом — одним рядом: Пересобрать Тайник, Заучить сборник поэзии. */}
+      {(onCache || (onMemorize && (poetry.length > 0 || memorized))) && (
         <div className="group-actions">
-          <button className="small" onClick={onCache} title="Убрать книги из Тайника или спрятать туда другие — не тратит действие">Пересобрать Тайник</button>
-        </div>
-      )}
-      {onMemorize && (poetry.length > 0 || memorized) && (
-        <div className="group-actions">
-          {poetry.map((c) => <button key={c} className="small" onClick={() => onMemorize(c)} title={MEMORIZE_TIP} data-tip={MEMORIZE_TIP}>Заучить «{view.cards[c].title}»</button>)}
-          {memorized && <button className="small" onClick={() => onMemorize(null)}>Вернуть «{view.cards[memorized].title}» на Склад</button>}
+          {onCache && <button className="small" onClick={onCache} title="Убрать книги из Тайника или спрятать туда другие — не тратит действие">Пересобрать Тайник</button>}
+          {onMemorize && poetry.map((c) => <button key={c} className="small" onClick={() => onMemorize(c)} title={MEMORIZE_TIP} data-tip={MEMORIZE_TIP}>Заучить «{view.cards[c].title}»</button>)}
+          {onMemorize && memorized && <button className="small" onClick={() => onMemorize(null)}>Вернуть «{view.cards[memorized].title}» на Склад</button>}
         </div>
       )}
       <Published view={view} p={me} />
