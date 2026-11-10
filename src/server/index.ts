@@ -62,7 +62,7 @@ function noteAutoPresets(room: Room) {
   if (s.log.some((l) => l.text.startsWith(head))) return;
   const win = s.log.findIndex((l) => l.winners);
   const text = [head, ...autos.map((x) => `${x.name} — ${presetById(x.autoPreset).name}`)].join('\n');
-  s.log.splice(win >= 0 ? win : s.log.length, 0, { round: s.round, text });
+  s.log.splice(win >= 0 ? win : s.log.length, 0, { round: s.round, text, lineDots: [null, ...autos.map((x) => x.id)] });
 }
 
 // Партия окончена, Куратор — бот: в конце журнала пишем, какой стратегии он держался (один раз).

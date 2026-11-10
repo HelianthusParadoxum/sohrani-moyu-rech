@@ -571,7 +571,7 @@ function AddressContents({ id, view, seatIndex, me, onPatron, onBlocked, onPick 
     case 'knigoobmen':
       return <div className="shelf wrap">{view.knigoobmen.map((c) => <Book key={c} v={view} id={c} mini onClick={pickBy(c)} />)}{emptySlots(RULES.displaySize - view.knigoobmen.length, true)}</div>;
     case 'agitpunkt':
-      return <div className="shelf wrap">{(view.agitpunkt ?? []).map((c) => <Book key={c} v={view} id={c} mini note="даром" onClick={pickBy(c)} />)}{emptySlots(RULES.agitpunktSize - (view.agitpunkt ?? []).length, true)}</div>;
+      return <div className="shelf wrap">{(view.agitpunkt ?? []).map((c) => <Book key={c} v={view} id={c} mini onClick={pickBy(c)} />)}{emptySlots(RULES.agitpunktSize - (view.agitpunkt ?? []).length, true)}</div>;
     case 'raspredelitel':
       return <div className="shelf wrap">{view.raspredelitel.map((c) => <Book key={c} v={view} id={c} mini price={RULES.raspredelitelPrice} onClick={pickBy(c)} />)}{emptySlots(RULES.raspredelitelSize - view.raspredelitel.length, true)}</div>;
     default:
@@ -1920,7 +1920,11 @@ function Log({ view, seatIndex }: { view: PlayerView; seatIndex: (id: string) =>
           {l.who && !l.act && <span className="dot" style={{ background: PLAYER_COLORS[seatIndex(l.who)] }} />}
           {l.club && <span className="dot num wide" style={{ background: PLAYER_COLORS[seatIndex(l.club.player)] }} title={l.club.round ? `Связь с ${l.club.round}-й Пятилетки` : 'Стартовая связь, до первой Пятилетки'}>П{l.club.round}</span>}
           {/* На экране журнал идёт снизу вверх: следствие стоит над своим действием — стрелка ведёт снизу вправо. */}
-          {l.order || l.winners
+          {l.lineDots
+            ? l.text.split('\n').map((line, k) => (
+                <Fragment key={k}>{k ? <br /> : null}{l.lineDots![k] && <span className="dot tight" style={{ background: PLAYER_COLORS[seatIndex(l.lineDots![k]!)] }} />}{withGenreChips(line)}</Fragment>
+              ))
+            : l.order || l.winners
             ? (() => {
                 // «Порядок хода: …» и «Победа: …» — перед каждым именем кружок игрока.
                 const ids = (l.order ?? l.winners)!;
