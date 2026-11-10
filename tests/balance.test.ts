@@ -243,6 +243,8 @@ describe('Макулатура', () => {
     const p = me(s);
     p.talons = 5;
     p.capacity = 10;
+    p.cache = 1;
+    p.warehouse = p.warehouse.map((w) => ({ ...w, hidden: false }));
     s = applyAction(s, p.id, { type: 'place', place: { address: 'makulatura' } });
     expect(() => applyAction(s, p.id, { type: 'makulaturaKeep', card: s.deck[0] })).toThrow(RuleError);
     const top = s.deck[s.deck.length - 1];
@@ -256,5 +258,8 @@ describe('Макулатура', () => {
     expect(byId(s, p.id).warehouse.some((w) => w.card === top)).toBe(true);
     expect(s.loadDiscard).toContain(topLoad);
     expect(s.pending).toHaveLength(0);
+    // Оставленная книга легла в Тайник — при всех: «↳ … берёт непечатный текст взакрытую и кладёт в Тайник».
+    expect(byId(s, p.id).warehouse.find((w) => w.card === top)!.hidden).toBe(true);
+    expect(s.log.map((l) => l.text)).toContain(`↳ ${p.name} берёт непечатный текст взакрытую и кладёт в Тайник.`);
   });
 });

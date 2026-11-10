@@ -1643,7 +1643,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       addSecretBook(state, p, action.card, null);
       log(state, `${p.name} оставляет себе одну книгу из Макулатуры (вытянуто: ${pend.cards.length}).`);
       if (p.warehouse.find((w) => w.card === action.card)?.hidden) {
-        log(state, `↳ Взакрытую в Тайник: ${isFromLoadDeck(state, action.card) ? 'книга Нагрузки' : '1 непечатный текст'}.`);
+        log(state, `↳ ${p.name} берёт ${isFromLoadDeck(state, action.card) ? 'книгу Нагрузки' : 'непечатный текст'} взакрытую и кладёт в Тайник.`);
       }
       logRecap(state, `Оставлена: ${title(state, action.card)}.`, [p.id]);
       break;
