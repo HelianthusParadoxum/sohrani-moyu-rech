@@ -1889,6 +1889,10 @@ describe('Ростки: места', () => {
     expect(() => applyAction(s, who, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: [magic[2]] }] } }))
       .toThrow(/ждите следующей/);
     expect(limitFor('sprouts', 4)).toBe(Infinity);
+    // Барахолка: 2/2/3/3 места на 2, 3, 4, 5 игроков; у прочих адресов впятером — как вчетвером.
+    expect([1, 2, 3, 4, 5].map((n) => limitFor('baraholka', n))).toEqual([1, 2, 2, 3, 3]); // в одиночной игре — 1
+    expect(limitFor('razval', 1)).toBe(limitFor('razval', 2));
+    expect(limitFor('razval', 5)).toBe(limitFor('razval', 4));
   });
 });
 

@@ -124,7 +124,8 @@ export const RULES = {
 };
 
 // Лимиты Единомышленников на адресе для 2 / 3 / 4 игроков (впятером — как вчетвером, у явочных +1). Infinity — без лимита.
-type Limits = [number, number, number];
+// Места на адресе на 2, 3, 4 игроков; четвёртое число — на 5 (если не задано — как на 4).
+type Limits = [number, number, number] | [number, number, number, number];
 const INF = Infinity;
 
 // Значки адресов: перед названием на столе, в окнах, подсказках и журнале. Не повторяются и не совпадают со значками
@@ -156,6 +157,7 @@ export interface AddressInfo {
   id: AddressId;
   name: string;
   limits: Limits;
+  soloLimit?: number; // мест в одиночной игре (если не задано — как на двоих)
   safehouse?: boolean;
   fullOnly?: boolean;
   perPlayer?: boolean; // не больше 1 Единомышленника от игрока
@@ -169,7 +171,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   redCorner: { id: 'redCorner', name: 'Красный уголок', limits: [INF, INF, INF], perPlayer: true, short: 'Очередь хода; +1 Нагрузка', hint: 'Очередь хода на следующую Пятилетку; обязательно взять 1 Нагрузку вслепую. Нет места — отдать книгу Непечатных со склада; склад весь в Нагрузке — не брать' },
   razval: { id: 'razval', name: 'Развал', limits: [2, 3, 4], short: 'Купить: 2/2/1/1т', hint: 'Купить 1 книгу: −2/−2/−1/−1т по свежести' },
   zavoz: { id: 'zavoz', name: 'Развоз', limits: [1, 1, 2], short: '+2т, новый Развал', hint: '+2т, Развал полностью обновляется' },
-  baraholka: { id: 'baraholka', name: 'Барахолка', limits: [4, 4, 4], short: 'Глянуть все, купить 1 за 1т', hint: 'Тайно посмотреть все закрытые книги и купить одну из них за 1т' },
+  baraholka: { id: 'baraholka', name: 'Барахолка', limits: [2, 2, 3, 3], soloLimit: 1, short: 'Глянуть все, купить 1 за 1т', hint: 'Тайно посмотреть все закрытые книги и купить одну из них за 1т' },
   podpiska: { id: 'podpiska', name: 'Подписка', limits: [1, 1, 1], safehouse: true, short: 'Заказать жанр', hint: 'Заказать жанр: −1т за каждую Пятилетку доставки' },
   sprouts: { id: 'sprouts', name: 'Ростки Гласности', limits: [INF, INF, INF], short: 'Питать ступень Ростка', hint: (RULES.sproutFeedsPerAction === 1 ? 'Питать 1 ступень одного Ростка' : `Питать до ${RULES.sproutFeedsPerAction} ступеней Ростков`) + '; у каждого бонуса Ростка — одно место на Пятилетку' },
   samizdat: { id: 'samizdat', name: 'Самиздат', limits: [1, 2, 3], short: `Издать: +${RULES.samizdatPoints} очка/значок`, hint: `Издать книгу: +${RULES.samizdatPoints} очка Гласности за значок` },
@@ -210,9 +212,11 @@ export const STARTS_FILLED: AddressId[] = ['knigoobmen', 'raspredelitel', 'agitp
 
 export function limitFor(address: AddressId, playerCount: number): number {
   const l = ADDRESSES[address].limits;
-  // Впятером — места как вчетвером, а у явочных адресов на одно больше.
+  // Впятером — места как вчетвером (если для пятерых не задано своё число), а у явочных адресов на одно больше.
   const extra = playerCount >= 5 && ADDRESSES[address].safehouse ? RULES.safehouseExtraFive : 0;
-  return l[Math.min(Math.max(playerCount, 2), 4) - 2] + extra;
+  if (playerCount <= 1 && ADDRESSES[address].soloLimit !== undefined) return ADDRESSES[address].soloLimit!;
+  const n = Math.min(Math.max(playerCount, 2), 5);
+  return (n === 5 ? l[3] ?? l[2] : l[n - 2]) + extra;
 }
 
 // Есть ли адрес / действие Группы в этой партии. «Заповедник» (reserve) — полный режим без Конторы и Куратора.
