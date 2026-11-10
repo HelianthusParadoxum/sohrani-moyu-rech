@@ -180,7 +180,7 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
         log(state, `${p.name}: Пристрастие — ${PASSIONS[action.passion].name}.`, [p.id]);
         if (action.passion === 'curator') state.log[state.log.length - 1].strong = true;
         // Карта Куратора одна: кто её сбросил, тот знает, что Куратора в партии нет (тайно — видят он сам и зритель).
-        else if (p.passionOptions.includes('curator')) log(state, `${p.name} сбрасывает карту Куратора: Куратора в этой партии нет.`, [p.id]);
+        else if (p.passionOptions.includes('curator')) log(state, `${p.name} сбрасывает карту Куратора и знает, что Куратора в этой партии нет.`, [p.id]);
         if (state.ready.length === state.players.length) {
           startRound(state);
           // Перед первым действием партии все раскладывают стартовые книги по Тайникам.
