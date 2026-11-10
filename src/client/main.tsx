@@ -43,7 +43,7 @@ function App() {
     const done = () => setFontsReady(true);
     const t = setTimeout(done, 2500); // шрифты не грузятся (нет сети до Google Fonts) — не ждём дольше
     const sample = 'Сохрани мою речь Комната 0123';
-    Promise.all(['700 1em "PT Serif"', '400 1em "PT Serif"', '400 1em "PT Sans"', '700 1em "PT Sans"', '400 1em "PT Mono"']
+    Promise.all(['700 1em "PT Serif"', '400 1em "PT Serif"', '400 1em "Jost"', '500 1em "Jost"', '700 1em "Jost"', '400 1em "PT Mono"']
       .map((f) => document.fonts.load(f, sample))).then(done, done);
     return () => clearTimeout(t);
   }, [fontsReady]);

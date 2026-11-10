@@ -22,7 +22,8 @@ body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
-  font: 15px/1.4 'PT Sans', system-ui, sans-serif;
+  /* Jost — геометрический гротеск в духе советской «Журнальной рубленой»; буквы у него ниже, чем у PT Sans, поэтому 16, а не 15. */
+  font: 16px/1.4 'Jost', system-ui, sans-serif;
 }
 h1, h2, h3, h4 { font-family: 'PT Serif', Georgia, serif; margin: 0.6em 0 0.3em; }
 h2 { font-size: 1.15rem; }
@@ -133,8 +134,8 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 /* Лобби: «в сети» — у правого края строки игрока */
 .seats .signal { margin-left: auto; flex: none; width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; } /* качество связи — у правого края, по центру квадрата 40×40 (как кнопки) */
 /* Крестик «убрать» — у правого края строки (после «в сети» — сразу за ним). */
-.seats > li > .dropdown { margin-left: auto; width: 172px; flex-shrink: 0; } /* стратегия бота — у правого края */
-.seats > li > .dropdown:last-child { width: 220px; } /* без крестика справа (хост) — шире на крестик с промежутком: левый край вровень с остальными */
+.seats > li > .dropdown { margin-left: auto; width: 180px; flex-shrink: 0; } /* стратегия бота — у правого края; «Тайная стратегия» в Jost 16 целиком */
+.seats > li > .dropdown:last-child { width: 228px; } /* без крестика справа (хост) — шире на крестик с промежутком: левый край вровень с остальными */
 .seats > li > .dropdown .dropdown-btn { width: 100%; }
 .seats .preset-name { margin-left: auto; } /* не хосту — название стратегии у правого края */
 .seats .dropdown ~ .remove { margin-left: 0; }
@@ -390,7 +391,7 @@ label.row.check > input[type="checkbox"]:focus-visible { outline: 2px solid var(
 .ghost { display: inline-flex; gap: 2px; opacity: 0.45; }
 .ghost .chip { outline: 1px dashed currentColor; outline-offset: 1px; }
 
-.dot.num { width: 16px; height: 16px; color: #fff; font: 700 0.62rem/15px 'PT Sans', sans-serif; text-align: center; }
+.dot.num { width: 16px; height: 16px; color: #fff; font: 700 0.62rem/15px 'Jost', sans-serif; text-align: center; }
 .dot.num.slot-free { background: transparent; border: 1.5px dashed rgba(0,0,0,.35); }
 .dot.num.inline { margin-left: 4px; vertical-align: -3px; }
 .gact { font-size: 0.72rem; padding: 2px 8px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); }
@@ -604,10 +605,9 @@ label.row > .dropdown { display: inline-block; }
 .end-turn-sheet button, .lobby .lobby-actions button, .title-screen .create-bar button {
   height: 56px; padding: 0 20px; font-size: 1rem; line-height: 1; box-sizing: border-box;
 }
-/* Главные кнопки (нижние плашки, «ОК» окон) — среднее начертание. У PT Sans есть только 400 и 700,
-   поэтому «medium» — обычное начертание с тонкой обводкой букв тем же цветом (0,3 px). */
+/* Главные кнопки (нижние плашки, «ОК» окон) — среднее начертание Jost. */
 .end-turn-sheet button, .lobby .lobby-actions button, .title-screen .create-bar button, .modal-foot.full > button {
-  -webkit-text-stroke: 0.3px currentColor;
+  font-weight: 500;
 }
 @media (max-width: 600px) {
   .end-turn-sheet, .lobby .lobby-actions, .title-screen .create-bar { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
