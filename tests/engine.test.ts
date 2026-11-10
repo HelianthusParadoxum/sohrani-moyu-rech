@@ -1942,7 +1942,7 @@ describe('Журнал: конец партии и Барахолка', () => {
     expect(last.winners).toEqual(s.result!.winners);
     expect(last.text).toMatch(/^Победа: /);
     expect(s.log.some((l) => l.text.includes('вслепую') && s.log[s.log.indexOf(l) + 1]?.text.includes('покупает книгу на Барахолке'))).toBe(false);
-  });
+  }, 30_000); // целая партия ботами — около 5 с, под нагрузкой дольше
 });
 
 describe('Журнал: усилилась ли Цензура', () => {
