@@ -1750,13 +1750,15 @@ function MyPanel({ view, me, color, groupWhy, onGroup, onMemorize, onCache }: {
   const poetry = me.warehouse.map((s) => s.card!).filter((c) => c && c !== memorized && iconsOf(view, c).includes('poetry'));
   return (
     <div className="player me" style={{ borderColor: color }}>
-      <div className="addr-head"><b style={{ color }}><span className="dot" style={{ background: color }} /> {me.name} (вы)</b></div>
+      {/* Пристрастие — в правом верхнем углу, как у планшетов в режиме наблюдения. */}
+      <div className="addr-head"><b style={{ color }}><span className="dot" style={{ background: color }} /> {me.name} (вы)</b>
+        {me.passion && (
+          <span className="passion-line" title={`Пристрастие: ${PASSIONS[me.passion].name} — ${PASSIONS[me.passion].hint}`}>
+            <span>{passionIcon(me.passion)}</span>{me.passion === 'erudite' ? <EruditePanel view={view} me={me} /> : passionMarks(me.passion)}
+          </span>
+        )}
+      </div>
       <Stats p={me} view={view} />
-      {me.passion && (
-        <div className="passion-line" title={`Пристрастие: ${PASSIONS[me.passion].name} — ${PASSIONS[me.passion].hint}`}>
-          <span>{passionIcon(me.passion)}</span>{me.passion === 'erudite' ? <EruditePanel view={view} me={me} /> : passionMarks(me.passion)}
-        </div>
-      )}
       <div className="shelf wrap">{me.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}{emptySlots(freeShelf(me))}</div>
       {/* Свободные действия со складом — одним рядом: Пересобрать Тайник, Заучить сборник поэзии. */}
       {(onCache || (onMemorize && (poetry.length > 0 || memorized))) && (
@@ -1773,7 +1775,6 @@ function MyPanel({ view, me, color, groupWhy, onGroup, onMemorize, onCache }: {
         ))}</div>
       )}
       <div className="group">
-        <div className="muted small">Инициативная группа (каждое действие — раз в Пятилетку):</div>
         <div className="group-actions">
           {(Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => groupInGame(view, g)).map((g) => (
             // Недоступное действие не выключено: нажатие объясняет, почему сейчас нельзя.
