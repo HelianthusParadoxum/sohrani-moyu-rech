@@ -182,7 +182,10 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
         // Карта Куратора одна: кто её сбросил, тот знает, что Куратора в партии нет (тайно — видят он сам и зритель).
         else if (p.passionOptions.includes('curator')) log(state, `${p.name} сбрасывает карту Куратора и знает, что Куратора в этой партии нет.`, [p.id]);
         if (state.ready.length === state.players.length) {
-          startRound(state);
+          // Первый явочный адрес выкладывается сразу, в начале 1-й Пятилетки (дальше — по одному в каждой новой).
+          const safe = RULES.safehouseAtStart ? state.safehouseDeck.pop() : undefined;
+          if (safe) state.safehouses.push(safe);
+          startRound(state, safe);
           // Перед первым действием партии все раскладывают стартовые книги по Тайникам.
           if (!state.pending.length) {
             state.phase = 'setupCache';
@@ -1843,7 +1846,10 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
     case 'catalogPick': {
       check(action.type === 'catalogPick', 'Выберите, какие книги взять: сверху или снизу стопки');
       state.pending.shift();
-      const cards = action.from === 'bottom' ? pend.bottom : pend.top;
+      // Наборы запомнены, когда решение возникло; с тех пор кто-то мог забрать книгу из той же стопки
+      // (другой Библиотекарь после той же облавы) — берём только то, что в ней ещё лежит.
+      const pile = pend.deck === 'load' ? state.loadDeck : pend.deck === 'discard' ? state.discard : state.deck;
+      const cards = (action.from === 'bottom' ? pend.bottom : pend.top).filter((c) => pile.includes(c));
       // Взятые — из стопки (где бы они ни лежали); невыбранные остаются на своих местах.
       if (pend.deck === 'load') state.loadDeck = state.loadDeck.filter((c) => !cards.includes(c));
       else if (pend.deck === 'discard') state.discard = state.discard.filter((c) => !cards.includes(c));

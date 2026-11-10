@@ -576,6 +576,24 @@ describe('Завсегдатаи: Ветеран, Лейтенант, Управ
     }
   });
 
+  it('Каталогизатор: книгу из запомненного набора, которую уже забрали из стопки, второй раз не получить', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    const other = s.players.find((x) => x.id !== me)!;
+    const [gone, stay] = [s.deck[0], s.deck[1]];
+    s.discard = [gone, stay];
+    // Набор запомнен, а «gone» тем временем забрал другой игрок (Библиотекарь после той же облавы).
+    s.pending = [{ kind: 'catalogPick', player: me, deck: 'discard', top: [stay], bottom: [gone, stay], then: { kind: 'makulatura' } as never }];
+    s.discard = [stay];
+    other.warehouse.push({ card: gone, hidden: false });
+    s.pending.unshift({ kind: 'makulatura', player: me, cards: [] } as never);
+    s.pending = [s.pending[1], s.pending[0]];
+    s.players.find((x) => x.id === me)!.capacity = 10;
+    s = applyAction(s, me, { type: 'catalogPick', from: 'bottom' });
+    const mk = s.pending.find((x) => x.kind === 'makulatura');
+    expect(mk && mk.kind === 'makulatura' && mk.cards).toEqual([stay]);
+  });
+
   it('Лейтенант забирает книги, изъятые с адресов', () => {
     let found = false;
     for (let seed = 1; seed <= 10 && !found; seed++) {
