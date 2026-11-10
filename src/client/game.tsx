@@ -1977,9 +1977,10 @@ function GlavlitPrompt({ view, act, onClose }: { view: PlayerView; act: (a: Acti
 function Published({ view, p }: { view: PlayerView; p: VPlayer }) {
   const tam = p.published.filter((c) => p.tamizdat.includes(c));
   const sam = p.published.filter((c) => !p.tamizdat.includes(c));
-  const row = (label: string, list: string[]) => (
+  // Вместо подписи — значок адреса, как на самих адресах Тамиздата и Самиздата (название — в подсказке).
+  const row = (id: 'tamizdat' | 'samizdat', list: string[]) => (
     <div className="pub-row">
-      <span className="muted small">{label}:</span>
+      <span className="pub-icon" title={ADDRESSES[id].name} data-tip={ADDRESSES[id].name}>{ADDRESS_ICONS[id]}</span>
       {!list.length && <span className="muted small">—</span>}
       {list.map((c) => {
         const icons = iconsOf(view, c);
@@ -1997,5 +1998,5 @@ function Published({ view, p }: { view: PlayerView; p: VPlayer }) {
       })}
     </div>
   );
-  return <div className="published">{row('Тамиздат', tam)}{row('Самиздат', sam)}</div>;
+  return <div className="published">{row('tamizdat', tam)}{row('samizdat', sam)}</div>;
 }

@@ -259,7 +259,9 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .stats i { font-style: normal; margin-right: 2px; }
 .passion-tag { font-size: 0.8rem; background: var(--paper-2); padding: 2px 8px; border-radius: 3px; }
 .group-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-.published { padding-top: 4px; } /* без пунктира: он занимал место */
+.published { display: flex; flex-direction: column; gap: 4px; margin-block: -4px; } /* плотнее: соседние блоки планшета стоят через 8, тут — через 4 */
+.pub-icon { font-size: 0.9rem; line-height: 1; cursor: help; }
+.published + .group-actions.readonly { margin-top: 0; } /* до значков действий — те же 4 */
 /* Журнал — постоянной высоты (не растёт и не сжимается вместе с соседями), лишнее прокручивается. */
 .log { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; height: 420px; flex: none; overflow-y: auto; font-size: 0.82rem; }
 .log h3 { margin-top: 0; }
