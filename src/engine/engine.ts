@@ -1894,10 +1894,12 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
     }
     case 'startConnection': {
       // Стартовая связь: бесплатно, без книги, с любым Завсегдатаем, с которым в эту Пятилетку ещё никто не связался.
-      check(action.type === 'befriend' || action.type === 'pass', 'Выберите Завсегдатая или откажитесь');
+      // Связь обязательна; отказаться можно, только если свободных Завсегдатаев не осталось.
+      const targets = startConnectionTargets(state, p.id);
+      check(action.type === 'befriend' || (action.type === 'pass' && !targets.length), 'Выберите Завсегдатая: стартовая связь обязательна');
       state.pending.shift();
       if (action.type === 'befriend') {
-        check(startConnectionTargets(state, p.id).includes(action.patron), 'С этим Завсегдатаем в эту Пятилетку уже связались');
+        check(targets.includes(action.patron), 'С этим Завсегдатаем в эту Пятилетку уже связались');
         // Решения, вызванные связью (Главлитовец и т. п.), — сразу, до выбора следующего игрока.
         const before = state.pending.length;
         befriendPatron(state, p, action.patron, 'стартовая связь');

@@ -328,8 +328,7 @@ export function FreeConnectionPrompt({ view, me, act }: { view: PlayerView; me: 
 export function StartConnectionPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
   return (
     <BefriendPicker view={view} me={me} title="Стартовая связь в Клубе" freeOnly onPick={(patron) => act({ type: 'befriend', patron })}
-      note="Перед первыми поручениями каждый бесплатно, без книги, заводит связь с одним Завсегдатаем. Выбирают в порядке, обратном порядку хода: кто ходит последним — первым. Завсегдатай, с которым уже связались, занят до конца 1-й Пятилетки."
-      footer={<div className="modal-foot"><button onClick={() => act({ type: 'pass' })}>Не заводить</button></div>} />
+      note="Перед первыми поручениями каждый обязательно, бесплатно и без книги, заводит связь с одним Завсегдатаем. Выбирают в порядке, обратном порядку хода: кто ходит последним — первым. Завсегдатай, с которым уже связались, занят до конца 1-й Пятилетки." />
   );
 }
 

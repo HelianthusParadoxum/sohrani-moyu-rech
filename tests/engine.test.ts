@@ -20,7 +20,7 @@ function act(s: GameState, who: string, a: Parameters<typeof applyAction>[2]): G
 // Пропустить раскладку стартовых Тайников (всё остаётся на виду) и стартовые связи в Клубе (никто не заводит).
 function startOrders(s: GameState): GameState {
   for (const p of s.players) if (s.phase === 'setupCache') s = applyAction(s, p.id, { type: 'hiding', hidden: [] });
-  while (s.pending[0]?.kind === 'startConnection') s = applyAction(s, s.pending[0].player, { type: 'pass' });
+  while (s.pending[0]?.kind === 'startConnection') s.pending.shift(); // стартовые связи пропускаем: тестам нужна партия без связей
   return s;
 }
 
@@ -347,7 +347,8 @@ describe('полный режим', () => {
     expect(s.patrons.find((x) => x.id === patron)!.turned).toBe(true);
     const next = s.pending[0].player;
     expect(() => applyAction(s, next, { type: 'befriend', patron })).toThrow(RuleError);
-    while (s.pending[0]?.kind === 'startConnection') s = applyAction(s, s.pending[0].player, { type: 'pass' });
+    while (s.pending[0]) { if (s.pending[0].kind === 'startConnection') expect(() => applyAction(s, s.pending[0].player, { type: 'pass' })).toThrow(RuleError); s = botMove(s, s.pending[0].player, seeded(2)); }
+    expect(s.patrons.filter((x) => x.turned)).toHaveLength(3);
     expect(s.pending).toHaveLength(0);
     expect(activePlayers(s)).toEqual([first]);
     expect(s.log.some((l) => l.text === 'Поручения')).toBe(true);
