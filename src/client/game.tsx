@@ -210,16 +210,32 @@ export function Game({ view, room, you, isHost, send, canStepBack }: { view: Pla
             {addresses.map(card)}
           </div>
         </section>
+        {/* Широкий ПК: слева — свой планшет и под ним 4-й соперник, справа — 1–3-й соперники столбиком.
+            На узких экранах колонки «растворяются» (display: contents), порядок — по --ord (на телефоне — свой). */}
         <aside className="side">
-          {me && (
-            <MyPanel view={view} me={me} color={PLAYER_COLORS[seatIndex(me.id)]}
-              groupWhy={groupWhy} onGroup={(id) => setPanel({ kind: 'group', id })}
-              onMemorize={view.mode === 'full' && (canPlace || bonusTurn || afterAction) ? (card) => act({ type: 'memorize', card }) : null}
-              onCache={canPlace || bonusTurn || afterAction ? () => setPanel({ kind: 'cache' }) : null} />
-          )}
-          {view.players.filter((p) => p.id !== you).map((p, i, all) => (
-            <OtherPlayer key={p.id} view={view} p={p} color={PLAYER_COLORS[seatIndex(p.id)]} active={view.active.includes(p.id)} rev={all.length - i} />
-          ))}
+          {(() => {
+            const others = view.players.filter((p) => p.id !== you);
+            const other = (p: VPlayer, i: number) => (
+              <OtherPlayer key={p.id} view={view} p={p} color={PLAYER_COLORS[seatIndex(p.id)]} active={view.active.includes(p.id)} rev={others.length - i} ord={i + 1} />
+            );
+            // Зритель (своего планшета нет): слева — первый игрок, справа — следующие три, пятый — слева под первым.
+            const leftOthers = me ? others.slice(3) : [others[0], ...others.slice(4)].filter(Boolean);
+            const rightOthers = me ? others.slice(0, 3) : others.slice(1, 4);
+            return (
+              <>
+                <div className="side-col">
+                  {me && (
+                    <MyPanel view={view} me={me} color={PLAYER_COLORS[seatIndex(me.id)]}
+                      groupWhy={groupWhy} onGroup={(id) => setPanel({ kind: 'group', id })}
+                      onMemorize={view.mode === 'full' && (canPlace || bonusTurn || afterAction) ? (card) => act({ type: 'memorize', card }) : null}
+                      onCache={canPlace || bonusTurn || afterAction ? () => setPanel({ kind: 'cache' }) : null} />
+                  )}
+                  {leftOthers.map((p) => other(p, others.indexOf(p)))}
+                </div>
+                <div className="side-col">{rightOthers.map((p) => other(p, others.indexOf(p)))}</div>
+              </>
+            );
+          })()}
           <Log view={view} seatIndex={seatIndex} />
         </aside>
       </main>
@@ -1769,9 +1785,9 @@ function MyPanel({ view, me, color, groupWhy, onGroup, onMemorize, onCache }: {
   );
 }
 
-function OtherPlayer({ view, p, color, active, rev }: { view: PlayerView; p: VPlayer; color: string; active: boolean; rev: number }) {
+function OtherPlayer({ view, p, color, active, rev, ord }: { view: PlayerView; p: VPlayer; color: string; active: boolean; rev: number; ord: number }) {
   return (
-    <div className={`player ${active ? 'active' : ''}`} style={{ borderColor: color, '--rev': rev } as React.CSSProperties}>
+    <div className={`player ${active ? 'active' : ''}`} style={{ borderColor: color, '--rev': rev, '--ord': ord } as React.CSSProperties}>
       <div className="addr-head"><b style={{ color }}><span className="dot" style={{ background: color }} /> {p.name}</b>
         {/* Зрителю видно всё — и Пристрастия. */}
         {view.me === null && p.passion && <span className="passion-line" title={`Пристрастие: ${PASSIONS[p.passion].name} — ${PASSIONS[p.passion].hint}`}><span>{passionIcon(p.passion)}</span>{passionMarks(p.passion)}</span>}
