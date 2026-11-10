@@ -548,7 +548,7 @@ function AddressContents({ id, view, seatIndex, me, onPatron, onBlocked, onPick 
       const name = (pid: string) => view.players.find((p) => p.id === pid)?.name ?? '?';
       return (
         <div className="queue">
-          <div className="muted small">Порядок хода в следующей Пятилетке:</div>
+          <div className="muted small">Порядок на Пятилетку {view.round + 1}</div>
           <ol>
             {view.nextOrder.map((pid) => (
               <li key={pid}>{dot(pid)} {name(pid)}</li>
