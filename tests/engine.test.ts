@@ -946,14 +946,14 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     expect(t.log.some((l) => l.text.includes('книгу уже забрали'))).toBe(true);
   });
 
-  it('Возвращение из Спецхрана: Спецхран есть и в Периферии, можно взять 1 любую книгу за 1 Талон', () => {
+  it('Возвращение из Спецхрана: Спецхран есть и в Периферии, можно взять 1 любую книгу за 2 Талона', () => {
     let s = started('beginner');
     expect(s.spetskhran.length).toBe(RULES.spetskhranPerPlayer * s.players.length);
     const me = s.order[s.turn];
     const other = s.players.find((x) => x.id !== me)!.id;
-    expect(RULES.spetskhranCost).toBe(1);
+    expect(RULES.spetskhranCost).toBe(2);
     const broke: GameState = structuredClone(s);
-    broke.players.find((x) => x.id === me)!.talons = 0;
+    broke.players.find((x) => x.id === me)!.talons = 1; // 1 Талона мало
     expect(() => applyAction(broke, me, { type: 'group', group: { action: 'spetskhran' } })).toThrow(RuleError);
     const talons = s.players.find((x) => x.id === me)!.talons;
     s = applyAction(s, me, { type: 'group', group: { action: 'spetskhran' } });
