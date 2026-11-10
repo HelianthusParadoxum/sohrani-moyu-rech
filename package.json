@@ -20,7 +20,8 @@
     "patrons": "tsx tools/patrons.ts",
     "motives": "tsx tools/motives.ts",
     "curator": "tsx tools/curator.ts",
-    "snowball": "tsx tools/snowball.ts"
+    "snowball": "tsx tools/snowball.ts",
+    "network": "tsx tools/network.ts"
   },
   "dependencies": {
     "react": "^19.3.1",
