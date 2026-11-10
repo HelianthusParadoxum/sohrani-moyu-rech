@@ -274,7 +274,7 @@ export type PlaceAction =
   | { address: 'redCorner'; drop?: string } // drop — книга Непечатных, которую отдать, если для Нагрузки нет места
   | { address: 'razval'; slot: number; slots?: number[] } // slots — Ветеран покупает несколько
   | { address: 'zavoz' }
-  | { address: 'baraholka'; slots: number[] } // какие закрытые книги посмотреть
+  | { address: 'baraholka'; slots?: number[] } // смотрят все книги; slots — от прежних правил, не используется
   | { address: 'podpiska'; genre: Genre; talons: number }
   | { address: 'sprouts'; feeds: { sprout: string; books: string[]; slot?: number }[] } // slot — место (бонус) Ростка; без него — первое свободное
   | { address: 'samizdat'; card: string }

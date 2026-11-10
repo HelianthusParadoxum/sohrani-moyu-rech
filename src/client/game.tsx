@@ -646,34 +646,17 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
       body = <><p>Получите {RULES.zavozIncome} Талона. Всё, что лежит на Развале, уйдёт в сброс, и Развал заполнится новыми книгами.</p>{confirmBtn(`Подработать${costTag(-RULES.zavozIncome)}`, { address: 'zavoz' })}</>;
       break;
     case 'baraholka': {
-      const need = Math.min(RULES.baraholkaLook, view.baraholka.filter(Boolean).length);
-      // Выбор по кругу: новая книга вытесняет самую раннюю из выбранных.
-      const pick = (i: string) => setSel(sel.includes(i) ? sel.filter((x) => x !== i) : [...sel, i].slice(-need));
-      // Все книги уже известны (смотрели раньше или Наводчик) — шаг выбора пропускаем: купить можно любую.
-      const knowsAll = view.baraholka.every((has, i) => !has || !!view.baraholkaKnown?.[i]);
-      if (knowsAll) {
-        body = (
-          <>
-            <p>Вы уже знаете все книги на Барахолке — выбирать, какие посмотреть, не нужно. Купить можно любую за {RULES.baraholkaPrice}т.</p>
-            <div className="shelf grid2">
-              {view.baraholka.map((has, i) => has && <Book key={i} v={view} id={view.baraholkaKnown![i]} note="вы видели" />)}
-            </div>
-            {confirmBtn('Порыться на Барахолке', { address: 'baraholka', slots: [] })}
-          </>
-        );
-        break;
-      }
+      // Тайно смотрят все книги Барахолки — выбирать, какие, не нужно. Открытые — те, что игрок уже видел.
       body = (
         <>
-          <p>Выберите {need === 1 ? 'закрытую книгу' : `${need} закрытые книги`}. Вы тайно посмотрите их и сможете купить одну за {RULES.baraholkaPrice}т.
-            {view.baraholkaKnown?.some(Boolean) && ' Открытые — те, что вы уже видели.'}</p>
+          <p>Вы тайно посмотрите все книги на Барахолке и сможете купить {veteran ? 'сколько угодно (Ветеран: в сумме на 1 Талон дешевле)' : 'одну'} за {RULES.baraholkaPrice}т.</p>
           <div className="shelf grid2">
             {view.baraholka.map((has, i) => has && (view.baraholkaKnown?.[i]
-              ? <Book key={i} v={view} id={view.baraholkaKnown[i]} selected={sel.includes(String(i))} onClick={() => pick(String(i))} note="вы видели" />
-              : <button key={i} className={`book back ${sel.includes(String(i)) ? 'selected' : ''} clickable`} onClick={() => pick(String(i))}><span>{i + 1}</span></button>
+              ? <Book key={i} v={view} id={view.baraholkaKnown[i]} note="вы видели" />
+              : <div key={i} className="book back"><span>{i + 1}</span></div>
             ))}
           </div>
-          {confirmBtn('Посмотреть', sel.length === need ? { address: 'baraholka', slots: sel.map(Number) } : null)}
+          {confirmBtn('Порыться на Барахолке', { address: 'baraholka' })}
         </>
       );
       break;

@@ -109,7 +109,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
           }
           case 'razval': state.razval.forEach((c, slot) => c && out.push({ type: 'place', place: { address: 'razval', slot } })); break;
           case 'zavoz': out.push({ type: 'place', place: { address: 'zavoz' } }); break;
-          case 'baraholka': out.push({ type: 'place', place: { address: 'baraholka', slots: state.baraholka.map((c, i) => (c ? i : -1)).filter((i) => i >= 0).slice(0, RULES.baraholkaLook) } }); break;
+          case 'baraholka': out.push({ type: 'place', place: { address: 'baraholka' } }); break;
           case 'podpiska': out.push({ type: 'place', place: { address: 'podpiska', genre: pick([...GENRES], rand)!, talons: 1 } }); break;
           case 'sprouts': {
             for (const sp of state.sprouts) {

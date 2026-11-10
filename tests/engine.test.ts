@@ -109,27 +109,25 @@ describe('правила редакции октября', () => {
     return s;
   }
 
-  it('Барахолка: тайно смотрим 2 книги и покупаем одну из них', () => {
+  it('Барахолка: тайно смотрим все книги и покупаем любую одну', () => {
     let s = started();
     const me = s.order[s.turn];
     const other = s.players.find((p) => p.id !== me)!.id;
-    const [a, b] = [s.baraholka[1]!, s.baraholka[3]!];
-    expect(() => applyAction(s, me, { type: 'place', place: { address: 'baraholka', slots: [1] } })).toThrow(RuleError);
-    s = applyAction(s, me, { type: 'place', place: { address: 'baraholka', slots: [1, 3] } });
-    // Соперник не видит, какие книги смотрят.
+    const all = [...s.baraholka] as string[];
+    s = applyAction(s, me, { type: 'place', place: { address: 'baraholka' } });
+    const pend = s.pending[0];
+    expect(pend.kind === 'baraholkaLook' && pend.seen.map((x) => x.card)).toEqual(all);
+    // Соперник не видит, какие книги на Барахолке.
     const theirs = JSON.stringify(viewFor(s, other).pending);
-    expect(theirs).not.toContain(a);
-    expect(theirs).not.toContain(b);
-    expect(JSON.stringify(viewFor(s, me).pending)).toContain(b);
-    expect(() => applyAction(s, me, { type: 'baraholkaBuy', slot: 0 })).toThrow(RuleError);
+    for (const c of all) expect(theirs).not.toContain(c);
     expect(() => applyAction(s, me, { type: 'baraholkaBuy', next: 0 })).toThrow(RuleError);
     const talons = s.players.find((p) => p.id === me)!.talons;
-    s = applyAction(s, me, { type: 'baraholkaBuy', slot: 3 });
+    s = applyAction(s, me, { type: 'baraholkaBuy', slot: 2 });
     const p = s.players.find((x) => x.id === me)!;
-    expect(p.warehouse.map((x) => x.card)).toContain(b);
+    expect(p.warehouse.map((x) => x.card)).toContain(all[2]);
     expect(p.talons).toBe(talons - RULES.baraholkaPrice);
-    expect(s.baraholka[3]).toBeNull();
-    expect(s.baraholka[1]).toBe(a); // вторая просмотренная книга остаётся на Барахолке
+    expect(s.baraholka[2]).toBeNull();
+    expect(s.baraholka[0]).toBe(all[0]); // остальные остаются на Барахолке
     expect(s.pending).toHaveLength(0);
   });
 
@@ -154,44 +152,29 @@ describe('правила редакции октября', () => {
   it('Барахолка: игрок помнит увиденные книги, соперник — нет', () => {
     let s = started();
     const me = s.order[s.turn];
-    const [a, b] = [s.baraholka[1]!, s.baraholka[3]!];
-    s = applyAction(s, me, { type: 'place', place: { address: 'baraholka', slots: [1, 3] } });
+    const all = [...s.baraholka] as string[];
+    s = applyAction(s, me, { type: 'place', place: { address: 'baraholka' } });
     s = act(s, me, { type: 'baraholkaBuy' });
-    expect(viewFor(s, me).baraholkaKnown).toEqual([null, a, null, b]);
+    expect(viewFor(s, me).baraholkaKnown).toEqual(all);
     const other = s.order[s.turn];
     expect(other).not.toBe(me);
     expect(viewFor(s, other)).not.toHaveProperty('baraholkaSeen');
     expect(viewFor(s, other).baraholkaKnown.every((c) => c === null)).toBe(true);
-    // Купленную книгу забывают все; обновление Барахолки стирает память.
-    s = applyAction(s, other, { type: 'place', place: { address: 'baraholka', slots: [0, 3] } });
+    // Купленную книгу забывают все.
+    s = applyAction(s, other, { type: 'place', place: { address: 'baraholka' } });
     s = act(s, other, { type: 'baraholkaBuy', slot: 3 });
-    expect(viewFor(s, me).baraholkaKnown).toEqual([null, a, null, null]);
-    expect(viewFor(s, other).baraholkaKnown[0]).toBe(s.baraholka[0]);
+    expect(viewFor(s, me).baraholkaKnown).toEqual([all[0], all[1], all[2], null]);
   });
 
   it('Барахолка: пойти можно и без Талонов — посмотреть, ничего не покупая', () => {
     let s = started();
     const me = s.order[s.turn];
     s.players.find((x) => x.id === me)!.talons = 0;
-    s = applyAction(s, me, { type: 'place', place: { address: 'baraholka', slots: [0, 1] } });
+    s = applyAction(s, me, { type: 'place', place: { address: 'baraholka' } });
     expect(() => applyAction(s, me, { type: 'baraholkaBuy', slot: 0 })).toThrow(RuleError);
     s = applyAction(s, me, { type: 'baraholkaBuy' });
     expect(s.pending).toHaveLength(0);
-    expect(viewFor(s, me).baraholkaKnown.filter(Boolean)).toHaveLength(2);
-  });
-
-  it('Барахолка: все книги уже известны — выбирать не нужно, купить можно любую', () => {
-    let s = started();
-    const me = s.order[s.turn];
-    s.baraholkaSeen = { [me]: [0, 1, 2, 3] };
-    s = applyAction(s, me, { type: 'place', place: { address: 'baraholka', slots: [] } });
-    const pend = s.pending[0];
-    expect(pend.kind === 'baraholkaLook' && pend.seen.map((x) => x.slot)).toEqual([0, 1, 2, 3]);
-    // Известны не все — выбор по-прежнему нужен.
-    let t = started();
-    const me2 = t.order[t.turn];
-    t.baraholkaSeen = { [me2]: [0, 1, 2] };
-    expect(() => applyAction(t, me2, { type: 'place', place: { address: 'baraholka', slots: [] } })).toThrow(RuleError);
+    expect(viewFor(s, me).baraholkaKnown.filter(Boolean)).toHaveLength(4);
   });
 
   it('Толкучка: продать и купить за одну сделку — выручка идёт на покупку (даже с 0–1 Талоном)', () => {

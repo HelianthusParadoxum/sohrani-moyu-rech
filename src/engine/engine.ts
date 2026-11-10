@@ -1076,20 +1076,10 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       return;
     }
     case 'baraholka': {
-      const filled = state.baraholka.filter((c) => c).length;
-      const need = Math.min(RULES.baraholkaLook, filled);
-      check(need > 0, 'На Барахолке не осталось книг');
-      // Игрок уже знает все книги Барахолки (смотрел раньше или Наводчик) — выбирать, какие смотреть, незачем:
-      // перед ним все книги, купить можно любую.
-      const filledSlots = state.baraholka.map((c, i) => (c ? i : -1)).filter((i) => i >= 0);
-      const knowsAll = hasPatron(state, p.id, 'spotter') || filledSlots.every((i) => state.baraholkaSeen?.[p.id]?.includes(i));
-      const slots = knowsAll ? filledSlots : [...new Set(a.slots ?? [])];
-      check(knowsAll || slots.length === need, `Выберите на Барахолке книг: ${need}`);
-      const seen = slots.map((slot) => {
-        const card = state.baraholka[slot];
-        check(card, 'Эта ячейка Барахолки пуста');
-        return { slot, card };
-      });
+      // Игрок тайно смотрит все книги Барахолки и может купить любую (с Ветераном — сколько угодно).
+      const slots = state.baraholka.map((c, i) => (c ? i : -1)).filter((i) => i >= 0);
+      check(slots.length > 0, 'На Барахолке не осталось книг');
+      const seen = slots.map((slot) => ({ slot, card: state.baraholka[slot]! }));
       state.pending.push({ kind: 'baraholkaLook', player: p.id, seen });
       rememberBaraholka(state, p.id, slots);
       log(state, `${p.name} роется на Барахолке.`);

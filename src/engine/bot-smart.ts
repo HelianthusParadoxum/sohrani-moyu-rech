@@ -1570,14 +1570,8 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
             const unknown = filled.filter((i) => !known.includes(i));
             // Всё уже видел — идти, только если что-то выгодно купить; и не дважды за Пятилетку: книги те же, решение то же.
             if (!unknown.length && (!worthKnown.length || p.actions.some((x) => x.target === 'baraholka'))) break;
-            const fresh = [...unknown, ...filled.filter((i) => known.includes(i))];
-            const need = Math.min(RULES.baraholkaLook, filled.length);
-            const sets = [fresh.slice(0, need), ...worthKnown.map((k) => [k, ...fresh.filter((i) => i !== k)].slice(0, need))];
-            const seenSets = new Set<string>();
-            for (const slots of sets) {
-              const key = [...slots].sort().join(',');
-              if (slots.length && !seenSets.has(key)) { seenSets.add(key); out.push({ type: 'place', place: { address: 'baraholka', slots } }); }
-            }
+            // Смотрят сразу все книги — выбирать нечего.
+            out.push({ type: 'place', place: { address: 'baraholka' } });
             break;
           }
           case 'podpiska':
