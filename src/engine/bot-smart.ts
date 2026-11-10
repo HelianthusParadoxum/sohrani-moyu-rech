@@ -1270,6 +1270,8 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
       if (Object.keys(c).length) out.push({ ...c, denounce });
     }
   }
+  // Только донос, без пунктов (Сигнал и Изъятие). Куратор, если может провести Профилактику, проводит её всегда.
+  if (!(ctx.curator && items.some((x) => x.prophylaxis))) for (const denounce of seizes) out.push({ denounce });
   return [...new Map(out.map((c) => [JSON.stringify(c), c])).values()];
 }
 

@@ -242,8 +242,8 @@ export function PresetSelect({ seat, host, send, solo }: { seat: RoomInfo['seats
 }
 
 // Выпадающий список: раскрывается прямо под полем (а не системным окном, как <select> на телефоне).
-export function Dropdown<T extends string | number>({ value, options, onChange, ariaLabel }: {
-  value: T; options: { value: T; label: string; title?: string }[]; onChange: (v: T) => void; ariaLabel?: string;
+export function Dropdown<T extends string | number>({ value, options, onChange, ariaLabel, disabled }: {
+  value: T; options: { value: T; label: string; title?: string }[]; onChange: (v: T) => void; ariaLabel?: string; disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLSpanElement>(null);
@@ -258,8 +258,8 @@ export function Dropdown<T extends string | number>({ value, options, onChange, 
   const current = options.find((o) => o.value === value) ?? options[0];
   return (
     <span className={`dropdown ${open ? 'open' : ''}`} ref={box}>
-      <button type="button" className="dropdown-btn" aria-label={ariaLabel} aria-haspopup="listbox" aria-expanded={open}
-        onClick={(e) => { e.preventDefault(); setOpen(!open); }}>{current?.label}</button>
+      <button type="button" className="dropdown-btn" aria-label={ariaLabel} aria-haspopup="listbox" aria-expanded={open} disabled={disabled}
+        onClick={(e) => { e.preventDefault(); if (!disabled) setOpen(!open); }}>{current?.label}</button>
       {open && (
         <ul className="dropdown-list" role="listbox">
           {options.map((o) => (

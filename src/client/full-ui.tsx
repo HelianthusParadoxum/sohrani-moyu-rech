@@ -191,11 +191,11 @@ export function KontoraPanel({ view, place }: { view: PlayerView; place: (p: Pla
       <p>Вернуть из Конторы до {RULES.rescueMax} удерживаемых 👤 (своих или чужих): +{RULES.rescuePoints} очка за каждого. Донос не нужен.</p>
       {!held && <p className="warn-text">Сейчас Контора никого не удерживает.</p>}
       <h3>Пришить дело</h3>
-      <h4>Цена похода — донос: указать на открыто лежащую на Складе соперника книгу опального жанра. В конце похода — обязательно: Сигнал (Контора удерживает 👤 того, на кого донос) и Изъятие этой книги в Спецхран</h4>
+      <h4>Цена похода — донос: указать на открыто лежащую на Складе соперника опальную книгу (опального жанра, ЧНЛ или Улику). В конце похода — обязательно: Сигнал (Контора удерживает 👤 того, на кого донос) и Изъятие этой книги в Спецхран</h4>
       {targets.length === 0
         ? <p className="warn-text">Сейчас дело не пришить: ни у кого на Складе нет открытой опальной книги — доносить не на что.</p>
         : <TargetShelf view={view} targets={targets} />}
-      <p>Соперники уже не успеют перепрятать книги. Дальше вы укажете книгу для доноса и выберете от 1 до 3 пунктов:</p>
+      <p>Соперники уже не успеют перепрятать книги. Дальше вы укажете книгу для доноса и, по желанию, до 3 пунктов (можно ни одного):</p>
       <ul>
         <li><b>Ходатайство</b> — вернуть из Конторы {RULES.petitionMax === 1 ? 'одного удержанного 👤' : `до ${RULES.petitionMax} удержанных 👤`} любого игрока.</li>
         <li><b>Выдача на руки</b> — посмотреть Спецхран и взять оттуда одну книгу.</li>
@@ -247,6 +247,11 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
   const count = [petition.length > 0, handout, !!prophylaxis].filter(Boolean).length;
   const target = denounce ? view.players.find((p) => p.id === denounce.player) : null;
   const prophOk = !prophylaxis || !denounce || view.patrons.some((x) => x.id === prophylaxis && x.connections.includes(denounce.player));
+  const pickDenounce = (t: { player: string; card: string }) => {
+    const next = denounce?.card === t.card ? null : t;
+    setDenounce(next);
+    if (!next || !view.patrons.some((x) => x.id === prophylaxis && x.connections.includes(next.player))) setProphylaxis('');
+  };
   const choice: KontoraChoice = {
     ...(petition.length ? { petition } : {}), ...(handout ? { handout } : {}),
     ...(prophylaxis ? { prophylaxis } : {}), ...(denounce ? { denounce } : {}),
@@ -263,7 +268,13 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
           <div className="modal-foot"><button onClick={() => act({ type: 'kontoraDecide', go: false })}>Передумать</button></div>
         </>
       ) : (<>
-      <p>Цена похода — донос: укажите открытую опальную книгу соперника; в конце похода, после выбранных пунктов, — обязательно Сигнал на этого игрока и Изъятие книги в Спецхран. Выберите от 1 до 3 пунктов (без повторов).</p>
+      <p>Цена похода — донос: укажите открытую опальную книгу соперника; в конце похода, после выбранных пунктов, — обязательно Сигнал на этого игрока и Изъятие книги в Спецхран.</p>
+      <h4>Донос (обязательно): укажите открытую опальную книгу</h4>
+      {targets.length === 0
+        ? <p className="warn-text">Доносить не на что — в Контору сейчас не пойти. 👤 остаётся у вас.</p>
+        : <TargetShelf view={view} targets={targets} selected={denounce?.card} onPick={pickDenounce} />}
+      {target && <p className="muted small">В конце похода: Сигнал — Контора удержит 👤 игрока {target.name}; его книга уйдёт в Спецхран.</p>}
+      <p>Пункты по желанию — от 0 до 3, без повторов (можно ограничиться доносом):</p>
       <h4>Ходатайство ({RULES.petitionMax === 1 ? '1 👤' : `до ${RULES.petitionMax} 👤`})</h4>
       <div className="genres">
         {held.length === 0 && <span className="muted">Никто не удержан</span>}
@@ -276,18 +287,14 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
         {petition.length > 0 && <button className="small" onClick={() => setPetition([])}>сбросить ({petition.length})</button>}
       </div>
       <label className="row"><input type="checkbox" checked={handout} onChange={(e) => setHandout(e.target.checked)} /> Выдача на руки — взять книгу из Спецхрана</label>
-      {target && <p className="muted small">В конце похода: Сигнал — Контора удержит 👤 игрока {target.name}; его книга уйдёт в Спецхран.</p>}
-      <label>Профилактика — удалить Завсегдатая, с которым связан тот, на кого донос:
-        <Dropdown value={prophylaxis as string} ariaLabel="Профилактика" onChange={(v) => setProphylaxis(v as PatronId)}
+      {/* Профилактика — только Завсегдатаю, связанному с тем, на кого донос: пока книга для доноса не выбрана, выбирать не из кого. */}
+      <label>Профилактика — удалить Завсегдатая, с которым связан тот, на кого донос{denounce ? '' : ' (сначала укажите книгу для доноса)'}:
+        <Dropdown value={prophylaxis as string} ariaLabel="Профилактика" disabled={!denounce} onChange={(v) => setProphylaxis(v as PatronId)}
           options={[{ value: '', label: '— нет —' }, ...view.patrons.filter((x) => !x.removed && (!denounce || x.connections.includes(denounce.player))).map((x) => ({ value: x.id as string, label: PATRONS[x.id].name }))]} />
       </label>
-      <h4>Донос (обязательно): укажите открытую опальную книгу</h4>
-      {targets.length === 0
-        ? <p className="warn-text">Доносить не на что — в Контору сейчас не пойти. 👤 остаётся у вас.</p>
-        : <TargetShelf view={view} targets={targets} selected={denounce?.card} onPick={(t) => setDenounce(denounce?.card === t.card ? null : t)} />}
       <div className="modal-foot">
         <button onClick={() => act({ type: 'kontoraDecide', go: false })}>Передумать</button>
-        <button className="primary" disabled={count < 1 || !denounce || !prophOk} title={!denounce ? 'Укажите книгу для доноса' : count < 1 ? 'Выберите хотя бы один пункт' : !prophOk ? 'Этот Завсегдатай не связан с тем, на кого донос' : ''}
+        <button className="primary" disabled={!denounce || !prophOk} title={!denounce ? 'Укажите книгу для доноса' : !prophOk ? 'Этот Завсегдатай не связан с тем, на кого донос' : ''}
           onClick={() => act({ type: 'kontoraDecide', go: true, choice })}>Пойти в Контору ({count})</button>
       </div>
       </>)}

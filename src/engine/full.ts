@@ -207,8 +207,7 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
     logAfter(state, `↳ За помощь товарищам: +${pointsText(n * RULES.rescuePoints)}.`);
     return;
   }
-  const chosen = [c.petition?.length, c.handout, c.prophylaxis].filter(Boolean).length;
-  check(chosen >= 1, 'Выберите от 1 до 3 пунктов');
+  // Пункты по выбору (Ходатайство, Выдача на руки, Профилактика) — от 0 до 3: можно ограничиться доносом.
   check(c.denounce, 'Укажите открытую опальную книгу — донос, цена похода в Контору');
   check(c.denounce.player !== p.id, 'Доносить можно только на книгу другого игрока');
   const target = player(state, c.denounce.player);

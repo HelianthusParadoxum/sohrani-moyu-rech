@@ -394,9 +394,11 @@ describe('полный режим', () => {
     s = applyAction(s, me, { type: 'place', place: { address: 'kontora' } });
     expect(s.pending).toHaveLength(1);
     expect(s.pending[0]).toMatchObject({ kind: 'kontoraDecide', player: me });
-    // Без доноса и без пунктов по выбору — нельзя.
+    // Без доноса — нельзя; пунктов по выбору может не быть вовсе (только донос: Сигнал и Изъятие).
     expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { handout: true } })).toThrow(RuleError);
-    expect(() => applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { denounce: { player: other, card: book } } })).toThrow(/от 1 до 3/);
+    const only = applyAction(s, me, { type: 'kontoraDecide', go: true, choice: { denounce: { player: other, card: book } } });
+    expect(only.spetskhran).toContain(book);
+    expect(only.players.find((x) => x.id === other)!.held).toBe(1);
     // В конце похода обязательно: Сигнал на того, на кого донос, и Изъятие книги из доноса.
     const before = s.players.find((x) => x.id === other)!.available;
     const others = s.players.filter((x) => x.id !== other && x.id !== me).map((x) => x.held);
