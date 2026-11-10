@@ -626,6 +626,7 @@ label.row > .dropdown { display: inline-block; }
 @media (max-width: 600px) { .mobile-bar .mb-round { margin-right: 8px; white-space: nowrap; } }
 /* Барахолка в окне: книги сеткой 2 × 2 */
 .shelf.grid2 { display: grid; grid-template-columns: repeat(2, max-content); gap: 12px; justify-content: start; overflow: visible; padding: 4px; }
+.shelf .col { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; } /* книга и кнопка под ней */
 /* Телефон: ячейки кода — во всю ширину содержимого (как поле имени), промежутки прежние */
 @media (max-width: 600px) {
   .code-cells { justify-content: stretch; }

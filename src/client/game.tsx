@@ -1161,33 +1161,29 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
     }
     case 'baraholkaLook': {
       const veteran = hasPatron(view, me.id, 'veteran');
-      const more = veteran ? view.baraholka.map((has, i) => (has && !p.seen.some((x) => x.slot === i) ? i : -1)).filter((i) => i >= 0) : [];
       const bought = p.bought ?? 0;
       const cost = bought === 0 ? buyCost(view, me, [RULES.baraholkaPrice]) : RULES.baraholkaPrice;
       return (
         <Modal title="Барахолка">
           <p>Вы тайно смотрите {p.seen.length === 1 ? 'книгу' : 'книги'}{veteran ? '' : ' и можете купить одну из них'}:</p>
-          <div className="shelf">
-            {p.seen.map((x) => (
-              <div key={x.slot} className="col">
-                <Book v={view} id={x.card} />
-                <button className="primary small" disabled={me.talons < cost || !roomToBuy(view, me, [x.card])} title={roomToBuy(view, me, [x.card]) ? undefined : 'Нет места на складе'} onClick={() => act({ type: 'baraholkaBuy', slot: x.slot })}>Купить{costTag(cost) || ' (даром)'}</button>
-              </div>
-            ))}
+          {/* Книги — по местам, как лежат на Барахолке (2 × 2), с пустыми местами: купленные выбывают на глазах. */}
+          <div className="shelf grid2">
+            {view.baraholka.map((_, i) => {
+              const x = p.seen.find((y) => y.slot === i);
+              if (!x) return <div key={i} className="col"><div className="book empty" title="Пустое место" /></div>;
+              return (
+                <div key={i} className="col">
+                  <Book v={view} id={x.card} />
+                  <button className="primary small" disabled={me.talons < cost || !roomToBuy(view, me, [x.card])} title={roomToBuy(view, me, [x.card]) ? undefined : 'Нет места на складе'} onClick={() => act({ type: 'baraholkaBuy', slot: x.slot })}>Купить{costTag(cost) || ' (даром)'}</button>
+                </div>
+              );
+            })}
           </div>
-          {veteran && <p className="muted small">Ветеран: можно смотреть и покупать сколько угодно книг; в сумме на 1 Талон дешевле (первая книга — даром). Куплено: {bought}.</p>}
+          {veteran && <p className="muted small">Ветеран: можно купить сколько угодно книг; в сумме на 1 Талон дешевле (первая книга — даром). Куплено: {bought}.</p>}
           <div className="modal-foot">
             <span className="muted">у вас {me.talons}🎫</span>
             <button onClick={() => act({ type: 'baraholkaBuy' })}>{bought ? 'Закончить' : 'Ничего не брать'}</button>
           </div>
-          {more.length > 0 && (
-            <div className="modal-foot">
-              <span className="muted small">Посмотреть ещё:</span>
-              {more.map((i) => (
-                <button key={i} className="small" onClick={() => act({ type: 'baraholkaBuy', next: i })}>№{i + 1}</button>
-              ))}
-            </div>
-          )}
         </Modal>
       );
     }
