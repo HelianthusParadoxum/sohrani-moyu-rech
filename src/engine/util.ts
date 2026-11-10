@@ -373,7 +373,18 @@ export function addBoughtBook(state: GameState, p: PlayerState, id: string, secr
 export function autoHide(state: GameState, p: PlayerState, id: string) {
   const slot = p.warehouse.find((s) => s.card === id);
   if (!slot || slot.hidden || slot.memorized || !isBanned(state, id) || isPropaganda(state, id)) return;
-  if (p.warehouse.filter((s) => s.hidden).length < cacheLimit(state, p)) slot.hidden = true;
+  if (p.warehouse.filter((s) => s.hidden).length < cacheLimit(state, p)) {
+    slot.hidden = true;
+    (state.autoHidden ??= []).push(id); // в журнал — после строки о том, как книга получена (noteAutoHidden)
+  }
+}
+
+// «↳ X кладёт в Тайник: …» — книги, которые только что взяты в открытую и сразу спрятаны (autoHide). Название не секрет:
+// книгу брали при всех. Вызывать сразу после строки журнала о покупке / получении.
+export function noteAutoHidden(state: GameState, p: PlayerState) {
+  const cards = state.autoHidden ?? [];
+  delete state.autoHidden;
+  if (cards.length) logAfter(state, `↳ ${p.name} кладёт в Тайник: ${titles(state, cards)}.`);
 }
 
 export function hasBook(p: PlayerState, id: string): boolean {

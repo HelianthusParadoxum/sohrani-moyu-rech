@@ -226,6 +226,7 @@ export interface GameState {
   curatorRevealed?: string; // Куратор раскрылся (Засада) — все знают, кто он
   forcedCurator?: string; // для тестов: этот игрок — Куратор
   curatorStyleOverride?: 'open' | 'ambush' | 'boa'; // для тестов: стратегия Куратора-бота
+  autoHidden?: string[]; // взятые в открытую и сразу спрятанные книги — для строки журнала (noteAutoHidden)
   curatorPossible?: boolean; // Куратор есть в колоде Пристрастий (это знают все)
   // Куратор-бот («Удав», «Хищник») сбросил маску: Пятилетка, его ход в ней и причина (для журнала в конце партии).
   curatorUnmask?: { round: number; act: number; why: 'propaganda' | 'exposed' | 'round' | 'ambush' };

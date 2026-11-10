@@ -5,7 +5,7 @@ import { GENRES } from './types';
 import {
   addBook, addSecretBook, check, discard, drawLoad, earn, freeSlots, hasBook, hasPatron, iconsOf, genresOf, genreOn, isBanned, isGenreBook, isLegalPropaganda, isPropaganda, log, pay, player,
   removeBook, saved, shuffle, talonsText, title, titles, logAfter, gain, pointsText,
-  forgetSpetskhran, seeSpetskhran, toSpetskhranPublic, addOpenBook, addBoughtBook, roomToBuy, plural,
+  forgetSpetskhran, seeSpetskhran, toSpetskhranPublic, addOpenBook, addBoughtBook, noteAutoHidden, roomToBuy, plural,
 } from './util';
 
 export const isFull = (state: GameState) => state.mode === 'full';
@@ -393,4 +393,5 @@ export function doBlatnoy(state: GameState, p: PlayerState, from: AddressId, add
   const where = address === 'razval' ? 'на Развале' : address === 'tolkuchka' ? 'на Толкучке' : 'в Распределителе';
   logAfter(state, `↳ Блатной: ${p.name} покупает ещё ${where} ${title(state, card)} за ${talonsText(opt.cost)}.`);
   addBoughtBook(state, p, card);
+  noteAutoHidden(state, p);
 }

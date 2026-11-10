@@ -14,7 +14,7 @@ import type {
 } from './types';
 import { GENRES } from './types';
 import {
-  addBook, addBoughtBook, addOpenBook, canMemorizeOnBuy, countsAsLoad, isFromLoadDeck, roomToBuy, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
+  addBook, addBoughtBook, addOpenBook, noteAutoHidden, canMemorizeOnBuy, countsAsLoad, isFromLoadDeck, roomToBuy, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isPropagandaKind, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
   talonsText, title, titles, logEvent, logNote, logAfter, toSpetskhranPublic, seeSpetskhran, isExposed, saved, logRecap, plural, bulletTitles, iconCount, genresOf, genreOn,
 } from './util';
@@ -1015,6 +1015,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       // Проданное на Толкучке уходит в сброс, а не на прилавок.
       for (const c of sold) discard(state, c);
       log(state, `${p.name} на Толкучке: ${parts.join('; ')}.`);
+      noteAutoHidden(state, p);
       if (fartsovshchik && sold.length) logAfter(state, `↳ Фарцовщик: +${talonsText(sold.length * RULES.fartsovshchikTalons)}.`);
       earn(state, p, 0, { tolkuchka: income, fartsovshchik: bonus });
       return;
@@ -1067,6 +1068,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         addBoughtBook(state, p, c);
         state.razval[slot] = null;
         log(state, `${p.name} покупает на Развале ${title(state, c)} за ${talonsText(cost)}.`);
+        noteAutoHidden(state, p);
       }
       return;
     }
@@ -1255,6 +1257,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       p.bonusGroupTurns++;
       (p.bonusGroupFrom ??= []).push('knigoobmen');
       log(state, `${p.name} на Книгообмене: отдаёт ${givenTitle}, берёт ${title(state, a.take)}.`);
+      noteAutoHidden(state, p);
       return;
     }
     case 'kvartirnik': {
@@ -1281,6 +1284,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         addBoughtBook(state, p, card);
         state.raspredelitel = state.raspredelitel.filter((c) => c !== card);
         log(state, `${p.name} получает из Распределителя ${title(state, card)}.`);
+        noteAutoHidden(state, p);
       }
       return;
     }
@@ -1292,6 +1296,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         addOpenBook(state, p, card);
         state.agitpunkt = (state.agitpunkt ?? []).filter((c) => c !== card);
         log(state, `${p.name} берёт на Агитпункте ${title(state, card)}.`);
+        noteAutoHidden(state, p);
       }
       // Как Книгообмен и Квартирник: отсюда Единомышленник в конце поручений идёт ещё и в Инициативную группу.
       p.bonusGroupTurns++;
@@ -1425,6 +1430,7 @@ function takeCopy(state: GameState, p: PlayerState, addr: CopyTextAddress, c: st
   }
   addOpenBook(state, p, c);
   log(state, `${p.name} тиражирует ${title(state, c)} (${name}).`);
+  noteAutoHidden(state, p);
   typistBonus(state, p);
 }
 
@@ -1585,11 +1591,13 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         delete state.restored[pend.want];
         addBook(from, pend.want);
         addBook(p, pend.give);
-        autoHide(state, from, pend.want);
-        autoHide(state, p, pend.give);
         gaveAway(state, from, pend.give);
         gaveAway(state, p, pend.want);
         log(state, `${p.name} соглашается на обмен с ${from.name}.`);
+        autoHide(state, from, pend.want);
+        noteAutoHidden(state, from);
+        autoHide(state, p, pend.give);
+        noteAutoHidden(state, p);
       } else {
         log(state, `${p.name} отказывается от обмена с ${from.name}.`);
       }
@@ -1734,6 +1742,7 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         autoHide(state, p, action.card);
         log(state, `${p.name}: Лейтенант приносит изъятую книгу ${title(state, action.card)}.`);
         state.log[state.log.length - 1].who = p.id;
+        noteAutoHidden(state, p);
       }
       state.pending.shift();
       if (!state.pending.length) {

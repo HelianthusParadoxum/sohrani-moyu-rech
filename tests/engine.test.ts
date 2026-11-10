@@ -177,6 +177,23 @@ describe('правила редакции октября', () => {
     expect(viewFor(s, me).baraholkaKnown.filter(Boolean)).toHaveLength(4);
   });
 
+  it('куплена в открытую и сразу спрятана — в журнале «↳ … кладёт в Тайник: …»', () => {
+    const s = started();
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    const slot = 0;
+    const card = s.deck.find((c) => s.cards[c].kind === 'genre' && isBanned(s, c))!;
+    s.deck = s.deck.filter((c) => c !== card);
+    s.razval[slot] = card;
+    p.cache = 1; p.capacity = 10; p.talons = 10;
+    p.warehouse = p.warehouse.map((w) => ({ ...w, hidden: false }));
+    const next = applyAction(s, me, { type: 'place', place: { address: 'razval', slot } });
+    expect(next.players.find((x) => x.id === me)!.warehouse.find((w) => w.card === card)!.hidden).toBe(true);
+    const texts = next.log.map((l) => l.text);
+    const buy = texts.findIndex((x) => x.includes('покупает на Развале'));
+    expect(texts[buy + 1]).toBe(`↳ ${p.name} кладёт в Тайник: ${title(next, card)}.`);
+  });
+
   it('Толкучка: продать и купить за одну сделку — выручка идёт на покупку (даже с 0–1 Талоном)', () => {
     const s = started();
     const me = s.order[s.turn];
