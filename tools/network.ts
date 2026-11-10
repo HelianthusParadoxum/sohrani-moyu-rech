@@ -39,8 +39,11 @@ function side(s: ReturnType<typeof playOut>, id: string): Side {
   return { total: me, place: totals.indexOf(me) + 1, win: r.winners.includes(id), workers: s.players.find((p) => p.id === id)!.workers - RULES.startWorkers };
 }
 
+// Стратегии из лобби — один раз, до того как в BOT_PRESETS добавятся усиленные копии (иначе они попадут в раздачу).
+const PRESETS = selectablePresets(false).map((p) => p.id);
+
 function play(n: number, k: number, seed: number, skill: BotSkill): Row | null {
-  const presets = selectablePresets(false).map((p) => p.id);
+  const presets = PRESETS;
   const players = Array.from({ length: n }, (_, j) => ({ id: `p${j}`, name: `Бот ${j}` }));
   const pickRand = seeded(seed * 7 + 1);
   const pick = Object.fromEntries(players.map((p) => [p.id, presets[Math.floor(pickRand() * presets.length)]]));
