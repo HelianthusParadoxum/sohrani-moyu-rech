@@ -112,6 +112,11 @@ export function befriendPatron(state: GameState, p: PlayerState, id: PatronId, h
   linkPatron(state, p, patron, how);
 }
 
+// Стартовая связь: свободный Завсегдатай — в Клубе, в эту Пятилетку с ним ещё никто не связался.
+export function startConnectionTargets(state: GameState, me: string): PatronId[] {
+  return state.patrons.filter((x) => !x.removed && !x.turned && !x.connections.includes(me)).map((x) => x.id);
+}
+
 // С кем можно завязать знакомство.
 export function befriendTargets(state: GameState, me: string): PatronId[] {
   return state.patrons.filter((x) => !x.removed && !x.connections.includes(me)).map((x) => x.id);

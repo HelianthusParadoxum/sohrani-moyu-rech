@@ -6,7 +6,7 @@ import {
 } from './content';
 import { finalScoring } from './scoring';
 import {
-  afterRaid, befriendPatron, befriendTargets, doKontora, gaveAway, giveToPatron, holdWorker, isFull, partorgFill, offerBlatnoy, doBlatnoy, payPrice, price, proseBonus, purchases,
+  afterRaid, befriendPatron, befriendTargets, startConnectionTargets, doKontora, gaveAway, giveToPatron, holdWorker, isFull, partorgFill, offerBlatnoy, doBlatnoy, payPrice, price, proseBonus, purchases,
   flushIrony, removePatron, seizeDenounced, setupClub, startKontora, takeFromSpetskhran,
 } from './full';
 import type {
@@ -206,7 +206,14 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
           state.phase = 'orders';
           state.ready = [];
           logStartBooks(state);
-          logEvent(state, 'Поручения');
+          // Стартовые связи: каждый — с одним свободным Завсегдатаем, в порядке, обратном порядку хода
+          // (кто ходит последним, выбирает первым). Завсегдатай занят до конца 1-й Пятилетки.
+          if (isFull(state) && RULES.startConnection && state.patrons.length) {
+            logNote(state, 'Стартовые связи в Клубе: каждый выбирает одного Завсегдатая — в порядке, обратном порядку хода.');
+            for (const id of [...state.order].reverse()) state.pending.push({ kind: 'startConnection', player: id });
+          } else {
+            logEvent(state, 'Поручения');
+          }
         }
         return done(state);
       }
@@ -1884,6 +1891,22 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       check(action.type === 'blatnoyBuy', 'Купите книгу или откажитесь');
       doBlatnoy(state, p, pend.from, action.address, action.card);
       break;
+    }
+    case 'startConnection': {
+      // Стартовая связь: бесплатно, без книги, с любым Завсегдатаем, с которым в эту Пятилетку ещё никто не связался.
+      check(action.type === 'befriend' || action.type === 'pass', 'Выберите Завсегдатая или откажитесь');
+      state.pending.shift();
+      if (action.type === 'befriend') {
+        check(startConnectionTargets(state, p.id).includes(action.patron), 'С этим Завсегдатаем в эту Пятилетку уже связались');
+        // Решения, вызванные связью (Главлитовец и т. п.), — сразу, до выбора следующего игрока.
+        const before = state.pending.length;
+        befriendPatron(state, p, action.patron, 'стартовая связь');
+        state.pending.unshift(...state.pending.splice(before));
+      }
+      // Ход не передаётся: поручения ещё не начались. Когда все выбрали — начинаются поручения.
+      state.holdTurn = true;
+      if (!state.pending.some((x) => x.kind === 'startConnection')) logEvent(state, 'Поручения');
+      return;
     }
     case 'freeConnection': {
       // Председатель: связь полностью бесплатная — без книги, с любым Завсегдатаем, с которым её ещё нет.

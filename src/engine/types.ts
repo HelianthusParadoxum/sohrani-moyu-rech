@@ -153,6 +153,7 @@ export type Pending =
   | { kind: 'kontoraHandout'; player: string; cards: string[]; group?: boolean; seize?: { player: string; card: string; by?: string; shielded?: boolean } } // seize — Сигнал и Изъятие после выбора книги
   | { kind: 'extraGroup'; player: string } // Подмастерье
   | { kind: 'freeConnection'; player: string } // Председатель
+  | { kind: 'startConnection'; player: string } // перед первыми поручениями: связь с одним свободным Завсегдатаем
   | { kind: 'blatnoyBuy'; player: string; from: AddressId } // Блатной: купил в from — можно купить ещё одну книгу в другом месте
   | { kind: 'catalogPick'; player: string; deck: 'unprinted' | 'load' | 'discard'; top: string[]; bottom: string[]; then: CatalogThen } // Каталогизатор: верхний или нижний набор (стопки или сброса)
   | { kind: 'lieutenantPick'; player: string; cards: string[] } // Лейтенант: книги, изъятые облавой с адресов

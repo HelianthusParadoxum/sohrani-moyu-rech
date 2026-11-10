@@ -163,11 +163,12 @@ export function ClubGiftModal({ view, me, act, close, patron }: { view: PlayerVi
 }
 
 // Бонус Ростка «Завязать знакомство»: связь с любым Завсегдатаем без книги (и с занятым на эту Пятилетку).
-export function BefriendPicker({ view, me, onPick, close, title = 'Завязать знакомство', footer }: { view: PlayerView; me: VPlayer; onPick: (id: PatronId) => void; close?: () => void; title?: string; footer?: ReactNode }) {
-  const open = byClubOrder(view.patrons).filter((pt) => !pt.removed && !pt.connections.includes(me.id));
+// freeOnly — только свободные (с которыми в эту Пятилетку ещё никто не связался): стартовая связь.
+export function BefriendPicker({ view, me, onPick, close, title = 'Завязать знакомство', footer, freeOnly, note }: { view: PlayerView; me: VPlayer; onPick: (id: PatronId) => void; close?: () => void; title?: string; footer?: ReactNode; freeOnly?: boolean; note?: string }) {
+  const open = byClubOrder(view.patrons).filter((pt) => !pt.removed && !pt.connections.includes(me.id) && (!freeOnly || !pt.turned));
   return (
     <Modal title={title} wide onClose={close}>
-      <p className="muted small">Связь с любым Завсегдатаем — без книги, даже если он занят на эту Пятилетку.</p>
+      <p className="muted small">{note ?? 'Связь с любым Завсегдатаем — без книги, даже если он занят на эту Пятилетку.'}</p>
       <ul className="patrons">
         {open.map((pt) => (
           <li key={pt.id} className="can" role="button" onClick={() => onPick(pt.id)} title={iconize(PATRONS[pt.id].hint)}>
@@ -320,6 +321,15 @@ export function FreeConnectionPrompt({ view, me, act }: { view: PlayerView; me: 
   return (
     <BefriendPicker view={view} me={me} title="Председатель: бесплатная связь" onPick={(patron) => act({ type: 'befriend', patron })}
       footer={<div className="modal-foot"><button onClick={() => act({ type: 'pass' })}>Отказаться</button></div>} />
+  );
+}
+
+// Стартовая связь перед первыми поручениями: один свободный Завсегдатай, в порядке, обратном порядку хода.
+export function StartConnectionPrompt({ view, me, act }: { view: PlayerView; me: VPlayer; act: (a: Action) => void }) {
+  return (
+    <BefriendPicker view={view} me={me} title="Стартовая связь в Клубе" freeOnly onPick={(patron) => act({ type: 'befriend', patron })}
+      note="Перед первыми поручениями каждый бесплатно, без книги, заводит связь с одним Завсегдатаем. Выбирают в порядке, обратном порядку хода: кто ходит последним — первым. Завсегдатай, с которым уже связались, занят до конца 1-й Пятилетки."
+      footer={<div className="modal-foot"><button onClick={() => act({ type: 'pass' })}>Не заводить</button></div>} />
   );
 }
 

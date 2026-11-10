@@ -7,9 +7,10 @@ import { iconsOf, isBanned, isEvidence, isGenreBook, isPropaganda } from '../src
 import { RULES } from '../src/engine/content';
 import type { GameState } from '../src/engine/types';
 
-// Пропустить раскладку стартовых Тайников: всё остаётся на виду.
+// Пропустить раскладку стартовых Тайников (всё остаётся на виду) и стартовые связи в Клубе (никто не заводит).
 function startOrders(s: GameState): GameState {
   for (const p of s.players) if (s.phase === 'setupCache') s = applyAction(s, p.id, { type: 'hiding', hidden: [] });
+  while (s.pending[0]?.kind === 'startConnection') s = applyAction(s, s.pending[0].player, { type: 'pass' });
   return s;
 }
 
@@ -220,6 +221,7 @@ describe('Посиделки в последней Пятилетке', () => {
     let s = createGame({ players: players(3), seed: 7, mode: 'full', curator: true });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions.find((x) => x !== 'curator')! });
     for (const p of s.players) if (s.phase === 'setupCache') s = applyAction(s, p.id, { type: 'hiding', hidden: [] });
+    while (s.pending[0]?.kind === 'startConnection') s = applyAction(s, s.pending[0].player, { type: 'pass' });
     s.curatorPossible = true;
     s.round = 5;
     s.phase = 'gathering';
@@ -394,6 +396,7 @@ describe('Подозрения: непоказ из Тайника', () => {
     let s = createGame({ players: players(3), seed: 11, mode: 'full', curator: true });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions.find((x) => x !== 'curator')! });
     for (const p of s.players) if (s.phase === 'setupCache') s = applyAction(s, p.id, { type: 'hiding', hidden: [] });
+    while (s.pending[0]?.kind === 'startConnection') s = applyAction(s, s.pending[0].player, { type: 'pass' });
     s.curatorPossible = true;
     s.phase = 'gathering';
     s.ready = [];
@@ -465,6 +468,7 @@ describe('Честный бот и ЧНЛ', () => {
     let s = createGame({ players: players(3), seed: 11, mode: 'full', curator: false });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions.find((x) => x !== 'curator')! });
     for (const p of s.players) if (s.phase === 'setupCache') s = applyAction(s, p.id, { type: 'hiding', hidden: [] });
+    while (s.pending[0]?.kind === 'startConnection') s = applyAction(s, s.pending[0].player, { type: 'pass' });
     expect(s.phase).toBe('orders');
     const me = s.order[s.turn];
     const p = s.players.find((x) => x.id === me)!;
@@ -528,6 +532,7 @@ describe('Честный бот аккуратнее с опальным', () =>
   it('купив опальную книгу, когда в Тайнике ЧНЛ, перекладывает: ценную книгу — в Тайник, ЧНЛ — на виду', () => {
     let { s, me, p, chnl } = setup();
     for (const o of s.players) if (s.phase === 'setupCache') s = applyAction(s, o.id, { type: 'hiding', hidden: o.id === me ? [chnl] : [] });
+    while (s.pending[0]?.kind === 'startConnection') s = applyAction(s, s.pending[0].player, { type: 'pass' });
     expect(s.phase).toBe('orders');
     p = s.players.find((x) => x.id === me)!;
     const book = s.deck.find((c) => isGenreBook(s, c) && isBanned(s, c) && !isPropaganda(s, c))!;
@@ -545,6 +550,7 @@ describe('Бот и поэзия: прятать выгоднее, чем зау
     let s = createGame({ players: players(3), seed: 11, mode: 'full', curator: false });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
     for (const p of s.players) if (s.phase === 'setupCache') s = applyAction(s, p.id, { type: 'hiding', hidden: [] });
+    while (s.pending[0]?.kind === 'startConnection') s = applyAction(s, s.pending[0].player, { type: 'pass' });
     const me = s.order[s.turn];
     const p = s.players.find((x) => x.id === me)!;
     const take = (f: (c: string) => boolean) => { const c = s.deck.find(f)!; s.deck = s.deck.filter((x) => x !== c); return c; };

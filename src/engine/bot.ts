@@ -5,7 +5,7 @@ import { applyAction, activePlayers, mustVisitRedCorner } from './engine';
 import { BOT_BASE, curatorStyle, presetById } from './bot-presets';
 import { copyTextOptions, effectiveCuratorStyle, smartMove } from './bot-smart';
 import { PERMANENT_ADDRESSES, RULES, SPROUTS } from './content';
-import { befriendTargets, blatnoyOptions } from './full';
+import { befriendTargets, blatnoyOptions, startConnectionTargets } from './full';
 import type { Action, ClubGift, GameState, Genre, GroupAction } from './types';
 import { GENRES } from './types';
 import { cacheLimit, freeSlots, freeSproutSlots, countsAsLoad, genresOf, iconCount, iconsOf, isBanned, isLoad, isPropaganda, player, RuleError } from './util';
@@ -64,6 +64,10 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
       }
       case 'extraGroup': return [...groupCandidates(state, me, rand).filter((g) => g.type === 'group' && p.groupUsed.includes(g.group.action)), { type: 'pass' }];
       case 'freeConnection': return [...befriendTargets(state, me).map((patron) => ({ type: 'befriend' as const, patron })), { type: 'pass' }];
+      case 'startConnection': {
+        const t = startConnectionTargets(state, me);
+        return t.length ? t.map((patron) => ({ type: 'befriend' as const, patron })) : [{ type: 'pass' }];
+      }
       case 'catalogPick': return [{ type: 'catalogPick', from: rand() < 0.5 ? 'top' : 'bottom' }];
       case 'blatnoyBuy': return [...blatnoyOptions(state, p, pend.from).slice(0, 1).map((o) => ({ type: 'blatnoyBuy' as const, address: o.address, card: o.card })), { type: 'pass' }];
       case 'sproutBonus': {

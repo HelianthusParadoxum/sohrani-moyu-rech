@@ -17,9 +17,10 @@ function act(s: GameState, who: string, a: Parameters<typeof applyAction>[2]): G
 }
 
 
-// Пропустить раскладку стартовых Тайников: всё остаётся на виду.
+// Пропустить раскладку стартовых Тайников (всё остаётся на виду) и стартовые связи в Клубе (никто не заводит).
 function startOrders(s: GameState): GameState {
   for (const p of s.players) if (s.phase === 'setupCache') s = applyAction(s, p.id, { type: 'hiding', hidden: [] });
+  while (s.pending[0]?.kind === 'startConnection') s = applyAction(s, s.pending[0].player, { type: 'pass' });
   return s;
 }
 
@@ -331,6 +332,26 @@ describe('полный режим', () => {
     s = startOrders(s);
     return s;
   }
+
+  it('стартовые связи: в обратном порядке хода, занятого Завсегдатая не взять, потом ходит первый', () => {
+    let s = createGame({ players: players(3), seed: 9, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    for (const p of s.players) if (s.phase === 'setupCache') s = applyAction(s, p.id, { type: 'hiding', hidden: [] });
+    expect(s.pending.map((x) => x.player)).toEqual([...s.order].reverse());
+    const first = s.order[0], last = s.order[s.order.length - 1];
+    expect(activePlayers(s)).toEqual([last]);
+    const patron = s.patrons.find((x) => !x.removed)!.id;
+    s = applyAction(s, last, { type: 'befriend', patron });
+    while (s.pending[0] && s.pending[0].kind !== 'startConnection') s = botMove(s, s.pending[0].player, seeded(1));
+    expect(s.patrons.find((x) => x.id === patron)!.connections).toContain(last);
+    expect(s.patrons.find((x) => x.id === patron)!.turned).toBe(true);
+    const next = s.pending[0].player;
+    expect(() => applyAction(s, next, { type: 'befriend', patron })).toThrow(RuleError);
+    while (s.pending[0]?.kind === 'startConnection') s = applyAction(s, s.pending[0].player, { type: 'pass' });
+    expect(s.pending).toHaveLength(0);
+    expect(activePlayers(s)).toEqual([first]);
+    expect(s.log.some((l) => l.text === 'Поручения')).toBe(true);
+  });
 
   it('с Завсегдатаем — одна связь за Пятилетку на всех игроков', () => {
     let s = fullGame();

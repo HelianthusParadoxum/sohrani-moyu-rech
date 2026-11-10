@@ -200,7 +200,7 @@ function soloResult(state: GameState, scores: ScoreLine[], sproutName: (id: stri
   const me = state.players[0];
   const total = scores[0].total;
   if (!glasnostReached(state)) {
-    const note = `Гласность не наступила — поражение (${total} очк.).`;
+    const note = `Гласность не наступила — поражение (${total} очков).`;
     return { glasnost: false, scores, winners: [], note, summary: note };
   }
   let propaganda = 0;
@@ -225,9 +225,9 @@ function soloResult(state: GameState, scores: ScoreLine[], sproutName: (id: stri
   return {
     glasnost: won, scores, winners: won ? [me.id] : [],
     note: won
-      ? `Гласность устояла (ЧНЛ: ${propaganda}). Победа! Итог: ${total} очк.`
-      : `ЧНЛ (${propaganda}) срезала Ростки — Гласность не устояла. Поражение (${total} очк.).`,
-    summary: won ? `Гласность устояла (ЧНЛ: ${propaganda}).` : `ЧНЛ (${propaganda}) срезала Ростки — Гласность не устояла. Поражение (${total} очк.).`,
-    winTail: ` (итог: ${total} очк.).`,
+      ? `Гласность устояла (ЧНЛ: ${propaganda}). Победа! Итог: ${total} очков.`
+      : `ЧНЛ (${propaganda}) срезала Ростки — Гласность не устояла. Поражение (${total} очков).`,
+    summary: won ? `Гласность устояла (ЧНЛ: ${propaganda}).` : `ЧНЛ (${propaganda}) срезала Ростки — Гласность не устояла. Поражение (${total} очков).`,
+    winTail: ` (итог: ${total} очков).`,
   };
 }

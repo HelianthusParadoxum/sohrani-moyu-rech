@@ -14,9 +14,10 @@ function act(s: GameState, who: string, a: Parameters<typeof applyAction>[2]): G
 }
 
 
-// Пропустить раскладку стартовых Тайников: всё остаётся на виду.
+// Пропустить раскладку стартовых Тайников (всё остаётся на виду) и стартовые связи в Клубе (никто не заводит).
 function startOrders(s: GameState): GameState {
   for (const p of s.players) if (s.phase === 'setupCache') s = applyAction(s, p.id, { type: 'hiding', hidden: [] });
+  while (s.pending[0]?.kind === 'startConnection') s = applyAction(s, s.pending[0].player, { type: 'pass' });
   return s;
 }
 

@@ -264,7 +264,7 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .log h3 { margin-top: 0; }
 .log div { padding: 2px 0; border-bottom: 1px dotted var(--line); }
 .log .secret { color: var(--accent); }
-.addr-head .repeat-mark { font-size: 0.9rem; line-height: 1; margin-right: 4px; cursor: help; }
+.addr-head .repeat-mark { font-size: 0.9rem; line-height: 1; cursor: help; } /* до мест — как между местами (gap 4 у .workers) */
 .log .your-turn { font-weight: 700; letter-spacing: 0.04em; }
 
 /* ---------- Окна ---------- */
@@ -376,8 +376,9 @@ label.row.check > input[type="checkbox"]:focus-visible { outline: 2px solid var(
 .sprouts-panel .bonus { font-size: 0.68rem; line-height: 1.2; }
 .sprouts-panel .bonus-slots { display: flex; gap: 8px; } /* два действия в строку; промежуток = отступу карточки Ростка (8) */
 .sprouts-panel .bonus-slot { flex: 1 1 0; min-width: 0; }
-.sprouts-panel .bonus-right { display: inline-flex; align-items: center; gap: 4px; }
-.sprouts-panel .bonus-slot { display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px 2px 8px; } /* кнопка во всю ширину, кружок — у правого края */
+.sprouts-panel .bonus-right { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+.sprouts-panel .bonus-right .dot.num.inline { margin-left: 0; }
+.sprouts-panel .bonus-slot { display: flex; align-items: center; justify-content: space-between; gap: 4px; border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; } /* кнопка во всю ширину, кружок — у правого края; плотно, чтобы влезала цена */
 .sprouts-panel .bonus-slot.can { cursor: pointer; }
 @media (hover: hover) { .sprouts-panel .bonus-slot.can:hover { background: rgba(230,179,90,.35); } }
 .sprouts-panel .chip { min-width: 18px; font-size: 0.62rem; }

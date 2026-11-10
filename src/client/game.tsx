@@ -10,7 +10,7 @@ import type { PlayerView } from '../engine/view';
 import { title as bookTitle, bestFeedBooks, canMemorizeOnBuy, countsAsLoad, coversStep, roomToBuy, freeSproutSlots, genresOf, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, plural, roman, genreOn } from '../engine/util';
 import { blatnoyOptions, kontoraTargets } from '../engine/full';
 import {
-  BefriendPicker, ClubContents, fittingBooks, patronOpen, patronWhy, ClubGiftModal, ClubPanel, FreeConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
+  BefriendPicker, ClubContents, fittingBooks, patronOpen, patronWhy, ClubGiftModal, ClubPanel, FreeConnectionPrompt, StartConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
   KontoraWarningPrompt,
 } from './full-ui';
 import type { ClientMessage, RoomInfo } from '../shared/protocol';
@@ -1155,6 +1155,8 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
       return <HandoutPrompt view={view} cards={p.cards} act={act} group={p.group} />;
     case 'freeConnection':
       return <FreeConnectionPrompt view={view} me={me} act={act} />;
+    case 'startConnection':
+      return <StartConnectionPrompt view={view} me={me} act={act} />;
     case 'catalogPick': {
       // Каталогизатор: верхний или нижний набор книг стопки.
       const deck = p.deck === 'load' ? 'стопка Нагрузки' : p.deck === 'discard' ? 'сброс Непечатных (Библиотекарь)' : 'стопка Непечатных';
