@@ -1933,6 +1933,23 @@ function Log({ view, seatIndex }: { view: PlayerView; seatIndex: (id: string) =>
                 const tail = l.text.slice(head.length + names.join(', ').length);
                 return <>{head}{ids.map((id, k) => <Fragment key={id}>{k ? ', ' : ''}<span className="dot tight" style={{ background: PLAYER_COLORS[seatIndex(id)] }} />{names[k]}</Fragment>)}{withGenreChips(tail)}</>;
               })()
+            : l.names
+            ? (() => {
+                // Перед именем игрока (Куратора в финале) — его кружок.
+                const text = l.text.replace(/^↳/, '↱');
+                const at = l.names.map((id) => ({ id, name: view.players.find((x) => x.id === id)?.name ?? '' }))
+                  .map((x) => ({ ...x, i: x.name ? text.indexOf(x.name) : -1 })).filter((x) => x.i >= 0).sort((a, b) => a.i - b.i);
+                const out: ReactNode[] = [];
+                let from = 0;
+                for (const x of at) {
+                  if (x.i < from) continue;
+                  out.push(<Fragment key={`t${x.i}`}>{withGenreChips(text.slice(from, x.i))}</Fragment>);
+                  out.push(<span key={`d${x.i}`} className="dot tight" style={{ background: PLAYER_COLORS[seatIndex(x.id)] }} />);
+                  from = x.i;
+                }
+                out.push(<Fragment key="end">{withGenreChips(text.slice(from))}</Fragment>);
+                return out;
+              })()
             : withGenreChips(l.text.replace(/^↳/, '↱'))}
         </div>
       ))}

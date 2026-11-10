@@ -140,6 +140,7 @@ export function finalScoring(state: GameState): GameResult {
     const cuts = curator.warehouse.filter((s) => isPropaganda(state, s.card)).length;
     const cutLog: string[] = [];
     log(state, `Куратор раскрывается: ${curator.name}. ЧНЛ у него на Складе и в Тайнике: ${cuts}${cuts ? ' — столько ступеней он срежет.' : ' — срезать нечем.'}`);
+    state.log[state.log.length - 1].names = [curator.id];
     for (let i = 0; i < cuts; i++) {
       const top = [...state.sprouts].sort((a, b) => b.progress - a.progress)[0];
       top.progress--;

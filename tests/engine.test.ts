@@ -53,6 +53,21 @@ function allCards(s: GameState): string[] {
 }
 
 describe('подготовка', () => {
+  it('«КОНЕЦ ЗАСТОЯ» — до вскрытия Куратора и срезов Ростков', () => {
+    let checked = 0;
+    for (let seed = 1; seed <= 4; seed++) {
+      // Ростки сразу на вершине: Гласность наступает, и в финале Куратор раскрывается.
+      const g = createGame({ players: players(3), seed, mode: 'full', forceCurator: true });
+      g.sprouts.forEach((sp) => { sp.progress = 4; });
+      const s = playOut(g, seeded(seed), 5000, 'random');
+      const end = s.log.findIndex((l) => l.text === 'КОНЕЦ ЗАСТОЯ');
+      const reveal = s.log.findIndex((l) => l.text.startsWith('Куратор раскрывается') && l.text.includes('ЧНЛ у него'));
+      expect(end).toBeGreaterThanOrEqual(0);
+      if (reveal >= 0) { checked++; expect(reveal).toBeGreaterThan(end); expect(s.log[reveal].names).toEqual([s.players.find((p) => p.passion === 'curator')!.id]); }
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+
   it('раздаёт стартовые ресурсы', () => {
     const s = createGame({ players: players(3), seed: 1 });
     expect(s.players).toHaveLength(3);

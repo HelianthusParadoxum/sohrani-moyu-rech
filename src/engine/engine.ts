@@ -825,13 +825,15 @@ function changeRound(state: GameState) {
   if (state.round >= RULES.rounds) {
     state.phase = 'end';
     flushIrony(state);
-    state.result = finalScoring(state);
-    // Итог — и самой последней строкой победитель (с кружком игрока в клиенте).
-    const r = state.result!;
-    // Заголовок — жирно заглавными, итог Гласности — отдельной строкой.
+    // Заголовок — жирно заглавными, до подсчёта: вскрытие Куратора и срезы Ростков идут уже под ним.
     log(state, 'КОНЕЦ ЗАСТОЯ');
     state.log[state.log.length - 1].strong = true;
+    state.result = finalScoring(state);
+    // Итог Гласности — отдельной строкой, и самой последней строкой победитель (с кружком игрока в клиенте).
+    const r = state.result!;
     log(state, r.summary);
+    const cur = state.players.find((x) => x.passion === 'curator');
+    if (cur && r.summary.includes(cur.name)) state.log[state.log.length - 1].names = [cur.id];
     if (r.winners.length) {
       log(state, `Победа: ${r.winners.map((id) => player(state, id).name).join(', ')}${r.winTail ?? '.'}`);
       state.log[state.log.length - 1].winners = [...r.winners];
