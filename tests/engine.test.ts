@@ -56,7 +56,8 @@ describe('подготовка', () => {
     const s = createGame({ players: players(3), seed: 1 });
     expect(s.players).toHaveLength(3);
     for (const p of s.players) {
-      expect(p.warehouse).toHaveLength(4);
+      expect(p.warehouse).toHaveLength(RULES.startUnprinted + RULES.startLoad);
+      expect(p.warehouse.filter((w) => !isFromLoadDeck(s, w.card))).toHaveLength(1); // 1 книга Непечатных
       expect(p.talons).toBe(5);
       expect(p.passionOptions).toHaveLength(2);
     }
@@ -1102,7 +1103,11 @@ describe('Тайник в свой ход', () => {
     const other = s.players.find((p) => p.id !== me)!.id;
     const p0 = s.players.find((p) => p.id === me)!;
     p0.cache = 0; // одно место в Тайнике дают 2 стартовые Нагрузки
-    const [a, b] = p0.warehouse.map((x) => x.card);
+    // Вторая книга Непечатных (на старте одна): Нагрузку в Тайник не прячут.
+    const extra = s.deck.find((c) => !isFromLoadDeck(s, c))!;
+    s.deck = s.deck.filter((c) => c !== extra);
+    p0.warehouse.push({ card: extra, hidden: false });
+    const [a, b] = p0.warehouse.filter((x) => !isFromLoadDeck(s, x.card)).map((x) => x.card);
     s = applyAction(s, me, { type: 'hiding', hidden: [a] });
     expect(s.order[s.turn]).toBe(me);
     expect(s.players.find((p) => p.id === me)!.available).toBe(p0.available);

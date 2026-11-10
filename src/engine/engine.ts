@@ -83,8 +83,8 @@ export function createGame(opts: NewGameOptions): GameState {
       groupUsed: [], visitedRedCorner: false, sproutsFed: [], subscriptions: [],
       held: 0, buzoterUsed: false, pointsBy: {}, actions: [], patronBonus: { capacity: 0, cache: 0 },
     };
-    for (let i = 0; i < 2; i++) addBook(p, draw(state)!);
-    for (let i = 0; i < 2; i++) addBook(p, drawLoad(state)!);
+    for (let i = 0; i < RULES.startUnprinted; i++) addBook(p, draw(state)!);
+    for (let i = 0; i < RULES.startLoad; i++) addBook(p, drawLoad(state)!);
     state.players.push(p);
   }
   // Для тестов: первый игрок — Куратор (выбора у него нет), у остальных Куратора среди карт нет.
