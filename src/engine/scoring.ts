@@ -151,7 +151,7 @@ export function finalScoring(state: GameState): GameResult {
       return {
         glasnost: false, scores, winners: [curator.id],
         note: `Куратор (${curator.name}) срезал Ростки (${cutLog.join(', ')}) — Гласность не устояла. Куратор побеждает в одиночку.`,
-        summary: `Куратор (${curator.name}) срезал Ростки (${cutLog.join(', ')}) — Гласность не устояла.`,
+        summary: 'Гласность не устояла.', // подробности — в строках «Срез: …» выше
         winTail: ', Куратор.',
       };
     }
