@@ -505,3 +505,37 @@ describe('Бот, отказавшийся от Куратора', () => {
     expect(Object.keys(curatorSuspicion(s, b.id)).length).toBeGreaterThan(0);
   });
 });
+
+describe('Честный бот аккуратнее с опальным', () => {
+  function setup() {
+    let s = createGame({ players: players(3), seed: 11, mode: 'full', curator: false });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    const me = s.order[0];
+    const p = s.players.find((x) => x.id === me)!;
+    const chnl = [...s.deck, ...s.loadDeck].find((c) => isPropaganda(s, c) && !s.cards[c].legal)!;
+    s.deck = s.deck.filter((c) => c !== chnl); s.loadDeck = s.loadDeck.filter((c) => c !== chnl);
+    p.warehouse = p.warehouse.filter((w) => !isBanned(s, w.card)).map((w) => ({ ...w, hidden: false }));
+    p.warehouse.push({ card: chnl, hidden: false });
+    p.cache = 1; p.capacity = 6;
+    return { s, me, p, chnl };
+  }
+  it('при стартовой раскладке сразу прячет ЧНЛ в Тайник', () => {
+    const { s, me, chnl } = setup();
+    expect(s.phase).toBe('setupCache');
+    const r = rankActions(s, me, presetById('bookman'), seeded(1), true);
+    expect(r[0].a.type === 'hiding' && r[0].a.hidden).toContain(chnl);
+  });
+  it('купив опальную книгу, когда в Тайнике ЧНЛ, перекладывает: ценную книгу — в Тайник, ЧНЛ — на виду', () => {
+    let { s, me, p, chnl } = setup();
+    for (const o of s.players) if (s.phase === 'setupCache') s = applyAction(s, o.id, { type: 'hiding', hidden: o.id === me ? [chnl] : [] });
+    expect(s.phase).toBe('orders');
+    p = s.players.find((x) => x.id === me)!;
+    const book = s.deck.find((c) => isGenreBook(s, c) && isBanned(s, c) && !isPropaganda(s, c))!;
+    s.deck = s.deck.filter((c) => c !== book);
+    p.warehouse.push({ card: book, hidden: false });
+    s.turn = s.order.indexOf(me); s.turnDone = me; // поручение уже дано, ход ещё не закончен
+    const r = rankActions(s, me, presetById('bookman'), seeded(1), true);
+    expect(r[0].a).toMatchObject({ type: 'hiding' });
+    expect(r[0].a.type === 'hiding' && r[0].a.hidden).toEqual([book]);
+  });
+});

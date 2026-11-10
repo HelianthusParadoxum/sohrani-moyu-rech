@@ -493,7 +493,7 @@ function evaluateCurator(state: GameState, p: PlayerState, ctx: Ctx): number {
   if (state.phase === 'orders' && !state.reserve) {
     const open = p.warehouse.filter((s) => !s.hidden && !s.memorized && isBanned(state, s.card)).length;
     if (open && others.some((o) => o.available > 0)) {
-      const risk = Math.min(1, BOT_BASE.exposeRisk + BOT_BASE.exposeRiskSuspect * exposed);
+      const risk = Math.min(1, exposeRiskBase(state, p.id) + BOT_BASE.exposeRiskSuspect * exposed);
       const book = (BOT_BASE.curatorBook + BOT_BASE.curatorBannedBook) * (BOT_BASE.curatorBookByRound[r] ?? 1);
       const worker = hasPatron(state, p.id, 'psychiatrist') ? 0 : (RULES.rounds - ctx.round + 1) * BOT_BASE.action;
       v -= risk * (book + worker) * ctx.preset.character.caution;
@@ -648,6 +648,12 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   return v;
 }
 
+// Риск доноса на открытую опальную книгу до своего следующего хода: каждый соперник с Единомышленниками может донести.
+function exposeRiskBase(state: GameState, me: string): number {
+  const k = state.players.filter((o) => o.id !== me && o.available > 0).length;
+  return 1 - (1 - BOT_BASE.exposeRiskPerAction) ** k;
+}
+
 // Открытая опальная книга посреди Пятилетки — повод для доноса: Контора изымет её и удержит Единомышленника.
 // Раскрывшийся Куратор, у которого ещё есть ход в Контору, донесёт наверняка.
 function exposurePenalty(state: GameState, p: PlayerState, ctx: Ctx, left: number): number {
@@ -657,7 +663,7 @@ function exposurePenalty(state: GameState, p: PlayerState, ctx: Ctx, left: numbe
   const sus = Math.max(0, ...Object.values(ctx.suspect));
   const cur = state.curatorRevealed && state.curatorRevealed !== p.id ? player(state, state.curatorRevealed) : null;
   const sure = !!cur && cur.available > 0 && !(state.occupancy.kontora ?? []).includes(cur.id);
-  const risk = sure ? 1 : Math.min(1, BOT_BASE.exposeRisk + BOT_BASE.exposeRiskSuspect * sus);
+  const risk = sure ? 1 : Math.min(1, exposeRiskBase(state, p.id) + BOT_BASE.exposeRiskSuspect * sus);
   const book = Math.max(...exposed.map((s) => Math.max(0, ownBookValue(state, p, s.card, ctx))));
   const worker = hasPatron(state, p.id, 'psychiatrist') ? 0 : (left + 1) * BOT_BASE.action;
   return risk * (book + worker) * ctx.preset.character.caution;
@@ -1314,10 +1320,10 @@ function hideList(state: GameState, me: string, ctx: Ctx, keep: Map<string, numb
   const p = player(state, me);
   const loads = p.warehouse.filter((s) => isLoad(state, s.card)).length + (opts.extraLoad ?? 0);
   const limit = p.cache + Math.floor(loads / 2);
-  // Честный прячет ЧНЛ только посреди поручений — от доноса в Контору (удержат Единомышленника). На Укрытии оставляет
-  // её открытой: облава её изымет, и в конце не будет −5.
+  // Честный прячет ЧНЛ при стартовой раскладке и посреди поручений — от доноса в Контору (удержат Единомышленника).
+  // На Укрытии оставляет её открытой: облава её изымет, и в конце не будет −5.
   const banned = p.warehouse.filter((s) => s.card !== opts.exclude && !s.memorized && isBanned(state, s.card)
-    && (ctx.curator || !isPropaganda(state, s.card) || state.phase === 'orders')).map((s) => s.card);
+    && (ctx.curator || !isPropaganda(state, s.card) || state.phase === 'orders' || state.phase === 'setupCache')).map((s) => s.card);
   const list = byValue(keep, banned).reverse().slice(0, limit);
   // Свободные места Тайника — впрок: в новой Пятилетке опала сменится, и открытая жанровая книга может стать доносом
   // в Контору раньше, чем дойдёт ход её перепрятать. Прячем самые ценные из них.
@@ -1349,15 +1355,24 @@ function rehideAction(state: GameState, me: string, ctx: Ctx): Action | null {
   const p = player(state, me);
   const open = p.warehouse.some((s) => !s.hidden && !s.memorized && isBanned(state, s.card));
   if (!open) return null;
+  // Ценность книг — как если бы все они уже лежали в Тайнике: иначе открытая опальная книга кажется «дешёвой» из-за риска
+  // доноса на неё, а этот риск как раз и снимает прятка.
+  const safe = cloneLight(state);
+  const sp = player(safe, me);
+  sp.warehouse = sp.warehouse.map((w) => ({ ...w, hidden: true }));
+  const keep = keepValues(safe, me, ctx);
   // Впрок (неопальное) посреди Пятилетки не перекладываем — только прячем опальное, иначе можно перекладывать без конца.
-  const want = hideList(state, me, ctx, keepValues(state, me, ctx), { noSpare: true });
+  const want = hideList(state, me, ctx, keep, { noSpare: true });
   const rest = p.warehouse.filter((s) => s.hidden && !want.includes(s.card)).map((s) => s.card);
   const target = [...want, ...rest].slice(0, cacheLimit(state, p));
   const now = p.warehouse.filter((s) => s.hidden).map((s) => s.card);
   if (target.length === now.length && target.every((c) => now.includes(c))) return null;
   // Перекладываем, только если это прячет больше опальных книг, чем сейчас (защита от бесконечной перекладки).
   const bannedIn = (list: string[]) => list.filter((c) => isBanned(state, c)).length;
-  if (bannedIn(target) <= bannedIn(now)) return null;
+  // Опальных спрятано столько же, но ценнее (купил опальную книгу, а в Тайнике — ЧНЛ): тоже переложить.
+  // Сумма ценности строго растёт — перекладывать без конца не выйдет.
+  const worth = (list: string[]) => list.filter((c) => isBanned(state, c)).reduce((s, c) => s + (keep.get(c) ?? 0), 0);
+  if (bannedIn(target) < bannedIn(now) || (bannedIn(target) === bannedIn(now) && worth(target) <= worth(now) + 0.01)) return null;
   return { type: 'hiding', hidden: target };
 }
 
