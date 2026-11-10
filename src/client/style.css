@@ -196,6 +196,10 @@ label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
   display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; flex: none; color: var(--ink);
 }
 .book.small { width: 98px; min-height: 60px; font-size: 0.72rem; }
+/* Книга на планшете соперника: без названия — только значки; меньше по размеру. */
+.book.mini { width: 62px; min-height: 40px; font-size: 0.66rem; padding: 4px; } /* пять в ряд на планшете соперника (полка ≈ 346) */
+.book.mini .book-icons { flex-wrap: wrap; }
+.book.mini.is-banned { border-width: 2px; }
 .book:disabled { opacity: 1; cursor: default; }
 @media (hover: hover) { .book.clickable:hover { border-color: var(--ink); } }
 .book.selected { outline: 3px solid var(--accent); }

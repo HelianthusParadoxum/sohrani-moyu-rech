@@ -1629,8 +1629,8 @@ function Results({ view, seatIndex, close }: { view: PlayerView; seatIndex: (id:
 // ---------- Игроки ----------
 
 // Пустые места полки: ряд не схлопывается, когда книги уходят.
-function emptySlots(n: number) {
-  return Array.from({ length: Math.max(0, n) }, (_, i) => <div key={`empty${i}`} className="book empty small" title="Свободное место" />);
+function emptySlots(n: number, mini = false) {
+  return Array.from({ length: Math.max(0, n) }, (_, i) => <div key={`empty${i}`} className={`book empty ${mini ? 'mini' : 'small'}`} title="Свободное место" />);
 }
 
 // Свободные места Склада (заученный сборник места не занимает).
@@ -1781,7 +1781,7 @@ function OtherPlayer({ view, p, color, active, rev }: { view: PlayerView; p: VPl
         {view.me === null && p.passion && <span className="passion-line" title={`Пристрастие: ${PASSIONS[p.passion].name} — ${PASSIONS[p.passion].hint}`}><span>{passionIcon(p.passion)}</span>{passionMarks(p.passion)}</span>}
       </div>
       <Stats p={p} view={view} />
-      <div className="shelf wrap">{p.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} small note={s.memorized ? 'заучено' : undefined} />)}{emptySlots(freeShelf(p))}</div>
+      <div className="shelf wrap">{p.warehouse.map((s, i) => <Book key={i} v={view} id={s.card} hidden={s.hidden} mini note={s.memorized ? 'заучено' : undefined} />)}{emptySlots(freeShelf(p), true)}</div>
       <Published view={view} p={p} />
       <div className="group-actions readonly" title="Действия Инициативной группы в эту Пятилетку">
         {(Object.keys(GROUP_ACTIONS) as GroupActionId[]).filter((g) => groupInGame(view, g)).map((g) => (

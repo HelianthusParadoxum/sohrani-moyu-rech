@@ -116,11 +116,13 @@ const KIND_LABEL: Record<string, string> = {
   load: 'Нагрузка', loadReturnable: 'Нагрузка', loadEvidence: 'Нагрузка',
 };
 
-export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
-  v: PlayerView; id: string | null; selected?: boolean; onClick?: (e: React.MouseEvent) => void; hidden?: boolean; small?: boolean; note?: string; price?: number;
+// mini — книга на планшете соперника: без названия, только значки (название — в подсказке); меньше по размеру.
+export function Book({ v, id, selected, onClick, hidden, small, mini, note, price }: {
+  v: PlayerView; id: string | null; selected?: boolean; onClick?: (e: React.MouseEvent) => void; hidden?: boolean; small?: boolean; mini?: boolean; note?: string; price?: number;
 }) {
+  const size = mini ? 'mini' : small ? 'small' : '';
   if (!id) {
-    return <div className={`book back ${small ? 'small' : ''} ${onClick ? 'clickable' : ''}`} title="Книга взакрытую" onClick={onClick}><span>✦</span></div>;
+    return <div className={`book back ${size} ${onClick ? 'clickable' : ''}`} title="Книга взакрытую" onClick={onClick}><span>✦</span></div>;
   }
   const c = v.cards[id];
   const icons = iconsOf(v, id);
@@ -135,7 +137,7 @@ export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
   return (
     <button
       type="button"
-      className={`book k-${c.kind === 'loadEvidence' && !restored ? 'load' : (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && restored ? 'exposed' : c.kind} ${banned ? 'is-banned' : ''} ${selected ? 'selected' : ''} ${hidden ? 'in-cache' : ''} ${small ? 'small' : ''} ${onClick ? 'clickable' : ''}`}
+      className={`book k-${c.kind === 'loadEvidence' && !restored ? 'load' : (c.kind === 'propaganda' || c.kind === 'loadPropaganda') && restored ? 'exposed' : c.kind} ${banned ? 'is-banned' : ''} ${selected ? 'selected' : ''} ${hidden ? 'in-cache' : ''} ${size} ${onClick ? 'clickable' : ''}`}
       onClick={onClick}
       disabled={!onClick}
       title={`${t} — ${c.author}${c.kind === 'loadPropaganda' && !restored ? (c.legal
@@ -164,10 +166,11 @@ export function Book({ v, id, selected, onClick, hidden, small, note, price }: {
         {restored && <span className="restored" title="Смыслы возвращены">↺</span>}
         {price !== undefined && <span className="book-price" title="Цена в Талонах">{price}т</span>}
       </div>
-      <div className="book-title">{t}</div>
-      {!small && <div className="book-author">{c.author}</div>}
-      {hidden && <div className="stamp cache">в тайнике</div>}
-      {banned && !hidden && <div className="stamp">опальная</div>}
+      {!mini && <div className="book-title">{t}</div>}
+      {!small && !mini && <div className="book-author">{c.author}</div>}
+      {/* У мини-книги опальность и Тайник видны по рамке — без штампов. */}
+      {!mini && hidden && <div className="stamp cache">в тайнике</div>}
+      {!mini && banned && !hidden && <div className="stamp">опальная</div>}
       {note && <div className="book-note">{note}</div>}
     </button>
   );
