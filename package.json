@@ -22,7 +22,8 @@
     "curator": "tsx tools/curator.ts",
     "snowball": "tsx tools/snowball.ts",
     "network": "tsx tools/network.ts",
-    "drama": "tsx tools/drama.ts"
+    "drama": "tsx tools/drama.ts",
+    "popularity": "tsx tools/popularity.ts"
   },
   "dependencies": {
     "react": "^19.3.1",

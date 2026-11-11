@@ -1531,6 +1531,8 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
     }
   }
   if (opts.limited) p.groupUsed.push(g.action);
+  const src = opts.worker ? 'worker' : opts.limited ? 'extra' : 'free';
+  (p.groupBy ??= {})[`${g.action}:${src}`] = (p.groupBy[`${g.action}:${src}`] ?? 0) + 1;
 }
 
 // ---------- Отложенные решения ----------
