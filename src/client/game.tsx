@@ -1036,7 +1036,7 @@ function groupBlocker(view: PlayerView, me: VPlayer, id: GroupActionId): string 
       return null;
     case 'expandWarehouse':
       if (me.capacity >= RULES.maxCapacity) return `Склад уже максимального размера (${RULES.maxCapacity}).`;
-      return me.talons < RULES.expandWarehouseCost ? `Нужно ${RULES.expandWarehouseCost} Талон, у вас ${me.talons}.` : null;
+      return me.talons < RULES.expandWarehouseCost ? `Нужно Талонов: ${RULES.expandWarehouseCost}, у вас ${me.talons}.` : null;
     case 'expandCache':
       if (me.cache >= RULES.maxCache) return `Тайник уже максимального размера (${RULES.maxCache}).`;
       return me.talons < RULES.expandCacheCost && !hasPatron(view, me.id, 'carpenter') ? `Нужно ${RULES.expandCacheCost} Талон, у вас ${me.talons}.` : null;

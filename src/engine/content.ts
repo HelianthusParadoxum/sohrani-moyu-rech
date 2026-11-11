@@ -42,7 +42,7 @@ export const RULES = {
   raspredelitelSize: 4,
   agitpunktSize: 4, // Агитпункт: сколько книг Нагрузки лежит на витрине
   hireCost: 6,
-  expandWarehouseCost: 1, // Увеличение склада: цена в Талонах
+  expandWarehouseCost: 0, // Увеличение склада: цена в Талонах (было 1)
   expandCacheCost: 0, // Закладка Тайника: цена в Талонах (было 1; бесплатно — чтобы действие было в ходу)
   professorTalons: 2, // Профессор: в первый раз за Пятилетку, когда кто-то другой питает Росток Гласности, — Талонов
   professorPoints: 0, // ...и очков Гласности (было 1 Талон и 2 очка за каждую ступень)
@@ -238,7 +238,7 @@ export function groupInGame(g: GameKind, id: GroupActionId): boolean {
 export const KONTORA_PATRONS: PatronId[] = ['psychiatrist'];
 
 export const GROUP_ACTIONS: Record<GroupActionId, { name: string; hint: string; fullOnly?: boolean }> = {
-  expandWarehouse: { name: 'Увеличить Склад', hint: `−${RULES.expandWarehouseCost}т: +1 место на складе (до 10)` },
+  expandWarehouse: { name: 'Увеличить Склад', hint: `${RULES.expandWarehouseCost ? `−${RULES.expandWarehouseCost}т: ` : ''}+1 место на складе (до 10)` },
   expandCache: { name: 'Заложить Тайник', hint: `${RULES.expandCacheCost ? `−${RULES.expandCacheCost}т: ` : ''}1 место склада становится потайным (до ${RULES.maxCache})` },
   copyText: { name: 'Тиражировать Текст', hint: 'Бесплатно взять открыто лежащую книгу с адреса, где уже стоит хотя бы один ваш Единомышленник (Развал, Толкучка, Распределитель, Книгообмен, Агитпункт)' },
   spetskhran: { name: 'Выудить из Спецхрана', hint: `−${RULES.spetskhranCost}т: посмотреть Спецхран (он в Главлите) и взять оттуда 1 любую книгу` },

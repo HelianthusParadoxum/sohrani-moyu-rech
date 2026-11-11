@@ -359,6 +359,17 @@ describe('полный режим', () => {
     expect(RULES.connectionPoints).toBe(0);
   });
 
+  it('Увеличить Склад — бесплатно (RULES.expandWarehouseCost = 0)', () => {
+    let s = fullGame();
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    p.talons = 0;
+    s = applyAction(s, me, { type: 'group', group: { action: 'expandWarehouse' } });
+    const q = s.players.find((x) => x.id === me)!;
+    expect(q.capacity).toBe(p.capacity + 1);
+    expect(q.talons).toBe(0);
+  });
+
   it('стартовые связи: в обратном порядке хода, занятого Завсегдатая не взять, потом ходит первый', () => {
     let s = createGame({ players: players(3), seed: 9, mode: 'full' });
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
