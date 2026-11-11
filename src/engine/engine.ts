@@ -1162,12 +1162,14 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         // Кто вкладывался в Росток — запоминаем: по этому боты судят, кто не Куратор (на поле не показывается).
         if (!p.sproutsFed.includes(sp.id)) p.sproutsFed.push(sp.id);
         log(state, text + '.');
-        // Профессор: каждый, кто с ним связан (кроме кормящего), получает Талон и очки за эту ступень.
+        // Профессор: кормящий питает Росток впервые за Пятилетку (в sproutRound он сейчас ровно один раз — эта ступень) —
+        // каждый, кто связан с Профессором (кроме кормящего), получает Талоны.
+        const firstFeed = Object.values(state.sproutRound ?? {}).flat().filter((x) => x === p.id).length === 1;
         for (const o of state.players) {
-          if (o.id === p.id || !hasPatron(state, o.id, 'professor')) continue;
+          if (!firstFeed || o.id === p.id || !hasPatron(state, o.id, 'professor')) continue;
           earn(state, o, RULES.professorTalons, 'professor');
           gain(o, RULES.professorPoints, 'professor');
-          logAfter(state, `↳ Профессор: ${o.name} +${talonsText(RULES.professorTalons)} и +${pointsText(RULES.professorPoints)}.`);
+          logAfter(state, `↳ Профессор: ${o.name} +${[talonsText(RULES.professorTalons), RULES.professorPoints ? pointsText(RULES.professorPoints) : ''].filter(Boolean).join(' и +')}.`);
         }
         // Фантастика «Заронить зерно»: без неё (её значков вместо других жанров) ступень не закрылась бы.
         if (isFull(state) && !coversStep(state, f.books, info.main, step.main, step.support, { labtech: lab })) {

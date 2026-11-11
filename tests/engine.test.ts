@@ -926,7 +926,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     const pub = texts.findIndex((x) => x.includes('издаёт'));
     expect(texts[pub]).not.toContain('Талон');
     expect(texts.slice(pub + 1)).toContain('↳ Корреспондент: +1 Талон и +1 очко.');
-    // Профессор: когда другой игрок питает ступень Ростка — +1 Талон и +2 очка; за своё питание — ничего.
+    // Профессор: когда другой игрок впервые за Пятилетку питает Росток — Талоны; за своё питание — ничего.
     let s4 = started();
     const me4 = s4.order[s4.turn];
     const other4 = s4.players.find((x) => x.id !== me4)!.id;
@@ -938,10 +938,18 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     s4 = applyAction(s4, me4, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp.id, books: [card4] }] } });
     const feeder4 = s4.players.find((x) => x.id === me4)!;
     const prof4 = s4.players.find((x) => x.id === other4)!;
-    expect(feeder4.pointsBy.professor ?? 0).toBe(0);
-    expect(prof4.pointsBy.professor).toBe(RULES.professorPoints);
+    expect(feeder4.talonsBy?.professor ?? 0).toBe(0);
+    expect(prof4.pointsBy.professor ?? 0).toBe(RULES.professorPoints);
     expect(prof4.talonsBy?.professor).toBe(RULES.professorTalons);
     expect(prof4.talons).toBe(t4 + RULES.professorTalons);
+    // Второе питание того же игрока в ту же Пятилетку Профессору ничего не даёт.
+    while (s4.pending[0]) s4 = applyAction(s4, s4.pending[0].player, { type: 'pass' });
+    s4.turn = s4.order.indexOf(me4);
+    const sp2 = s4.sprouts[1];
+    const card5 = give(s4, me4, (icons) => icons.length === 1 && icons[0] === SPROUTS.find((x) => x.id === sp2.id)!.main);
+    s4 = applyAction(s4, me4, { type: 'place', place: { address: 'sprouts', feeds: [{ sprout: sp2.id, books: [card5] }] } });
+    expect(Object.values(s4.sproutRound ?? {}).flat().filter((x) => x === me4)).toHaveLength(2);
+    expect(s4.players.find((x) => x.id === other4)!.talonsBy?.professor).toBe(RULES.professorTalons);
     // С Цеховиком за одно издание — ещё ровно +1, хоть доход и из двух частей.
     let s3 = started();
     const me3 = s3.order[s3.turn];
