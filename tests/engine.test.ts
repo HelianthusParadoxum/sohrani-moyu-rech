@@ -68,6 +68,13 @@ describe('подготовка', () => {
     expect(checked).toBeGreaterThan(0);
   });
 
+  it('Квартирника нет среди явочных адресов (RULES.safehouseOff)', () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const s = createGame({ players: players(3), seed, mode: 'full' });
+      expect([...s.safehouseDeck, ...s.safehouses]).not.toContain('kvartirnik');
+    }
+  });
+
   it('раздаёт стартовые ресурсы', () => {
     const s = createGame({ players: players(3), seed: 1 });
     expect(s.players).toHaveLength(3);

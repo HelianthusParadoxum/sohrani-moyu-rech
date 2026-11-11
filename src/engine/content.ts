@@ -97,6 +97,7 @@ export const RULES = {
   releaseNow: false, // освобождённые из Конторы Единомышленники действуют сразу (true) или только со следующей Пятилетки (false)
   rescuePoints: 2, // Вызволить из бед: очков Гласности за каждого вызволенного Единомышленника
   connectionPoints: 0, // очков в финальном подсчёте за каждую связь с Завсегдатаем (было 1; число связей — по-прежнему первый тай-брейк)
+  safehouseOff: ['kvartirnik'] as string[], // явочные адреса, выведенные из игры (Квартирник — почти не посещали)
   dramaPoints: 2, // Драматургия «Разыграть»: в конце поручений столько очков, если есть хоть одна книга драматургии (открыто на складе или изданная); от числа книг не растёт
   rescueTalons: 2, // ...и Талонов вызволяющему — за само действие (сколько бы ни вызволил)
   rescueMax: 2, // ...и не больше стольких Единомышленников за одно действие
@@ -211,7 +212,8 @@ export const PERMANENT_ADDRESSES: AddressId[] = [
   'gostorg', 'tolkuchka', 'redCorner', 'razval', 'zavoz', 'baraholka', 'sprouts', 'samizdat', 'tamizdat', 'glavlit', 'makulatura',
   'club', 'kontora',
 ];
-export const SAFEHOUSES: AddressId[] = ['knigoobmen', 'kvartirnik', 'raspredelitel', 'nasledniki', 'posrednichestvo', 'spisanie', 'podpiska', 'agitpunkt'];
+export const SAFEHOUSES: AddressId[] = (['knigoobmen', 'kvartirnik', 'raspredelitel', 'nasledniki', 'posrednichestvo', 'spisanie', 'podpiska', 'agitpunkt'] as AddressId[])
+  .filter((id) => !RULES.safehouseOff.includes(id));
 // Адреса, которые начинают партию заполненными (если выложены).
 export const STARTS_FILLED: AddressId[] = ['knigoobmen', 'raspredelitel', 'agitpunkt'];
 
