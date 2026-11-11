@@ -926,7 +926,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     const pub = texts.findIndex((x) => x.includes('издаёт'));
     expect(texts[pub]).not.toContain('Талон');
     expect(texts.slice(pub + 1)).toContain('↳ Корреспондент: +1 Талон и +1 очко.');
-    // Профессор: когда другой игрок впервые за Пятилетку питает Росток — Талоны; за своё питание — ничего.
+    // Профессор: в первый раз за Пятилетку, когда кто-то другой питает Росток, — Талоны; за своё питание — ничего.
     let s4 = started();
     const me4 = s4.order[s4.turn];
     const other4 = s4.players.find((x) => x.id !== me4)!.id;
@@ -942,7 +942,7 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     expect(prof4.pointsBy.professor ?? 0).toBe(RULES.professorPoints);
     expect(prof4.talonsBy?.professor).toBe(RULES.professorTalons);
     expect(prof4.talons).toBe(t4 + RULES.professorTalons);
-    // Второе питание того же игрока в ту же Пятилетку Профессору ничего не даёт.
+    // Второе чужое питание в ту же Пятилетку (кто бы ни кормил) Профессору ничего не даёт.
     while (s4.pending[0]) s4 = applyAction(s4, s4.pending[0].player, { type: 'pass' });
     s4.turn = s4.order.indexOf(me4);
     const sp2 = s4.sprouts[1];

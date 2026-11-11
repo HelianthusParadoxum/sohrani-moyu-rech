@@ -1162,11 +1162,11 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         // Кто вкладывался в Росток — запоминаем: по этому боты судят, кто не Куратор (на поле не показывается).
         if (!p.sproutsFed.includes(sp.id)) p.sproutsFed.push(sp.id);
         log(state, text + '.');
-        // Профессор: кормящий питает Росток впервые за Пятилетку (в sproutRound он сейчас ровно один раз — эта ступень) —
-        // каждый, кто связан с Профессором (кроме кормящего), получает Талоны.
-        const firstFeed = Object.values(state.sproutRound ?? {}).flat().filter((x) => x === p.id).length === 1;
+        // Профессор: впервые за Пятилетку Росток питает кто-то другой (не сам связанный с Профессором) — Талоны.
+        // В sproutRound эта ступень уже записана: «первая чужая» — если чужих записей ровно одна.
+        const fed = Object.values(state.sproutRound ?? {}).flat();
         for (const o of state.players) {
-          if (!firstFeed || o.id === p.id || !hasPatron(state, o.id, 'professor')) continue;
+          if (o.id === p.id || !hasPatron(state, o.id, 'professor') || fed.filter((x) => x !== o.id).length !== 1) continue;
           earn(state, o, RULES.professorTalons, 'professor');
           gain(o, RULES.professorPoints, 'professor');
           logAfter(state, `↳ Профессор: ${o.name} +${[talonsText(RULES.professorTalons), RULES.professorPoints ? pointsText(RULES.professorPoints) : ''].filter(Boolean).join(' и +')}.`);
