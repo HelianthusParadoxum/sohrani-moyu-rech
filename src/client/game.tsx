@@ -734,7 +734,7 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
       const n = sel[0] ? iconCount(view, sel[0]) + (isExposed(view, sel[0]) ? 1 : 0) : 0;
       body = (
         <>
-          <p>Издайте одну книгу: она навсегда спасена, место на складе освобождается, а в подсчёте по Пристрастию книга участвует. {id === 'tamizdat' ? `+${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка за значок.` : `+${RULES.samizdatPoints} очка за значок.`}</p>
+          <p>Издайте одну книгу: она навсегда спасена, место на складе освобождается, а в подсчёте по Пристрастию книга участвует. {id === 'tamizdat' ? `+${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} ${RULES.tamizdatPoints === 1 ? 'очко' : 'очка'} за значок.` : `+${RULES.samizdatPoints} очка за значок.`}</p>
           {pickList(mine.filter(ok), sel, setSel, { max: 1 })}
           {confirmBtn(`Издать${sel.length ? gainTag(publishGain(view, me, id, sel[0], n)) : ''}`, sel.length ? { address: id, card: sel[0] } : null)}
         </>

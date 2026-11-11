@@ -143,7 +143,7 @@ describe('Главлит и Тамиздат', () => {
     expect(byId(s, p.id).talons).toBe(t + RULES.glavlitLoad + RULES.glavlitUnprinted);
   });
 
-  it(`Тамиздат: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очка за значок`, () => {
+  it(`Тамиздат: +${RULES.tamizdatTalons}т и +${RULES.tamizdatPoints} очк. за значок`, () => {
     let s = started();
     const p = me(s);
     const c = giveBook(s, p.id, 2);
