@@ -399,6 +399,10 @@ function resources(state: GameState, p: PlayerState, ctx: Ctx, talonShare = 1): 
   const reserve = ctx.preset.character.reserve;
   if (p.talons < reserve) v -= (reserve - p.talons) * ctx.talon * talonShare;
   v += (p.workers - p.held) * left * BOT_BASE.action * w.network;
+  // Копить на наём: при высоком весе «Расширить Сеть» Талоны до его цены ценятся дороже — иначе их съедают мелкие траты
+  // и на найм никогда не хватает (прикидка — на ход вперёд, а 6 Талонов набираются за несколько ходов).
+  const save = tune(ctx, 'hireSave');
+  if (save && p.workers < RULES.maxWorkers && w.network > 1) v += save * (w.network - 1) * Math.min(p.talons, RULES.hireCost) * ctx.talon * talonShare;
   // Поздний найм: лишнее действие ещё в этой Пятилетке и темп в последней (ответить на финальные ходы Куратора).
   v += p.workers * (BOT_BASE.lateHire[ctx.round - 1] ?? 0);
   v += (p.available + p.bonusGroupTurns * 0.7) * BOT_BASE.action;
