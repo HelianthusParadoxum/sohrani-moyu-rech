@@ -1,12 +1,12 @@
 // Баланс Куратора — главный замер (цель в CLAUDE.md): полный режим, Куратор в каждой партии, честным — случайные
 // стратегии из лобби (как «Наугад»), умелость ботов — «Вдумчивые» (живые игроки ближе к ним, чем к «Упрощённым»).
-// npm run curator -- [партий] [игроков] [standard|thoughtful] [с какой партии] [файл для сырых данных]
+// npm run curator -- [партий] [игроков] [standard|thoughtful] [с какой партии] [файл для сырых данных] [old — боты без ранней сети и копления]
 // «Вдумчивые» медленные (~0,5 мин на партию): запускайте в несколько процессов с разным смещением и файлом,
 // затем `npm run curator -- merge файл…`.
 import { appendFileSync, readFileSync } from 'node:fs';
 import { createGame } from '../src/engine/engine';
 import { playOut, type BotSkill } from '../src/engine/bot';
-import { selectablePresets } from '../src/engine/bot-presets';
+import { BOT_BASE, selectablePresets } from '../src/engine/bot-presets';
 import { spreadLine, spreadOf } from './spread';
 
 // spread — «разброс победных очков»: итог первого минус итог последнего (в старых файлах его нет).
@@ -43,6 +43,8 @@ if (process.argv[2] === 'merge') {
   const skill = (process.argv[4] ?? 'thoughtful') as BotSkill;
   const from = Number(process.argv[5] ?? 0);
   const out = process.argv[6];
+  // Контроль: прежняя логика честных ботов (до 15.11) — без приоритета сети в П1–2 и копления на наём.
+  if (process.argv[7] === 'old') { BOT_BASE.earlyNetwork = 0; BOT_BASE.hireSave = 0; }
   const presets = selectablePresets(false).map((p) => p.id);
   const rows: Row[] = [];
   for (let g = from; g < from + games; g++) {
@@ -52,7 +54,7 @@ if (process.argv[2] === 'merge') {
     const s = playOut(createGame({ players, seed: 7000 + g, mode: 'full', forceCurator: true }), rand, 12000, pick, skill);
     if (s.phase !== 'end' || !s.result) continue;
     const cur = s.players.find((p) => p.passion === 'curator')!;
-    const row = { n, curWin: s.result.winners.includes(cur.id), glasnost: s.result.glasnost, spread: spreadOf(s.result) };
+    const row = { n, curWin: s.result.winners.includes(cur.id), glasnost: s.result.glasnost, spread: spreadOf(s.result, cur.id) };
     rows.push(row);
     if (out) appendFileSync(out, JSON.stringify(row) + '\n');
   }

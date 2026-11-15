@@ -2,8 +2,9 @@
 // Не цель «всегда в пару очков», но если разброс растёт от правки к правке — скорее плохой знак (отстающие безнадёжно отстают).
 import type { GameState } from '../src/engine/types';
 
-export function spreadOf(result: NonNullable<GameState['result']>): number {
-  const t = result.scores.map((x) => x.total);
+// Куратора не считаем (exclude): его очки живут по другой логике, и он почти всегда далеко последний.
+export function spreadOf(result: NonNullable<GameState['result']>, exclude?: string): number {
+  const t = result.scores.filter((x) => x.player !== exclude).map((x) => x.total);
   return t.length ? Math.max(...t) - Math.min(...t) : 0;
 }
 

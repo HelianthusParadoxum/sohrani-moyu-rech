@@ -42,7 +42,7 @@ for (let i = 0; i < games; i++) {
   const s = playOut(createGame({ players, seed: i + 1, mode: mode === 'reserve' ? 'full' : mode, reserve: mode === 'reserve' }), seeded(i + 1), 5000, presets);
   const r = s.result!;
   if (r.glasnost) glasnost++;
-  spreads.push(spreadOf(r));
+  spreads.push(spreadOf(r, s.players.find((p) => p.passion === 'curator')?.id));
   s.sprouts.forEach((sp) => progress.push(sp.progress));
   for (const p of s.players) {
     const id = presets[p.id];
