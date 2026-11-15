@@ -3,7 +3,8 @@
 //   base — логика по умолчанию (с 15.11 в ней уже ранняя сеть и копление hireSave = 2; для «прежней» — earlyNetwork = 0, hireSave = 0); net — вес цели «Расширить Сеть» в П1–2 = 10 (наивысший);
 //   save — то же и копит на наём (BOT_BASE.hireSave = 1: Талоны до цены найма ценнее, пока сеть не максимальна);
 //   save2 — то же, копит вдвое сильнее (hireSave = 2);
-//   nohire — не нанимает вовсе (вес «Расширить Сеть» 0 во всех Пятилетках).
+//   nohire — не нанимает вовсе (вес «Расширить Сеть» 0 во всех Пятилетках);
+//   stopR (stop2…stop5) — обычный бот, но с Пятилетки R не нанимает (вес сети 0 с R-й): цена найма в поздних Пятилетках.
 // HIRE_COST=7 в окружении — цена найма для опыта (по умолчанию RULES.hireCost).
 // Варианты — 7-й аргумент через запятую (по умолчанию net,save,save2).
 // Полный режим, Куратор в каждой партии (как в замере баланса; изменяемый бот — честный), стратегии — случайные из лобби.
@@ -18,10 +19,10 @@ if (process.env.HIRE_COST) (RULES as { hireCost: number }).hireCost = Number(pro
 // OLD=1 — остальные боты (и base) играют по прежней логике: без ранней сети и копления.
 if (process.env.OLD) { BOT_BASE.earlyNetwork = 0; BOT_BASE.hireSave = 0; }
 
-type Side = { total: number; win: boolean; place: number; workers: number; hiredEarly: number; glasnost: boolean };
-type Variant = 'net' | 'save' | 'save2' | 'nohire';
+type Side = { total: number; win: boolean; place: number; workers: number; hiredEarly: number; glasnost: boolean; hiresBy?: number[] };
+type Variant = 'net' | 'save' | 'save2' | 'nohire' | 'stop2' | 'stop3' | 'stop4' | 'stop5';
 type Row = { n: number; seed: number; preset: string; base: Side } & Partial<Record<Variant, Side>>;
-const NAMES: Record<Variant, string> = { net: 'сеть — приоритет в П1–2', save: '...и копит на наём', save2: '...и копит вдвое сильнее', nohire: 'не расширяет сеть вовсе' };
+const NAMES: Record<Variant, string> = { net: 'сеть — приоритет в П1–2', save: '...и копит на наём', save2: '...и копит вдвое сильнее', nohire: 'не расширяет сеть вовсе', stop2: 'нанимает только в П1', stop3: 'нанимает только в П1–2', stop4: 'нанимает только в П1–3', stop5: 'нанимает только в П1–4' };
 
 function seeded(seed: number) {
   let t = seed;
@@ -34,8 +35,10 @@ function variant(id: string, v: Variant): string {
   const spec = `${id}@early-${v}`;
   if (!BOT_PRESETS.some((p) => p.id === spec)) {
     const src = BOT_PRESETS.find((p) => p.id === id)!;
-    const network = src.goals.network.map((x, i) => (v === 'nohire' ? 0 : i < 2 ? 10 : x)) as typeof src.goals.network;
-    BOT_PRESETS.push({ ...src, id: spec, name: `${src.name} (сеть в П1–2${v === 'net' ? '' : ', копит'})`,
+    // stopR — обычный бот (вес как в пресете, ранняя сеть и копление — из BOT_BASE), но с R-й Пятилетки вес сети 0.
+    const stop = v.startsWith('stop') ? Number(v.slice(4)) : 0;
+    const network = src.goals.network.map((x, i) => (v === 'nohire' ? 0 : stop ? (i + 1 >= stop ? 0 : x) : i < 2 ? 10 : x)) as typeof src.goals.network;
+    BOT_PRESETS.push({ ...src, id: spec, name: `${src.name} (${v})`,
       goals: { ...src.goals, network }, base: { ...src.base, ...(v === 'save' ? { hireSave: 1 } : v === 'save2' ? { hireSave: 2 } : {}) } });
   }
   return spec;
@@ -46,7 +49,9 @@ function side(s: ReturnType<typeof playOut>, id: string): Side {
   const me = r.scores.find((x) => x.player === id)?.total ?? 0;
   const totals = r.scores.map((x) => x.total).sort((a, b) => b - a);
   const hiredEarly = s.log.filter((l) => l.round <= 2 && l.text === `${s.players.find((p) => p.id === id)!.name} расширяет сеть: +1 Единомышленник.`).length;
-  return { total: me, win: r.winners.includes(id), place: totals.indexOf(me) + 1, workers: s.players.find((p) => p.id === id)!.workers, hiredEarly, glasnost: r.glasnost };
+  const line = `${s.players.find((p) => p.id === id)!.name} расширяет сеть: +1 Единомышленник.`;
+  const hiresBy = [1, 2, 3, 4, 5].map((k) => s.log.filter((l) => l.round === k && l.text === line).length);
+  return { total: me, win: r.winners.includes(id), place: totals.indexOf(me) + 1, workers: s.players.find((p) => p.id === id)!.workers, hiredEarly, glasnost: r.glasnost, hiresBy };
 }
 
 function play(n: number, seed: number, skill: BotSkill, variants: Variant[]): Row | null {
@@ -76,15 +81,17 @@ function report(rows: Row[]) {
     console.log(`\n=== ${n} игроков: раздач ${R.length} (меняется один честный бот; Куратор в каждой партии; найм — ${RULES.hireCost} Талонов)`);
     const line = (name: string, f: (r: Row) => Side) => {
       const S = R.map(f);
-      return `${name.padEnd(26)} наём в П1–2 ${mean(S.map((x) => x.hiredEarly)).toFixed(2)}, Единомышленников к концу ${mean(S.map((x) => x.workers)).toFixed(2)}, `
+      const hb = [0, 1, 2, 3, 4].map((k) => mean(S.map((x) => x.hiresBy?.[k] ?? 0)).toFixed(2)).join('/');
+      return `${name.padEnd(26)} наём по Пятилеткам ${hb}, наём в П1–2 ${mean(S.map((x) => x.hiredEarly)).toFixed(2)}, Единомышленников к концу ${mean(S.map((x) => x.workers)).toFixed(2)}, `
         + `итог ${mean(S.map((x) => x.total)).toFixed(1)}, побед ${Math.round(100 * mean(S.map((x) => +x.win)))}%, место ${mean(S.map((x) => x.place)).toFixed(2)}, Гласность ${Math.round(100 * mean(S.map((x) => +x.glasnost)))}%`;
     };
-    console.log(line('прежняя логика', (r) => r.base));
+    console.log(line('обычный бот (base)', (r) => r.base));
     for (const v of Object.keys(NAMES) as Variant[]) {
       const V = R.filter((r) => r[v]);
       if (!V.length) continue;
       const S = V.map((r) => r[v]!);
-      console.log(`${NAMES[v].padEnd(26)} наём в П1–2 ${mean(S.map((x) => x.hiredEarly)).toFixed(2)}, Единомышленников к концу ${mean(S.map((x) => x.workers)).toFixed(2)}, `
+      const hb = [0, 1, 2, 3, 4].map((k) => mean(S.map((x) => x.hiresBy?.[k] ?? 0)).toFixed(2)).join('/');
+      console.log(`${NAMES[v].padEnd(26)} наём по Пятилеткам ${hb}, наём в П1–2 ${mean(S.map((x) => x.hiredEarly)).toFixed(2)}, Единомышленников к концу ${mean(S.map((x) => x.workers)).toFixed(2)}, `
         + `итог ${mean(S.map((x) => x.total)).toFixed(1)}, побед ${Math.round(100 * mean(S.map((x) => +x.win)))}%, место ${mean(S.map((x) => x.place)).toFixed(2)}, Гласность ${Math.round(100 * mean(S.map((x) => +x.glasnost)))}%`);
       const d = V.map((r) => r[v]!.total - r.base.total);
       const dw = mean(V.map((r) => +r[v]!.win - +r.base.win));
