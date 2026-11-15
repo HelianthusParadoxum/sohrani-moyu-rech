@@ -62,6 +62,9 @@ function makeCtx(state: GameState, me: string, preset: BotPreset, honest = false
   const feeders = state.players.length - (state.mode === 'full' && state.players.length >= 3 && curatorMaybe(state, me) ? 1 : 0);
   const urgency = Math.min(2.5, Math.max(0.6, need / Math.max(1, roundsLeft * feeders * 0.5)));
   const curator = !honest && player(state, me).passion === 'curator';
+  // Ранняя сеть: в первых Пятилетках честный бот ставит «Расширить Сеть» в приоритет (замер `npm run earlynet`: так он
+  // нанимает вдвое чаще и набирает больше). Пресет с весом сети 0 («не нанимает») не трогаем.
+  if (!curator && r <= BOT_BASE.earlyNetworkRounds && (preset.goals.network[r - 1] ?? 5) > 0) w.network = Math.max(w.network, BOT_BASE.earlyNetwork / 5);
   const suspect = curator ? {} : curatorSuspicion(state, me);
   // Кооперация: подозрение на Куратора или просто видно, что Гласность под угрозой (не хватает ступеней на оставшиеся ходы).
   const risk = r >= 3 ? Math.min(1, Math.max(0, (urgency - BOT_BASE.coopRiskFrom) / BOT_BASE.coopRiskSpan)) : 0;
@@ -404,7 +407,7 @@ function resources(state: GameState, p: PlayerState, ctx: Ctx, talonShare = 1): 
   // Нанятый Единомышленник засчитывается как полностью накопленная цена: иначе найм «сжигает» накопленное и бот копит
   // вместо того, чтобы нанимать (при сильном коплении нанимал реже, чем без него).
   const save = tune(ctx, 'hireSave');
-  if (save && w.network > 1) {
+  if (save && !ctx.curator && w.network > 1) {
     const saving = p.workers < RULES.maxWorkers ? Math.min(p.talons, RULES.hireCost) : 0;
     const hired = Math.max(0, p.workers - RULES.startWorkers) * RULES.hireCost;
     v += save * (w.network - 1) * (saving + hired) * ctx.talon * talonShare;
