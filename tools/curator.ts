@@ -10,7 +10,7 @@ import { BOT_BASE, selectablePresets } from '../src/engine/bot-presets';
 import { spreadLine, spreadOf } from './spread';
 
 // spread — «разброс победных очков»: итог первого минус итог последнего (в старых файлах его нет).
-type Row = { n: number; curWin: boolean; glasnost: boolean; spread?: number };
+type Row = { n: number; curWin: boolean; glasnost: boolean; spread?: number; seed?: number; honest?: number; workers?: number };
 
 function seeded(seed: number) {
   let t = seed;
@@ -54,7 +54,10 @@ if (process.argv[2] === 'merge') {
     const s = playOut(createGame({ players, seed: 7000 + g, mode: 'full', forceCurator: true }), rand, 12000, pick, skill);
     if (s.phase !== 'end' || !s.result) continue;
     const cur = s.players.find((p) => p.passion === 'curator')!;
-    const row = { n, curWin: s.result.winners.includes(cur.id), glasnost: s.result.glasnost, spread: spreadOf(s.result, cur.id) };
+    const row = { n, curWin: s.result.winners.includes(cur.id), glasnost: s.result.glasnost, spread: spreadOf(s.result, cur.id), seed: 7000 + g,
+      // Честные: средний итог и Единомышленников к концу.
+      honest: s.result.scores.filter((x) => x.player !== cur.id).reduce((a, x) => a + x.total, 0) / Math.max(1, n - 1),
+      workers: s.players.filter((p) => p.id !== cur.id).reduce((a, p) => a + p.workers, 0) / Math.max(1, n - 1) };
     rows.push(row);
     if (out) appendFileSync(out, JSON.stringify(row) + '\n');
   }

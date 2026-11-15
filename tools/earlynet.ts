@@ -11,10 +11,12 @@
 import { appendFileSync, readFileSync } from 'node:fs';
 import { createGame } from '../src/engine/engine';
 import { playOut, type BotSkill } from '../src/engine/bot';
-import { BOT_PRESETS, selectablePresets } from '../src/engine/bot-presets';
+import { BOT_BASE, BOT_PRESETS, selectablePresets } from '../src/engine/bot-presets';
 import { RULES } from '../src/engine/content';
 
 if (process.env.HIRE_COST) (RULES as { hireCost: number }).hireCost = Number(process.env.HIRE_COST);
+// OLD=1 — остальные боты (и base) играют по прежней логике: без ранней сети и копления.
+if (process.env.OLD) { BOT_BASE.earlyNetwork = 0; BOT_BASE.hireSave = 0; }
 
 type Side = { total: number; win: boolean; place: number; workers: number; hiredEarly: number; glasnost: boolean };
 type Variant = 'net' | 'save' | 'save2' | 'nohire';
