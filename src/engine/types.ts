@@ -61,7 +61,7 @@ export type GroupActionId =
 
 export type PatronId =
   | 'binder' | 'carpenter' | 'correspondent' | 'postgrad' | 'professor' | 'housekeeper' | 'spotter' | 'veteran'
-  | 'buyer' | 'fartsovshchik' | 'librarian' | 'tsekhovik' | 'partorg' | 'zavmag' | 'apprentice' | 'druzhinnik'
+  | 'buyer' | 'fartsovshchik' | 'librarian' | 'tsekhovik' | 'partorg' | 'zavmag' | 'tovaroved' | 'apprentice' | 'druzhinnik'
   | 'chairman' | 'zavkhoz' | 'buzoter' | 'broker' | 'blatnoy' | 'glavlit' | 'lieutenant' | 'cataloguer'
   | 'doctor' | 'komsorg' | 'typist' | 'editor' | 'labtech' | 'psychiatrist' | 'nesun' | 'geologist';
 

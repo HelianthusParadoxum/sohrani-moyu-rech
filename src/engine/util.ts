@@ -477,3 +477,8 @@ export function freeSproutSlots(state: Pick<GameState, 'mode' | 'reserve' | 'spr
   const taken = state.sproutRoundSlot?.[sprout] ?? [];
   return sproutSlotBonuses(state, info).map((_, i) => i).filter((i) => !taken.includes(i));
 }
+
+// Товаровед: на сколько мест вырастет Склад при заходе в Госкниготорг (до получения книг).
+export function gostorgGrow(state: Partial<Pick<GameState, 'patrons' | 'mode'>>, p: { id: string; capacity: number }): number {
+  return hasPatron(state, p.id, 'tovaroved') ? Math.max(0, Math.min(RULES.tovarovedSlots, RULES.maxCapacity - p.capacity)) : 0;
+}

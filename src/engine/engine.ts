@@ -14,7 +14,7 @@ import type {
 } from './types';
 import { GENRES } from './types';
 import {
-  addBook, addBoughtBook, addOpenBook, noteAutoHidden, canMemorizeOnBuy, countsAsLoad, isFromLoadDeck, roomToBuy, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
+  addBook, addBoughtBook, addOpenBook, noteAutoHidden, canMemorizeOnBuy, countsAsLoad, isFromLoadDeck, roomToBuy, addSecretBook, autoHide, cacheLimit, check, cloneJson, coversStep, discard, earn, gain, hasPatron, gostorgGrow, draw, drawLoad, fail, freeSlots, hasBook, iconsOf, isBanned, isEvidence,
   isGenreBook, isLoad, isPropaganda, isPropagandaKind, isSingle, log, pay, player, pointsText, random, removeBook, roman, shuffle,
   talonsText, title, titles, logEvent, logNote, logAfter, toSpetskhranPublic, seeSpetskhran, isExposed, saved, logRecap, plural, bulletTitles, iconCount, genresOf, genreOn,
 } from './util';
@@ -978,8 +978,8 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     case 'gostorg': {
       // Бесплатно, но за заход — одна пара.
       check(a.pairs === 1, 'В Госкниготорге за заход — одна пара книг');
-      // Склад сперва растёт (до максимума), потом приходят книги.
-      const grow = Math.min(RULES.gostorgExpand, RULES.maxCapacity - p.capacity);
+      // Товаровед: Склад сперва растёт (до максимума), потом приходят книги.
+      const grow = gostorgGrow(state, p);
       check(freeSlots(p) + grow >= a.pairs * 2, 'На складе не хватит места');
       // Завмаг: состав каждой книги выбирается свободно.
       const mix = a.mix ?? [];
@@ -990,7 +990,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       const kinds = mix.length ? mix : Array.from({ length: a.pairs }, () => ['load', 'unprinted'] as const).flat();
       if (grow > 0) {
         p.capacity += grow;
-        log(state, `${p.name}: в Госкниготорге склад увеличен до ${p.capacity}.`);
+        log(state, `${p.name}: Товаровед — склад увеличен до ${p.capacity}.`);
       }
       takeTop(state, p, kinds[0], 1, { kind: 'gostorg', got: [], rest: kinds.slice(1) });
       return;

@@ -7,7 +7,7 @@ import {
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PassionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
-import { title as bookTitle, bestFeedBooks, canMemorizeOnBuy, countsAsLoad, coversStep, roomToBuy, freeSproutSlots, genresOf, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, plural, roman, genreOn } from '../engine/util';
+import { title as bookTitle, bestFeedBooks, canMemorizeOnBuy, countsAsLoad, coversStep, roomToBuy, freeSproutSlots, genresOf, gostorgGrow, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, plural, roman, genreOn } from '../engine/util';
 import { blatnoyOptions, kontoraTargets } from '../engine/full';
 import {
   BefriendPicker, ClubContents, fittingBooks, patronOpen, patronWhy, ClubGiftModal, ClubPanel, FreeConnectionPrompt, StartConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
@@ -394,7 +394,7 @@ function addressBlocker(view: PlayerView, me: VPlayer, id: AddressId): string | 
   const sellable = books.filter((c) => isGenreBook(view, c) && !['evidence', 'loadEvidence', 'propaganda', 'loadPropaganda'].includes(view.cards[c].kind));
   switch (id) {
     case 'gostorg':
-      return free + Math.min(RULES.gostorgExpand, RULES.maxCapacity - me.capacity) < 2 ? 'Нужно 2 свободных места на складе (с учётом нового места).' : null;
+      return free + gostorgGrow(view, me) < 2 ? 'Нужно 2 свободных места на складе.' : null;
     case 'tolkuchka': {
       // Цена — со всеми скидками Завсегдатаев (Скупщик, Ветеран): книга может выйти и даром.
       const canBuy = view.tolkuchka.length > 0 && !roomFor(view.tolkuchka) && me.talons >= buyCost(view, me, [RULES.tolkuchkaBuy]);
@@ -621,10 +621,10 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
     case 'gostorg': {
       const zavmag = hasPatron(view, me.id, 'zavmag');
       const loads = Math.min(loadN, 2);
-      const grow = Math.min(RULES.gostorgExpand, RULES.maxCapacity - me.capacity);
+      const grow = gostorgGrow(view, me);
       body = (
         <>
-          <p>Бесплатно: {grow > 0 ? `+${grow} место на складе, затем ` : ''}1 книга Нагрузки и 1 книга Непечатных вслепую. Свободных мест{grow > 0 ? ' после расширения' : ''}: {free + grow}.</p>
+          <p>Бесплатно: {grow > 0 ? `Товаровед: +${grow} место на складе, затем ` : ''}1 книга Нагрузки и 1 книга Непечатных вслепую. Свободных мест{grow > 0 ? ' после расширения' : ''}: {free + grow}.</p>
           {zavmag && (
             <label>Завмаг: из 2 книг Нагрузки — <input type="number" min={0} max={2} value={loads} onChange={(e) => setLoadN(Number(e.target.value))} />, остальные — Непечатные</label>
           )}

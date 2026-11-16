@@ -11,7 +11,7 @@ import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
-  addSecretBook, cacheLimit, cloneJson, roomToBuy, coversStep, freeSlots, freeSproutSlots, countsAsLoad, genreOn, genresOf, hasPatron, iconCount, iconsOf, isBanned, isWild, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
+  addSecretBook, cacheLimit, cloneJson, roomToBuy, coversStep, freeSlots, freeSproutSlots, countsAsLoad, genreOn, genresOf, hasPatron, gostorgGrow, iconCount, iconsOf, isBanned, isWild, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
 } from './util';
 
 type Rand = () => number;
@@ -1585,7 +1585,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       for (const a of addrs) {
         switch (a) {
           case 'gostorg':
-            if (freeSlots(p) + Math.min(RULES.gostorgExpand, RULES.maxCapacity - p.capacity) >= 2) {
+            if (freeSlots(p) + gostorgGrow(state, p) >= 2) {
               out.push({ type: 'place', place: { address: 'gostorg', pairs: 1 } });
               // Завмаг: можно взять обе Непечатные.
               if (hasPatron(state, me, 'zavmag')) out.push({ type: 'place', place: { address: 'gostorg', pairs: 1, mix: ['unprinted', 'unprinted'] } });
