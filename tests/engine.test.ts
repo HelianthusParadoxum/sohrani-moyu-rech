@@ -44,7 +44,7 @@ function seeded(seed: number) {
 
 function allCards(s: GameState): string[] {
   return [
-    ...s.deck, ...s.discard, ...s.loadDeck, ...s.loadDiscard, ...s.tolkuchka, ...s.knigoobmen, ...s.raspredelitel, ...(s.agitpunkt ?? []),
+    ...s.deck, ...s.discard, ...s.loadDeck, ...s.loadDiscard, ...s.tolkuchka, ...s.knigoobmen, ...s.raspredelitel, ...(s.agitpunkt ?? []), ...(s.utsenka ?? []),
     ...s.razval.filter((c): c is string => !!c), ...s.baraholka.filter((c): c is string => !!c),
     ...s.pending.flatMap((p) => (p.kind === 'posrednichestvoKeep' || p.kind === 'spisanieKeep' ? p.cards : [])),
     ...s.players.flatMap((p) => [...p.warehouse.map((w) => w.card), ...p.published]),
@@ -1743,7 +1743,7 @@ describe('Лаборант', () => {
     b.progress = 3;
     const mainOf = (id: string) => SPROUTS.find((x) => x.id === id)!.main;
     const [ka, kb] = Object.keys(s.cards).filter((c) => s.cards[c].kind === 'genre').slice(0, 2);
-    for (const zone of [s.deck, s.discard, s.tolkuchka, s.knigoobmen, s.raspredelitel, s.razval]) {
+    for (const zone of [s.deck, s.discard, s.tolkuchka, s.knigoobmen, s.raspredelitel, s.utsenka ?? [], s.razval]) {
       for (const c of [ka, kb]) { const i = zone.indexOf(c); if (i >= 0) zone.splice(i, 1, null as never); }
     }
     s.cards[ka] = { ...s.cards[ka], icons: [mainOf(a.id), mainOf(a.id)] };

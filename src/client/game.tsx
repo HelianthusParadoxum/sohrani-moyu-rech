@@ -434,6 +434,9 @@ function addressBlocker(view: PlayerView, me: VPlayer, id: AddressId): string | 
     case 'agitpunkt':
       if (!(view.agitpunkt ?? []).length) return 'Витрина пуста.';
       return room;
+    case 'utsenka':
+      if (!(view.utsenka ?? []).length) return 'Уценка пуста.';
+      return roomFor(view.utsenka ?? []) ?? (me.talons >= buyCost(view, me, [RULES.utsenkaPrice]) ? null : `Нужно ${buyCost(view, me, [RULES.utsenkaPrice])}т, у вас ${me.talons}.`);
     case 'nasledniki':
       if (!view.discardCount) return 'Сброс Непечатных пуст.';
       return room ?? talons(RULES.safehousePrice);
@@ -574,6 +577,8 @@ function AddressContents({ id, view, seatIndex, me, onPatron, onBlocked, onPick 
       return <div className="shelf wrap">{(view.agitpunkt ?? []).map((c) => <Book key={c} v={view} id={c} mini onClick={pickBy(c)} />)}{emptySlots(RULES.agitpunktSize - (view.agitpunkt ?? []).length, true)}</div>;
     case 'raspredelitel':
       return <div className="shelf wrap">{view.raspredelitel.map((c) => <Book key={c} v={view} id={c} mini price={RULES.raspredelitelPrice} onClick={pickBy(c)} />)}{emptySlots(RULES.raspredelitelSize - view.raspredelitel.length, true)}</div>;
+    case 'utsenka':
+      return <div className="shelf wrap">{(view.utsenka ?? []).map((c) => <Book key={c} v={view} id={c} mini onClick={pickBy(c)} />)}{emptySlots(RULES.utsenkaSize - (view.utsenka ?? []).length, true)}</div>;
     default:
       return null;
   }
@@ -610,7 +615,7 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
         return (
           <Book key={c} v={view} id={c} selected={chosen.includes(c)} note={opts?.note?.(c)}
             hidden={me.warehouse.find((s) => s.card === c)?.hidden}
-            onClick={ok ? () => set(opts?.max === 1 ? (chosen.includes(c) ? [] : [c]) : toggle(chosen, c)) : undefined} />
+            onClick={ok ? () => set(opts?.max === 1 ? (chosen.includes(c) ? [] : [c]) : opts?.max && !chosen.includes(c) && chosen.length >= opts.max ? chosen : toggle(chosen, c)) : undefined} />
         );
       })}
     </div>
@@ -786,6 +791,21 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
           <h4>Что вы отдаёте</h4>
           {pickList(mine, sel, setSel, { max: 1 })}
           {confirmBtn('Предложить', sel.length && sel2.length ? { address: 'kvartirnik', to: target, give: sel[0], want: sel2[0] } : null)}
+        </>
+      );
+      break;
+    }
+    case 'utsenka': {
+      // Каждые utsenkaPerBuy книги — одна покупка за utsenkaPrice (с Ветераном — сколько угодно пар, всё на 1 Талон дешевле).
+      const buys = Math.max(1, Math.ceil(sel.length / RULES.utsenkaPerBuy));
+      body = (
+        <>
+          <p>За {RULES.utsenkaPrice}т — до {RULES.utsenkaPerBuy} книг с витрины.</p>
+          {veteran && <p className="muted small">Ветеран: купите сколько угодно книг (каждые {RULES.utsenkaPerBuy} — одна покупка), в сумме на 1 Талон дешевле.</p>}
+          {pickList(view.utsenka ?? [], sel, setSel, veteran ? {} : { max: RULES.utsenkaPerBuy })}
+          {confirmBtn(`Купить${costTag(buyCost(view, me, Array.from({ length: buys }, () => RULES.utsenkaPrice)))}`, sel.length && roomToBuy(view, me, sel)
+            ? { address: 'utsenka', cards: sel } : null)}
+          {free <= 0 && sel.some((c) => canMemorizeOnBuy(view, me, c)) && <p className="muted small">Места на складе нет — сборник поэзии сразу станет заученным.</p>}
         </>
       );
       break;

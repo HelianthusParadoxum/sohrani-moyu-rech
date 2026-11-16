@@ -259,9 +259,9 @@ export function applyAction(prev: GameState, playerId: string, action: Action): 
 }
 
 // Открытые адреса, куда выходят книги (для журнала: что и куда вышло).
-const DISPLAYS: [keyof Pick<GameState, 'razval' | 'tolkuchka' | 'knigoobmen' | 'raspredelitel' | 'agitpunkt'>, string][] = [
+const DISPLAYS: [keyof Pick<GameState, 'razval' | 'tolkuchka' | 'knigoobmen' | 'raspredelitel' | 'agitpunkt' | 'utsenka'>, string][] = [
   ['razval', 'На Развал'], ['tolkuchka', 'На Толкучку'], ['knigoobmen', 'На Книгообмен'], ['raspredelitel', 'В Распределитель'],
-  ['agitpunkt', 'На Агитпункт'],
+  ['agitpunkt', 'На Агитпункт'], ['utsenka', 'В Уценку'],
 ];
 
 function displayed(state: GameState): Set<string> {
@@ -488,6 +488,19 @@ function refreshChannels(state: GameState, first: boolean) {
       const c = draw(state);
       if (!c) break;
       if (state.cards[c].kind === 'genre' && iconsOf(state, c).length >= 2) state.raspredelitel.push(c);
+      else skipped.push(c);
+    }
+    skipped.forEach((c) => discard(state, c));
+  }
+  if (state.safehouses.includes('utsenka')) {
+    (state.utsenka ?? []).forEach((c) => discard(state, c));
+    state.utsenka = [];
+    const skipped: string[] = [];
+    while (state.utsenka.length < RULES.utsenkaSize) {
+      const c = draw(state);
+      if (!c) break;
+      // Только простые книги: один жанровый значок (без шедевров и двужанровых).
+      if (state.cards[c].kind === 'genre' && iconsOf(state, c).length === 1) state.utsenka.push(c);
       else skipped.push(c);
     }
     skipped.forEach((c) => discard(state, c));
@@ -789,12 +802,13 @@ function raid(state: GameState) {
     return keep;
   };
   const discardBefore = state.discard.length;
-  const before = state.tolkuchka.length + state.knigoobmen.length + state.raspredelitel.length + state.razval.filter(Boolean).length;
+  const before = state.tolkuchka.length + state.knigoobmen.length + state.raspredelitel.length + (state.utsenka ?? []).length + state.razval.filter(Boolean).length;
   state.tolkuchka = sweep(state.tolkuchka);
   state.knigoobmen = sweep(state.knigoobmen);
   state.raspredelitel = sweep(state.raspredelitel);
+  if (state.utsenka) state.utsenka = sweep(state.utsenka);
   state.razval = state.razval.map((c) => (c && isBanned(state, c) ? (discard(state, c), null) : c));
-  const after = state.tolkuchka.length + state.knigoobmen.length + state.raspredelitel.length + state.razval.filter(Boolean).length;
+  const after = state.tolkuchka.length + state.knigoobmen.length + state.raspredelitel.length + (state.utsenka ?? []).length + state.razval.filter(Boolean).length;
   if (before > after) log(state, `С адресов изъято книг: ${before - after}.`);
   for (const p of state.players) {
     const seized = p.warehouse.filter((s) => !s.hidden && !s.memorized && isBanned(state, s.card));
@@ -960,7 +974,7 @@ function doOrder(state: GameState, p: PlayerState, action: Action) {
   }
   doPlace(state, p, a);
   // Блатной: купил здесь — можно ещё одну книгу в другом месте.
-  if (a.address === 'razval' || a.address === 'raspredelitel' || (a.address === 'tolkuchka' && a.ops.some((op) => op.op === 'buy'))) offerBlatnoy(state, p, a.address);
+  if (a.address === 'razval' || a.address === 'raspredelitel' || a.address === 'utsenka' || (a.address === 'tolkuchka' && a.ops.some((op) => op.op === 'buy'))) offerBlatnoy(state, p, a.address);
   if (buzoter) { p.buzoterUsed = true; log(state, `${p.name}: Бузотёр пробивается на занятый адрес.`); }
   state.occupancy[a.address] = [...here, p.id];
   track(p, a.address);
@@ -1305,6 +1319,25 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         log(state, `${p.name} получает из Распределителя ${title(state, card)}.`);
         noteAutoHidden(state, p);
       }
+      return;
+    }
+    case 'utsenka': {
+      const cards = [...new Set(a.cards)];
+      check(cards.length > 0, 'Выберите книги');
+      check(cards.length <= RULES.utsenkaPerBuy || hasPatron(state, p.id, 'veteran'), `За одну покупку — до ${RULES.utsenkaPerBuy} книг (больше — только со связью с Ветераном)`);
+      for (const card of cards) check((state.utsenka ?? []).includes(card), 'Этой книги нет в Уценке');
+      check(roomToBuy(state, p, cards), 'На складе нет места');
+      cards.sort((x, y) => Number(canMemorizeOnBuy(state, p, x)) - Number(canMemorizeOnBuy(state, p, y)));
+      const buy = purchases(state, p);
+      // Каждые utsenkaPerBuy книги — одна покупка за utsenkaPrice.
+      let cost = 0;
+      for (let i = 0; i < cards.length; i += RULES.utsenkaPerBuy) cost += buy(RULES.utsenkaPrice);
+      for (const card of cards) {
+        addBoughtBook(state, p, card);
+        state.utsenka = (state.utsenka ?? []).filter((c) => c !== card);
+      }
+      log(state, `${p.name} покупает в Уценке ${titles(state, cards)} ${cost ? `за ${talonsText(cost)}` : 'даром'}.`);
+      noteAutoHidden(state, p);
       return;
     }
     case 'agitpunkt': {

@@ -1,6 +1,7 @@
 // Правка баланса: новое Тиражирование текста, цены Распределителя, Списания и Возвращения смыслов, доход Самиздата.
 import { describe, expect, it } from 'vitest';
-import { applyAction, createGame } from '../src/engine/engine';
+import { activePlayers, applyAction, createGame } from '../src/engine/engine';
+import { botMove } from '../src/engine/bot';
 import { RULES } from '../src/engine/content';
 import { RuleError, iconsOf, isLoad, title } from '../src/engine/util';
 import { gainedInfo, viewFor } from '../src/engine/view';
@@ -93,6 +94,40 @@ describe('цены и доходы', () => {
     expect(byId(s, p.id).talons).toBe(t);
     expect(byId(s, p.id).points).toBe(pts + 2 * RULES.samizdatPoints);
     expect(byId(s, p.id).pointsBy.samizdat).toBe(2 * RULES.samizdatPoints);
+  });
+
+  it(`Уценка: до ${RULES.utsenkaPerBuy} книг за ${RULES.utsenkaPrice}т; на витрине — только книги с одним значком`, () => {
+    let s = started();
+    const p = me(s);
+    p.talons = 10;
+    p.capacity = 10;
+    s.safehouses = ['utsenka'];
+    s.utsenka = s.deck.filter((x) => s.cards[x].kind === 'genre' && s.cards[x].icons.length === 1).slice(0, 4);
+    s.deck = s.deck.filter((x) => !s.utsenka!.includes(x));
+    const [a, b, c] = s.utsenka;
+    expect(() => act(s, p.id, { type: 'place', place: { address: 'utsenka', cards: [a, b, c] } })).toThrow(/Ветеран/);
+    s = act(s, p.id, { type: 'place', place: { address: 'utsenka', cards: [a, b] } });
+    const q = byId(s, p.id);
+    expect(q.talons).toBe(10 - RULES.utsenkaPrice);
+    expect([a, b].every((x) => q.warehouse.some((w) => w.card === x))).toBe(true);
+    expect(s.utsenka).toEqual(expect.not.arrayContaining([a, b]));
+    expect(s.log.some((l) => l.text.includes('покупает в Уценке'))).toBe(true);
+  });
+
+  it('Уценка обновляется каждую Пятилетку и выкладывает только жанровые книги с одним значком', () => {
+    let s = started();
+    s.safehouses = [...s.safehouses, 'utsenka'];
+    // Доиграть Пятилетку случайными ботами.
+    const round = s.round;
+    let rand = 1;
+    const r = () => ((rand = (rand * 16807) % 2147483647) / 2147483647);
+    for (let i = 0; i < 4000 && s.round === round && s.phase !== 'end'; i++) s = botMove(s, activePlayers(s)[0], r);
+    expect(s.round).toBe(round + 1);
+    expect((s.utsenka ?? []).length).toBe(RULES.utsenkaSize);
+    for (const c of s.utsenka!) {
+      expect(s.cards[c].kind).toBe('genre');
+      expect(s.cards[c].icons.length).toBe(1);
+    }
   });
 
   it(`Распределитель и Библиотечное списание стоят ${RULES.raspredelitelPrice}т и ${RULES.spisaniePrice}т`, () => {

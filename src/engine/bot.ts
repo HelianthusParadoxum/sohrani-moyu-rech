@@ -147,6 +147,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
             break;
           }
           case 'raspredelitel': for (const c of state.raspredelitel) out.push({ type: 'place', place: { address: 'raspredelitel', card: c } }); break;
+          case 'utsenka': { const u = state.utsenka ?? []; if (u.length) out.push({ type: 'place', place: { address: 'utsenka', cards: u.slice(0, RULES.utsenkaPerBuy) } }); break; }
           case 'agitpunkt': for (const c of new Set(state.agitpunkt ?? [])) out.push({ type: 'place', place: { address: 'agitpunkt', card: c } }); break;
           case 'nasledniki': case 'posrednichestvo': case 'spisanie': out.push({ type: 'place', place: { address: a } }); break;
           case 'makulatura': if (freeSlots(p) > 0 && p.talons >= RULES.makulaturaPrice) out.push({ type: 'place', place: { address: a } }); break;

@@ -126,7 +126,7 @@ function feedBooksOnTable(state: GameState): number {
     if (sp.progress >= RULES.glasnostStep) continue;
     need.add(SPROUTS.find((s) => s.id === sp.id)!.main);
   }
-  return [...state.tolkuchka, ...state.razval, ...state.raspredelitel, ...state.knigoobmen]
+  return [...state.tolkuchka, ...state.razval, ...state.raspredelitel, ...(state.utsenka ?? []), ...state.knigoobmen]
     .filter((c): c is string => !!c && genresOf(state, c).some((g) => need.has(g))).length;
 }
 
@@ -301,6 +301,7 @@ function shopValue(state: GameState, p: PlayerState, ctx: Ctx): number {
     ...state.razval.flatMap((c, i) => (c ? [{ card: c, price: RULES.razvalPrices[i] }] : [])),
     ...state.tolkuchka.map((c) => ({ card: c, price: RULES.tolkuchkaBuy })),
     ...(state.safehouses.includes('raspredelitel') ? state.raspredelitel.map((c) => ({ card: c, price: RULES.raspredelitelPrice })) : []),
+    ...(state.safehouses.includes('utsenka') ? (state.utsenka ?? []).map((c) => ({ card: c, price: RULES.utsenkaPrice })) : []),
   ].filter((o) => o.price <= p.talons && isGenreBook(state, o.card) && roomToBuy(state, p, [o.card])); // без места — только сборник, который сразу заучат
   if (!offers.length) return 0;
   const base = feedPotential(state, p, ctx);
@@ -1651,6 +1652,15 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
             break;
           }
           case 'raspredelitel': for (const c of state.raspredelitel) out.push({ type: 'place', place: { address: 'raspredelitel', card: c } }); break;
+          case 'utsenka': {
+            // Уценка: одна книга или пара (все пары витрины).
+            const u = state.utsenka ?? [];
+            for (let i = 0; i < u.length; i++) {
+              out.push({ type: 'place', place: { address: 'utsenka', cards: [u[i]] } });
+              for (let j = i + 1; j < u.length; j++) out.push({ type: 'place', place: { address: 'utsenka', cards: [u[i], u[j]] } });
+            }
+            break;
+          }
           case 'agitpunkt': for (const c of new Set(state.agitpunkt ?? [])) out.push({ type: 'place', place: { address: 'agitpunkt', card: c } }); break;
           case 'nasledniki': case 'posrednichestvo': case 'spisanie': out.push({ type: 'place', place: { address: a } }); break;
           // Макулатура: бот идёт туда с местом на складе и Талоном на первую книгу (оценка `honestDig` считает в Талонах).

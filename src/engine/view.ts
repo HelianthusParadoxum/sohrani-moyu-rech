@@ -35,7 +35,7 @@ export function viewFor(state: GameState, me: string | null, omniscient = false)
   return {
     ...rest,
     ...(closedTable ? {
-      razval: rest.razval.map(() => null), tolkuchka: [], knigoobmen: [], raspredelitel: [], agitpunkt: [],
+      razval: rest.razval.map(() => null), tolkuchka: [], knigoobmen: [], raspredelitel: [], agitpunkt: [], utsenka: [],
       safehouses: [],
     } : {}),
     me,

@@ -47,6 +47,7 @@ export type AddressId =
   | 'posrednichestvo'
   | 'spisanie'
   | 'agitpunkt'
+  | 'utsenka' // Уценка
   // Полный режим
   | 'club' // Клуб книголюбов
   | 'kontora'; // Контора
@@ -212,6 +213,7 @@ export interface GameState {
   knigoobmen: string[];
   raspredelitel: string[];
   agitpunkt?: string[]; // Агитпункт: открытая витрина Нагрузки
+  utsenka?: string[]; // Уценка: открытая витрина простых книг (один жанровый значок)
   safehouses: AddressId[]; // выложенные явочные адреса
   safehouseDeck: AddressId[];
   occupancy: Partial<Record<AddressId, string[]>>;
@@ -288,6 +290,7 @@ export type PlaceAction =
   | { address: 'glavlit'; recycle: string[] } // сдать до 1 Непечатной и до 1 Нагрузки (с Комсоргом — сколько угодно)
   | { address: 'knigoobmen'; give: string; take: string }
   | { address: 'kvartirnik'; to: string; give: string; want: string }
+  | { address: 'utsenka'; cards: string[] } // Уценка: 1–2 книги за покупку (с Ветераном — сколько угодно)
   | { address: 'raspredelitel'; card: string; cards?: string[] } // cards — Ветеран покупает несколько
   | { address: 'agitpunkt'; card: string; cards?: string[] } // cards — Ветеран берёт несколько
   | { address: 'nasledniki' }
