@@ -25,7 +25,8 @@
     "drama": "tsx tools/drama.ts",
     "popularity": "tsx tools/popularity.ts",
     "hire": "tsx tools/hire.ts",
-    "earlynet": "tsx tools/earlynet.ts"
+    "earlynet": "tsx tools/earlynet.ts",
+    "order": "tsx tools/order.ts"
   },
   "dependencies": {
     "react": "^19.3.1",
