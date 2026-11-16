@@ -69,6 +69,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
         return t.length ? t.map((patron) => ({ type: 'befriend' as const, patron })) : [{ type: 'pass' }];
       }
       case 'catalogPick': return [{ type: 'catalogPick', from: rand() < 0.5 ? 'top' : 'bottom' }];
+      case 'banyaPick': return [{ type: 'banyaPick', patron: pend.cards[0] }];
       case 'ekspeditorBuy': return [...ekspeditorOptions(state, p).slice(0, 1).map((o) => ({ type: 'ekspeditorBuy' as const, slot: o.slot })), { type: 'pass' }];
       case 'blatnoyBuy': return [...blatnoyOptions(state, p, pend.from).slice(0, 1).map((o) => ({ type: 'blatnoyBuy' as const, address: o.address, card: o.card })), { type: 'pass' }];
       case 'sproutBonus': {
@@ -150,6 +151,7 @@ export function candidateActions(state: GameState, me: string, rand: Rand): Acti
           case 'utsenka': { const u = state.utsenka ?? []; if (u.length) out.push({ type: 'place', place: { address: 'utsenka', cards: u.slice(0, RULES.utsenkaPerBuy) } }); break; }
           case 'agitpunkt': for (const c of new Set(state.agitpunkt ?? [])) out.push({ type: 'place', place: { address: 'agitpunkt', card: c } }); break;
           case 'nasledniki': case 'posrednichestvo': case 'spisanie': out.push({ type: 'place', place: { address: a } }); break;
+          case 'banya': if ((state.patronDeck ?? []).length && p.talons >= RULES.banyaPrice) out.push({ type: 'place', place: { address: 'banya' } }); break;
           case 'makulatura': if (freeSlots(p) > 0 && p.talons >= RULES.makulaturaPrice) out.push({ type: 'place', place: { address: a } }); break;
           case 'club':
             if (!RULES.clubFreeGift) for (const gift of clubGifts(state, me)) out.push({ type: 'place', place: { address: 'club', gifts: [gift] } });

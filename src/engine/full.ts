@@ -17,6 +17,8 @@ export function setupClub(state: GameState) {
   const pool = shuffle(state, Object.values(PATRONS).filter((p) => p.implemented && !(state.reserve && KONTORA_PATRONS.includes(p.id)) && !(state.solo && p.id === 'professor')).map((p) => p.id));
   const genres = shuffle(state, [...GENRES]);
   state.patrons = pool.slice(0, CLUB_SIZE).map((id, i) => ({ id, genre: genres[i], connections: [], turned: false, removed: false }));
+  state.patronDeck = pool.slice(CLUB_SIZE); // остальные — колода (для Бани)
+  state.exclusivePatrons = [];
 }
 
 // ---------- Цены и мелкие эффекты ----------
@@ -367,6 +369,22 @@ export function payPrice(state: GameState, p: PlayerState, cost: number) {
   const c = price(state, p, cost);
   pay(p, c);
   return c;
+}
+
+// ---------- Баня ----------
+
+// Эксклюзивная связь: Завсегдатай из колоды — только у этого игрока, в Клуб не идёт. Нераскрытые — под низ колоды.
+export function banyaPick(state: GameState, p: PlayerState, cards: PatronId[], id: PatronId) {
+  check(cards.includes(id), 'Выберите одного из вытянутых Завсегдатаев');
+  (state.exclusivePatrons ??= []).push({ id, player: p.id, since: state.round });
+  state.patronDeck = [...(state.patronDeck ?? []), ...cards.filter((x) => x !== id)];
+  log(state, `${p.name} заводит в Бане эксклюзивную связь: ${PATRONS[id].name}.`);
+  state.log[state.log.length - 1].club = { player: p.id, round: state.round };
+  onConnect(state, p, id);
+  if (id !== 'broker' && hasPatron(state, p.id, 'broker')) {
+    logAfter(state, `↳ Маклер: +${talonsText(RULES.brokerTalons)}.`);
+    earn(state, p, RULES.brokerTalons, 'broker');
+  }
 }
 
 // ---------- Экспедитор ----------

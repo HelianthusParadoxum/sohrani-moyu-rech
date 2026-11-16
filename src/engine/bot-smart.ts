@@ -11,7 +11,7 @@ import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
 import {
-  addSecretBook, cacheLimit, cloneJson, roomToBuy, coversStep, freeSlots, freeSproutSlots, countsAsLoad, genreOn, genresOf, hasPatron, gostorgGrow, iconCount, iconsOf, isBanned, isWild, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
+  addSecretBook, cacheLimit, cloneJson, roomToBuy, coversStep, freeSlots, freeSproutSlots, countsAsLoad, genreOn, genresOf, hasPatron, gostorgGrow, patronCount, iconCount, iconsOf, isBanned, isWild, isEvidence, isExposed, isGenreBook, isLoad, isPropaganda, player, RuleError,
 } from './util';
 
 type Rand = () => number;
@@ -548,7 +548,7 @@ export function evaluate(state: GameState, me: string, ctx: Ctx): number {
   // их трудно хранить (опальные), а Гласности они не помогают.
   const evidenceWeight = state.solo && !soloTargetMet(state) ? BOT_BASE.soloEvidenceEarly : 1;
   v += RULES.evidencePoints * evidenceWeight * [...cards, ...p.tamizdat].filter((c) => isEvidence(state, c)).length;
-  const connections = state.patrons.filter((x) => !x.removed && x.connections.includes(me)).length;
+  const connections = patronCount(state, me);
   const link = BOT_BASE.connection * RULES.connectionPoints + BOT_BASE.patronEffect * w.club * (left + 1);
   v += connections * link;
   v += albumReserve(state, me, cards, link, left, tune(ctx, 'albumOption'));
@@ -740,7 +740,7 @@ function determinize(state: GameState, rand: Rand, me: string): GameState {
 // Отложенные решения, которые бот при примерке додумывает сам (они следуют сразу за ходом).
 const FOLLOW_UP = new Set([
   'sproutBonus', 'posrednichestvoKeep', 'spisanieKeep', 'makulatura', 'posrednichestvoGroup', 'baraholkaLook', 'naslednikiPick', 'extraGroup', 'discardExcess',
-  'doctorLoad', 'zavkhozLoad', 'kontoraDecide', 'kontoraHandout', 'glavlitSwap', 'lieutenantPick', 'freeConnection', 'startConnection', 'blatnoyBuy', 'ekspeditorBuy', 'catalogPick',
+  'doctorLoad', 'zavkhozLoad', 'kontoraDecide', 'kontoraHandout', 'glavlitSwap', 'lieutenantPick', 'freeConnection', 'startConnection', 'blatnoyBuy', 'ekspeditorBuy', 'banyaPick', 'catalogPick',
 ]);
 
 function tryApply(state: GameState, me: string, a: Action): GameState | null {
@@ -1521,6 +1521,8 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         return t.length ? t.map((patron) => ({ type: 'befriend' as const, patron })) : [{ type: 'pass' }];
       }
       case 'catalogPick': return [{ type: 'catalogPick', from: 'top' }, { type: 'catalogPick', from: 'bottom' }];
+      // Баня: связи бот оценивает одинаково — выбираем по силе Завсегдатая (замер `npm run patrons`).
+      case 'banyaPick': return [{ type: 'banyaPick', patron: [...pend.cards].sort((a, b) => (PATRON_POWER[b] ?? 0.3) - (PATRON_POWER[a] ?? 0.3))[0] }];
       case 'ekspeditorBuy': return [...ekspeditorOptions(state, p).map((o) => ({ type: 'ekspeditorBuy' as const, slot: o.slot })), { type: 'pass' }];
       case 'blatnoyBuy': return [...blatnoyOptions(state, p, pend.from).map((o) => ({ type: 'blatnoyBuy' as const, address: o.address, card: o.card })), { type: 'pass' }];
       default: return []; // остальное решает простой бот
@@ -1663,6 +1665,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
           }
           case 'agitpunkt': for (const c of new Set(state.agitpunkt ?? [])) out.push({ type: 'place', place: { address: 'agitpunkt', card: c } }); break;
           case 'nasledniki': case 'posrednichestvo': case 'spisanie': out.push({ type: 'place', place: { address: a } }); break;
+          case 'banya': if ((state.patronDeck ?? []).length && p.talons >= RULES.banyaPrice) out.push({ type: 'place', place: { address: 'banya' } }); break;
           // Макулатура: бот идёт туда с местом на складе и Талоном на первую книгу (оценка `honestDig` считает в Талонах).
           case 'makulatura': if (freeSlots(p) > 0 && (p.talons >= RULES.makulaturaPrice || makulaturaPayBooks(state, p).length)) out.push({ type: 'place', place: { address: a } }); break;
           case 'club': if (!RULES.clubFreeGift) out.push(...clubCandidates(state, me, keepMap())); break;

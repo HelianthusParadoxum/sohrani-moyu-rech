@@ -548,6 +548,8 @@ describe('Честный бот аккуратнее с опальным', () =>
 describe('Бот и поэзия: прятать выгоднее, чем заучивать', () => {
   function setup() {
     let s = createGame({ players: players(3), seed: 12, mode: 'full', curator: false });
+    // Сборник нужен неопальный: поэзию из опалы снимаем (чтобы тест не зависел от раздачи).
+    s.banned = s.banned.filter((g) => g !== 'poetry');
     for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
     for (const p of s.players) if (s.phase === 'setupCache') s = applyAction(s, p.id, { type: 'hiding', hidden: [] });
     while (s.pending[0]?.kind === 'startConnection') s.pending.shift(); // стартовые связи пропускаем: тестам нужна партия без связей

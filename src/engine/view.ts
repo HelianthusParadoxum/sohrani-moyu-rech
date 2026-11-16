@@ -3,7 +3,8 @@ import { activePlayers } from './engine';
 import { hasPatron } from './util';
 import type { GameState, Pending, PlayerState } from './types';
 
-export interface PlayerView extends Omit<GameState, 'rng' | 'seed' | 'deck' | 'discard' | 'loadDeck' | 'loadDiscard' | 'baraholka' | 'baraholkaSeen' | 'players' | 'pending' | 'spetskhran' | 'spetskhranSeen'> {
+export interface PlayerView extends Omit<GameState, 'rng' | 'seed' | 'deck' | 'discard' | 'loadDeck' | 'loadDiscard' | 'baraholka' | 'baraholkaSeen' | 'players' | 'pending' | 'spetskhran' | 'spetskhranSeen' | 'patronDeck'> {
+  patronDeckCount: number; // колода Завсегдатаев — только число
   spetskhranCount: number;
   spetskhranKnown: string[]; // книги Спецхрана, которые этот игрок знает (изъятые при всех и виденные сам)
   me: string | null;
@@ -27,7 +28,7 @@ export interface PlayerView extends Omit<GameState, 'rng' | 'seed' | 'deck' | 'd
 // omniscient — видно всё (хост наблюдает за партией ботов со стороны).
 export function viewFor(state: GameState, me: string | null, omniscient = false): PlayerView {
   const ended = state.phase === 'end' || omniscient;
-  const { rng, seed, deck, discard, loadDeck, loadDiscard, baraholka, baraholkaSeen, players, pending, log, spetskhran, spetskhranSeen, ...rest } = state;
+  const { rng, seed, deck, discard, loadDeck, loadDiscard, baraholka, baraholkaSeen, players, pending, log, spetskhran, spetskhranSeen, patronDeck, ...rest } = state;
   // Пока выбирают Пристрастия, стол ещё не открыт: видны свои стартовые книги, Ростки и Завсегдатаи (они в журнале).
   const closedTable = state.phase === 'passion' && !omniscient;
   // Наводчик: в любой момент своего хода — закрытые книги Барахолки, сбросы целиком и верх стопок.
@@ -41,6 +42,7 @@ export function viewFor(state: GameState, me: string | null, omniscient = false)
     me,
     active: activePlayers(state),
     spetskhranCount: spetskhran.length,
+    patronDeckCount: (patronDeck ?? []).length,
     // Наводчик в свой ход видит весь Спецхран.
     spetskhranKnown: spetskhran.filter((c) => omniscient || spot || (me !== null && (spetskhranSeen?.[me] ?? []).includes(c))),
     deckCount: deck.length,

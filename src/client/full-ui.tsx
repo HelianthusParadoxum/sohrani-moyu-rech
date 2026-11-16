@@ -68,6 +68,20 @@ export function ClubContents({ view, seatIndex, me, onPatron, onBlocked }: { vie
         </li>
         );
       })}
+      {/* Эксклюзивные связи из Бани: вне Клуба, у одного игрока. */}
+      {(view.exclusivePatrons ?? []).map((x) => {
+        const tint = PLAYER_COLORS[seatIndex(x.player)];
+        return (
+          <li key={`ex-${x.id}`} className="exclusive" title={iconize(PATRONS[x.id].hint)}
+            style={{ background: `color-mix(in srgb, ${tint} 16%, var(--card))`, borderColor: tint }}>
+            <div className="patron-head"><b>{PATRONS[x.id].name}</b><span className="muted small">Баня</span></div>
+            <div className="muted small">{withKindChips(iconize(PATRONS[x.id].hint))}</div>
+            <div className="patron-links">
+              <span className="dot num wide" style={{ background: tint }} title={`${view.players.find((o) => o.id === x.player)?.name ?? ''}: эксклюзивная связь с ${x.since}-й Пятилетки`}>П{x.since}</span>
+            </div>
+          </li>
+        );
+      })}
     </ul>
   );
 }

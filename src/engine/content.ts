@@ -64,6 +64,8 @@ export const RULES = {
   safehousePrice: 3, // Наследники
   posrednichestvoPrice: 2, // Посредничество авторам
   raspredelitelPrice: 2, // книга Распределителя
+  banyaPrice: 2, // Баня: цена захода
+  banyaDraw: 3, // Баня: сколько Завсегдатаев сверху колоды смотрит игрок
   utsenkaPrice: 1, // Уценка: цена одной покупки (до utsenkaPerBuy книг)
   spisaniePrice: 1, // Библиотечное списание
   makulaturaPrice: 1, // Макулатура: Талонов за каждую вытянутую книгу
@@ -144,7 +146,7 @@ const INF = Infinity;
 // ресурсов (🎫 ★ 📚 🔒 🤝 👤 📃 📕); у Конторы — 👁️, как у удержанных ею Единомышленников.
 export const ADDRESS_ICONS: Record<AddressId, string> = {
   club: '☕', kontora: '👁️', sprouts: '🌱', redCorner: '🚩', glavlit: '📜', makulatura: '♻️', gostorg: '🏬', baraholka: '🧺',
-  tolkuchka: '💱', razval: '📦', zavoz: '🚚', tamizdat: '✈️', samizdat: '⌨️', knigoobmen: '🔁', raspredelitel: '🏷️', utsenka: '🔖',
+  tolkuchka: '💱', razval: '📦', zavoz: '🚚', tamizdat: '✈️', samizdat: '⌨️', knigoobmen: '🔁', raspredelitel: '🏷️', utsenka: '🔖', banya: '🧖',
   agitpunkt: '📢', podpiska: '📬', nasledniki: '🕯️', posrednichestvo: '✒️', spisanie: '🏛️', kvartirnik: '🏠',
 };
 
@@ -194,6 +196,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   kvartirnik: { id: 'kvartirnik', name: 'Квартирник', limits: [1, 1, 1], safehouse: true, short: 'Обмен с игроком', hint: 'Обмен книгами с другим игроком по согласию; когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы' },
   raspredelitel: { id: 'raspredelitel', name: 'Распределитель', limits: [1, 1, 1], safehouse: true, short: `Выдающаяся книга за ${RULES.raspredelitelPrice}т`, hint: `Купить 1 выдающуюся книгу за ${RULES.raspredelitelPrice}т` },
   utsenka: { id: 'utsenka', name: 'Уценка', limits: [1, 1, 1], safehouse: true, short: `${RULES.utsenkaPerBuy} простые книги за ${RULES.utsenkaPrice}т`, hint: `Купить до ${RULES.utsenkaPerBuy} книг с витрины за ${RULES.utsenkaPrice}т (на витрине — только книги с одним жанровым значком); когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы` },
+  banya: { id: 'banya', name: 'Баня', limits: [1, 1, 1], safehouse: true, fullOnly: true, short: `${RULES.banyaPrice}т: эксклюзивная связь`, hint: `−${RULES.banyaPrice}т: тайно взять ${RULES.banyaDraw} верхних Завсегдатаев из колоды, выбрать одного и завязать с ним эксклюзивную связь — в Клуб он не идёт, другие связаться с ним не могут; остальные — под низ колоды` },
   agitpunkt: { id: 'agitpunkt', name: 'Агитпункт', limits: [1, 1, 1], safehouse: true, short: 'Нагрузка с витрины даром', hint: 'Свой человек в агитпункте: взять 1 книгу Нагрузки с витрины бесплатно; когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы' },
   nasledniki: { id: 'nasledniki', name: 'Наследники', limits: [1, 1, 1], safehouse: true, short: `${RULES.safehousePrice}т: 1–2 книги из сброса`, hint: `−${RULES.safehousePrice}т: тайно взять 1–2 книги из сброса Непечатных; остаток сброса замешивается в стопку` },
   posrednichestvo: { id: 'posrednichestvo', name: 'Посредничество авторам', limits: [1, 1, 1], safehouse: true, short: `${RULES.posrednichestvoPrice}т: вытянуть ${RULES.posrednichestvoDraw}, оставить ${RULES.posrednichestvoKeep} + действие Группы`, hint: `−${RULES.posrednichestvoPrice}т: тайно вытянуть ${RULES.posrednichestvoDraw}, оставить ${RULES.posrednichestvoKeep}, затем 1 любое действие Группы (даже уже сделанное)` },
@@ -211,6 +214,7 @@ export const COPY_TEXT_ADDRESSES = ['razval', 'tolkuchka', 'raspredelitel', 'kni
 export function safehouseCost(id: AddressId): number {
   if (id === 'raspredelitel') return RULES.raspredelitelPrice;
   if (id === 'utsenka') return RULES.utsenkaPrice;
+  if (id === 'banya') return RULES.banyaPrice;
   if (id === 'spisanie') return RULES.spisaniePrice;
   if (id === 'posrednichestvo') return RULES.posrednichestvoPrice;
   return RULES.safehousePrice;
@@ -220,7 +224,7 @@ export const PERMANENT_ADDRESSES: AddressId[] = [
   'gostorg', 'tolkuchka', 'redCorner', 'razval', 'zavoz', 'baraholka', 'sprouts', 'samizdat', 'tamizdat', 'glavlit', 'makulatura',
   'club', 'kontora',
 ];
-export const SAFEHOUSES: AddressId[] = (['knigoobmen', 'kvartirnik', 'raspredelitel', 'nasledniki', 'posrednichestvo', 'spisanie', 'podpiska', 'agitpunkt', 'utsenka'] as AddressId[])
+export const SAFEHOUSES: AddressId[] = (['knigoobmen', 'kvartirnik', 'raspredelitel', 'nasledniki', 'posrednichestvo', 'spisanie', 'podpiska', 'agitpunkt', 'utsenka', 'banya'] as AddressId[])
   .filter((id) => !RULES.safehouseOff.includes(id));
 // Адреса, которые начинают партию заполненными (если выложены).
 export const STARTS_FILLED: AddressId[] = ['knigoobmen', 'raspredelitel', 'agitpunkt', 'utsenka'];

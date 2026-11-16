@@ -6,7 +6,7 @@ import {
 } from './content';
 import { finalScoring } from './scoring';
 import {
-  afterRaid, befriendPatron, befriendTargets, startConnectionTargets, doKontora, gaveAway, giveToPatron, holdWorker, isFull, partorgFill, offerBlatnoy, doBlatnoy, ekspeditorOptions, payPrice, price, proseBonus, purchases,
+  afterRaid, befriendPatron, befriendTargets, startConnectionTargets, doKontora, gaveAway, giveToPatron, holdWorker, isFull, partorgFill, offerBlatnoy, doBlatnoy, ekspeditorOptions, banyaPick, payPrice, price, proseBonus, purchases,
   flushIrony, removePatron, seizeDenounced, setupClub, startKontora, takeFromSpetskhran,
 } from './full';
 import type {
@@ -52,7 +52,7 @@ export function createGame(opts: NewGameOptions): GameState {
   if (opts.reserve) state.reserve = true;
   state.deck = shuffle(state, CARDS.filter((c) => !['load', 'loadReturnable', 'loadEvidence', 'loadPropaganda'].includes(c.kind)).map((c) => c.id));
   state.loadDeck = shuffle(state, CARDS.filter((c) => ['load', 'loadReturnable', 'loadEvidence', 'loadPropaganda'].includes(c.kind) && (RULES.legalPropaganda || !c.legal)).map((c) => c.id));
-  state.safehouseDeck = shuffle(state, [...SAFEHOUSES]);
+  state.safehouseDeck = shuffle(state, SAFEHOUSES.filter((a) => !ADDRESSES[a].fullOnly || mode === 'full'));
   state.sprouts = shuffle(state, SPROUTS.map((s) => s.id)).slice(0, solo ? RULES.soloSprouts[mode] : Math.min(SPROUTS.length, n + RULES.extraSprouts[opts.reserve ? 'reserve' : mode] + (RULES.extraSproutsByPlayers[n] ?? 0))).map((id) => ({ id, progress: 0 }));
 
   // Колода Пристрастий.
@@ -1357,6 +1357,16 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       (p.bonusGroupFrom ??= []).push('agitpunkt');
       return;
     }
+    case 'banya': {
+      check((state.patronDeck ?? []).length > 0, 'Колода Завсегдатаев пуста');
+      payPrice(state, p, RULES.banyaPrice);
+      const deck = state.patronDeck ?? [];
+      const cards = deck.slice(0, RULES.banyaDraw);
+      state.patronDeck = deck.slice(cards.length);
+      state.pending.push({ kind: 'banyaPick', player: p.id, cards });
+      log(state, `${p.name} идёт в Баню.`);
+      return;
+    }
     case 'nasledniki': {
       check(freeSlots(p) > 0, 'На складе нет места');
       check(state.discard.length > 0, 'Сброс Непечатных пуст');
@@ -1933,6 +1943,11 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       }
       return;
     }
+    case 'banyaPick': {
+      check(action.type === 'banyaPick', 'Выберите Завсегдатая');
+      banyaPick(state, p, pend.cards, action.patron);
+      break;
+    }
     case 'ekspeditorBuy': {
       if (action.type === 'pass') {
         logAfter(state, `↳ Экспедитор: ${p.name} не покупает со свежего Развала.`);
@@ -1989,6 +2004,8 @@ export type { AddressId, Genre, PassionId };
 // Сохранения, сделанные до появления полного режима, дополняем недостающими полями.
 export function migrate(state: GameState): GameState {
   state.patrons ??= [];
+  state.patronDeck ??= [];
+  state.exclusivePatrons ??= [];
   state.spetskhran ??= [];
   state.spetskhranSeen ??= {};
   state.baraholkaSeen ??= {};

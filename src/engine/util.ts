@@ -206,8 +206,15 @@ export function bestFeedBooks(state: CardsInfo, books: string[], main: Genre, ne
 }
 
 // Есть ли у игрока связь с Завсегдатаем (только полный режим).
-export function hasPatron(state: Partial<Pick<GameState, 'patrons' | 'mode'>>, pid: string, id: PatronId): boolean {
-  return state.mode === 'full' && !!state.patrons?.some((x) => x.id === id && !x.removed && x.connections.includes(pid));
+export function hasPatron(state: Partial<Pick<GameState, 'patrons' | 'mode' | 'exclusivePatrons'>>, pid: string, id: PatronId): boolean {
+  return state.mode === 'full' && (!!state.patrons?.some((x) => x.id === id && !x.removed && x.connections.includes(pid))
+    || !!state.exclusivePatrons?.some((x) => x.id === id && x.player === pid));
+}
+
+// Сколько у игрока связей: в Клубе и эксклюзивных (Баня).
+export function patronCount(state: Partial<Pick<GameState, 'patrons' | 'exclusivePatrons'>>, pid: string): number {
+  return (state.patrons ?? []).filter((x) => !x.removed && x.connections.includes(pid)).length
+    + (state.exclusivePatrons ?? []).filter((x) => x.player === pid).length;
 }
 
 export function isLoad(state: CardsInfo, id: string): boolean {
@@ -479,6 +486,6 @@ export function freeSproutSlots(state: Pick<GameState, 'mode' | 'reserve' | 'spr
 }
 
 // Завмаг: на сколько мест вырастет Склад при заходе в Госкниготорг (до получения книг).
-export function gostorgGrow(state: Partial<Pick<GameState, 'patrons' | 'mode'>>, p: { id: string; capacity: number }): number {
+export function gostorgGrow(state: Partial<Pick<GameState, 'patrons' | 'mode' | 'exclusivePatrons'>>, p: { id: string; capacity: number }): number {
   return hasPatron(state, p.id, 'tovaroved') ? Math.max(0, Math.min(RULES.tovarovedSlots, RULES.maxCapacity - p.capacity)) : 0;
 }

@@ -2,7 +2,7 @@
 import { PASSIONS, RULES, SPROUTS } from './content';
 import type { GameResult, GameState, Genre, PlayerState, ScoreLine } from './types';
 import { GENRES } from './types';
-import { discard, draw, iconCount, iconVariants, iconsOf, isEvidence, isExposed, isPropaganda, log, roman, title } from './util';
+import { discard, draw, iconCount, iconVariants, iconsOf, isEvidence, isExposed, isPropaganda, log, patronCount, roman, title } from './util';
 
 // Коллекция для Пристрастия: склад (включая Тайник) + изданное.
 export function collection(state: GameState, p: PlayerState): string[] {
@@ -109,7 +109,7 @@ export function scoreLine(state: GameState, p: PlayerState): ScoreLine {
     + RULES.exposePoints * [...stash, ...p.published].filter((id) => isExposed(state, id)).length;
   const evidence = RULES.evidencePoints * [...stash, ...p.tamizdat].filter((id) => isEvidence(state, id)).length;
   const icons = collection(state, p).reduce((s, id) => s + iconCount(state, id), 0);
-  const connections = state.patrons.filter((x) => !x.removed && x.connections.includes(p.id)).length;
+  const connections = patronCount(state, p.id);
   const talonPoints = Math.floor(p.talons / RULES.talonsPerPoint);
   return {
     player: p.id, during: p.points, duringBy: { ...p.pointsBy }, passion, propaganda, evidence, connections, talonPoints,

@@ -3,7 +3,7 @@ import { activePlayers, applyAction, createGame, startHide } from '../src/engine
 import { botMove, playOut } from '../src/engine/bot';
 import { curatorSuspicion, curatorSuspicionDetail } from '../src/engine/bot-smart';
 import { gainedInfo, viewFor } from '../src/engine/view';
-import { RuleError, cacheLimit, isFromLoadDeck, bestFeedBooks, coversStep, iconCount, title, iconsOf, isBanned, isEvidence, isLoad, isPropaganda, discard, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
+import { RuleError, cacheLimit, hasPatron, isFromLoadDeck, bestFeedBooks, coversStep, iconCount, title, iconsOf, isBanned, isEvidence, isLoad, isPropaganda, discard, seeSpetskhran, toSpetskhranPublic } from '../src/engine/util';
 import { finalScoring, passionPoints, scoreLine } from '../src/engine/scoring';
 import { GENRE_SHORT, PASSIONS, RULES, SPROUTS, STEP_REWARDS, limitFor, sproutBonusOptions, sproutSlotBonuses } from '../src/engine/content';
 import type { GameState, Genre, PatronId } from '../src/engine/types';
@@ -2809,6 +2809,49 @@ describe('Ростки по числу игроков', () => {
     expect(count(4)).toBe(4);
     expect(count(5)).toBe(5 + RULES.extraSproutsByPlayers[5]);
     expect(RULES.extraSproutsByPlayers[5]).toBe(2);
+  });
+});
+
+describe('Баня', () => {
+  function setup() {
+    let s = createGame({ players: players(2), seed: 5, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    s.safehouses = [...s.safehouses, 'banya'];
+    const me = s.order[s.turn];
+    s.players.find((x) => x.id === me)!.talons = 10;
+    return { s, me, other: s.players.find((x) => x.id !== me)!.id };
+  }
+
+  it('тайно тянет 3 Завсегдатаев из колоды; выбранный — эксклюзивная связь, остальные — под низ колоды', () => {
+    let { s, me, other } = setup();
+    const deck = [...s.patronDeck!];
+    expect(deck.length).toBeGreaterThanOrEqual(RULES.banyaDraw);
+    expect(deck.some((id) => s.patrons.some((x) => x.id === id))).toBe(false); // колода — не Клуб
+    s = applyAction(s, me, { type: 'place', place: { address: 'banya' } });
+    expect(s.players.find((x) => x.id === me)!.talons).toBe(10 - RULES.banyaPrice);
+    const pend = s.pending[0];
+    expect(pend).toMatchObject({ kind: 'banyaPick', player: me, cards: deck.slice(0, RULES.banyaDraw) });
+    // Сопернику не видно ни вытянутых, ни колоды.
+    const theirs = viewFor(s, other);
+    expect(JSON.stringify(theirs.pending)).not.toContain(deck[0]);
+    expect((theirs as unknown as { patronDeck?: unknown }).patronDeck).toBeUndefined();
+    expect(theirs.patronDeckCount).toBe(deck.length - RULES.banyaDraw);
+    const pick = deck[1];
+    expect(() => applyAction(s, me, { type: 'banyaPick', patron: deck[RULES.banyaDraw] })).toThrow(RuleError);
+    s = applyAction(s, me, { type: 'banyaPick', patron: pick });
+    expect(hasPatron(s, me, pick)).toBe(true);
+    expect(hasPatron(s, other, pick)).toBe(false);
+    expect(s.patrons.some((x) => x.id === pick)).toBe(false); // в Клуб не идёт — связаться с ним другим негде
+    expect(s.exclusivePatrons).toEqual([{ id: pick, player: me, since: s.round }]);
+    expect(s.patronDeck).toEqual([...deck.slice(RULES.banyaDraw), deck[0], deck[2]]);
+    expect(s.log.some((l) => l.text.includes('эксклюзивную связь'))).toBe(true);
+  });
+
+  it('пустая колода — в Баню не пойти', () => {
+    const { s, me } = setup();
+    s.patronDeck = [];
+    expect(() => applyAction(s, me, { type: 'place', place: { address: 'banya' } })).toThrow(/пуста/);
   });
 });
 

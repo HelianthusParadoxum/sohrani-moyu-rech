@@ -7,7 +7,7 @@ import {
 import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupAction, GroupActionId, PassionId, PatronId, PlaceAction, PointSource, SproutBonusId } from '../engine/types';
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
-import { title as bookTitle, bestFeedBooks, canMemorizeOnBuy, countsAsLoad, coversStep, roomToBuy, freeSproutSlots, genresOf, gostorgGrow, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, plural, roman, genreOn } from '../engine/util';
+import { title as bookTitle, bestFeedBooks, canMemorizeOnBuy, countsAsLoad, coversStep, roomToBuy, freeSproutSlots, genresOf, gostorgGrow, hasPatron, patronCount, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, plural, roman, genreOn } from '../engine/util';
 import { blatnoyOptions, ekspeditorOptions, kontoraTargets } from '../engine/full';
 import {
   BefriendPicker, ClubContents, fittingBooks, patronOpen, patronWhy, ClubGiftModal, ClubPanel, FreeConnectionPrompt, StartConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
@@ -437,6 +437,9 @@ function addressBlocker(view: PlayerView, me: VPlayer, id: AddressId): string | 
     case 'utsenka':
       if (!(view.utsenka ?? []).length) return 'Уценка пуста.';
       return roomFor(view.utsenka ?? []) ?? (me.talons >= buyCost(view, me, [RULES.utsenkaPrice]) ? null : `Нужно ${buyCost(view, me, [RULES.utsenkaPrice])}т, у вас ${me.talons}.`);
+    case 'banya':
+      if (!view.patronDeckCount) return 'Колода Завсегдатаев пуста.';
+      return talons(RULES.banyaPrice);
     case 'nasledniki':
       if (!view.discardCount) return 'Сброс Непечатных пуст.';
       return room ?? talons(RULES.safehousePrice);
@@ -841,6 +844,10 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
       body = <><p>{info.hint}.</p>{confirmBtn(`Пойти в Макулатуру (${priceFor(view, me, RULES.makulaturaPrice)}🎫 или книга за каждую)`, me.talons >= RULES.makulaturaPrice || mine.length ? { address: 'makulatura' } : null,
         'Нечем платить: нужен Талон или книга на складе')}</>;
       break;
+    case 'banya':
+      body = <><p>{info.hint}. В колоде: {view.patronDeckCount}.</p>{confirmBtn(`Пойти${costTag(priceFor(view, me, RULES.banyaPrice))}`, me.talons >= priceFor(view, me, RULES.banyaPrice) && view.patronDeckCount > 0 ? { address: 'banya' } : null,
+        !view.patronDeckCount ? 'Колода Завсегдатаев пуста' : `Не хватает Талонов: нужно ${priceFor(view, me, RULES.banyaPrice)}, у вас ${me.talons}`)}</>;
+      break;
     case 'nasledniki':
     case 'posrednichestvo':
     case 'spisanie':
@@ -1192,6 +1199,22 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
             <button className="primary" onClick={() => act({ type: 'catalogPick', from: 'top' })}>Взять сверху</button>
             <button className="primary" onClick={() => act({ type: 'catalogPick', from: 'bottom' })}>Взять снизу</button>
           </div>
+        </Modal>
+      );
+    }
+    case 'banyaPick': {
+      // Баня: выбрать одного из верхних Завсегдатаев колоды — эксклюзивная связь.
+      return (
+        <Modal title="Баня: эксклюзивная связь" wide>
+          <p>Выберите Завсегдатая: связь с ним будет только у вас, в Клуб он не придёт. Остальные уйдут под низ колоды.</p>
+          <ul className="patrons">
+            {p.cards.map((id) => (
+              <li key={id} className="can" role="button" onClick={() => act({ type: 'banyaPick', patron: id })}>
+                <div className="patron-head"><b>{PATRONS[id].name}</b></div>
+                <div className="muted small">{withKindChips(iconize(PATRONS[id].hint))}</div>
+              </li>
+            ))}
+          </ul>
         </Modal>
       );
     }
@@ -1831,7 +1854,7 @@ function Stats({ p, view }: { p: VPlayer; view: PlayerView }) {
       <span title="Талоны"><i>🎫</i>{p.talons}</span>
       <span title="Склад: занято / мест (заученный сборник поэзии — сверх склада)"><i>📚</i>{p.warehouse.filter((s) => !s.memorized).length}/{p.capacity}</span>
       <span title={`Тайник: занято / мест (${p.cache}${cover ? ` + ${cover} за Нагрузку на складе` : ''})`}><i>🔒</i>{p.warehouse.filter((s) => s.hidden).length}/{p.cache + cover}{cover ? '*' : ''}</span>
-      {view.mode === 'full' && <span title="Связи в Клубе книголюбов"><i>🤝</i>{view.patrons.filter((x) => !x.removed && x.connections.includes(p.id)).length}</span>}
+      {view.mode === 'full' && <span title="Связи в Клубе книголюбов"><i>🤝</i>{patronCount(view, p.id)}</span>}
       {!view.reserve && <span title="Единомышленников удерживает Контора"><i>👁️</i>{p.held}</span>}
       <span title="Очки Гласности, набранные по ходу игры"><i>★</i>{p.points}</span>
     </div>

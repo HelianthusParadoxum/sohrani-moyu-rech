@@ -6,6 +6,6 @@ for (const kv of (process.env.RULES_SET ?? '').split(',').filter(Boolean)) {
   const [path, v] = kv.split('=');
   const [k, sub] = path.split('.');
   if (!(k in RULES)) throw new Error(`Нет такого числа в RULES: ${k}`);
-  if (sub !== undefined) ((RULES as Record<string, Record<string, unknown>>)[k])[sub] = Number(v);
+  if (sub !== undefined) ((RULES as unknown as Record<string, Record<string, unknown>>)[k])[sub] = Number(v);
   else (RULES as Record<string, unknown>)[k] = Number(v);
 }

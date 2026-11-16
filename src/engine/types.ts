@@ -48,6 +48,7 @@ export type AddressId =
   | 'spisanie'
   | 'agitpunkt'
   | 'utsenka' // Уценка
+  | 'banya' // Баня: эксклюзивная связь из колоды Завсегдатаев
   // Полный режим
   | 'club' // Клуб книголюбов
   | 'kontora'; // Контора
@@ -157,6 +158,7 @@ export type Pending =
   | { kind: 'freeConnection'; player: string } // Председатель
   | { kind: 'startConnection'; player: string } // перед первыми поручениями: связь с одним свободным Завсегдатаем
   | { kind: 'ekspeditorBuy'; player: string } // Экспедитор: после Развоза можно купить одну книгу свежего Развала
+  | { kind: 'banyaPick'; player: string; cards: PatronId[] } // Баня: выбрать одного из верхних Завсегдатаев колоды
   | { kind: 'blatnoyBuy'; player: string; from: AddressId } // Блатной: купил в from — можно купить ещё одну книгу в другом месте
   | { kind: 'catalogPick'; player: string; deck: 'unprinted' | 'load' | 'discard'; top: string[]; bottom: string[]; then: CatalogThen } // Каталогизатор: верхний или нижний набор (стопки или сброса)
   | { kind: 'lieutenantPick'; player: string; cards: string[] } // Лейтенант: книги, изъятые облавой с адресов
@@ -219,6 +221,8 @@ export interface GameState {
   occupancy: Partial<Record<AddressId, string[]>>;
   sprouts: Sprout[];
   patrons: PatronState[];
+  patronDeck?: PatronId[]; // колода Завсегдатаев, не попавших в Клуб (тайная; Баня тянет сверху)
+  exclusivePatrons?: { id: PatronId; player: string; since: number }[]; // эксклюзивные связи из Бани: вне Клуба, только у одного игрока
   spetskhran: string[]; // Спецхран (в Главлите) — общий, лежит взакрытую
   spetskhranSeen?: Record<string, string[]>; // какие книги Спецхрана игрок знает (изъятые при всех или виденные при Выдаче на руки)
   solo?: boolean; // «Несистемный»: одиночная игра
@@ -294,6 +298,7 @@ export type PlaceAction =
   | { address: 'raspredelitel'; card: string; cards?: string[] } // cards — Ветеран покупает несколько
   | { address: 'agitpunkt'; card: string; cards?: string[] } // cards — Ветеран берёт несколько
   | { address: 'nasledniki' }
+  | { address: 'banya' }
   | { address: 'posrednichestvo' }
   | { address: 'spisanie' }
   | { address: 'makulatura' }
@@ -353,6 +358,7 @@ export type Action =
   | { type: 'clubGift'; gift: ClubGift | null }
   | { type: 'befriend'; patron: PatronId } // Председатель: связь с любым Завсегдатаем без книги
   | { type: 'ekspeditorBuy'; slot: number } // Экспедитор: книга со свежего Развала
+  | { type: 'banyaPick'; patron: PatronId } // Баня: с кем завязать эксклюзивную связь
   | { type: 'blatnoyBuy'; address: BlatnoyShop; card: string } // Блатной: ещё одна книга в другом месте
   | { type: 'catalogPick'; from: 'top' | 'bottom' } // Каталогизатор: какой набор взять
   | { type: 'memorize'; card: string | null }
