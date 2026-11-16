@@ -6,7 +6,7 @@
 import { activePlayers, applyAction, mustVisitRedCorner } from './engine';
 import { BOT_BASE, CURATOR_STYLES, PATRON_POWER, curatorStyle, type BotGoal, type BotPreset, type CuratorStyle, type TunableBase } from './bot-presets';
 import { COPY_TEXT_ADDRESSES, PERMANENT_ADDRESSES, addressInGame, PASSIONS, RULES, SPROUTS, STEP_REWARDS, ADDRESSES, limitFor } from './content';
-import { befriendTargets, blatnoyOptions, heldTotal, kontoraTargets, startConnectionTargets } from './full';
+import { befriendTargets, blatnoyOptions, ekspeditorOptions, heldTotal, kontoraTargets, startConnectionTargets } from './full';
 import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
@@ -739,7 +739,7 @@ function determinize(state: GameState, rand: Rand, me: string): GameState {
 // Отложенные решения, которые бот при примерке додумывает сам (они следуют сразу за ходом).
 const FOLLOW_UP = new Set([
   'sproutBonus', 'posrednichestvoKeep', 'spisanieKeep', 'makulatura', 'posrednichestvoGroup', 'baraholkaLook', 'naslednikiPick', 'extraGroup', 'discardExcess',
-  'doctorLoad', 'zavkhozLoad', 'kontoraDecide', 'kontoraHandout', 'glavlitSwap', 'lieutenantPick', 'freeConnection', 'startConnection', 'blatnoyBuy', 'catalogPick',
+  'doctorLoad', 'zavkhozLoad', 'kontoraDecide', 'kontoraHandout', 'glavlitSwap', 'lieutenantPick', 'freeConnection', 'startConnection', 'blatnoyBuy', 'ekspeditorBuy', 'catalogPick',
 ]);
 
 function tryApply(state: GameState, me: string, a: Action): GameState | null {
@@ -1520,6 +1520,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
         return t.length ? t.map((patron) => ({ type: 'befriend' as const, patron })) : [{ type: 'pass' }];
       }
       case 'catalogPick': return [{ type: 'catalogPick', from: 'top' }, { type: 'catalogPick', from: 'bottom' }];
+      case 'ekspeditorBuy': return [...ekspeditorOptions(state, p).map((o) => ({ type: 'ekspeditorBuy' as const, slot: o.slot })), { type: 'pass' }];
       case 'blatnoyBuy': return [...blatnoyOptions(state, p, pend.from).map((o) => ({ type: 'blatnoyBuy' as const, address: o.address, card: o.card })), { type: 'pass' }];
       default: return []; // остальное решает простой бот
     }

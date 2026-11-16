@@ -2780,6 +2780,48 @@ describe('Контора без проигрыша по числу удержа�
   });
 });
 
+describe('Экспедитор', () => {
+  it('после Развоза покупает одну книгу свежего Развала по её цене; без связи — ничего', () => {
+    let s = createGame({ players: players(2), seed: 5, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    p.talons = 10;
+    p.capacity = 10;
+    // Без связи — решения нет.
+    const plain = applyAction(s, me, { type: 'place', place: { address: 'zavoz' } });
+    expect(plain.pending.some((x) => x.kind === 'ekspeditorBuy')).toBe(false);
+    s.patrons[0] = { ...s.patrons[0], id: 'ekspeditor', connections: [me] };
+    s = applyAction(s, me, { type: 'place', place: { address: 'zavoz' } });
+    expect(s.pending[0]).toMatchObject({ kind: 'ekspeditorBuy', player: me });
+    const slot = s.razval.findIndex(Boolean);
+    const card = s.razval[slot]!;
+    const talons = s.players.find((x) => x.id === me)!.talons;
+    s = applyAction(s, me, { type: 'ekspeditorBuy', slot });
+    const q = s.players.find((x) => x.id === me)!;
+    expect(q.warehouse.some((w) => w.card === card)).toBe(true);
+    expect(q.talons).toBe(talons - RULES.razvalPrices[slot]);
+    expect(s.razval[slot]).toBeNull();
+    expect(s.pending.some((x) => x.kind === 'ekspeditorBuy')).toBe(false);
+    expect(s.log.some((l) => l.text.includes('Экспедитор:'))).toBe(true);
+  });
+
+  it('можно отказаться', () => {
+    let s = createGame({ players: players(2), seed: 5, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    s.players.find((x) => x.id === me)!.talons = 10;
+    s.patrons[0] = { ...s.patrons[0], id: 'ekspeditor', connections: [me] };
+    s = applyAction(s, me, { type: 'place', place: { address: 'zavoz' } });
+    const razval = [...s.razval];
+    s = applyAction(s, me, { type: 'pass' });
+    expect(s.razval).toEqual(razval);
+    expect(s.pending.some((x) => x.kind === 'ekspeditorBuy')).toBe(false);
+  });
+});
+
 describe('Блатной', () => {
   it('купив на Развале, за то же действие покупает ещё одну книгу на Толкучке (но не на Развале)', () => {
     let s = createGame({ players: players(2), seed: 5, mode: 'full' });

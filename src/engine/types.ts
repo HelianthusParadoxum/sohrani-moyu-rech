@@ -61,7 +61,7 @@ export type GroupActionId =
 
 export type PatronId =
   | 'binder' | 'carpenter' | 'correspondent' | 'postgrad' | 'professor' | 'housekeeper' | 'spotter' | 'veteran'
-  | 'buyer' | 'fartsovshchik' | 'librarian' | 'tsekhovik' | 'partorg' | 'zavmag' | 'tovaroved' | 'apprentice' | 'druzhinnik'
+  | 'buyer' | 'fartsovshchik' | 'librarian' | 'tsekhovik' | 'partorg' | 'zavmag' | 'tovaroved' | 'ekspeditor' | 'apprentice' | 'druzhinnik'
   | 'chairman' | 'zavkhoz' | 'buzoter' | 'broker' | 'blatnoy' | 'glavlit' | 'lieutenant' | 'cataloguer'
   | 'doctor' | 'komsorg' | 'typist' | 'editor' | 'labtech' | 'psychiatrist' | 'nesun' | 'geologist';
 
@@ -155,6 +155,7 @@ export type Pending =
   | { kind: 'extraGroup'; player: string } // Подмастерье
   | { kind: 'freeConnection'; player: string } // Председатель
   | { kind: 'startConnection'; player: string } // перед первыми поручениями: связь с одним свободным Завсегдатаем
+  | { kind: 'ekspeditorBuy'; player: string } // Экспедитор: после Развоза можно купить одну книгу свежего Развала
   | { kind: 'blatnoyBuy'; player: string; from: AddressId } // Блатной: купил в from — можно купить ещё одну книгу в другом месте
   | { kind: 'catalogPick'; player: string; deck: 'unprinted' | 'load' | 'discard'; top: string[]; bottom: string[]; then: CatalogThen } // Каталогизатор: верхний или нижний набор (стопки или сброса)
   | { kind: 'lieutenantPick'; player: string; cards: string[] } // Лейтенант: книги, изъятые облавой с адресов
@@ -348,6 +349,7 @@ export type Action =
   | { type: 'kontoraHandout'; card: string }
   | { type: 'clubGift'; gift: ClubGift | null }
   | { type: 'befriend'; patron: PatronId } // Председатель: связь с любым Завсегдатаем без книги
+  | { type: 'ekspeditorBuy'; slot: number } // Экспедитор: книга со свежего Развала
   | { type: 'blatnoyBuy'; address: BlatnoyShop; card: string } // Блатной: ещё одна книга в другом месте
   | { type: 'catalogPick'; from: 'top' | 'bottom' } // Каталогизатор: какой набор взять
   | { type: 'memorize'; card: string | null }

@@ -8,7 +8,7 @@ import type { Action, AddressId, CopyTextAddress, CopyTextBuy, Genre, GroupActio
 import { GENRES } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import { title as bookTitle, bestFeedBooks, canMemorizeOnBuy, countsAsLoad, coversStep, roomToBuy, freeSproutSlots, genresOf, gostorgGrow, hasPatron, iconCount, isEvidence, isExposed, isGenreBook, isPropaganda, loadCover, plural, roman, genreOn } from '../engine/util';
-import { blatnoyOptions, kontoraTargets } from '../engine/full';
+import { blatnoyOptions, ekspeditorOptions, kontoraTargets } from '../engine/full';
 import {
   BefriendPicker, ClubContents, fittingBooks, patronOpen, patronWhy, ClubGiftModal, ClubPanel, FreeConnectionPrompt, StartConnectionPrompt, HandoutPrompt, KontoraContents, KontoraDecidePrompt, KontoraPanel,
   KontoraWarningPrompt,
@@ -1172,6 +1172,19 @@ function PendingPrompt({ view, me, act, nameOf, cancel }: { view: PlayerView; me
             <button className="primary" onClick={() => act({ type: 'catalogPick', from: 'top' })}>Взять сверху</button>
             <button className="primary" onClick={() => act({ type: 'catalogPick', from: 'bottom' })}>Взять снизу</button>
           </div>
+        </Modal>
+      );
+    }
+    case 'ekspeditorBuy': {
+      // Экспедитор: одна книга со свежего Развала — по её цене.
+      const opts = ekspeditorOptions(view as never, me as never);
+      return (
+        <Modal title="Экспедитор: книга со свежего Развала" wide>
+          <p>Можно купить одну книгу из нового Развала по её цене. У вас {me.talons}🎫.</p>
+          <div className="shelf wrap">
+            {opts.map((o) => <Book key={o.card} v={view} id={o.card} price={o.cost} onClick={() => act({ type: 'ekspeditorBuy', slot: o.slot })} />)}
+          </div>
+          <div className="modal-foot"><button onClick={() => act({ type: 'pass' })}>Не покупать</button></div>
         </Modal>
       );
     }

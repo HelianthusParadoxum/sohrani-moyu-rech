@@ -6,7 +6,7 @@ import {
 } from './content';
 import { finalScoring } from './scoring';
 import {
-  afterRaid, befriendPatron, befriendTargets, startConnectionTargets, doKontora, gaveAway, giveToPatron, holdWorker, isFull, partorgFill, offerBlatnoy, doBlatnoy, payPrice, price, proseBonus, purchases,
+  afterRaid, befriendPatron, befriendTargets, startConnectionTargets, doKontora, gaveAway, giveToPatron, holdWorker, isFull, partorgFill, offerBlatnoy, doBlatnoy, ekspeditorOptions, payPrice, price, proseBonus, purchases,
   flushIrony, removePatron, seizeDenounced, setupClub, startKontora, takeFromSpetskhran,
 } from './full';
 import type {
@@ -1097,6 +1097,7 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       state.razval = [null, null, null, null];
       fillRazval(state);
       log(state, `${p.name} подрабатывает развозом книг на точки: +${talonsText(RULES.zavozIncome)}, Развал обновлён.`);
+      if (hasPatron(state, p.id, 'ekspeditor') && ekspeditorOptions(state, p).length) state.pending.push({ kind: 'ekspeditorBuy', player: p.id });
       return;
     }
     case 'baraholka': {
@@ -1898,6 +1899,19 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
         state.holdTurn = true;
       }
       return;
+    }
+    case 'ekspeditorBuy': {
+      if (action.type === 'pass') break;
+      check(action.type === 'ekspeditorBuy', 'Купите книгу или откажитесь');
+      const opt = ekspeditorOptions(state, p).find((o) => o.slot === action.slot);
+      check(opt, 'Эту книгу Экспедитор купить не может: пустая ячейка, не хватает Талонов или места на складе');
+      const cost = purchases(state, p)(RULES.razvalPrices[opt.slot]);
+      state.razval[opt.slot] = null;
+      logAfter(state, `↳ Экспедитор: ${p.name} покупает со свежего Развала ${title(state, opt.card)} за ${talonsText(cost)}.`);
+      addBoughtBook(state, p, opt.card);
+      noteAutoHidden(state, p);
+      offerBlatnoy(state, p, 'razval');
+      break;
     }
     case 'blatnoyBuy': {
       if (action.type === 'pass') break;

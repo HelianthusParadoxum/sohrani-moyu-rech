@@ -369,6 +369,15 @@ export function payPrice(state: GameState, p: PlayerState, cost: number) {
   return c;
 }
 
+// ---------- Экспедитор ----------
+
+// Какие книги свежего Развала Экспедитор может купить: есть Талоны и место на складе (или сборник, который сразу заучивается).
+export function ekspeditorOptions(state: GameState, p: PlayerState): { slot: number; card: string; cost: number }[] {
+  const cost = (base: number) => (base > 0 && hasPatron(state, p.id, 'buyer') ? Math.max(1, base - 1) : base);
+  return state.razval.flatMap((c, i) => (c ? [{ slot: i, card: c, cost: cost(RULES.razvalPrices[i]) }] : []))
+    .filter((o) => o.cost <= p.talons && roomToBuy(state, p, [o.card]));
+}
+
 // ---------- Блатной ----------
 
 // Блатной: купив книгу в одном месте (Развал, Толкучка, Барахолка и платные явочные адреса — Распределитель, Наследники,
