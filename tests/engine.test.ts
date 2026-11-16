@@ -1077,6 +1077,20 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     const p = s.players.find((x) => x.id === me)!;
     expect(p.talons).toBe(talons);
     expect(p.warehouse.length).toBe(p0.warehouse.length + 2);
+    expect(p.capacity).toBe(10); // уже максимум — не растёт
+  });
+
+  it('Госкниготорг расширяет склад на 1 — и книги помещаются даже при одном свободном месте', () => {
+    let s = started();
+    const me = s.order[s.turn];
+    const p0 = s.players.find((x) => x.id === me)!;
+    p0.capacity = p0.warehouse.length + 1;
+    const cap = p0.capacity;
+    s = applyAction(s, me, { type: 'place', place: { address: 'gostorg', pairs: 1 } });
+    const p = s.players.find((x) => x.id === me)!;
+    expect(p.capacity).toBe(cap + RULES.gostorgExpand);
+    expect(p.warehouse.length).toBe(p0.warehouse.length + 2);
+    expect(s.log.some((l) => l.text.includes(`склад увеличен до ${cap + 1}`))).toBe(true);
   });
 
   it('Завмаг: в Госкниготорге состав свободный', () => {

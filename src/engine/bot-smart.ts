@@ -1585,7 +1585,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
       for (const a of addrs) {
         switch (a) {
           case 'gostorg':
-            if (freeSlots(p) >= 2) {
+            if (freeSlots(p) + Math.min(RULES.gostorgExpand, RULES.maxCapacity - p.capacity) >= 2) {
               out.push({ type: 'place', place: { address: 'gostorg', pairs: 1 } });
               // Завмаг: можно взять обе Непечатные.
               if (hasPatron(state, me, 'zavmag')) out.push({ type: 'place', place: { address: 'gostorg', pairs: 1, mix: ['unprinted', 'unprinted'] } });

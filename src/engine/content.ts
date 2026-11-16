@@ -35,6 +35,7 @@ export const RULES = {
   safehouseAtStart: true, // первый явочный адрес — сразу в 1-й Пятилетке (было: только со 2-й)
   startCache: 0, // мест в Тайнике в начале партии (было 1; места дают ещё Нагрузка на складе и Закладка Тайника)
   maxCapacity: 10,
+  gostorgExpand: 1, // Госкниготорг: на сколько мест растёт Склад перед получением книг (до maxCapacity)
   maxCache: 5,
   startCensorship: 3,
   censorshipTokens: [3, 4, 5, 6, 7],
@@ -172,7 +173,7 @@ export interface AddressInfo {
 }
 
 export const ADDRESSES: Record<AddressId, AddressInfo> = {
-  gostorg: { id: 'gostorg', name: 'Госкниготорг', limits: [2, 3, 4], short: 'Даром вслепую: Нагрузка + Непечатное', hint: 'Бесплатно: 1 книга Нагрузки и 1 книга Непечатных вслепую (за заход — одна пара)' },
+  gostorg: { id: 'gostorg', name: 'Госкниготорг', limits: [2, 3, 4], short: `+${RULES.gostorgExpand} место склада; даром вслепую Нагрузка + Непечатное`, hint: `Бесплатно: +${RULES.gostorgExpand} место на складе (до ${RULES.maxCapacity}), затем 1 книга Нагрузки и 1 книга Непечатных вслепую (за заход — одна пара)` },
   tolkuchka: { id: 'tolkuchka', name: 'Толкучка', limits: [2, 3, 4], short: `Купить ${RULES.tolkuchkaBuy}т · продать ${RULES.tolkuchkaSellFree}–${RULES.tolkuchkaSellBanned}т`, hint: 'Купить 1 книгу: −2т. Продать 1 книгу: +2т (опальный жанр) или +1т (прочие); проданное уходит в сброс' },
   redCorner: { id: 'redCorner', name: 'Красный уголок', limits: [INF, INF, INF], perPlayer: true, short: 'Очередь хода; +1 Нагрузка', hint: 'Очередь хода на следующую Пятилетку; обязательно взять 1 Нагрузку вслепую. Нет места — отдать книгу Непечатных со склада; склад весь в Нагрузке — не брать' },
   razval: { id: 'razval', name: 'Развал', limits: [2, 3, 4], short: 'Купить: 2/2/1/1т', hint: 'Купить 1 книгу: −2/−2/−1/−1т по свежести' },

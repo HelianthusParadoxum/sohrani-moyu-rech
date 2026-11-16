@@ -394,7 +394,7 @@ function addressBlocker(view: PlayerView, me: VPlayer, id: AddressId): string | 
   const sellable = books.filter((c) => isGenreBook(view, c) && !['evidence', 'loadEvidence', 'propaganda', 'loadPropaganda'].includes(view.cards[c].kind));
   switch (id) {
     case 'gostorg':
-      return free < 2 ? 'Нужно 2 свободных места на складе.' : null;
+      return free + Math.min(RULES.gostorgExpand, RULES.maxCapacity - me.capacity) < 2 ? 'Нужно 2 свободных места на складе (с учётом нового места).' : null;
     case 'tolkuchka': {
       // Цена — со всеми скидками Завсегдатаев (Скупщик, Ветеран): книга может выйти и даром.
       const canBuy = view.tolkuchka.length > 0 && !roomFor(view.tolkuchka) && me.talons >= buyCost(view, me, [RULES.tolkuchkaBuy]);
@@ -621,13 +621,14 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
     case 'gostorg': {
       const zavmag = hasPatron(view, me.id, 'zavmag');
       const loads = Math.min(loadN, 2);
+      const grow = Math.min(RULES.gostorgExpand, RULES.maxCapacity - me.capacity);
       body = (
         <>
-          <p>Бесплатно: 1 книга Нагрузки и 1 книга Непечатных вслепую. Свободных мест: {free}.</p>
+          <p>Бесплатно: {grow > 0 ? `+${grow} место на складе, затем ` : ''}1 книга Нагрузки и 1 книга Непечатных вслепую. Свободных мест{grow > 0 ? ' после расширения' : ''}: {free + grow}.</p>
           {zavmag && (
             <label>Завмаг: из 2 книг Нагрузки — <input type="number" min={0} max={2} value={loads} onChange={(e) => setLoadN(Number(e.target.value))} />, остальные — Непечатные</label>
           )}
-          {confirmBtn('Взять даром', free >= 2
+          {confirmBtn('Взять даром', free + grow >= 2
             ? { address: 'gostorg', pairs: 1, ...(zavmag ? { mix: [0, 1].map((i) => (i < loads ? 'load' as const : 'unprinted' as const)) } : {}) }
             : null, 'Нужно 2 свободных места')}
         </>

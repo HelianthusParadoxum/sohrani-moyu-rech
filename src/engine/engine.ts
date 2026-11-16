@@ -978,7 +978,9 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     case 'gostorg': {
       // Бесплатно, но за заход — одна пара.
       check(a.pairs === 1, 'В Госкниготорге за заход — одна пара книг');
-      check(freeSlots(p) >= a.pairs * 2, 'На складе не хватит места');
+      // Склад сперва растёт (до максимума), потом приходят книги.
+      const grow = Math.min(RULES.gostorgExpand, RULES.maxCapacity - p.capacity);
+      check(freeSlots(p) + grow >= a.pairs * 2, 'На складе не хватит места');
       // Завмаг: состав каждой книги выбирается свободно.
       const mix = a.mix ?? [];
       if (mix.length) {
@@ -986,6 +988,10 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         check(mix.length === a.pairs * 2, 'Укажите состав всех книг');
       }
       const kinds = mix.length ? mix : Array.from({ length: a.pairs }, () => ['load', 'unprinted'] as const).flat();
+      if (grow > 0) {
+        p.capacity += grow;
+        log(state, `${p.name}: в Госкниготорге склад увеличен до ${p.capacity}.`);
+      }
       takeTop(state, p, kinds[0], 1, { kind: 'gostorg', got: [], rest: kinds.slice(1) });
       return;
     }
