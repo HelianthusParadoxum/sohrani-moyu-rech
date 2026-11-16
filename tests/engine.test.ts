@@ -1688,10 +1688,32 @@ describe('Посиделки и Улики', () => {
     s = applyAction(s, p.id, { type: 'gathering', show: [ev] });
     const i = s.log.findIndex((l) => l.text.includes('показывает на Посиделках'));
     const tail = s.log.slice(i + 1).filter((l) => l.text.startsWith('↳'));
-    const geo = tail.find((l) => l.text.startsWith('↳ Геолог: +1'));
+    const geo = tail.find((l) => l.text.startsWith(`↳ Геолог: +${RULES.geologistTalons}`));
     expect(geo).toBeTruthy();
     expect(geo!.who).toBeUndefined();
     expect(s.log.slice(i + 1, i + 1 + tail.length).every((l) => l.text.startsWith('↳'))).toBe(true);
+  });
+
+  it(`Геолог: +${RULES.geologistTalons} Талона за показ — сколько бы книг ни показали; ничего не показали — ничего`, () => {
+    const run = (n: number) => {
+      let s = createGame({ players: players(2), seed: 3, mode: 'full' });
+      for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+      s = startOrders(s);
+      const p = s.players[0];
+      s.patrons[0] = { id: 'geologist', genre: s.patrons[0].genre, connections: [p.id], turned: false, removed: false };
+      const evs = s.deck.filter((c) => s.cards[c].kind === 'evidence').slice(0, n);
+      p.capacity = 10;
+      for (const ev of evs) p.warehouse.push({ card: ev, hidden: false });
+      s.phase = 'gathering';
+      s.ready = [];
+      s.pending = [];
+      const before = p.talons;
+      s = applyAction(s, p.id, { type: 'gathering', show: evs });
+      return s.players[0].talons - before;
+    };
+    expect(run(0)).toBe(0);
+    expect(run(1)).toBe(RULES.geologistTalons);
+    expect(run(2)).toBe(RULES.geologistTalons);
   });
 });
 

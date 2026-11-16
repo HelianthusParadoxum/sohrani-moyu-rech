@@ -662,7 +662,6 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
   check(new Set(show).size === show.length, 'Книга указана дважды');
   check(state.curatorRevealed !== p.id, 'Раскрывшийся Куратор на Посиделки не допущен');
   let pts = 0;
-  let geo = 0;
   for (const id of show) {
     // Опальная жанровая книга, Улика или Разоблачение.
     const banned = (isGenreBook(state, id) || isEvidence(state, id) || isExposed(state, id)) && isBanned(state, id);
@@ -670,7 +669,6 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
     check(banned, `${title(state, id)} — не опальная жанровая книга, не Улика и не Разоблачение`);
     pts += RULES.gatheringPoints;
     (state.shownAtGathering ??= {})[p.id] = [...(state.shownAtGathering[p.id] ?? []), id];
-    if (hasPatron(state, p.id, 'geologist')) geo++;
   }
   // Опальные книги из Тайника, которые игрок не показал (честному показывать опальное выгодно; у Куратора в Тайнике —
   // ЧНЛ). Неопальные книги в Тайнике (спрятанные впрок) показать нельзя — они не в счёт.
@@ -686,7 +684,8 @@ function doGathering(state: GameState, p: PlayerState, show: string[]) {
     log(state, `${p.name} ничего не показывает на Посиделках.`);
   }
   state.log[state.log.length - 1].who = p.id;
-  // Геолог — следствие показа: строкой «↳ …» под ней, как Цеховик.
+  // Геолог — следствие показа: строкой «↳ …» под ней, как Цеховик. Показано хоть что-то — фиксированная прибавка.
+  const geo = show.length && hasPatron(state, p.id, 'geologist') ? RULES.geologistTalons : 0;
   if (geo) {
     earn(state, p, geo, 'geologist');
     logAfter(state, `↳ Геолог: +${talonsText(geo)}.`);
