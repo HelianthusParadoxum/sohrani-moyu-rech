@@ -2399,11 +2399,11 @@ describe('Историк', () => {
 });
 
 describe('Впятером', () => {
-  it('у явочных адресов +1 место; Единомышленников, как всегда, 5; Ростков — по числу игроков', () => {
+  it('у явочных адресов +1 место; Единомышленников, как всегда, 5; Ростков — по числу игроков и ещё 2', () => {
     const s = createGame({ players: players(5), seed: 3, mode: 'full' });
     expect(s.players).toHaveLength(5);
     for (const p of s.players) expect(p.workers).toBe(RULES.startWorkers);
-    expect(s.sprouts).toHaveLength(5);
+    expect(s.sprouts).toHaveLength(5 + RULES.extraSproutsByPlayers[5]);
     expect(createGame({ players: players(3), seed: 3, mode: 'full', reserve: true }).sprouts).toHaveLength(4);
     expect(limitFor('knigoobmen', 5)).toBe(limitFor('knigoobmen', 4) + 1);
     expect(limitFor('agitpunkt', 5)).toBe(2);
@@ -2800,6 +2800,15 @@ describe('Контора без проигрыша по числу удержа�
     s = applyAction(s, me, { type: 'group', group: { action: 'expandCache' } });
     expect(s.phase).not.toBe('end');
     expect(s.result).toBeUndefined();
+  });
+});
+
+describe('Ростки по числу игроков', () => {
+  it('впятером Ростков на 2 больше (на четверых — по числу игроков)', () => {
+    const count = (n: number) => createGame({ players: players(n), seed: 1, mode: 'full' }).sprouts.length;
+    expect(count(4)).toBe(4);
+    expect(count(5)).toBe(5 + RULES.extraSproutsByPlayers[5]);
+    expect(RULES.extraSproutsByPlayers[5]).toBe(2);
   });
 });
 
