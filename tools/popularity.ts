@@ -3,6 +3,7 @@
 // npm run popularity -- [партий] [игроков] [thoughtful|standard] [с какой партии] [файл]; затем `npm run popularity -- merge файл…`
 // Адреса: посещений за партию на игрока и заполненность мест (явочные адреса лежат на столе не всю партию — считаем
 // «за Пятилетку на столе»). Действия Группы: за партию на игрока, по источнику — Единомышленник, явочный адрес, Росток.
+import './rules-env';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { activePlayers, createGame } from '../src/engine/engine';
 import { botMove, type BotSkill } from '../src/engine/bot';

@@ -3,6 +3,7 @@
 // npm run curator -- [партий] [игроков] [standard|thoughtful] [с какой партии] [файл для сырых данных] [old — боты без ранней сети и копления]
 // «Вдумчивые» медленные (~0,5 мин на партию): запускайте в несколько процессов с разным смещением и файлом,
 // затем `npm run curator -- merge файл…`.
+import './rules-env';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { createGame } from '../src/engine/engine';
 import { playOut, type BotSkill } from '../src/engine/bot';
