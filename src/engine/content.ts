@@ -38,6 +38,7 @@ export const RULES = {
   maxCache: 5,
   startCensorship: 3,
   censorshipTokens: [3, 4, 5, 6, 7],
+  censorshipAlwaysUp: false, // true — Цензура растёт на 1 каждую Пятилетку (а не с вероятностью 1/2), как в одиночной игре
   displaySize: 4,
   raspredelitelSize: 4,
   utsenkaSize: 4, // Уценка: книг на витрине (только жанровые с одним значком)
