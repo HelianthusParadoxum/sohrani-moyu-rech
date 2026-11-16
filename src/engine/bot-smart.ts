@@ -1588,7 +1588,7 @@ export function candidates(state: GameState, me: string, ctx: Ctx): Action[] {
           case 'gostorg':
             if (freeSlots(p) + gostorgGrow(state, p) >= 2) {
               out.push({ type: 'place', place: { address: 'gostorg', pairs: 1 } });
-              // Завмаг: можно взять обе Непечатные.
+              // Товаровед: можно взять обе Непечатные.
               if (hasPatron(state, me, 'zavmag')) out.push({ type: 'place', place: { address: 'gostorg', pairs: 1, mix: ['unprinted', 'unprinted'] } });
             }
             break;

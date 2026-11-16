@@ -275,7 +275,7 @@ export interface GameResult {
 export type TolkuchkaOp = { op: 'buy'; card: string } | { op: 'sell'; card: string };
 
 export type PlaceAction =
-  | { address: 'gostorg'; pairs: number; mix?: ('load' | 'unprinted')[] } // mix — Завмаг
+  | { address: 'gostorg'; pairs: number; mix?: ('load' | 'unprinted')[] } // mix — Товаровед
   | { address: 'tolkuchka'; ops: TolkuchkaOp[] }
   | { address: 'redCorner'; drop?: string } // drop — книга Непечатных, которую отдать, если для Нагрузки нет места
   | { address: 'razval'; slot: number; slots?: number[] } // slots — Ветеран покупает несколько

@@ -624,9 +624,9 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
       const grow = gostorgGrow(view, me);
       body = (
         <>
-          <p>Бесплатно: {grow > 0 ? `Товаровед: +${grow} место на складе, затем ` : ''}1 книга Нагрузки и 1 книга Непечатных вслепую. Свободных мест{grow > 0 ? ' после расширения' : ''}: {free + grow}.</p>
+          <p>Бесплатно: {grow > 0 ? `Завмаг: +${grow} место на складе, затем ` : ''}1 книга Нагрузки и 1 книга Непечатных вслепую. Свободных мест{grow > 0 ? ' после расширения' : ''}: {free + grow}.</p>
           {zavmag && (
-            <label>Завмаг: из 2 книг Нагрузки — <input type="number" min={0} max={2} value={loads} onChange={(e) => setLoadN(Number(e.target.value))} />, остальные — Непечатные</label>
+            <label>Товаровед: из 2 книг Нагрузки — <input type="number" min={0} max={2} value={loads} onChange={(e) => setLoadN(Number(e.target.value))} />, остальные — Непечатные</label>
           )}
           {confirmBtn('Взять даром', free + grow >= 2
             ? { address: 'gostorg', pairs: 1, ...(zavmag ? { mix: [0, 1].map((i) => (i < loads ? 'load' as const : 'unprinted' as const)) } : {}) }

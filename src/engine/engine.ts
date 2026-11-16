@@ -978,19 +978,19 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
     case 'gostorg': {
       // Бесплатно, но за заход — одна пара.
       check(a.pairs === 1, 'В Госкниготорге за заход — одна пара книг');
-      // Товаровед: Склад сперва растёт (до максимума), потом приходят книги.
+      // Завмаг: Склад сперва растёт (до максимума), потом приходят книги.
       const grow = gostorgGrow(state, p);
       check(freeSlots(p) + grow >= a.pairs * 2, 'На складе не хватит места');
-      // Завмаг: состав каждой книги выбирается свободно.
+      // Товаровед: состав каждой книги выбирается свободно.
       const mix = a.mix ?? [];
       if (mix.length) {
-        check(hasPatron(state, p.id, 'zavmag'), 'Свободный выбор книг — только со связью с Завмагом');
+        check(hasPatron(state, p.id, 'zavmag'), 'Свободный выбор книг — только со связью с Товароведом');
         check(mix.length === a.pairs * 2, 'Укажите состав всех книг');
       }
       const kinds = mix.length ? mix : Array.from({ length: a.pairs }, () => ['load', 'unprinted'] as const).flat();
       if (grow > 0) {
         p.capacity += grow;
-        log(state, `${p.name}: Товаровед — склад увеличен до ${p.capacity}.`);
+        log(state, `${p.name}: Завмаг — склад увеличен до ${p.capacity}.`);
       }
       takeTop(state, p, kinds[0], 1, { kind: 'gostorg', got: [], rest: kinds.slice(1) });
       return;
