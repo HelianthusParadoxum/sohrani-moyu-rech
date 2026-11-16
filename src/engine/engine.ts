@@ -1901,7 +1901,10 @@ function resolvePending(state: GameState, p: PlayerState, action: Action) {
       return;
     }
     case 'ekspeditorBuy': {
-      if (action.type === 'pass') break;
+      if (action.type === 'pass') {
+        logAfter(state, `↳ Экспедитор: ${p.name} не покупает со свежего Развала.`);
+        break;
+      }
       check(action.type === 'ekspeditorBuy', 'Купите книгу или откажитесь');
       const opt = ekspeditorOptions(state, p).find((o) => o.slot === action.slot);
       check(opt, 'Эту книгу Экспедитор купить не может: пустая ячейка, не хватает Талонов или места на складе');

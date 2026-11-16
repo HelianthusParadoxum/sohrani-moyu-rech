@@ -2818,6 +2818,7 @@ describe('Экспедитор', () => {
     const razval = [...s.razval];
     s = applyAction(s, me, { type: 'pass' });
     expect(s.razval).toEqual(razval);
+    expect(s.log.some((l) => l.text.includes('Экспедитор:') && l.text.includes('не покупает'))).toBe(true);
     expect(s.pending.some((x) => x.kind === 'ekspeditorBuy')).toBe(false);
   });
 });
