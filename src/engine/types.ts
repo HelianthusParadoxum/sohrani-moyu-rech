@@ -301,7 +301,7 @@ export type PlaceAction =
 // Каталогизатор: что делать с выбранными книгами (продолжение прерванного действия).
 export type CatalogThen =
   | { kind: 'posrednichestvo' } | { kind: 'spisanie' } | { kind: 'makulatura' }
-  | { kind: 'gostorg'; got: string[]; rest: ('load' | 'unprinted')[] } | { kind: 'redCorner'; drop?: string; dropTitle?: string } | { kind: 'librarian' };
+  | { kind: 'gostorg'; got: string[]; rest: ('load' | 'unprinted')[]; grew?: number } | { kind: 'redCorner'; drop?: string; dropTitle?: string } | { kind: 'librarian' };
 
 // Где Блатной докупает книгу.
 export type BlatnoyShop = 'razval' | 'tolkuchka' | 'raspredelitel';

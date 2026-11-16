@@ -988,11 +988,8 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
         check(mix.length === a.pairs * 2, 'Укажите состав всех книг');
       }
       const kinds = mix.length ? mix : Array.from({ length: a.pairs }, () => ['load', 'unprinted'] as const).flat();
-      if (grow > 0) {
-        p.capacity += grow;
-        log(state, `${p.name}: Завмаг — склад увеличен до ${p.capacity}.`);
-      }
-      takeTop(state, p, kinds[0], 1, { kind: 'gostorg', got: [], rest: kinds.slice(1) });
+      if (grow > 0) p.capacity += grow; // запись — следом за строкой о книгах
+      takeTop(state, p, kinds[0], 1, { kind: 'gostorg', got: [], rest: kinds.slice(1), ...(grow > 0 ? { grew: p.capacity } : {}) });
       return;
     }
     case 'tolkuchka': {
@@ -1401,10 +1398,11 @@ function continueTake(state: GameState, p: PlayerState, cards: string[], then: C
     }
     case 'gostorg': {
       const got = [...then.got, ...cards];
-      if (then.rest.length) { takeTop(state, p, then.rest[0], 1, { kind: 'gostorg', got, rest: then.rest.slice(1) }); return; }
+      if (then.rest.length) { takeTop(state, p, then.rest[0], 1, { kind: 'gostorg', got, rest: then.rest.slice(1), grew: then.grew }); return; }
       // Как при выуживании из Спецхрана: сперва что сделано, потом по строке на каждую книгу —
       // открытая ложится на склад при всех, спрятанную в Тайник соперники не видят («Получена: …» — только себе).
       log(state, `${p.name} берёт в Госкниготорге даром ${plural(got.length, 'книгу', 'книги', 'книг')}.`);
+      if (then.grew) log(state, `↳ Завмаг: склад увеличен до ${then.grew}.`);
       for (const c of got) addSecretBook(state, p, c, null);
       // Открытые — по строке на книгу; спрятанные — одной строкой с общим числом (какие — только себе).
       const hiddenGot = got.filter((c) => p.warehouse.find((x) => x.card === c)?.hidden);

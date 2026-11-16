@@ -1103,7 +1103,8 @@ describe('Главлит и обновлённые Завсегдатаи', () =
     const p = s.players.find((x) => x.id === me)!;
     expect(p.capacity).toBe(cap + RULES.tovarovedSlots);
     expect(p.warehouse.length).toBe(p0.warehouse.length + 2);
-    expect(s.log.some((l) => l.text.includes(`склад увеличен до ${cap + 1}`))).toBe(true);
+    const i = s.log.findIndex((l) => l.text.includes('берёт в Госкниготорге'));
+    expect(s.log[i + 1].text).toBe(`↳ Завмаг: склад увеличен до ${cap + 1}.`);
   });
 
   it('Товаровед: в Госкниготорге состав свободный', () => {
