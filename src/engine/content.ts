@@ -191,7 +191,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
   knigoobmen: { id: 'knigoobmen', name: 'Книгообмен', limits: [1, 1, 1], safehouse: true, short: 'Обменять книгу на книгу с витрины', hint: 'Отдать 1 жанровую книгу (в сброс) — взять 1 с витрины; когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы' },
   kvartirnik: { id: 'kvartirnik', name: 'Квартирник', limits: [1, 1, 1], safehouse: true, short: 'Обмен с игроком', hint: 'Обмен книгами с другим игроком по согласию; когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы' },
   raspredelitel: { id: 'raspredelitel', name: 'Распределитель', limits: [1, 1, 1], safehouse: true, short: `Выдающаяся книга за ${RULES.raspredelitelPrice}т`, hint: `Купить 1 выдающуюся книгу за ${RULES.raspredelitelPrice}т` },
-  utsenka: { id: 'utsenka', name: 'Уценка', limits: [1, 1, 1], safehouse: true, short: `${RULES.utsenkaPerBuy} простые книги за ${RULES.utsenkaPrice}т`, hint: `Купить до ${RULES.utsenkaPerBuy} книг с витрины за ${RULES.utsenkaPrice}т (на витрине — только книги с одним жанровым значком)` },
+  utsenka: { id: 'utsenka', name: 'Уценка', limits: [1, 1, 1], safehouse: true, short: `${RULES.utsenkaPerBuy} простые книги за ${RULES.utsenkaPrice}т`, hint: `Купить до ${RULES.utsenkaPerBuy} книг с витрины за ${RULES.utsenkaPrice}т (на витрине — только книги с одним жанровым значком); когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы` },
   agitpunkt: { id: 'agitpunkt', name: 'Агитпункт', limits: [1, 1, 1], safehouse: true, short: 'Нагрузка с витрины даром', hint: 'Свой человек в агитпункте: взять 1 книгу Нагрузки с витрины бесплатно; когда свои Единомышленники кончатся — ещё 1 действие Инициативной группы' },
   nasledniki: { id: 'nasledniki', name: 'Наследники', limits: [1, 1, 1], safehouse: true, short: `${RULES.safehousePrice}т: 1–2 книги из сброса`, hint: `−${RULES.safehousePrice}т: тайно взять 1–2 книги из сброса Непечатных; остаток сброса замешивается в стопку` },
   posrednichestvo: { id: 'posrednichestvo', name: 'Посредничество авторам', limits: [1, 1, 1], safehouse: true, short: `${RULES.posrednichestvoPrice}т: вытянуть ${RULES.posrednichestvoDraw}, оставить ${RULES.posrednichestvoKeep} + действие Группы`, hint: `−${RULES.posrednichestvoPrice}т: тайно вытянуть ${RULES.posrednichestvoDraw}, оставить ${RULES.posrednichestvoKeep}, затем 1 любое действие Группы (даже уже сделанное)` },
@@ -203,7 +203,7 @@ export const ADDRESSES: Record<AddressId, AddressInfo> = {
 };
 
 // Тиражирование текста: адреса, где книги покупают в открытую.
-export const COPY_TEXT_ADDRESSES = ['razval', 'tolkuchka', 'raspredelitel', 'knigoobmen', 'agitpunkt'] as const;
+export const COPY_TEXT_ADDRESSES = ['razval', 'tolkuchka', 'raspredelitel', 'knigoobmen', 'agitpunkt', 'utsenka'] as const;
 
 // Цена явочного адреса с платным входом.
 export function safehouseCost(id: AddressId): number {
@@ -248,7 +248,7 @@ export const KONTORA_PATRONS: PatronId[] = ['psychiatrist'];
 export const GROUP_ACTIONS: Record<GroupActionId, { name: string; hint: string; fullOnly?: boolean }> = {
   expandWarehouse: { name: 'Увеличить Склад', hint: `${RULES.expandWarehouseCost ? `−${RULES.expandWarehouseCost}т: ` : ''}+1 место на складе (до 10)` },
   expandCache: { name: 'Заложить Тайник', hint: `${RULES.expandCacheCost ? `−${RULES.expandCacheCost}т: ` : ''}1 место склада становится потайным (до ${RULES.maxCache})` },
-  copyText: { name: 'Тиражировать Текст', hint: 'Бесплатно взять открыто лежащую книгу с адреса, где уже стоит хотя бы один ваш Единомышленник (Развал, Толкучка, Распределитель, Книгообмен, Агитпункт)' },
+  copyText: { name: 'Тиражировать Текст', hint: 'Бесплатно взять открыто лежащую книгу с адреса, где уже стоит хотя бы один ваш Единомышленник (Развал, Толкучка, Распределитель, Книгообмен, Агитпункт, Уценка)' },
   spetskhran: { name: 'Выудить из Спецхрана', hint: `−${RULES.spetskhranCost}т: посмотреть Спецхран (он в Главлите) и взять оттуда 1 любую книгу` },
   restore: { name: 'Написать Монографию', hint: `${RULES.restoreCost ? `${RULES.restoreCost}т: ` : ''}+1 значок жанровой книге или 3 значка возвращаемой Нагрузке` },
   hire: { name: 'Расширить Сеть', hint: `−${RULES.hireCost}т: +1 Единомышленник, сразу доступен (до 7)` },

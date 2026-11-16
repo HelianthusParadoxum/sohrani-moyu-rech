@@ -112,6 +112,27 @@ describe('цены и доходы', () => {
     expect([a, b].every((x) => q.warehouse.some((w) => w.card === x))).toBe(true);
     expect(s.utsenka).toEqual(expect.not.arrayContaining([a, b]));
     expect(s.log.some((l) => l.text.includes('покупает в Уценке'))).toBe(true);
+    // Как Агитпункт: когда свои Единомышленники кончатся — ещё 1 действие Группы.
+    expect(q.bonusGroupTurns).toBe(1);
+    expect(q.bonusGroupFrom).toEqual(['utsenka']);
+  });
+
+  it('с Уценки можно тиражировать текст, если там стоит свой Единомышленник', () => {
+    let s = started();
+    const p = me(s);
+    p.talons = 10;
+    p.capacity = 10;
+    s.safehouses = ['utsenka'];
+    s.utsenka = s.deck.filter((x) => s.cards[x].kind === 'genre' && s.cards[x].icons.length === 1).slice(0, 4);
+    s.deck = s.deck.filter((x) => !s.utsenka!.includes(x));
+    const copy = s.utsenka[3];
+    expect(() => act(s, p.id, { type: 'group', group: { action: 'copyText', address: 'utsenka', card: copy } })).toThrow(/Единомышленник/);
+    s = act(s, p.id, { type: 'place', place: { address: 'utsenka', cards: [s.utsenka[0]] } });
+    s.occupancy.utsenka = [...(s.occupancy.utsenka ?? []), p.id];
+    while (s.order[s.turn] !== p.id) s = act(s, s.order[s.turn], { type: 'place', place: { address: 'redCorner' } });
+    s = act(s, p.id, { type: 'group', group: { action: 'copyText', address: 'utsenka', card: copy } });
+    expect(byId(s, p.id).warehouse.some((w) => w.card === copy)).toBe(true);
+    expect(s.utsenka).not.toContain(copy);
   });
 
   it('Уценка обновляется каждую Пятилетку и выкладывает только жанровые книги с одним значком', () => {

@@ -459,7 +459,7 @@ function addressFull(id: AddressId, view: PlayerView, me: VPlayer | null) {
 }
 
 // Адреса, с которых Единомышленник действует ещё раз (действие Группы, когда свои кончатся): у мест — значок повтора.
-const REPEAT_ADDRESSES: AddressId[] = ['knigoobmen', 'kvartirnik', 'agitpunkt'];
+const REPEAT_ADDRESSES: AddressId[] = ['knigoobmen', 'kvartirnik', 'agitpunkt', 'utsenka'];
 
 function AddressCard(props: AddressProps) {
   const { id, view, seatIndex, me, enabled } = props;
@@ -1063,7 +1063,7 @@ function groupBlocker(view: PlayerView, me: VPlayer, id: GroupActionId): string 
       return me.talons < RULES.expandCacheCost && !hasPatron(view, me.id, 'carpenter') ? `Нужно ${RULES.expandCacheCost} Талон, у вас ${me.talons}.` : null;
     case 'copyText': {
       if (free < 1) return 'На складе нет свободного места.';
-      return copySources(view, me).length ? null : 'Нет открытых книг там, где стоит ваш 👤 (Развал, Толкучка, Распределитель, Книгообмен, Агитпункт).';
+      return copySources(view, me).length ? null : 'Нет открытых книг там, где стоит ваш 👤 (Развал, Толкучка, Распределитель, Книгообмен, Агитпункт, Уценка).';
     }
     case 'spetskhran':
       if (!view.spetskhranCount) return 'Спецхран пуст.';

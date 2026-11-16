@@ -308,7 +308,7 @@ export type CatalogThen =
 
 // Где Блатной докупает книгу.
 export type BlatnoyShop = 'razval' | 'tolkuchka' | 'raspredelitel';
-export type CopyTextAddress = 'razval' | 'tolkuchka' | 'raspredelitel' | 'knigoobmen' | 'agitpunkt';
+export type CopyTextAddress = 'razval' | 'tolkuchka' | 'raspredelitel' | 'knigoobmen' | 'agitpunkt' | 'utsenka';
 export type CopyTextBuy = Extract<PlaceAction, { address: CopyTextAddress }>;
 
 export interface ClubGift { patron: PatronId; card: string }

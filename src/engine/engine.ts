@@ -1338,6 +1338,9 @@ function doPlace(state: GameState, p: PlayerState, a: PlaceAction) {
       }
       log(state, `${p.name} покупает в Уценке ${titles(state, cards)} ${cost ? `за ${talonsText(cost)}` : 'даром'}.`);
       noteAutoHidden(state, p);
+      // Как Агитпункт: отсюда Единомышленник в конце поручений идёт ещё и в Инициативную группу.
+      p.bonusGroupTurns++;
+      (p.bonusGroupFrom ??= []).push('utsenka');
       return;
     }
     case 'agitpunkt': {
@@ -1517,7 +1520,7 @@ function doGroup(state: GameState, p: PlayerState, g: GroupAction, opts: { limit
     case 'copyText': {
       // Бесплатно — открытую книгу с адреса, где уже стоит свой Единомышленник (Машинистке — с любого).
       const addr = g.address;
-      check((COPY_TEXT_ADDRESSES as readonly string[]).includes(addr), 'Тиражировать можно на Развале, Толкучке, в Распределителе, на Книгообмене или Агитпункте');
+      check((COPY_TEXT_ADDRESSES as readonly string[]).includes(addr), 'Тиражировать можно на Развале, Толкучке, в Распределителе, на Книгообмене, Агитпункте или в Уценке');
       check(addressInGame(state, addr) || state.safehouses.includes(addr), `${ADDRESSES[addr].name}: этого адреса нет на столе`);
       check(hasPatron(state, p.id, 'typist') || (state.occupancy[addr] ?? []).includes(p.id), `Тиражировать можно только там, где уже стоит ваш Единомышленник: ${ADDRESSES[addr].name}`);
       check(freeSlots(p) > 0, 'На складе нет места');
