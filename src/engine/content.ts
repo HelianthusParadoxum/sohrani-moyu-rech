@@ -55,8 +55,8 @@ export const RULES = {
   spetskhranCost: 2, // Выудить из Спецхрана: цена в Талонах (было 1)
   restoreCost: 0, // Возвращение смыслов: цена в Талонах (0 — бесплатно)
   tolkuchkaBuy: 2, // за книгу
-  tolkuchkaSellBanned: 2, // книга с опальным жанром
-  tolkuchkaSellFree: 1, // книга без опального жанра
+  tolkuchkaSellBanned: 3, // книга с опальным жанром (было 2)
+  tolkuchkaSellFree: 2, // книга без опального жанра (было 1)
   fartsovshchikTalons: 1, // Фарцовщик: сверх цены за каждую проданную на Толкучке книгу
   razvalPrices: [2, 2, 1, 1],
   zavozIncome: 2,
@@ -177,7 +177,7 @@ export interface AddressInfo {
 
 export const ADDRESSES: Record<AddressId, AddressInfo> = {
   gostorg: { id: 'gostorg', name: 'Госкниготорг', limits: [2, 3, 4], short: 'Даром вслепую: Нагрузка + Непечатное', hint: 'Бесплатно: 1 книга Нагрузки и 1 книга Непечатных вслепую (за заход — одна пара)' },
-  tolkuchka: { id: 'tolkuchka', name: 'Толкучка', limits: [2, 3, 4], short: `Купить ${RULES.tolkuchkaBuy}т · продать ${RULES.tolkuchkaSellFree}–${RULES.tolkuchkaSellBanned}т`, hint: 'Купить 1 книгу: −2т. Продать 1 книгу: +2т (опальный жанр) или +1т (прочие); проданное уходит в сброс' },
+  tolkuchka: { id: 'tolkuchka', name: 'Толкучка', limits: [2, 3, 4], short: `Купить ${RULES.tolkuchkaBuy}т · продать ${RULES.tolkuchkaSellFree}–${RULES.tolkuchkaSellBanned}т`, hint: `Купить 1 книгу: −${RULES.tolkuchkaBuy}т. Продать 1 книгу: +${RULES.tolkuchkaSellBanned}т (опальный жанр) или +${RULES.tolkuchkaSellFree}т (прочие); проданное уходит в сброс` },
   redCorner: { id: 'redCorner', name: 'Красный уголок', limits: [INF, INF, INF], perPlayer: true, short: 'Очередь хода; +1 Нагрузка', hint: 'Очередь хода на следующую Пятилетку; обязательно взять 1 Нагрузку вслепую. Нет места — отдать книгу Непечатных со склада; склад весь в Нагрузке — не брать' },
   razval: { id: 'razval', name: 'Развал', limits: [2, 3, 4], short: 'Купить: 2/2/1/1т', hint: 'Купить 1 книгу: −2/−2/−1/−1т по свежести' },
   zavoz: { id: 'zavoz', name: 'Развоз', limits: [1, 1, 2], short: '+2т, новый Развал', hint: '+2т, Развал полностью обновляется' },
