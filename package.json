@@ -9,7 +9,7 @@
     "dev:server": "tsx watch src/server/index.ts",
     "dev:client": "vite",
     "build": "vite build",
-    "start": "NODE_ENV=production tsx src/server/index.ts",
+    "start": "NODE_ENV=production NODE_OPTIONS=--max-old-space-size=192 tsx src/server/index.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "simulate": "tsx tools/simulate.ts",

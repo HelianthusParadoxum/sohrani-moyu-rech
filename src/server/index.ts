@@ -216,17 +216,22 @@ function broadcast(room: Room) {
 
 // Ходы ботов считает отдельный поток (bot-worker.ts): «Вдумчивый» бот может думать секунды, и если делать это в основном
 // потоке, сервер всё это время молчит — хостинг считает его зависшим и перезапускает (партии в памяти теряются).
+// Память: на бесплатном Render у всего сервиса 512 МБ, и при превышении его перезапускают (партии теряются).
+// Без потолка V8 не спешит убирать мусор и растёт до сотен мегабайт, хотя живых данных у бота ~55 МБ (замер впятером).
+// Поэтому у потока ботов — свой потолок: перерастёт — упадёт только поток, ход пересчитается в свежем.
+const BOT_HEAP_MB = Number(process.env.BOT_HEAP_MB ?? 128);
 let worker: Worker | null = null;
 let jobSeq = 0;
 const jobs = new Map<number, (r: BotReply) => void>();
 function botWorker(): Worker | null {
   if (worker) return worker;
   try {
-    const w = new Worker(new URL('./bot-worker.mjs', import.meta.url));
+    const w = new Worker(new URL('./bot-worker.mjs', import.meta.url), { resourceLimits: { maxOldGenerationSizeMb: BOT_HEAP_MB } });
     w.on('message', (r: BotReply) => { const done = jobs.get(r.id); jobs.delete(r.id); done?.(r); });
     w.on('error', (e) => console.error('Ошибка потока ботов', e));
     w.on('exit', (code) => {
       if (worker === w) worker = null;
+      console.warn(`Поток ботов завершился (код ${code}); память сервера: ${memText()}`);
       // Поток упал посреди раздумий — ответим ожидающим ошибкой, они пересчитают ход заново.
       for (const [id, done] of jobs) { jobs.delete(id); done({ id, error: `поток ботов завершился (${code})` }); }
     });
@@ -279,7 +284,13 @@ function scheduleBots(room: Room) {
         if (botThinking.get(room.code) === from) botThinking.delete(room.code);
         console.error('Ошибка бота', e);
         // Упал сам поток (а не ход) — один раз пробуем заново, уже в свежем потоке.
-        if (String(e).includes('поток ботов завершился') && !botRetried.has(from)) { botRetried.add(from); scheduleBots(room); }
+        if (String(e).includes('поток ботов завершился') && !botRetried.has(from)) { botRetried.add(from); scheduleBots(room); return; }
+        // Не вышло и во второй раз — ход попроще («Упрощённый» бот), чтобы партия не встала.
+        if (String(e).includes('поток ботов завершился') && room.state === from && !room.paused) {
+          thinkInWorker({ state: from, who, preset: seat && seatPreset(room, seat), skill: 'standard', budgetMs: BOT_BASE.lookaheadBudgetMs })
+            .then((next) => { if (room.state !== from) return; room.state = next; delete room.stepBack; save(room); broadcast(room); scheduleBots(room); })
+            .catch((e2) => console.error('Ошибка бота (упрощённый ход)', e2));
+        }
       });
   }, room.botDelay ?? 700));
 }
@@ -603,5 +614,12 @@ wss.on('connection', (ws) => {
 server.listen(PORT, () => console.log(`Сервер: http://localhost:${PORT}`));
 
 // Сбой в обработке одного сообщения не должен ронять весь сервер (а с ним — все партии в памяти).
+// Память сервера — раз в 10 минут в журнал хостинга (Render → Logs): видно, не подбирается ли к пределу.
+function memText() {
+  const m = process.memoryUsage();
+  return `всего ${Math.round(m.rss / 1048576)} МБ, данные ${Math.round(m.heapUsed / 1048576)} МБ`;
+}
+setInterval(() => console.log(`Память: ${memText()}; комнат ${rooms.size}`), 10 * 60 * 1000).unref();
+
 process.on('uncaughtException', (e) => console.error('Непойманная ошибка сервера', e));
 process.on('unhandledRejection', (e) => console.error('Необработанный отказ промиса', e));
