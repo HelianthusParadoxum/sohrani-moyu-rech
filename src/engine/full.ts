@@ -155,13 +155,30 @@ export function onConnect(state: GameState, p: PlayerState, id: PatronId) {
   }
 }
 
-// Профилактика: Завсегдатай уходит из Клуба, все связи с ним теряются.
+// Кого можно профилактировать: Завсегдатаи Клуба и эксклюзивные (из Бани) — в одном виде: id и связанные игроки.
+export function prophylaxisTargets(state: Pick<GameState, 'patrons' | 'exclusivePatrons'>): { id: PatronId; connections: string[]; removed: boolean }[] {
+  return [
+    ...state.patrons.filter((x) => !x.removed),
+    ...(state.exclusivePatrons ?? []).map((x) => ({ id: x.id, connections: [x.player], removed: false })),
+  ];
+}
+
+// Профилактика: Завсегдатай уходит из Клуба (или эксклюзивная связь из Бани обрывается), все связи с ним теряются.
 export function removePatron(state: GameState, id: PatronId) {
-  const patron = state.patrons.find((x) => x.id === id);
-  check(patron && !patron.removed, 'Этого Завсегдатая нет в Клубе');
-  patron.removed = true;
-  log(state, `Профилактика: Завсегдатай «${PATRONS[id].name}» больше не ходит в Клуб.`);
-  for (const pid of patron.connections) {
+  const patron = state.patrons.find((x) => x.id === id && !x.removed);
+  const exclusive = (state.exclusivePatrons ?? []).find((x) => x.id === id);
+  check(patron || exclusive, 'Этого Завсегдатая нет ни в Клубе, ни в эксклюзивных связях');
+  let linked: string[];
+  if (patron) {
+    patron.removed = true;
+    linked = patron.connections;
+    log(state, `Профилактика: Завсегдатай «${PATRONS[id].name}» больше не ходит в Клуб.`);
+  } else {
+    state.exclusivePatrons = (state.exclusivePatrons ?? []).filter((x) => x.id !== id);
+    linked = [exclusive!.player];
+    log(state, `Профилактика: эксклюзивная связь с Завсегдатаем «${PATRONS[id].name}» оборвана.`);
+  }
+  for (const pid of linked) {
     const p = player(state, pid);
     if (id === 'housekeeper') {
       p.capacity -= p.patronBonus.capacity;
@@ -238,7 +255,7 @@ export function doKontora(state: GameState, p: PlayerState, c: KontoraChoice) {
   }
   if (c.prophylaxis) {
     // Профилактика — только Завсегдатаю, с которым связан тот, на кого донесли.
-    check(state.patrons.some((x) => x.id === c.prophylaxis && x.connections.includes(target.id)),
+    check(prophylaxisTargets(state).some((x) => x.id === c.prophylaxis && x.connections.includes(target.id)),
       `Профилактика — только Завсегдатаю, с которым связан ${target.name} (на него донос)`);
     removePatron(state, c.prophylaxis);
   }

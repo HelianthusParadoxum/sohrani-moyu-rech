@@ -6,7 +6,7 @@
 import { activePlayers, applyAction, mustVisitRedCorner } from './engine';
 import { BOT_BASE, CURATOR_STYLES, PATRON_POWER, curatorStyle, type BotGoal, type BotPreset, type CuratorStyle, type TunableBase } from './bot-presets';
 import { COPY_TEXT_ADDRESSES, PERMANENT_ADDRESSES, addressInGame, PASSIONS, RULES, SPROUTS, STEP_REWARDS, ADDRESSES, limitFor } from './content';
-import { befriendTargets, blatnoyOptions, ekspeditorOptions, heldTotal, kontoraTargets, startConnectionTargets } from './full';
+import { befriendTargets, blatnoyOptions, ekspeditorOptions, prophylaxisTargets, heldTotal, kontoraTargets, startConnectionTargets } from './full';
 import { passionPoints } from './scoring';
 import type { Action, ClubGift, CopyTextAddress, GameState, Genre, GroupAction, KontoraChoice, PatronId, PlayerState } from './types';
 import { GENRES } from './types';
@@ -92,7 +92,7 @@ function blockBonus(state: GameState, a: Action, ctx: Ctx): number {
 const BLOCK_ADDRESSES: string[] = ['baraholka', 'spisanie', 'nasledniki', 'posrednichestvo', 'raspredelitel', 'makulatura'];
 
 // Сколько пользы Завсегдатай даёт остальным: его сила × число связанных с ним игроков (кроме me).
-function patronWorthToOthers(pt: GameState['patrons'][number], me: string): number {
+function patronWorthToOthers(pt: Pick<GameState['patrons'][number], 'id' | 'connections'>, me: string): number {
   return (PATRON_POWER[pt.id] ?? 0.3) * pt.connections.filter((id) => id !== me).length;
 }
 
@@ -1249,26 +1249,28 @@ function kontoraChoices(state: GameState, me: string, ctx: Ctx, keep: Map<string
   const united = !!enemy && enemy[1] >= BOT_BASE.suspectAct;
   if (united) for (let i = seizes.length - 1; i >= 0; i--) if (seizes[i].player !== enemy[0]) seizes.splice(i, 1);
   // Профилактика возможна только Завсегдатаю, связанному с тем, на кого донос: кандидаты по убыванию желания.
-  let patronRank: GameState['patrons'] = [];
+  let patronRank: ReturnType<typeof prophylaxisTargets> = [];
   const items: KontoraChoice[] = [];
   const held = state.players.filter((o) => o.held > 0).sort((a, b) => (a.id === me ? -1 : b.id === me ? 1 : 0));
   const free = united ? held.filter((o) => o.id !== enemy[0]) : held; // Куратора из Конторы не вызволяют
   if (free.length) items.push({ petition: free.slice(0, RULES.petitionMax).map((o) => o.id) });
   if (state.spetskhran.length && freeSlots(p) > 0) items.push({ handout: true });
+  // Профилактировать можно и эксклюзивных Завсегдатаев (из Бани).
+  const prophTargets = prophylaxisTargets(state);
   // Подозреваемый Куратор: донос (а с ним Сигнал) — на него, Профилактика — только Завсегдатаю, с которым связан лишь он.
   if (united) {
     const o = player(state, enemy[0]);
-    patronRank = state.patrons.filter((x) => !x.removed && x.connections.length > 0 && x.connections.every((id) => id === o.id));
+    patronRank = prophTargets.filter((x) => !x.removed && x.connections.length > 0 && x.connections.every((id) => id === o.id));
     if (patronRank[0]) items.push({ prophylaxis: patronRank[0].id });
   } else if (ctx.aggression > 0 || ctx.curator) {
     // Профилактика: Завсегдатай, с которым связаны соперники, а бот — нет.
     // Куратор выбивает того, кто больше всех даёт честным: сила Завсегдатая × сколько честных с ним связаны.
     // Своей связью он тоже может пожертвовать, если честным этот Завсегдатай полезнее, чем ему.
-    const net = (x: GameState['patrons'][number]) => patronWorthToOthers(x, me)
+    const net = (x: (typeof prophTargets)[number]) => patronWorthToOthers(x, me)
       - (x.connections.includes(me) ? BOT_BASE.curatorOwnPatron * (PATRON_POWER[x.id] ?? 0.3) : 0);
     const patrons = ctx.curator
-      ? state.patrons.filter((x) => !x.removed && net(x) > 0).sort((a, b) => net(b) - net(a))
-      : state.patrons.filter((x) => !x.removed && !x.connections.includes(me) && x.connections.length > 0)
+      ? prophTargets.filter((x) => !x.removed && net(x) > 0).sort((a, b) => net(b) - net(a))
+      : prophTargets.filter((x) => !x.removed && !x.connections.includes(me) && x.connections.length > 0)
         .sort((a, b) => b.connections.length - a.connections.length);
     patronRank = patrons;
     if (patrons[0]) items.push({ prophylaxis: patrons[0].id });

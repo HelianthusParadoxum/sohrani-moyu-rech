@@ -8,7 +8,7 @@ import { finalScoring, passionPoints, scoreLine } from '../src/engine/scoring';
 import { GENRE_SHORT, PASSIONS, RULES, SPROUTS, STEP_REWARDS, limitFor, sproutBonusOptions, sproutSlotBonuses } from '../src/engine/content';
 import type { GameState, Genre, PatronId } from '../src/engine/types';
 import { GENRES } from '../src/engine/types';
-import { kontoraTargets, onConnect, proseBonus, removePatron, signalable, takeFromSpetskhran } from '../src/engine/full';
+import { kontoraTargets, onConnect, prophylaxisTargets, proseBonus, removePatron, signalable, takeFromSpetskhran } from '../src/engine/full';
 
 // Действие и сразу «Закончить ход».
 function act(s: GameState, who: string, a: Parameters<typeof applyAction>[2]): GameState {
@@ -2846,6 +2846,18 @@ describe('Баня', () => {
     expect(s.exclusivePatrons).toEqual([{ id: pick, player: me, since: s.round }]);
     expect(s.patronDeck).toEqual([...deck.slice(RULES.banyaDraw), deck[0], deck[2]]);
     expect(s.log.some((l) => l.text.includes('эксклюзивную связь'))).toBe(true);
+  });
+
+  it('эксклюзивного Завсегдатая можно профилактировать: связь обрывается', () => {
+    let { s, me, other } = setup();
+    const pick = s.patronDeck![0];
+    s.exclusivePatrons = [{ id: pick, player: other, since: 1 }];
+    expect(prophylaxisTargets(s).some((x) => x.id === pick && x.connections.includes(other))).toBe(true);
+    removePatron(s, pick);
+    expect(hasPatron(s, other, pick)).toBe(false);
+    expect(s.exclusivePatrons).toEqual([]);
+    expect(s.log.some((l) => l.text.includes('эксклюзивная связь') && l.text.includes('оборвана'))).toBe(true);
+    void me;
   });
 
   it('пустая колода — в Баню не пойти', () => {

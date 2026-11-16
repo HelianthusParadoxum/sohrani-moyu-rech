@@ -4,7 +4,7 @@ import { CLUB_ORDER, GENRE_NAMES, GENRE_SHORT, PATRONS, RULES } from '../engine/
 import type { Action, ClubGift, Genre, GroupAction, KontoraChoice, PatronId, PlaceAction } from '../engine/types';
 import type { PlayerView } from '../engine/view';
 import { cacheLimit, genresOf } from '../engine/util';
-import { kontoraTargets } from '../engine/full';
+import { kontoraTargets, prophylaxisTargets } from '../engine/full';
 import { Book, Dropdown, GenreChip, Modal, PLAYER_COLORS, iconize, iconsOf, isBanned, isLoad, toggle, withKindChips } from './ui';
 
 type VPlayer = PlayerView['players'][number];
@@ -261,11 +261,11 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
   const [mode, setMode] = useState<'case' | 'rescue'>(targets.length ? 'case' : 'rescue');
   const count = [petition.length > 0, handout, !!prophylaxis].filter(Boolean).length;
   const target = denounce ? view.players.find((p) => p.id === denounce.player) : null;
-  const prophOk = !prophylaxis || !denounce || view.patrons.some((x) => x.id === prophylaxis && x.connections.includes(denounce.player));
+  const prophOk = !prophylaxis || !denounce || prophylaxisTargets(view).some((x) => x.id === prophylaxis && x.connections.includes(denounce.player));
   const pickDenounce = (t: { player: string; card: string }) => {
     const next = denounce?.card === t.card ? null : t;
     setDenounce(next);
-    if (!next || !view.patrons.some((x) => x.id === prophylaxis && x.connections.includes(next.player))) setProphylaxis('');
+    if (!next || !prophylaxisTargets(view).some((x) => x.id === prophylaxis && x.connections.includes(next.player))) setProphylaxis('');
   };
   const choice: KontoraChoice = {
     ...(petition.length ? { petition } : {}), ...(handout ? { handout } : {}),
@@ -305,7 +305,7 @@ export function KontoraDecidePrompt({ view, me, act }: { view: PlayerView; me: V
       {/* Профилактика — только Завсегдатаю, связанному с тем, на кого донос: пока книга для доноса не выбрана, выбирать не из кого. */}
       <label>Профилактика — удалить Завсегдатая, с которым связан тот, на кого донос{denounce ? '' : ' (сначала укажите книгу для доноса)'}:
         <Dropdown value={prophylaxis as string} ariaLabel="Профилактика" disabled={!denounce} onChange={(v) => setProphylaxis(v as PatronId)}
-          options={[{ value: '', label: '— нет —' }, ...view.patrons.filter((x) => !x.removed && (!denounce || x.connections.includes(denounce.player))).map((x) => ({ value: x.id as string, label: PATRONS[x.id].name }))]} />
+          options={[{ value: '', label: '— нет —' }, ...prophylaxisTargets(view).filter((x) => !denounce || x.connections.includes(denounce.player)).map((x) => ({ value: x.id as string, label: PATRONS[x.id].name + (view.patrons.some((pt) => pt.id === x.id) ? '' : ' (Баня)') }))]} />
       </label>
       <div className="modal-foot">
         <button onClick={() => act({ type: 'kontoraDecide', go: false })}>Передумать</button>
