@@ -663,11 +663,11 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
     }
     case 'redCorner': {
       // Обязательная Нагрузка: нет места — отдать книгу Непечатных; склад весь в Нагрузке — не брать.
-      const loadOnly = mine.every((c) => fromLoadDeck(view, c));
+      const loadOnly = mine.every((c) => countsAsLoad(view, c)); // как в движке: легальная ЧНЛ — тоже Нагрузка
       // Завхоз сперва смотрит Нагрузку: книгу Непечатных отдают потом, если её оставить.
       const zavkhoz = hasPatron(view, me.id, 'zavkhoz');
       const mustDrop = free <= 0 && !loadOnly && !zavkhoz;
-      const droppable = mine.filter((c) => !fromLoadDeck(view, c));
+      const droppable = mine.filter((c) => !countsAsLoad(view, c));
       const drop = sel.find((c) => droppable.includes(c));
       body = (
         <>
@@ -753,8 +753,9 @@ function AddressPanel({ id, sprout, slot, pick, view, me, close, place }: { id: 
     case 'glavlit': {
       const komsorg = hasPatron(view, me.id, 'komsorg');
       const editor = hasPatron(view, me.id, 'editor');
-      const unprinted = sel.filter((c) => !fromLoadDeck(view, c)).length;
-      const load = sel.filter((c) => fromLoadDeck(view, c)).length;
+      // Как в движке: легальная ЧНЛ из стопки Нагрузки («Вторжение без оружия») считается Нагрузкой, пока ей не вернули смыслы.
+      const unprinted = sel.filter((c) => !countsAsLoad(view, c)).length;
+      const load = sel.filter((c) => countsAsLoad(view, c)).length;
       const editorIcons = editor ? sel.reduce((s, c) => s + iconCount(view, c), 0) : 0;
       const pts = (komsorg ? sel.length * RULES.komsorgPoints : 0) + editorIcons * RULES.editorPoints;
       const glavlitGain = withBonuses(view, me, unprinted * RULES.glavlitUnprinted + load * RULES.glavlitLoad + editorIcons * RULES.editorTalons, pts, sel);

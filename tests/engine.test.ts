@@ -2823,6 +2823,31 @@ describe('Ростки по числу игроков', () => {
   });
 });
 
+describe('Главлит и легальная ЧНЛ', () => {
+  it('«Вторжение без оружия» (легальная ЧНЛ из стопки Нагрузки) сдаётся вместе с непечатной ЧНЛ — как Нагрузка', () => {
+    let s = createGame({ players: players(2), seed: 5, mode: 'full' });
+    for (const p of s.players) s = applyAction(s, p.id, { type: 'choosePassion', passion: p.passionOptions[0] });
+    s = startOrders(s);
+    const me = s.order[s.turn];
+    const p = s.players.find((x) => x.id === me)!;
+    const legal = Object.keys(s.cards).find((c) => s.cards[c].kind === 'loadPropaganda' && s.cards[c].legal)!;
+    const chnl = Object.keys(s.cards).find((c) => s.cards[c].kind === 'propaganda')!;
+    for (const c of [legal, chnl]) {
+      s.deck = s.deck.filter((x) => x !== c);
+      s.loadDeck = s.loadDeck.filter((x) => x !== c);
+      s.discard = s.discard.filter((x) => x !== c);
+      s.loadDiscard = s.loadDiscard.filter((x) => x !== c);
+    }
+    p.capacity = 10;
+    p.warehouse.push({ card: legal, hidden: false }, { card: chnl, hidden: false });
+    const talons = p.talons;
+    s = applyAction(s, me, { type: 'place', place: { address: 'glavlit', recycle: [legal, chnl] } });
+    const q = s.players.find((x) => x.id === me)!;
+    expect(q.warehouse.some((w) => w.card === legal || w.card === chnl)).toBe(false);
+    expect(q.talons).toBe(talons + RULES.glavlitLoad + RULES.glavlitUnprinted);
+  });
+});
+
 describe('Баня', () => {
   function setup() {
     let s = createGame({ players: players(2), seed: 5, mode: 'full' });
