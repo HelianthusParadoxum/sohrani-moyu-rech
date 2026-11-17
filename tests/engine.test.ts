@@ -2399,7 +2399,7 @@ describe('Историк', () => {
 });
 
 describe('Впятером', () => {
-  it('у явочных адресов +1 место; Единомышленников, как всегда, 5; Ростков — по числу игроков и ещё 2', () => {
+  it('у явочных адресов +1 место; Единомышленников, как всегда, 5; Ростков — по числу игроков и ещё 1', () => {
     const s = createGame({ players: players(5), seed: 3, mode: 'full' });
     expect(s.players).toHaveLength(5);
     for (const p of s.players) expect(p.workers).toBe(RULES.startWorkers);
@@ -2803,12 +2803,23 @@ describe('Контора без проигрыша по числу удержа�
   });
 });
 
+describe('Цензура впятером', () => {
+  it('впятером растёт каждую Пятилетку, вчетвером — не всегда', () => {
+    const steps = (n: number, seed: number) => {
+      const s = playOut(createGame({ players: players(n), seed, mode: 'full' }), seeded(seed), 5000, 'random');
+      return s.log.filter((l) => l.text.startsWith('Цензура усилилась')).length;
+    };
+    for (const seed of [1, 2]) expect(steps(5, seed)).toBe(4);
+    expect([1, 2, 3, 4].map((sd) => steps(4, sd)).some((x) => x < 4)).toBe(true);
+  });
+});
+
 describe('Ростки по числу игроков', () => {
-  it('впятером Ростков на 2 больше (на четверых — по числу игроков)', () => {
+  it('впятером Ростков на 1 больше (на четверых — по числу игроков)', () => {
     const count = (n: number) => createGame({ players: players(n), seed: 1, mode: 'full' }).sprouts.length;
     expect(count(4)).toBe(4);
     expect(count(5)).toBe(5 + RULES.extraSproutsByPlayers[5]);
-    expect(RULES.extraSproutsByPlayers[5]).toBe(2);
+    expect(RULES.extraSproutsByPlayers[5]).toBe(1);
   });
 });
 

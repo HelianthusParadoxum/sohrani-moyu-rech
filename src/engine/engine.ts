@@ -862,7 +862,8 @@ function changeRound(state: GameState) {
   const prevCensorship = state.censorship;
   const next = state.censorshipPool.find((t) => t === state.censorship + 1);
   if (next !== undefined) {
-    const pick = state.solo || RULES.censorshipAlwaysUp ? next : random(state) < 0.5 ? state.censorship : next;
+    const always = state.solo || RULES.censorshipAlwaysUp || (RULES.censorshipAlwaysUpPlayers > 0 && state.players.length >= RULES.censorshipAlwaysUpPlayers);
+    const pick = always ? next : random(state) < 0.5 ? state.censorship : next;
     if (pick === next) {
       state.censorshipPool = state.censorshipPool.filter((t) => t !== next).concat(state.censorship);
       state.censorship = next;
