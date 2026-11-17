@@ -66,7 +66,7 @@ export const RULES = {
   safehousePrice: 3, // Наследники
   posrednichestvoPrice: 2, // Посредничество авторам
   raspredelitelPrice: 2, // книга Распределителя
-  banyaPrice: 2, // Баня: цена захода
+  banyaPrice: 1, // Баня: цена захода (было 2)
   banyaDraw: 3, // Баня: сколько Завсегдатаев сверху колоды смотрит игрок
   utsenkaPrice: 1, // Уценка: цена одной покупки (до utsenkaPerBuy книг)
   spisaniePrice: 1, // Библиотечное списание
