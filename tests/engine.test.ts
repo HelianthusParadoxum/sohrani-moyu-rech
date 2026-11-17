@@ -2399,7 +2399,7 @@ describe('Историк', () => {
 });
 
 describe('Впятером', () => {
-  it('у явочных адресов +1 место; Единомышленников, как всегда, 5; Ростков — по числу игроков и ещё 1', () => {
+  it('у явочных адресов +1 место; Единомышленников, как всегда, 5; Ростков — по числу игроков и ещё 2', () => {
     const s = createGame({ players: players(5), seed: 3, mode: 'full' });
     expect(s.players).toHaveLength(5);
     for (const p of s.players) expect(p.workers).toBe(RULES.startWorkers);
@@ -2815,11 +2815,11 @@ describe('Цензура впятером', () => {
 });
 
 describe('Ростки по числу игроков', () => {
-  it('впятером Ростков на 1 больше (на четверых — по числу игроков)', () => {
+  it('впятером Ростков на 2 больше (на четверых — по числу игроков)', () => {
     const count = (n: number) => createGame({ players: players(n), seed: 1, mode: 'full' }).sprouts.length;
     expect(count(4)).toBe(4);
     expect(count(5)).toBe(5 + RULES.extraSproutsByPlayers[5]);
-    expect(RULES.extraSproutsByPlayers[5]).toBe(1);
+    expect(RULES.extraSproutsByPlayers[5]).toBe(2);
   });
 });
 
